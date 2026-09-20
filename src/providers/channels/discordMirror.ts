@@ -62,6 +62,44 @@ export class DiscordMirrorProvider implements ChannelProvider {
     for (const h of this.eventHandlers) await h(event);
   }
 
+  async ingestInboundInteraction(interaction: {
+    interactionId: string;
+    guildId: string;
+    channelId: string;
+    userId: string;
+    username?: string;
+    command?: string;
+    customId?: string;
+    actionPayload?: Record<string, unknown>;
+  }): Promise<void> {
+    if (interaction.command) {
+      const event: InboundChannelEvent = {
+        id: `discord-cmd-${interaction.interactionId}`,
+        provider: "discord",
+        eventType: "command",
+        externalWorkspaceId: interaction.guildId,
+        externalChannelId: interaction.channelId,
+        externalUserId: interaction.userId,
+        externalUsername: interaction.username || interaction.userId,
+        payload: {
+          command: interaction.command.startsWith("/") ? interaction.command : `/${interaction.command}`,
+          commandArgs: [],
+        },
+        timestamp: new Date().toISOString(),
+      };
+      for (const h of this.eventHandlers) await h(event);
+      return;
+    }
+
+    if (interaction.customId) {
+      return this.ingestInteraction({
+        ...interaction,
+        username: interaction.username || interaction.userId,
+        customId: interaction.customId,
+      });
+    }
+  }
+
   async sendMessage(message: OutboundChannelMessage): Promise<{ externalMessageId: string }> {
     const externalMessageId = `discord-msg-${crypto.randomUUID().slice(0, 8)}`;
     this.sentMessages.push({

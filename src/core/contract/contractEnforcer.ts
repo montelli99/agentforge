@@ -111,4 +111,79 @@ export class ContractEnforcer {
 
     return { allowed: true, violations: [] };
   }
+
+  /**
+   * Validates individual path access for path traversal, protected files, and allowed boundary
+   */
+  validatePathAccess(
+    filePath: string,
+    accessType: "read" | "write",
+    contract: ExecutionContract,
+  ): { allowed: boolean; violation?: string } {
+    const normalized = filePath.replace(/\\/g, "/");
+
+    // 1. Check traversal or out-of-boundary escape
+    if (normalized.includes("..") || normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
+      return { allowed: false, violation: `Path outside allowed boundaries: path traversal detected (${filePath})` };
+    }
+
+    // 2. Check protected paths
+    const isProtected = contract.scope.protectedPaths.some(pattern => this.matchPathPattern(pattern, normalized));
+    if (isProtected) {
+      return { allowed: false, violation: `Access to protected path forbidden: ${filePath}` };
+    }
+
+    // 3. Check allowed paths
+    if (contract.scope.allowedPaths && contract.scope.allowedPaths.length > 0) {
+      const isAllowed = contract.scope.allowedPaths.some(pattern => this.matchPathPattern(pattern, normalized));
+      if (!isAllowed) {
+        return { allowed: false, violation: `Path outside allowed boundaries: ${filePath}` };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Validates shell/bash command against destructive patterns and contract authority
+   */
+  validateBashCommand(
+    command: string,
+    contract: ExecutionContract,
+  ): { allowed: boolean; violation?: string } {
+    const forbiddenPatterns = [
+      /rm\s+(-[a-zA-Z]*r[a-zA-Z]*f|--recursive|--force)/i,
+      /git\s+push.*(--force|-f\b)/i,
+      /drop\s+database/i,
+      /truncate\s+table/i,
+      /mkfs/i,
+      /dd\s+if=/i,
+      /:(){ :|:& };:/,
+    ];
+
+    for (const pat of forbiddenPatterns) {
+      if (pat.test(command)) {
+        return { allowed: false, violation: `Forbidden pattern detected in command: ${command}` };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Validates spend amount against contract budget
+   */
+  validateSpend(
+    amount: number,
+    contract: ExecutionContract,
+  ): { allowed: boolean; violation?: string } {
+    const limit = contract.budget?.maxSpendUsd;
+    if (limit !== undefined && amount > limit) {
+      return {
+        allowed: false,
+        violation: `Budget limit exceeded: requested $${amount.toFixed(2)} exceeds maximum $${limit.toFixed(2)}`,
+      };
+    }
+    return { allowed: true };
+  }
 }

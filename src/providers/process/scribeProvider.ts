@@ -30,8 +30,17 @@ export class ScribeProcessProvider implements ProcessKnowledgeProvider {
         const stepText = line.replace(/^(\d+\.|-|\*)\s+/, "");
         const stepId = `step-${stepSeq}`;
 
-        // Inspect for heuristic decision points or unresolved rules
-        const isDecision = stepText.toLowerCase().includes("if ") || stepText.includes("?");
+        const lower = stepText.toLowerCase();
+        const isDecision = lower.includes("if ") || stepText.includes("?");
+        const isDangerous =
+          lower.includes("delete") ||
+          lower.includes("deploy") ||
+          lower.includes("exfiltrate") ||
+          lower.includes("send bulk") ||
+          lower.includes("drop") ||
+          lower.includes("truncate") ||
+          lower.includes("destroy");
+
         const step: ProcessStep = {
           id: stepId,
           sequence: stepSeq,
@@ -41,7 +50,7 @@ export class ScribeProcessProvider implements ProcessKnowledgeProvider {
           permissionsRequired: [],
         };
 
-        if (stepText.toLowerCase().includes("crm") || stepText.toLowerCase().includes("database")) {
+        if (lower.includes("crm") || lower.includes("database")) {
           step.toolRequirements?.push("crm_client");
           step.permissionsRequired?.push("crm:write");
         }
@@ -57,14 +66,20 @@ export class ScribeProcessProvider implements ProcessKnowledgeProvider {
             ],
             requiresHumanReview: true,
           };
+        }
 
-          // Flag unresolved business rule if decision criteria is ambiguous
+        if (isDecision || isDangerous) {
           unresolvedRules.push({
             id: `rule-${crypto.randomUUID().slice(0, 8)}`,
             processId,
             stepId,
-            question: `What specific criteria govern: "${stepText}"?`,
-            description: "SOP shows action, but missing deterministic rule for autonomous agent execution.",
+            stepText,
+            question: isDangerous
+              ? `What explicit business authority permits destructive/external action: "${stepText}"?`
+              : `What specific criteria govern: "${stepText}"?`,
+            description: isDangerous
+              ? "SOP describes destructive or external action without verified business authority."
+              : "SOP shows action, but missing deterministic rule for autonomous agent execution.",
             severity: "blocker",
             resolved: false,
           });

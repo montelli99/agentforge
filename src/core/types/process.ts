@@ -66,6 +66,7 @@ export interface UnresolvedBusinessRule {
   id: string;
   processId: string;
   stepId: string;
+  stepText?: string;
   question: string;
   description: string;
   severity: "blocker" | "warning" | "advisory";
@@ -118,5 +119,6 @@ export interface AgentSpecification {
   requiredPermissions: string[];
   unresolvedRules: UnresolvedBusinessRule[];
   suggestedExecutionContract: Record<string, unknown>;
+  contractTemplate?: any;
   testScenarios: Array<{ name: string; input: string; expectedOutput: string }>;
 }

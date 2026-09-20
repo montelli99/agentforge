@@ -35,13 +35,21 @@ export class ProcessCompiler {
       // Check for privileged verbs that MUST have business rule backing
       const lower = step.instruction.toLowerCase();
       if (
-        (lower.includes("delete") || lower.includes("move lead") || lower.includes("transfer") || lower.includes("approve") || lower.includes("underwrite")) &&
+        (lower.includes("delete") ||
+          lower.includes("move lead") ||
+          lower.includes("transfer") ||
+          lower.includes("approve") ||
+          lower.includes("underwrite") ||
+          lower.includes("deploy") ||
+          lower.includes("exfiltrate") ||
+          lower.includes("send bulk")) &&
         !unresolvedRules.some(r => r.stepId === step.id)
       ) {
         unresolvedRules.push({
           id: `rule-auth-${step.id}`,
           processId: process.id,
           stepId: step.id,
+          stepText: step.instruction,
           question: `What explicit authorization criteria allows: "${step.instruction}"?`,
           description: "SOP describes action, but does not provide authoritative criteria for execution.",
           severity: "blocker",
@@ -61,22 +69,24 @@ export class ProcessCompiler {
       "You must NEVER exceed your ExecutionContract or perform actions lacking explicit business rules.",
     ].join("\n");
 
-    const suggestedContract: Partial<ExecutionContract> = {
+    const hasBlockers = unresolvedRules.some(r => !r.resolved);
+
+    const suggestedContract: any = {
       scope: {
         allowedPaths: ["workspace/**"],
         protectedPaths: [".env", "credentials/**", "production/**"],
       },
       authority: {
         externalMessage: false,
-        productionWrite: permissions.has("crm:write"),
-        deployment: false,
+        productionWrite: false, // Never authorized by SOP alone
+        deployment: false, // Never authorized by SOP alone
         forcePush: false,
         deleteFiles: false,
         networkOutbound: true,
       },
       completion: {
         requireEvidencePack: true,
-        requireHumanApproval: unresolvedRules.some(r => !r.resolved),
+        requireHumanApproval: hasBlockers,
       },
     };
 
@@ -88,6 +98,7 @@ export class ProcessCompiler {
       requiredPermissions: Array.from(permissions),
       unresolvedRules,
       suggestedExecutionContract: suggestedContract,
+      contractTemplate: suggestedContract,
       testScenarios: [
         {
           name: "Standard Process Flow",

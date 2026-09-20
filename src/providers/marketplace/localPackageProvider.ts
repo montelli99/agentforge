@@ -98,6 +98,42 @@ export class LocalPackageProvider {
   }
 
   /**
+   * Validates package manifest and security boundaries against an ExecutionContract
+   */
+  validatePackage(
+    manifest: PackageManifest,
+    contract?: ExecutionContract,
+  ): {
+    valid: boolean;
+    violations: string[];
+    errors: string[];
+    warnings: string[];
+  } {
+    const violations: string[] = [];
+    const baseVal = this.validateManifest(manifest);
+    violations.push(...baseVal.errors);
+
+    if (contract) {
+      if (manifest.permissions?.git?.forcePush && !contract.authority.forcePush) {
+        violations.push("Package requests unauthorized git force-push forbidden by contract");
+      }
+      if (manifest.permissions?.deployment?.production && !contract.authority.deployment) {
+        violations.push("Package requests unauthorized production deployment forbidden by contract");
+      }
+      if (manifest.permissions?.filesystem?.additionalPaths && manifest.permissions.filesystem.additionalPaths.length > 0) {
+        violations.push("Package requests unauthorized additionalPaths outside workspace boundary");
+      }
+    }
+
+    return {
+      valid: violations.length === 0,
+      violations,
+      errors: violations,
+      warnings: [],
+    };
+  }
+
+  /**
    * Installs a validated package locally
    */
   installPackage(params: {
