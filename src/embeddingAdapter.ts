@@ -101,38 +101,58 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
       await this.initializeOllama();
       return;
     }
-    try {
-      const openclawEmbeddings = await import("file:///C:/Users/mscott/AI_Workspace/OpenClaw/src/memory/embeddings.js");
-
-      const providerResult = await openclawEmbeddings.createEmbeddingProvider({
-        config: {} as any,
-        provider: this.status.provider as any,
-        model: this.status.model,
-        fallback: "none",
-        remote: this.status.provider !== "local" ? {
-          apiKey: this.status.apiKey,
-          baseUrl: this.status.baseUrl,
-        } : undefined,
-      });
-
-      if (providerResult.provider) {
-        this.provider = providerResult.provider as unknown as OpenClawEmbeddingProvider;
-        this.status.active = true;
-        this.status.mode = "real";
-        this.status.provider = providerResult.provider.id;
-        this.status.model = providerResult.provider.model;
-
-        if (providerResult.provider.maxInputTokens) {
-          this.status.dimension = 1536;
+    if (this.status.provider === "openai" && process.env.OPENAI_API_KEY) {
+      try {
+        const apiKey = process.env.OPENAI_API_KEY;
+        const model = this.status.model || "text-embedding-3-small";
+        const res = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ model, input: "probe" }),
+        });
+        if (res.ok) {
+          const json = await res.json() as { data: Array<{ embedding: number[] }> };
+          if (json.data?.[0]?.embedding) {
+            this.status.active = true;
+            this.status.mode = "real";
+            this.status.provider = "openai";
+            this.status.model = model;
+            this.status.dimension = json.data[0].embedding.length;
+            this.provider = {
+              id: "openai",
+              model,
+              embedQuery: async (text: string) => {
+                const queryRes = await fetch("https://api.openai.com/v1/embeddings", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                  body: JSON.stringify({ model, input: text }),
+                });
+                const qJson = await queryRes.json() as { data: Array<{ embedding: number[] }> };
+                return qJson.data[0].embedding;
+              },
+              embedBatch: async (texts: string[]) => {
+                const batchRes = await fetch("https://api.openai.com/v1/embeddings", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                  body: JSON.stringify({ model, input: texts }),
+                });
+                const bJson = await batchRes.json() as { data: Array<{ embedding: number[] }> };
+                return bJson.data[0].embedding;
+              },
+            };
+            console.log(`[AgentForge] Native OpenAI embedding provider active: openai/${model}`);
+            return;
+          }
         }
-
-        console.log(`[AgentForge] Real embedding provider active: ${this.status.provider}/${this.status.model}`);
-      } else {
-        console.log(`[AgentForge] No embedding provider available, using hash fallback: ${providerResult.fallbackReason || "unknown"}`);
+      } catch (err) {
+        console.log(`[AgentForge] OpenAI embedding probe failed: ${err}`);
       }
-    } catch (error) {
-      console.log(`[AgentForge] Embedding provider initialization failed, using hash fallback: ${error}`);
     }
+    // Clean fallback to hash embeddings without external dependencies
+    console.log(`[AgentForge] Standalone embedding mode active (hash-fallback)`);
   }
 
   private async initializeOllama(): Promise<void> {
