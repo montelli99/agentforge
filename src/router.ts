@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../OpenClaw/src/agents/defaults.js";
+export const DEFAULT_PROVIDER = "openai";
+export const DEFAULT_MODEL = "gpt-4o-mini";
 import { validateEnvelope, translateEnvelope } from "./adapters.js";
 import { PolicyEngine } from "./policy.js";
 import { ReflectionEngine } from "./reflection.js";
