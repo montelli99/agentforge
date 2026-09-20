@@ -16,3 +16,11 @@ export * from "./memory/operationalMemory.js";
 export * from "./channels/telegramMirror.js";
 export * from "./channels/discordMirror.js";
 export * from "./channels/nativeWebChannel.js";
+
+// Extension providers
+export * from "./process/scribeProvider.js";
+export * from "./process/processCompiler.js";
+export * from "./voice/mockVoiceProvider.js";
+export * from "./voice/retellVoiceProvider.js";
+export * from "./marketplace/localPackageProvider.js";
+export * from "./benchmark/benchmarkRunner.js";
