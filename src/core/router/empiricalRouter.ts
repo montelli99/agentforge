@@ -3,13 +3,28 @@
  * Section 5: Model Strategy (Tier 0 to Tier 4)
  * Section 31: Model Selector (Preserve Pluggability)
  * Section 32: Harness Benchmarking
+ * Section 33 & 34: Empirical Router Reality & Honest Cost Accounting
  * Section 48 & 49: Benchmark Domain & Empirical Routing
  * 
  * "Use the cheapest demonstrated-capable model/harness combination for each task."
- * Does NOT rely on marketing claims — consults measured BenchmarkResult history.
+ * Accurately distinguishes API_COST vs COMPUTE_COST_ESTIMATE vs POWER_COST_ESTIMATE vs ZERO_LOCAL.
+ * Distinguishes MEASURED vs CONFIGURED vs ESTIMATED vs UNKNOWN benchmark quality.
  */
 
 import type { BenchmarkResult, BenchmarkTarget, QualityThreshold } from "../types/benchmark.js";
+
+export type CostType =
+  | "API_COST"
+  | "COMPUTE_COST_ESTIMATE"
+  | "POWER_COST_ESTIMATE"
+  | "ZERO_LOCAL"
+  | "UNKNOWN";
+
+export type QualityMeasurementStatus =
+  | "MEASURED"
+  | "CONFIGURED"
+  | "ESTIMATED"
+  | "UNKNOWN";
 
 export interface TaskRequirements {
   taskType: "code_generation" | "bug_fix" | "refactor" | "sop_compilation" | "general_qa" | "voice_agent";
@@ -33,6 +48,7 @@ export interface CandidateTarget {
     toolCalling: boolean;
     maxContextTokens: number;
   };
+  costType: CostType;
   costPer1kTokensUsd: number;
 }
 
@@ -41,6 +57,8 @@ export interface EmpiricalRoutingDecision {
   selectedTargetId: string;
   selectedTier: number;
   estimatedCostUsd: number;
+  costType: CostType;
+  qualityStatus: QualityMeasurementStatus;
   measuredPassRate: number;
   decisionRule: string;
   rationale: string;
@@ -64,6 +82,7 @@ export class EmpiricalRouter {
         provider: "internal",
         tier: 0,
         capabilities: { structuredOutput: true, toolCalling: false, maxContextTokens: 4096 },
+        costType: "ZERO_LOCAL",
         costPer1kTokensUsd: 0.0,
       },
       {
@@ -73,6 +92,7 @@ export class EmpiricalRouter {
         provider: "local",
         tier: 1,
         capabilities: { structuredOutput: true, toolCalling: false, maxContextTokens: 2048 },
+        costType: "POWER_COST_ESTIMATE",
         costPer1kTokensUsd: 0.0001,
       },
       {
@@ -82,6 +102,7 @@ export class EmpiricalRouter {
         provider: "ollama",
         tier: 2,
         capabilities: { structuredOutput: true, toolCalling: true, maxContextTokens: 32768 },
+        costType: "POWER_COST_ESTIMATE", // Local inference has $0 API cost, only power estimate
         costPer1kTokensUsd: 0.0005,
       },
       {
@@ -91,6 +112,7 @@ export class EmpiricalRouter {
         provider: "ollama",
         tier: 3,
         capabilities: { structuredOutput: true, toolCalling: true, maxContextTokens: 65536 },
+        costType: "POWER_COST_ESTIMATE",
         costPer1kTokensUsd: 0.002,
       },
       {
@@ -100,6 +122,7 @@ export class EmpiricalRouter {
         provider: "openai",
         tier: 4,
         capabilities: { structuredOutput: true, toolCalling: true, maxContextTokens: 128000 },
+        costType: "API_COST", // Cloud API token billing
         costPer1kTokensUsd: 0.015,
       },
     ];
@@ -120,9 +143,10 @@ export class EmpiricalRouter {
   /**
    * Route a task using empirical benchmark evidence:
    * 1. Determine minimum acceptable quality threshold by risk tier.
-   * 2. Filter candidates supporting required capabilities (context size, tool use, structured output).
-   * 3. Select lowest-cost candidate demonstrating pass rate >= threshold.
-   * 4. Fallback to frontier cloud (Tier 4) if no cheaper candidate meets threshold.
+   * 2. Filter candidates supporting required capabilities.
+   * 3. Score against measured benchmarks (distinguishing MEASURED vs CONFIGURED).
+   * 4. Conservative routing for high/critical risk if benchmarks are unmeasured.
+   * 5. Select lowest-cost candidate demonstrating pass rate >= threshold.
    */
   route(requirements: TaskRequirements, taskId?: string): EmpiricalRoutingDecision {
     // 1. Threshold by risk
@@ -145,12 +169,29 @@ export class EmpiricalRouter {
     // 3. Score against benchmark history
     const scored = capable.map(candidate => {
       const results = this.benchmarkHistory.filter(b => b.target.name === candidate.name);
-      const measuredPassRate = results.length > 0
-        ? results.reduce((acc, r) => acc + (r.passRate || 0), 0) / results.length
-        : candidate.tier === 4 ? 0.99 : 0.60; // Baseline assumption if unmeasured
+      let measuredPassRate: number;
+      let qualityStatus: QualityMeasurementStatus;
+
+      if (results.length > 0) {
+        measuredPassRate = results.reduce((acc, r) => acc + (r.passRate || 0), 0) / results.length;
+        qualityStatus = "MEASURED";
+      } else {
+        // Unmeasured candidate: conservative fallback
+        // Section 33: "If benchmark data is missing: do not pretend model is qualified. Route conservatively."
+        if (candidate.tier === 4) {
+          measuredPassRate = 0.99;
+          qualityStatus = "CONFIGURED"; // Frontier cloud configured baseline
+        } else {
+          // Conservative unmeasured score
+          measuredPassRate = requirements.risk === "high" || requirements.risk === "critical" ? 0.40 : 0.60;
+          qualityStatus = "ESTIMATED";
+        }
+      }
+
       return {
         candidate,
         measuredPassRate,
+        qualityStatus,
       };
     });
 
@@ -173,9 +214,11 @@ export class EmpiricalRouter {
       selectedTargetId: winner.candidate.id,
       selectedTier: winner.candidate.tier,
       estimatedCostUsd: Number(estimatedCost.toFixed(6)),
+      costType: winner.candidate.costType,
+      qualityStatus: winner.qualityStatus,
       measuredPassRate: Number(winner.measuredPassRate.toFixed(3)),
       decisionRule: `min_pass_rate>=${minPassRate} & cost_minimized`,
-      rationale: `Selected [${winner.candidate.name}] (Tier ${winner.candidate.tier}) at $${winner.candidate.costPer1kTokensUsd}/1k tokens. Measured benchmark pass rate: ${(winner.measuredPassRate * 100).toFixed(1)}% satisfies risk [${requirements.risk.toUpperCase()}] threshold ${(minPassRate * 100).toFixed(0)}%.`,
+      rationale: `Selected [${winner.candidate.name}] (Tier ${winner.candidate.tier}) with cost type [${winner.candidate.costType}] at $${winner.candidate.costPer1kTokensUsd}/1k. Benchmark quality: ${(winner.measuredPassRate * 100).toFixed(1)}% [${winner.qualityStatus}] satisfies risk [${requirements.risk.toUpperCase()}] threshold ${(minPassRate * 100).toFixed(0)}%.`,
       fallbackTargetIds: fallbacks,
     };
   }

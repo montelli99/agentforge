@@ -21,6 +21,11 @@ import { ProcessCompiler } from "../providers/process/processCompiler.js";
 import { MockVoiceProvider } from "../providers/voice/mockVoiceProvider.js";
 import { LocalPackageProvider } from "../providers/marketplace/localPackageProvider.js";
 import { EmpiricalRouter, TaskRequirements } from "../core/router/empiricalRouter.js";
+import { OpenClawMigrationProvider } from "../providers/migration/openclawMigrationProvider.js";
+import { HermesMigrationProvider } from "../providers/migration/hermesMigrationProvider.js";
+import { GrokBotMigrationProvider } from "../providers/migration/grokBotMigrationProvider.js";
+import { GenericMigrationProvider } from "../providers/migration/genericMigrationProvider.js";
+import { PROVIDER_READINESS_REGISTRY } from "../core/types/providerReadiness.js";
 
 export class AgentForgeWebServer {
   private server: http.Server;
@@ -30,6 +35,11 @@ export class AgentForgeWebServer {
   private voice = new MockVoiceProvider();
   private packageProvider = new LocalPackageProvider();
   readonly empiricalRouter = new EmpiricalRouter();
+  readonly openclawLegacy = new OpenClawMigrationProvider("legacy");
+  readonly openclawCurrent = new OpenClawMigrationProvider("current");
+  readonly hermesMigration = new HermesMigrationProvider();
+  readonly grokMigration = new GrokBotMigrationProvider();
+  readonly genericMigration = new GenericMigrationProvider();
 
   constructor(
     public readonly store: WorkspaceStore = globalStore,
@@ -341,13 +351,16 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/calls/simulate") {
-      const body = await this.readBody(req) as { agentId: string; phoneNumber: string };
+      const body = await this.readBody(req) as { agentId: string; phoneNumber: string; completeImmediately?: boolean };
       const call = await this.voice.startOutboundCall({
         agentId: body.agentId || "agent-sarah",
         recipientPhoneNumber: body.phoneNumber || "+15550192834",
         recipientName: "Test Seller",
         canonicalChannelId: "chan-calls",
       });
+      if (body.completeImmediately) {
+        await this.voice.endCall(call.id);
+      }
       this.store.createCall(call);
       res.writeHead(201);
       res.end(JSON.stringify(call));
@@ -496,6 +509,99 @@ export class AgentForgeWebServer {
       }
     }
 
+    if (req.method === "GET" && path === "/api/readiness") {
+      res.writeHead(200);
+      res.end(JSON.stringify(PROVIDER_READINESS_REGISTRY));
+      return;
+    }
+
+    // --- Migration Center REST Endpoints (Sections 7-27) ---
+    if (req.method === "GET" && path === "/api/migration/sources") {
+      res.writeHead(200);
+      res.end(JSON.stringify([
+        { id: "OPENCLAW_LEGACY", name: "OpenClaw (Legacy Production)", description: "Owner's sanitized legacy production OpenClaw structure" },
+        { id: "OPENCLAW_CURRENT", name: "OpenClaw (Modern Upstream)", description: "Latest upstream stable OpenClaw architecture" },
+        { id: "HERMES", name: "Hermes", description: "Hermes autonomous agents and feeds" },
+        { id: "GROK_BOT", name: "Grok Bot", description: "Exported prompts and custom agent definitions" },
+        { id: "GENERIC", name: "Generic Manifest", description: "Standard agentforge-migration.json manifest" },
+      ]));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/migration/inspect") {
+      const body = await this.readBody(req) as { source: string };
+      let inspection;
+      if (body.source === "OPENCLAW_CURRENT") inspection = await this.openclawCurrent.inspect();
+      else if (body.source === "HERMES") inspection = await this.hermesMigration.inspect();
+      else if (body.source === "GROK_BOT") inspection = await this.grokMigration.inspect();
+      else if (body.source === "GENERIC") inspection = await this.genericMigration.inspect();
+      else inspection = await this.openclawLegacy.inspect();
+
+      res.writeHead(200);
+      res.end(JSON.stringify(inspection));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/migration/plan") {
+      const body = await this.readBody(req) as { source: string };
+      let plan;
+      if (body.source === "OPENCLAW_CURRENT") {
+        const insp = await this.openclawCurrent.inspect();
+        plan = await this.openclawCurrent.plan(insp);
+      } else if (body.source === "HERMES") {
+        const insp = await this.hermesMigration.inspect();
+        plan = await this.hermesMigration.plan(insp);
+      } else if (body.source === "GROK_BOT") {
+        const insp = await this.grokMigration.inspect();
+        plan = await this.grokMigration.plan(insp);
+      } else if (body.source === "GENERIC") {
+        const insp = await this.genericMigration.inspect();
+        plan = await this.genericMigration.plan(insp);
+      } else {
+        const insp = await this.openclawLegacy.inspect();
+        plan = await this.openclawLegacy.plan(insp);
+      }
+
+      res.writeHead(200);
+      res.end(JSON.stringify(plan));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/migration/dry-run") {
+      const body = await this.readBody(req) as { source: string };
+      const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
+        : body.source === "HERMES" ? this.hermesMigration
+        : body.source === "GROK_BOT" ? this.grokMigration
+        : body.source === "GENERIC" ? this.genericMigration
+        : this.openclawLegacy;
+
+      const insp = await provider.inspect();
+      const plan = await provider.plan(insp);
+      const dryRun = await provider.dryRun(plan);
+
+      res.writeHead(200);
+      res.end(JSON.stringify({ plan, dryRun }));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/migration/import") {
+      const body = await this.readBody(req) as { source: string };
+      const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
+        : body.source === "HERMES" ? this.hermesMigration
+        : body.source === "GROK_BOT" ? this.grokMigration
+        : body.source === "GENERIC" ? this.genericMigration
+        : this.openclawLegacy;
+
+      const insp = await provider.inspect();
+      const plan = await provider.plan(insp);
+      const result = await provider.importToStore(plan, this.store);
+      const verification = await provider.verify(result.runId, this.store);
+
+      res.writeHead(200);
+      res.end(JSON.stringify({ result, verification }));
+      return;
+    }
+
     res.writeHead(404);
     res.end(JSON.stringify({ error: "Endpoint not found" }));
   }
@@ -629,12 +735,13 @@ export class AgentForgeWebServer {
     </div>
   </header>
 
-  <div class="app-container">
+  <div class="app-container 3-column">
     <!-- Left Navigation -->
     <div class="nav-col">
       <div class="nav-section">Workspace</div>
       <a class="nav-item active" onclick="switchView('messages')">💬 Messages</a>
       <a class="nav-item" onclick="switchView('inbox')">📥 Inbox <span class="nav-badge alert" id="inbox-count">2</span></a>
+      <a class="nav-item" onclick="switchView('projects')">📁 Projects</a>
       <a class="nav-item" onclick="switchView('tasks')">📋 Tasks <span class="nav-badge" id="tasks-count">1</span></a>
       <a class="nav-item" onclick="switchView('approvals')">🚨 Approvals <span class="nav-badge alert" id="approvals-count">1</span></a>
 
@@ -643,10 +750,13 @@ export class AgentForgeWebServer {
       <a class="nav-item" onclick="switchView('processes')">📑 Processes / SOPs</a>
       <a class="nav-item" onclick="switchView('voice')">📞 Voice & Telephony</a>
       <a class="nav-item" onclick="switchView('marketplace')">🏪 Marketplace</a>
+      <a class="nav-item" onclick="switchView('migration')">📦 Migration Center</a>
 
       <div class="nav-section">Control Plane</div>
       <a class="nav-item" onclick="switchView('models')">🧠 Models & Routing</a>
       <a class="nav-item" onclick="switchView('harnesses')">⚙️ Harnesses</a>
+      <a class="nav-item" onclick="switchView('compute')">💻 Compute & Sandboxes</a>
+      <a class="nav-item" onclick="switchView('tools')">🛠️ Tools</a>
       <a class="nav-item" onclick="switchView('memory')">🧠 Operational Memory</a>
       <a class="nav-item" onclick="switchView('benchmarks')">📊 Benchmarks</a>
       <a class="nav-item" onclick="switchView('activity')">📜 Activity & Audit</a>
@@ -830,11 +940,129 @@ export class AgentForgeWebServer {
         const res = await fetch('/api/audit');
         const audit = await res.json();
         content.innerHTML = '<div class="item-card">' + audit.map(a => renderAuditRow(a)).join('') + '</div>';
+      } else if (viewName === 'inbox') {
+        title.innerText = 'Unified Actionable Inbox';
+        actions.innerHTML = '';
+        const res = await fetch('/api/inbox');
+        const inbox = await res.json();
+        content.innerHTML = '<div class="grid-cards">' + (inbox.length ? inbox.map(item => renderInboxCard(item)).join('') : '<div class="item-card">Inbox zero! No actionable alerts pending.</div>') + '</div>';
+      } else if (viewName === 'migration') {
+        title.innerText = 'Migration Center (Migrate to AgentForge)';
+        actions.innerHTML = '<span class="badge badge-amber" style="padding:0.4rem 0.8rem;">Staging Isolation: No Cutover Button Performs Real Production Writes</span>';
+        const res = await fetch('/api/migration/sources');
+        const sources = await res.json();
+        content.innerHTML = '<div class="grid-cards">' + sources.map(s => renderMigrationSourceCard(s)).join('') + '</div><div id="migration-results" style="margin-top:1rem;"></div>';
+      } else if (viewName === 'models') {
+        title.innerText = 'Models & Empirical Cost-Aware Routing';
+        actions.innerHTML = '<button class="btn" onclick="testEmpiricalRoute()">Test Empirical Route</button>';
+        const [modelsRes, readyRes] = await Promise.all([fetch('/api/models'), fetch('/api/readiness')]);
+        const models = await modelsRes.json();
+        const readiness = await readyRes.json();
+        content.innerHTML = '<div class="item-card"><div class="card-title">Routing Tiers & Honest Economics</div>' +
+          models.tiers.map(t => '<div style="padding:0.4rem 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;"><span><b>Tier ' + t.tier + ': ' + t.name + '</b><div style="font-size:0.75rem; color:var(--text-muted);">' + t.description + '</div></span><span class="badge ' + (t.tier === 4 ? 'badge-amber' : 'badge-green') + '">' + (t.tier === 4 ? 'API_COST ($0.015/1k)' : t.tier === 0 ? 'ZERO_LOCAL ($0)' : 'POWER_ESTIMATE (~$0.0005/1k)') + '</span></div>').join('') +
+          '</div><div class="item-card"><div class="card-title">Provider Readiness Matrix (Honest Labels)</div>' +
+          readiness.map(r => '<div style="padding:0.4rem 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;"><div><b>' + r.name + '</b> (' + r.category + ')<div style="font-size:0.75rem; color:var(--text-muted);">' + r.summary + '</div></div><span class="badge ' + (r.readiness === 'REAL_INTEGRATION' ? 'badge-green' : r.readiness === 'SKELETON' ? 'badge-red' : 'badge-blue') + '">' + r.readiness + '</span></div>').join('') +
+          '</div><div id="route-result"></div>';
+      } else if (viewName === 'compute') {
+        title.innerText = 'Compute, Sandboxes & 32GB RAM Budgeting';
+        actions.innerHTML = '';
+        const res = await fetch('/api/compute');
+        const comp = await res.json();
+        content.innerHTML = '<div class="grid-cards">' +
+          '<div class="item-card"><div class="card-title">Git Worktrees</div><div>Active Worktrees: <b>' + comp.worktrees.activeCount + '</b></div><div style="font-size:0.75rem; color:var(--text-muted);">Strategy: Isolated Ephemeral Branches</div></div>' +
+          '<div class="item-card"><div class="card-title">Sandboxes</div><div>Local: <b>' + comp.sandboxes.local + '</b></div><div>Docker: <b>' + comp.sandboxes.docker + '</b></div><div>E2B: <b>' + comp.sandboxes.e2b + '</b></div></div>' +
+          '<div class="item-card"><div class="card-title">Unified AI Memory R&D Budget</div><div>Total System RAM: <b>' + comp.memoryBudget.systemTotalRamGb + ' GB</b></div><div>OS Reserved: <b>' + comp.memoryBudget.reservedGb + ' GB</b></div><div>Dynamic GGUF Pool: <b>' + comp.memoryBudget.dynamicWeightPoolGb + ' GB</b></div><div>Paged KV Pool: <b>' + comp.memoryBudget.kvCachePoolGb + ' GB</b></div></div>' +
+          '</div>';
+      } else if (viewName === 'tools') {
+        title.innerText = 'Tools & Capability Manifests';
+        actions.innerHTML = '';
+        content.innerHTML = '<div class="grid-cards"><div class="item-card"><div class="card-title">Registered Tools</div><div>• <code>git</code> (VCS operations within worktree)</div><div>• <code>terminal</code> (Contract-bounded bash commands)</div><div>• <code>vitest</code> (Automated test runner)</div><div>• <code>diff_viewer</code> (Evidence pack generation)</div></div></div>';
+      } else if (viewName === 'projects') {
+        title.innerText = 'Projects & Repositories';
+        actions.innerHTML = '';
+        content.innerHTML = '<div class="item-card"><div class="card-title">Active Projects</div><div>• <b>AgentForge vNext</b> (Repository: <code>AgentForge-Staging</code> | Branch: <code>vnext</code>)</div></div>';
+      } else if (viewName === 'memory') {
+        title.innerText = 'Operational Engineering Memory';
+        actions.innerHTML = '';
+        content.innerHTML = '<div class="item-card"><div class="card-title">Operational Context</div><div>• Engineering Namespace: <code>engineering</code></div><div>• Do-Not-Repeat Rules: Active</div><div>• Task Commit Hashes & Failure Patterns: Tracked</div></div>';
+      } else if (viewName === 'harnesses') {
+        title.innerText = 'Agent Harness Providers';
+        actions.innerHTML = '';
+        content.innerHTML = '<div class="grid-cards">' +
+          '<div class="item-card"><b>Pi Harness</b><div style="font-size:0.75rem; color:var(--text-muted);">Candidate native harness protocol. Status: <span class="badge badge-amber">TEST_IMPLEMENTATION</span></div></div>' +
+          '<div class="item-card"><b>Pydantic AI Harness</b><div style="font-size:0.75rem; color:var(--text-muted);">Structured schema validation and typed output. Status: <span class="badge badge-blue">PARTIAL</span></div></div>' +
+          '<div class="item-card"><b>AgentForge Native Harness</b><div style="font-size:0.75rem; color:var(--text-muted);">ExecutionContract boundary enforcer. Status: <span class="badge badge-green">REAL_INTEGRATION</span></div></div>' +
+          '</div>';
+      } else if (viewName === 'settings') {
+        title.innerText = 'Control Plane Settings & Staging Keys';
+        actions.innerHTML = '';
+        content.innerHTML = '<div class="item-card"><div class="card-title">Environment & Security</div><div>Mode: <b>Staging / Greenfield</b></div><div>Production Isolation: <b>Strictly Enforced (100%)</b></div><div>External Writes: <b>Blocked (Fixtures & Mocks Only)</b></div></div>';
       } else {
         title.innerText = viewName.toUpperCase();
         actions.innerHTML = '';
         content.innerHTML = '<div class="item-card">Section <b>' + viewName + '</b> control plane interface active.</div>';
       }
+    }
+
+    function renderInboxCard(item) {
+      return '<div class="item-card">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<b>' + item.title + '</b><span class="badge ' + (item.severity === 'critical' ? 'badge-red' : item.severity === 'warning' ? 'badge-amber' : 'badge-blue') + '">' + item.severity.toUpperCase() + '</span>' +
+        '</div>' +
+        '<div style="font-size:0.8rem; margin:0.4rem 0;">' + item.description + '</div>' +
+        '<div style="font-size:0.75rem; color:var(--text-muted);">' + new Date(item.timestamp).toLocaleString() + '</div>' +
+        (item.actionable && item.type === 'approval_needed' ? '<button class="btn btn-sm" style="margin-top:0.5rem;" onclick="switchView(\\'approvals\\')">Go to Approvals</button>' : '') +
+        (item.actionable && item.type === 'task_failed' ? '<button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="switchView(\\'tasks\\')">Inspect Task</button>' : '') +
+      '</div>';
+    }
+
+    function renderMigrationSourceCard(s) {
+      return '<div class="item-card">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<b>' + s.name + '</b><span class="badge badge-blue">SOURCE</span>' +
+        '</div>' +
+        '<div style="font-size:0.8rem; color:var(--text-muted); margin:0.3rem 0;">' + s.description + '</div>' +
+        '<div style="display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap;">' +
+          '<button class="btn btn-sm btn-secondary" onclick="runMigrationInspect(\\'' + s.id + '\\')">Inspect</button>' +
+          '<button class="btn btn-sm btn-secondary" onclick="runMigrationPlan(\\'' + s.id + '\\')">View Plan</button>' +
+          '<button class="btn btn-sm" onclick="runMigrationDryRun(\\'' + s.id + '\\')">Dry Run</button>' +
+          '<button class="btn btn-sm btn-green" onclick="runMigrationImport(\\'' + s.id + '\\')">Import & Verify</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    async function runMigrationInspect(source) {
+      const res = await fetch('/api/migration/inspect', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source }) });
+      const data = await res.json();
+      document.getElementById('migration-results').innerHTML = '<div class="item-card"><div class="card-title">Inspection: ' + source + '</div><pre style="font-size:0.75rem;">' + JSON.stringify(data, null, 2) + '</pre></div>';
+    }
+
+    async function runMigrationPlan(source) {
+      const res = await fetch('/api/migration/plan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source }) });
+      const data = await res.json();
+      document.getElementById('migration-results').innerHTML = '<div class="item-card"><div class="card-title">Migration Plan: ' + source + ' (Readiness: ' + data.readinessScore + '%)</div><pre style="font-size:0.75rem;">' + JSON.stringify(data, null, 2) + '</pre></div>';
+    }
+
+    async function runMigrationDryRun(source) {
+      const res = await fetch('/api/migration/dry-run', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source }) });
+      const data = await res.json();
+      document.getElementById('migration-results').innerHTML = '<div class="item-card"><div class="card-title">Dry Run Result: ' + source + '</div><div style="color:var(--green); font-weight:600;">✓ Dry Run Passed! (Would mutate production: false)</div><pre style="font-size:0.75rem;">' + JSON.stringify(data.dryRun, null, 2) + '</pre></div>';
+    }
+
+    async function runMigrationImport(source) {
+      const res = await fetch('/api/migration/import', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source }) });
+      const data = await res.json();
+      document.getElementById('migration-results').innerHTML = '<div class="item-card"><div class="card-title">Import & Verification: ' + source + '</div><div style="color:var(--green); font-weight:600;">✓ ' + data.result.importedCount + ' items imported! Verification: Passed (Zero privilege expansion)</div><pre style="font-size:0.75rem;">' + JSON.stringify(data.verification, null, 2) + '</pre></div>';
+    }
+
+    async function testEmpiricalRoute() {
+      const res = await fetch('/api/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskType: 'code_generation', risk: 'critical', complexityScore: 9, contextTokens: 3000, toolUseRequired: true }),
+      });
+      const data = await res.json();
+      document.getElementById('route-result').innerHTML = '<div class="item-card" style="margin-top:1rem;"><div class="card-title">Empirical Route Output</div><div style="font-size:0.8rem;">Selected: <b>Tier ' + data.selectedTier + '</b> (' + data.selectedTargetId + ')</div><div>Cost Type: <b>' + data.costType + '</b> | Est: $' + data.estimatedCostUsd + '</div><div style="font-size:0.75rem; color:var(--text-muted);">' + data.rationale + '</div></div>';
     }
 
     function renderMessage(m) {

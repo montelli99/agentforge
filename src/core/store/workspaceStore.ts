@@ -227,12 +227,14 @@ export class WorkspaceStore {
 
   // --- Agents ---
   createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt">): AgentTeammate {
+    const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
     const fullAgent: AgentTeammate = {
       ...agent,
+      id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    this.agents.set(agent.id, fullAgent);
+    this.agents.set(id, fullAgent);
     this.emit("agent_created", "agent", fullAgent);
     return fullAgent;
   }
@@ -517,7 +519,7 @@ export class WorkspaceStore {
     return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
-  // --- Persistence ---
+  // --- Persistence & Atomic Durability (Section 40 & 41) ---
   saveToFile(filePath: string): void {
     const data = {
       workspaces: Array.from(this.workspaces.values()),
@@ -529,24 +531,56 @@ export class WorkspaceStore {
       processes: Array.from(this.processes.values()),
       calls: Array.from(this.calls.values()),
       packages: Array.from(this.packages.values()),
+      auditEntries: this.auditEntries.slice(-500),
     };
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+    const json = JSON.stringify(data, null, 2);
+    const tempPath = `${filePath}.tmp.${Date.now()}`;
+    const backupPath = `${filePath}.bak`;
+
+    // 1. Write to atomic temp file
+    fs.writeFileSync(tempPath, json, "utf-8");
+
+    // 2. Rotate backup if existing
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.copyFileSync(filePath, backupPath);
+      } catch {
+        // Ignore backup failure
+      }
+    }
+
+    // 3. Atomic rename
+    fs.renameSync(tempPath, filePath);
   }
 
   loadFromFile(filePath: string): void {
-    try {
-      const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      data.workspaces?.forEach((w: CanonicalWorkspace) => this.workspaces.set(w.id, w));
-      data.spaces?.forEach((s: CanonicalSpace) => this.spaces.set(s.id, s));
-      data.channels?.forEach((c: CanonicalChannel) => this.channels.set(c.id, c));
-      data.agents?.forEach((a: AgentTeammate) => this.agents.set(a.id, a));
-      data.tasks?.forEach((t: Task) => this.tasks.set(t.id, t));
-      data.approvals?.forEach((ap: ApprovalRequest) => this.approvals.set(ap.id, ap));
-      data.processes?.forEach((p: ProcessDefinition) => this.processes.set(p.id, p));
-      data.calls?.forEach((cl: Call) => this.calls.set(cl.id, cl));
-      data.packages?.forEach((pkg: PackageManifest) => this.packages.set(pkg.name, pkg));
-    } catch {
-      // Ignore corrupt or incomplete file in development
+    const tryLoad = (target: string): boolean => {
+      if (!fs.existsSync(target)) return false;
+      try {
+        const raw = fs.readFileSync(target, "utf-8");
+        if (!raw.trim()) return false;
+        const data = JSON.parse(raw);
+        data.workspaces?.forEach((w: CanonicalWorkspace) => this.workspaces.set(w.id, w));
+        data.spaces?.forEach((s: CanonicalSpace) => this.spaces.set(s.id, s));
+        data.channels?.forEach((c: CanonicalChannel) => this.channels.set(c.id, c));
+        data.agents?.forEach((a: AgentTeammate) => this.agents.set(a.id, a));
+        data.tasks?.forEach((t: Task) => this.tasks.set(t.id, t));
+        data.approvals?.forEach((ap: ApprovalRequest) => this.approvals.set(ap.id, ap));
+        data.processes?.forEach((p: ProcessDefinition) => this.processes.set(p.id, p));
+        data.calls?.forEach((cl: Call) => this.calls.set(cl.id, cl));
+        data.packages?.forEach((pkg: PackageManifest) => this.packages.set(pkg.name, pkg));
+        if (Array.isArray(data.auditEntries)) {
+          this.auditEntries = data.auditEntries;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Attempt primary, fall back to backup on partial/corrupt write
+    if (!tryLoad(filePath)) {
+      tryLoad(`${filePath}.bak`);
     }
   }
 }

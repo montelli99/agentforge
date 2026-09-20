@@ -59,6 +59,17 @@ export class UniversalMirrorRouter {
       event.externalChannelId,
     );
 
+    if (!canonicalChannel && event.provider === "telegram" && this.telegram) {
+      const binding = this.telegram.getBindingByTopic(event.externalWorkspaceId, Number(event.externalChannelId));
+      if (binding) {
+        canonicalChannel = this.store.getChannel(binding.canonicalChannelId);
+      }
+    }
+
+    if (!canonicalChannel && (event.externalChannelId === "1" || !event.externalChannelId)) {
+      canonicalChannel = this.store.getChannel("chan-general");
+    }
+
     if (!canonicalChannel) {
       // Find or create external space
       const spaces = this.store.listSpaces();

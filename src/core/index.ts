@@ -38,5 +38,8 @@ export * from "./worktree/worktreeManager.js";
 export * from "./evidence/evidencePackBuilder.js";
 export * from "./approvals/approvalEngine.js";
 export * from "./store/workspaceStore.js";
+export * from "./types/migration.js";
+export * from "./types/providerReadiness.js";
+export * from "./providers/migration.js";
 export * from "./mirror/universalMirrorRouter.js";
 export * from "./router/empiricalRouter.js";
