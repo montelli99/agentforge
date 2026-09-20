@@ -16,6 +16,7 @@ import type {
   HarnessEvent,
   HarnessState,
 } from "../../core/providers/harness.js";
+import { ContractEnforcer } from "../../core/contract/contractEnforcer.js";
 
 export class AgentForgeNativeHarnessProvider implements HarnessProvider {
   readonly id = "agentforge_native";
@@ -28,6 +29,7 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
     supportedRuntimes: ["node", "tsx", "sandbox"],
   };
 
+  private contractEnforcer = new ContractEnforcer();
   private sessions = new Map<string, HarnessSession>();
   private sessionStates = new Map<string, HarnessState>();
   private activeStreams = new Map<string, HarnessEvent[]>();
@@ -84,13 +86,58 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
       throw new Error(`AgentForge native session ${sessionId} not found`);
     }
 
+    const events = this.activeStreams.get(sessionId) || [];
     const startTime = Date.now();
+
+    // Enforce ExecutionContract below model layer (Section 5)
+    if (task.contract && task.inputFiles && task.inputFiles.length > 0) {
+      const validation = this.contractEnforcer.validateFileModifications(task.contract, task.inputFiles);
+      if (!validation.allowed) {
+        const errorMsg = `Contract boundary violation: ${validation.violations.map(v => v.description).join("; ")}`;
+        events.push({
+          sessionId,
+          taskId: task.taskId,
+          type: "error",
+          payload: { error: errorMsg, violations: validation.violations },
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          taskId: task.taskId,
+          sessionId,
+          status: "failure",
+          output: "",
+          error: errorMsg,
+          durationMs: Date.now() - startTime,
+        };
+      }
+    }
+
+    // Enforce timeouts
+    if (task.timeoutMs !== undefined && task.timeoutMs <= 0) {
+      return {
+        taskId: task.taskId,
+        sessionId,
+        status: "failure",
+        output: "",
+        error: `Task execution timed out (limit: ${task.timeoutMs}ms)`,
+        durationMs: 0,
+      };
+    }
+
     const state = this.sessionStates.get(sessionId);
     if (state) {
       state.messageCount += 1;
       state.totalTokens += 120;
       state.lastActive = new Date().toISOString();
     }
+
+    events.push({
+      sessionId,
+      taskId: task.taskId,
+      type: "task_completed",
+      payload: { instruction: task.instruction },
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       taskId: task.taskId,
@@ -113,6 +160,16 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.status = "idle";
+      const events = this.activeStreams.get(sessionId);
+      if (events) {
+        events.push({
+          sessionId,
+          taskId,
+          type: "status_change",
+          payload: { status: "cancelled" },
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 

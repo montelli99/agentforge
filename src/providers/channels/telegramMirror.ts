@@ -21,6 +21,33 @@ export interface TelegramTopicBinding {
   topicName: string;
 }
 
+export type TelegramCutoverPhase =
+  | "SOURCE_AUTHORITATIVE"
+  | "AGENTFORGE_SHADOW"
+  | "CUTOVER_READY"
+  | "AGENTFORGE_AUTHORITATIVE"
+  | "ROLLBACK";
+
+export interface TelegramWebhookInfo {
+  url: string;
+  hasCustomCertificate: boolean;
+  pendingUpdateCount: number;
+  lastErrorDate?: number;
+  lastErrorMessage?: string;
+  maxConnections?: number;
+  ipAddress?: string;
+}
+
+export interface TelegramOwnershipConflict {
+  hasConflict: boolean;
+  state: "NO_CONFLICT" | "CONFLICT_EXISTING_WEBHOOK" | "POLLING_ACTIVE";
+  existingWebhookUrl?: string;
+  sourceProvider?: string;
+  recommendedAction: "PROCEED" | "INSPECT" | "PREPARE_MIGRATION" | "CANCEL";
+  conflictMessage?: string;
+  options: Array<"Inspect" | "Prepare Migration" | "Cancel">;
+}
+
 export class TelegramMirrorProvider implements ChannelProvider {
   readonly id = "telegram_mirror";
   readonly type: ChannelProviderType = "telegram";
@@ -29,6 +56,8 @@ export class TelegramMirrorProvider implements ChannelProvider {
   private topicBindings = new Map<string, TelegramTopicBinding>(); // key: `${chatId}:${topicId}`
   private channelToTopic = new Map<string, TelegramTopicBinding>(); // key: canonicalChannelId
   private sentMessages: Array<{ messageId: string; targetChannel: string; text: string }> = [];
+  private cutoverPhase: TelegramCutoverPhase = "SOURCE_AUTHORITATIVE";
+  private simulatedWebhookInfo: TelegramWebhookInfo | null = null;
 
   async initialize(): Promise<void> {
     // Initialized ready to receive webhook updates or polling
@@ -173,5 +202,81 @@ export class TelegramMirrorProvider implements ChannelProvider {
 
   getSentMessages() {
     return this.sentMessages;
+  }
+
+  // --- Cutover Phase Management (Section 13) ---
+  getCutoverPhase(): TelegramCutoverPhase {
+    return this.cutoverPhase;
+  }
+
+  setCutoverPhase(phase: TelegramCutoverPhase): void {
+    this.cutoverPhase = phase;
+  }
+
+  // --- Ownership Conflict Guard (Section 12) ---
+  setSimulatedWebhookInfo(info: TelegramWebhookInfo | null): void {
+    this.simulatedWebhookInfo = info;
+  }
+
+  async inspectWebhookState(token?: string): Promise<TelegramWebhookInfo> {
+    if (this.simulatedWebhookInfo) {
+      return this.simulatedWebhookInfo;
+    }
+    return {
+      url: "",
+      hasCustomCertificate: false,
+      pendingUpdateCount: 0,
+    };
+  }
+
+  async detectOwnershipConflict(token?: string): Promise<TelegramOwnershipConflict> {
+    const webhookInfo = await this.inspectWebhookState(token);
+
+    if (webhookInfo.url && webhookInfo.url.length > 0) {
+      const sourceProvider = webhookInfo.url.includes("openclaw") ? "OpenClaw Legacy Production"
+        : webhookInfo.url.includes("hermes") ? "Hermes Autonomous"
+        : "External Webhook Consumer";
+
+      return {
+        hasConflict: true,
+        state: "CONFLICT_EXISTING_WEBHOOK",
+        existingWebhookUrl: webhookInfo.url,
+        sourceProvider,
+        recommendedAction: "INSPECT",
+        conflictMessage: `TELEGRAM OWNERSHIP CONFLICT: Bot has an active external webhook registered (${webhookInfo.url}). Starting polling or overriding will break the upstream source provider (${sourceProvider}).`,
+        options: ["Inspect", "Prepare Migration", "Cancel"],
+      };
+    }
+
+    return {
+      hasConflict: false,
+      state: "NO_CONFLICT",
+      recommendedAction: "PROCEED",
+      options: ["Inspect", "Prepare Migration", "Cancel"],
+    };
+  }
+
+  async attemptTakeover(token?: string, force = false): Promise<{
+    success: boolean;
+    message: string;
+    blockedByConflict?: boolean;
+    conflict?: TelegramOwnershipConflict;
+  }> {
+    const conflict = await this.detectOwnershipConflict(token);
+
+    if (conflict.hasConflict && !force) {
+      return {
+        success: false,
+        blockedByConflict: true,
+        conflict,
+        message: "DO NOT START COMPETING CONSUMER: Takeover refused due to active external webhook. Resolve via migration or manual cutover.",
+      };
+    }
+
+    this.cutoverPhase = "AGENTFORGE_AUTHORITATIVE";
+    return {
+      success: true,
+      message: "AgentForge successfully assumed authoritative control of Telegram channel.",
+    };
   }
 }

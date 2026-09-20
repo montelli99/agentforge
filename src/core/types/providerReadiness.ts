@@ -8,10 +8,19 @@
 
 export type ProviderReadiness =
   | "REAL_INTEGRATION"
+  | "PARTIAL_INTEGRATION"
   | "PARTIAL"
   | "MOCK"
   | "SKELETON"
-  | "TEST_IMPLEMENTATION";
+  | "TEST_IMPLEMENTATION"
+  | "NOT_CONFIGURED"
+  | "UNIMPLEMENTED";
+
+export interface CapabilityReadiness {
+  capability: string;
+  readiness: ProviderReadiness;
+  notes: string;
+}
 
 export interface ProviderReadinessInfo {
   providerId: string;
@@ -21,6 +30,7 @@ export interface ProviderReadinessInfo {
   summary: string;
   productionReady: boolean;
   notes: string;
+  capabilities?: CapabilityReadiness[];
 }
 
 export const PROVIDER_READINESS_REGISTRY: ProviderReadinessInfo[] = [
@@ -29,18 +39,18 @@ export const PROVIDER_READINESS_REGISTRY: ProviderReadinessInfo[] = [
     name: "Pi Harness Provider",
     category: "harness",
     readiness: "TEST_IMPLEMENTATION",
-    summary: "Simulated native Pi execution candidate with task lifecycle and resume tokens.",
+    summary: "Pi harness adapter contract and subprocess execution protocol.",
     productionReady: false,
-    notes: "Default candidate protocol implemented in staging. Real binary linkage requires packaging.",
+    notes: "Upstream official Pi package (@mariofg/pi or pi-ai) is not installed in local environment; clean public adapter and subprocess protocol active. Classified as TEST_IMPLEMENTATION pending packaging.",
   },
   {
     providerId: "harness-pydantic",
     name: "Pydantic AI Harness",
     category: "harness",
-    readiness: "PARTIAL",
-    summary: "Structured output validation, schema enforcement, and tool extraction layer.",
+    readiness: "NOT_CONFIGURED",
+    summary: "Structured output validation and schema enforcement layer (Python backend optional).",
     productionReady: false,
-    notes: "Validation contract active. Python backend service is pluggable via RPC/REST.",
+    notes: "Optional Python runtime not required for core AgentForge execution. When Python/pydantic service is absent, reports NOT_CONFIGURED (not BROKEN).",
   },
   {
     providerId: "harness-native",
@@ -56,27 +66,27 @@ export const PROVIDER_READINESS_REGISTRY: ProviderReadinessInfo[] = [
     name: "Jev Decision Provider",
     category: "decision",
     readiness: "TEST_IMPLEMENTATION",
-    summary: "In-memory fast System-1 intent and risk classifier.",
+    summary: "Standalone AgentForge-owned reference System-1 classifier.",
     productionReady: false,
-    notes: "Does NOT touch production Vercel. Simulates sub-50ms deterministic classification for staging.",
+    notes: "Does NOT touch production Vercel. Independent reference implementation without shared production credentials.",
   },
   {
     providerId: "model-ollama",
     name: "Ollama Model Provider",
     category: "generative_model",
-    readiness: "PARTIAL",
-    summary: "Local REST adapter for Ollama endpoint (/api/chat, /api/generate).",
+    readiness: "PARTIAL_INTEGRATION",
+    summary: "Local REST adapter for Ollama endpoint (/api/chat, /api/tags, /api/generate).",
     productionReady: false,
-    notes: "Adapter skeleton complete. Falls back to mock responses if local Ollama daemon is offline.",
+    notes: "Discovers models dynamically. Falls back cleanly with $0 external API cost if local daemon is offline.",
   },
   {
     providerId: "model-openai",
-    name: "OpenAI Model Provider",
+    name: "OpenAI-Compatible Model Provider",
     category: "generative_model",
-    readiness: "PARTIAL",
-    summary: "Standard OpenAI ChatCompletions REST adapter with fallback chain.",
+    readiness: "PARTIAL_INTEGRATION",
+    summary: "Provider-neutral ChatCompletions REST gateway (OpenAI, OpenRouter, LocalAI, vLLM).",
     productionReady: false,
-    notes: "Adapter skeleton ready. Requires owner-supplied staging API key; production keys are blocked.",
+    notes: "Configurable baseUrl and model routing. Zero production OpenAI credentials used or required in staging.",
   },
   {
     providerId: "voice-retell",
@@ -85,24 +95,38 @@ export const PROVIDER_READINESS_REGISTRY: ProviderReadinessInfo[] = [
     readiness: "SKELETON",
     summary: "Provider-neutral telephony contract skeleton for Retell AI.",
     productionReady: false,
-    notes: "Does NOT place live telephony calls. Outbound calls produce simulated workspace events.",
+    notes: "SKELETON only. No live calls placed or credentials required; awaiting owner staging credentials.",
   },
   {
     providerId: "voice-mock",
     name: "Mock Voice Simulator",
     category: "voice",
-    readiness: "REAL_INTEGRATION",
+    readiness: "MOCK",
     summary: "Full-fidelity voice call simulator emitting audio transcripts, tool calls, and dispositions.",
     productionReady: true,
-    notes: "Provides deterministic simulation for UI testing, staging QA, and workspace event integration.",
+    notes: "Release demo provider for local QA, staging, and workspace event integration without telephony cost.",
+  },
+  {
+    providerId: "voice-agni",
+    name: "AGNI Voice Provider Slot",
+    category: "voice",
+    readiness: "UNIMPLEMENTED",
+    summary: "Future benchmark candidate slot for AGNI voice integration.",
+    productionReady: false,
+    notes: "EXACT AGNI PRODUCT NOT YET VERIFIED. Future benchmark candidate.",
   },
   {
     providerId: "process-scribe",
     name: "Scribe Process Provider",
     category: "process",
-    readiness: "REAL_INTEGRATION",
-    summary: "Full Markdown, HTML, and Scribe step-by-step SOP parser.",
+    readiness: "PARTIAL_INTEGRATION",
+    summary: "Capability-separated process ingestion: file import (REAL), MCP (NOT_CONFIGURED), sync (UNIMPLEMENTED).",
     productionReady: true,
-    notes: "Parses procedures, conditional branches, and flags UnresolvedBusinessRules deterministically.",
+    notes: "Scribe file import is REAL_INTEGRATION; MCP is NOT_CONFIGURED; live sync is UNIMPLEMENTED.",
+    capabilities: [
+      { capability: "file_import", readiness: "REAL_INTEGRATION", notes: "Full Markdown, HTML, and SOP step parser" },
+      { capability: "mcp_integration", readiness: "NOT_CONFIGURED", notes: "Scribe MCP server not configured in local environment" },
+      { capability: "live_sync", readiness: "UNIMPLEMENTED", notes: "Continuous cloud workspace sync not implemented" },
+    ],
   },
 ];

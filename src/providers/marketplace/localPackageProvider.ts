@@ -125,6 +125,39 @@ export class LocalPackageProvider {
       }
     }
 
+    // Check lifecycle scripts (postinstall / preinstall)
+    if (manifest.scripts?.postinstall || manifest.scripts?.preinstall) {
+      violations.push("Package contains forbidden lifecycle script (postinstall/preinstall execution forbidden)");
+    }
+
+    // Check files for path traversal, symlink escape, or unexpected binaries
+    if (manifest.files) {
+      const binaryExtensions = [".exe", ".dll", ".so", ".dylib", ".bat", ".cmd", ".ps1", ".vbs"];
+      for (const file of manifest.files) {
+        if (file.includes("..") || file.startsWith("/") || /^[a-zA-Z]:/.test(file)) {
+          violations.push(`Path traversal or symlink escape detected in package file: ${file}`);
+        }
+        const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
+        if (binaryExtensions.includes(ext)) {
+          violations.push(`Forbidden executable or binary file found in package: ${file}`);
+        }
+      }
+    }
+
+    // Check oversized package
+    const MAX_PACKAGE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB limit
+    if (manifest.sizeBytes && manifest.sizeBytes > MAX_PACKAGE_SIZE_BYTES) {
+      violations.push(`Oversized package: size ${manifest.sizeBytes} exceeds maximum allowed threshold of ${MAX_PACKAGE_SIZE_BYTES} bytes`);
+    }
+
+    // Check dependency cycles
+    if (manifest.dependencies) {
+      const selfRef = manifest.dependencies.find(d => d.packageId === manifest.name);
+      if (selfRef) {
+        violations.push(`Dependency cycle detected: package '${manifest.name}' cannot depend on itself`);
+      }
+    }
+
     return {
       valid: violations.length === 0,
       violations,

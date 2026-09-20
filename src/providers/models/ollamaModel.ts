@@ -40,16 +40,24 @@ export class OllamaModelProvider implements GenerativeModelProvider {
 
   async generate(options: ModelRequestOptions): Promise<ModelResponse> {
     const url = `${this.baseUrl}/v1/chat/completions`;
+    const timeoutMs = 30000;
+    const bodyPayload: Record<string, unknown> = {
+      model: options.model,
+      messages: options.messages,
+      temperature: options.temperature,
+      max_tokens: options.maxTokens,
+      stream: false,
+    };
+
+    if (options.responseFormat === "json") {
+      bodyPayload.format = "json";
+    }
+
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: options.model,
-        messages: options.messages,
-        temperature: options.temperature,
-        max_tokens: options.maxTokens,
-        stream: false,
-      }),
+      body: JSON.stringify(bodyPayload),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!res.ok) {
