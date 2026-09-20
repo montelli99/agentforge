@@ -37,3 +37,4 @@ export * from "./ledger/eventLedger.js";
 export * from "./worktree/worktreeManager.js";
 export * from "./evidence/evidencePackBuilder.js";
 export * from "./approvals/approvalEngine.js";
+export * from "./store/workspaceStore.js";

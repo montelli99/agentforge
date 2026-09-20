@@ -11,6 +11,8 @@
     "smoke": "node --import tsx src/smoke.ts",
     "smoke:routing": "node --import tsx src/smoke-openclaw-routing.ts",
     "export:metrics": "node --import tsx src/export-metrics.ts",
+    "vnext": "node --import tsx src/server/start.ts",
+    "cli": "node --import tsx src/cli/bin.ts",
     "test": "vitest run src --maxWorkers=1",
     "test:lab": "node --import tsx src/main.ts"
   },
