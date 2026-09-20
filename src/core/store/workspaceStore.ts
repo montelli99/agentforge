@@ -31,6 +31,19 @@ import { EventLedger } from "../ledger/eventLedger.js";
 
 export type RealtimeListener = (event: { type: string; entity: string; data: unknown }) => void;
 
+export interface UnifiedInboxItem {
+  id: string;
+  type: "approval_needed" | "task_failed" | "task_completed" | "agent_question" | "voice_event" | "system_warning" | "provider_error";
+  title: string;
+  description: string;
+  severity: "info" | "warning" | "critical";
+  sourceId: string;
+  timestamp: string;
+  actionable: boolean;
+  actionUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export class WorkspaceStore {
   // Canonical Maps
   private workspaces = new Map<string, CanonicalWorkspace>();
@@ -414,6 +427,94 @@ export class WorkspaceStore {
     return Array.from(this.users.values()).find(u =>
       u.externalIdentities.some(e => e.provider === provider && e.externalUserId === externalUserId)
     );
+  }
+
+  // --- Unified Inbox (Section 16: Deterministic Actionable Aggregation) ---
+  getUnifiedInbox(): UnifiedInboxItem[] {
+    const items: UnifiedInboxItem[] = [];
+
+    // 1. Pending Approvals (Critical / Actionable)
+    for (const app of this.approvals.values()) {
+      if (app.status === "pending") {
+        items.push({
+          id: `inbox-app-${app.id}`,
+          type: "approval_needed",
+          title: `Approval Required: ${app.action}`,
+          description: `Task ${app.taskId} requires sign-off. Risk: ${app.risk}. ${app.description}`,
+          severity: app.risk === "high" || app.risk === "critical" ? "critical" : "warning",
+          sourceId: app.id,
+          timestamp: app.createdAt,
+          actionable: true,
+          actionUrl: `/approvals?id=${app.id}`,
+          metadata: { taskId: app.taskId, risk: app.risk },
+        });
+      }
+    }
+
+    // 2. Failed & Completed Tasks
+    for (const task of this.tasks.values()) {
+      if (task.status === "failed") {
+        items.push({
+          id: `inbox-task-${task.id}`,
+          type: "task_failed",
+          title: `Task Failed: ${task.title}`,
+          description: `Task ${task.id} failed execution. Inspect logs or retry with fresh worktree.`,
+          severity: "critical",
+          sourceId: task.id,
+          timestamp: task.updatedAt,
+          actionable: true,
+          actionUrl: `/tasks?id=${task.id}`,
+          metadata: { assignedAgentId: task.assignedAgentId },
+        });
+      } else if (task.status === "completed") {
+        items.push({
+          id: `inbox-task-comp-${task.id}`,
+          type: "task_completed",
+          title: `Task Completed: ${task.title}`,
+          description: `Task ${task.id} completed. Evidence pack is ready for verification.`,
+          severity: "info",
+          sourceId: task.id,
+          timestamp: task.updatedAt,
+          actionable: false,
+          actionUrl: `/tasks?id=${task.id}`,
+        });
+      }
+    }
+
+    // 3. Voice Call Events
+    for (const call of this.calls.values()) {
+      if (call.status === "FAILED") {
+        items.push({
+          id: `inbox-call-${call.id}`,
+          type: "voice_event",
+          title: `Voice Call Failed to ${call.recipientPhoneNumber}`,
+          description: `Call to ${call.recipientName || call.recipientPhoneNumber} failed during telephony session.`,
+          severity: "warning",
+          sourceId: call.id,
+          timestamp: call.startedAt,
+          actionable: true,
+        });
+      }
+    }
+
+    // 4. Security & Audit Warnings
+    for (const audit of this.auditEntries) {
+      if (audit.action.includes("rejected") || audit.action.includes("failed")) {
+        items.push({
+          id: `inbox-audit-${audit.id}`,
+          type: "system_warning",
+          title: `Security Alert: ${audit.action}`,
+          description: `Actor ${audit.actorId} attempted ${audit.action} on ${audit.targetType} [${audit.targetId}].`,
+          severity: "warning",
+          sourceId: audit.id,
+          timestamp: audit.timestamp,
+          actionable: false,
+          metadata: audit.details,
+        });
+      }
+    }
+
+    return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   // --- Persistence ---
