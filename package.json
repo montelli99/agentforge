@@ -1,0 +1,21 @@
+{
+  "name": "agentforge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import tsx src/server.ts",
+    "dev": "node --import tsx src/server.ts",
+    "lab": "node --import tsx src/main.ts",
+    "demo": "node --import tsx src/demoClient.ts",
+    "benchmark": "node --import tsx src/benchmark-quick.ts",
+    "smoke": "node --import tsx src/smoke.ts",
+    "smoke:routing": "node --import tsx src/smoke-openclaw-routing.ts",
+    "export:metrics": "node --import tsx src/export-metrics.ts",
+    "test": "vitest run src --maxWorkers=1",
+    "test:lab": "node --import tsx src/main.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12",
+    "vitest": "^4.1.11"
+  }
+}
