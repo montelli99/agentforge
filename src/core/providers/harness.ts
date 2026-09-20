@@ -37,6 +37,8 @@ export interface HarnessTaskPayload {
   instruction: string;
   inputFiles?: string[];
   context?: Record<string, unknown>;
+  contract?: any;
+  timeoutMs?: number;
 }
 
 export interface HarnessTaskResult {

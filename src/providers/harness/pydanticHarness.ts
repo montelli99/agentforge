@@ -31,6 +31,14 @@ export class PydanticHarnessProvider implements HarnessProvider {
   private sessionStates = new Map<string, HarnessState>();
   private activeStreams = new Map<string, HarnessEvent[]>();
 
+  isConfigured(): boolean {
+    return !!process.env.PYDANTIC_AI_SERVICE_URL || !!process.env.PYDANTIC_BRIDGE_PORT;
+  }
+
+  getStatus(): "NOT_CONFIGURED" | "ACTIVE" {
+    return this.isConfigured() ? "ACTIVE" : "NOT_CONFIGURED";
+  }
+
   async startSession(config: HarnessSessionConfig): Promise<HarnessSession> {
     const sessionId = `pydantic-sess-${crypto.randomUUID().slice(0, 8)}`;
     const session: HarnessSession = {

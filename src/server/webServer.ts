@@ -26,6 +26,8 @@ import { HermesMigrationProvider } from "../providers/migration/hermesMigrationP
 import { GrokBotMigrationProvider } from "../providers/migration/grokBotMigrationProvider.js";
 import { GenericMigrationProvider } from "../providers/migration/genericMigrationProvider.js";
 import { PROVIDER_READINESS_REGISTRY } from "../core/types/providerReadiness.js";
+import { TelegramMirrorProvider } from "../providers/channels/telegramMirror.js";
+import { IsolatedSecretStore } from "../core/secret/secretStore.js";
 
 export class AgentForgeWebServer {
   private server: http.Server;
@@ -35,11 +37,14 @@ export class AgentForgeWebServer {
   private voice = new MockVoiceProvider();
   private packageProvider = new LocalPackageProvider();
   readonly empiricalRouter = new EmpiricalRouter();
+  readonly telegram = new TelegramMirrorProvider();
+  readonly secretStore = new IsolatedSecretStore();
   readonly openclawLegacy = new OpenClawMigrationProvider("legacy");
   readonly openclawCurrent = new OpenClawMigrationProvider("current");
   readonly hermesMigration = new HermesMigrationProvider();
   readonly grokMigration = new GrokBotMigrationProvider();
   readonly genericMigration = new GenericMigrationProvider();
+  private readonly host = process.env.AGENTFORGE_HOST || "127.0.0.1";
 
   constructor(
     public readonly store: WorkspaceStore = globalStore,
@@ -515,6 +520,36 @@ export class AgentForgeWebServer {
       return;
     }
 
+    // Telegram Sandbox & Conflict Guard Endpoints (Sections 11, 12, 13)
+    if (req.method === "GET" && path === "/api/telegram/conflict-check") {
+      const conflict = await this.telegram.detectOwnershipConflict();
+      res.writeHead(200);
+      res.end(JSON.stringify(conflict));
+      return;
+    }
+
+    if (req.method === "GET" && path === "/api/telegram/cutover-phase") {
+      res.writeHead(200);
+      res.end(JSON.stringify({ phase: this.telegram.getCutoverPhase() }));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/telegram/cutover-phase") {
+      const body = await this.readBody(req) as { phase: any };
+      this.telegram.setCutoverPhase(body.phase);
+      res.writeHead(200);
+      res.end(JSON.stringify({ phase: this.telegram.getCutoverPhase() }));
+      return;
+    }
+
+    // Secret Storage Endpoint (Section 37)
+    if (req.method === "GET" && path === "/api/secrets") {
+      const secrets = await this.secretStore.listSecrets();
+      res.writeHead(200);
+      res.end(JSON.stringify(secrets));
+      return;
+    }
+
     // --- Migration Center REST Endpoints (Sections 7-27) ---
     if (req.method === "GET" && path === "/api/migration/sources") {
       res.writeHead(200);
@@ -608,8 +643,8 @@ export class AgentForgeWebServer {
 
   start(): Promise<void> {
     return new Promise(resolve => {
-      this.server.listen(this.port, () => {
-        console.log(`[AgentForge vNext] Control Plane Web Server running at http://localhost:${this.port}`);
+      this.server.listen(this.port, this.host, () => {
+        console.log(`[AgentForge vNext] Control Plane Web Server running at http://${this.host}:${this.port}`);
         resolve();
       });
     });

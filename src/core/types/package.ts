@@ -96,6 +96,14 @@ export interface PackageManifest {
     meterUnit?: string;
   };
 
+  scripts?: {
+    preinstall?: string;
+    postinstall?: string;
+  };
+
+  files?: string[];
+  sizeBytes?: number;
+
   testsPath?: string;
   documentationPath?: string;
 }

@@ -1,0 +1,49 @@
+name: AgentForge CI
+
+on:
+  push:
+    branches: [ master, main, vnext ]
+  pull_request:
+    branches: [ master, main, vnext ]
+
+jobs:
+  test:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Clean Install Dependencies
+        run: npm ci
+
+      - name: Execute Full Test Suite
+        run: npx vitest run src --maxWorkers=1
+        env:
+          NODE_ENV: test
+          CI: true
+          # Zero production secrets required; providers run in deterministic test mode
+          OPENAI_API_KEY: ""
+          TELEGRAM_BOT_TOKEN: ""
+          DISCORD_BOT_TOKEN: ""
+
+      - name: Verify Working Tree Cleanliness
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working tree is dirty after tests!"
+            git status
+            exit 1
+          fi

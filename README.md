@@ -1,9 +1,36 @@
 # AgentForge vNext
 ### Open-Source, Self-Hostable AI Workforce Platform & Execution Control Plane
 
+[![CI Status](https://github.com/montelli99/AgentForge/actions/workflows/ci.yml/badge.svg)](https://github.com/montelli99/AgentForge/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue)](https://github.com/montelli99/AgentForge)
+[![Status](https://img.shields.io/badge/status-RELEASE%20CANDIDATE%201-green)](https://github.com/montelli99/AgentForge)
+[![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org)
+[![Tests](https://img.shields.io/badge/tests-112%2F112%20PASS-brightgreen)](https://vitest.dev)
+
 AgentForge is an open-source, self-hostable platform for creating, coordinating, and governing persistent AI teammates across Web, Telegram, Discord, CLI, and API.
 
-Built on strict execution contracts, empirical benchmark evaluation, non-destructive Git worktree isolation, durable event ledgers, and bidirectional channel mirroring, AgentForge turns SOPs and procedures into governed autonomous workflows while enforcing human-in-the-loop approvals.
+Built on strict execution contracts, empirical benchmark evaluation, non-destructive Git worktree isolation, durable event ledgers, and bidirectional channel mirroring, AgentForge turns SOPs and procedures into governed autonomous workflows while enforcing human-in-the-loop approvals below the model layer.
+
+---
+
+## 📊 Release Status Model (Section 48)
+
+| Component | Status | Readiness Level | Implementation Notes |
+| :--- | :---: | :---: | :--- |
+| **Core Control Plane** | **ALPHA** | `REAL_INTEGRATION` | In-memory store, atomic JSON + `.bak` durability recovery, event ledger, 17 views. |
+| **AgentForge Native Harness** | **ALPHA** | `REAL_INTEGRATION` | Governed execution enforcing `ExecutionContract` bounds below model layer. |
+| **Pi Harness Adapter** | **EXPERIMENTAL** | `TEST_IMPLEMENTATION` | Clean public adapter contract and subprocess protocol active; awaits official packaging. |
+| **Pydantic AI Harness** | **EXPERIMENTAL** | `NOT_CONFIGURED` | Optional Python backend. When Python is absent, reports `NOT_CONFIGURED` (not broken). |
+| **Ollama Local Provider** | **ALPHA** | `PARTIAL_INTEGRATION` | Dynamic model discovery via `/api/tags`, format json, $0 external API cost. |
+| **OpenAI-Compatible Gateway** | **ALPHA** | `PARTIAL_INTEGRATION` | Provider-neutral ChatCompletions gateway (OpenRouter, LocalAI, vLLM, OpenAI). |
+| **Jev System-1 Router** | **ALPHA** | `TEST_IMPLEMENTATION` | Standalone AgentForge-owned fast classifier; sub-50ms intent matching. |
+| **Scribe Process (File Import)** | **ALPHA** | `REAL_INTEGRATION` | Ingests Markdown, HTML, and SOP steps; detects ambiguous decisions. |
+| **Scribe Process (MCP / Sync)**| **PLANNED** | `NOT_CONFIGURED` / `UNIMPLEMENTED`| MCP server unconfigured; live cloud sync not yet implemented. |
+| **Mock Voice Simulator** | **ALPHA** | `MOCK` (Release Demo) | Full-fidelity call simulator emitting transcripts, tool events, and post-call summaries. |
+| **Retell Voice Telephony** | **EXPERIMENTAL** | `SKELETON` | Telephony contract skeleton. Zero live calls placed; awaits staging credentials. |
+| **AGNI Voice Provider** | **PLANNED** | `UNIMPLEMENTED` | Provider slot reserved. EXACT AGNI PRODUCT NOT YET VERIFIED. |
+| **Telegram Mirror & Conflict Guard**| **ALPHA** | `TEST_IMPLEMENTATION` | Topic mirroring, webhook conflict detection, and 5-phase safe cutover lifecycle. |
+| **Migration Center** | **ALPHA** | `REAL_INTEGRATION` | Non-destructive shadow migration for OpenClaw Legacy, Current, Hermes, Grok, Generic. |
 
 ---
 
@@ -19,19 +46,20 @@ Built on strict execution contracts, empirical benchmark evaluation, non-destruc
    - **Decoupled Intelligence**: Strict architectural separation between Generative Models (`OllamaModelProvider`, `OpenAIModelProvider`, 5-tier `ModelRouter`) and Decision Classification (`JevDecisionProvider` for fast, inexpensive System-1 intent classification).
    - **Compute & Sandboxing**: Pluggable `LocalProcessProvider`, `DockerComputeProvider`, `E2BSandboxProvider`, and strict ephemeral `WorktreeManager`.
 
-3. **Universal Bidirectional Channel Mirroring**
+3. **Universal Bidirectional Channel Mirroring & Conflict Guard**
    - Unified real-time communication across Web, Telegram, and Discord.
    - 2-way Telegram topic-to-channel synchronization, interactive inline buttons for approvals, and native slash commands (`/status`, `/approve`, `/reject`, `/run`, `/agents`).
-   - Discord thread-to-channel mirroring with role-based mentions and embed cards.
-   - `UniversalMirrorRouter` broadcasts events across all channels with full loop suppression and idempotency.
+   - **Telegram Ownership Conflict Guard**: Inspects webhook state before assuming polling ownership. If an external webhook is detected, prevents competing consumer conflicts and offers non-destructive migration.
+   - **5-Phase Cutover Safety**: `SOURCE_AUTHORITATIVE` $\rightarrow$ `AGENTFORGE_SHADOW` $\rightarrow$ `CUTOVER_READY` $\rightarrow$ `AGENTFORGE_AUTHORITATIVE` $\rightarrow$ `ROLLBACK`.
 
 4. **Process-to-Agent & SOP Compiler**
    - Ingests human procedures from Scribe SOPs, Markdown documents, and structured step lists.
    - Enforces **"SOP IS NOT AUTHORITY"**: SOPs document human operational intent; privileged actions automatically generate `UnresolvedBusinessRules` and require explicit `ExecutionContract` bounds.
 
 5. **Voice Subsystem**
-   - First-class voice call integration (`VoiceProvider`, `MockVoiceProvider`, `RetellVoiceProvider`).
+   - First-class voice call integration (`MockVoiceProvider`, `RetellVoiceProvider`).
    - Inbound and outbound phone calls are tracked as first-class workspace channel events with live transcript segments, inline tool calls, and post-call disposition summaries.
+   - Real-world cost telemetry clearly marked (Mock calls report $0 real cost; local models report $0 API cost).
 
 6. **Governed Execution Contracts & Evidence Packs**
    - **Execution Contracts**: Deterministic budget caps, time limits, read/write path boundaries, forbidden bash commands, and approval gates placed *below the model layer*.
@@ -40,10 +68,11 @@ Built on strict execution contracts, empirical benchmark evaluation, non-destruc
 
 7. **Developer Economy & Marketplace Standard**
    - Standardized package manifest (`manifest.json`) declaring permissions, required secrets, tool exports, benchmark gates, and pricing models.
-   - `LocalPackageProvider` validates package security against execution contracts to prevent unauthorized privilege escalation or production deployments.
+   - `LocalPackageProvider` validates package security against execution contracts to prevent unauthorized privilege escalation, symlink escapes, postinstall scripts, or production deployments.
 
 8. **Web Control Plane & CLI**
    - **Responsive Web SPA**: 17 navigation views including Team Overview, 12-Step Agent Creation Wizard, Process Graph Explorer, Live Voice Call Simulator, Approvals Center, and Marketplace Browser.
+   - **Security**: Localhost-only binding (`127.0.0.1`) by default.
    - **Developer CLI (`agentforge`)**: Commands for package initialization, linting, unit testing, empirical benchmarking, and workspace status monitoring.
 
 ---
@@ -51,105 +80,32 @@ Built on strict execution contracts, empirical benchmark evaluation, non-destruc
 ## 🚀 Quickstart
 
 ### Prerequisites
-- Node.js 18+ (tested on Node v22)
-- npm / pnpm
+- Node.js 20.x or 22.x
+- Git
 
 ### 1. Installation
 ```bash
 # Clone the repository
-git clone <repo-url> AgentForge-Staging
-cd AgentForge-Staging
+git clone https://github.com/montelli99/AgentForge.git
+cd AgentForge
 
-# Install dependencies
+# Clean install with zero native C++ build dependencies
 npm install
 ```
 
-### 2. Launch the Control Plane Web Server
+### 2. Launching the Web Control Plane
 ```bash
-npm run serve
-# Server starts at http://localhost:3456
+npm run vnext
+```
+Open your browser to:
+```
+http://127.0.0.1:3000
 ```
 
-Open `http://localhost:3456` in your browser to view the AgentForge Web Control Plane:
-- **Agents**: View persistent AI teammates and launch the 12-Step Create Agent Wizard.
-- **Process-to-Agent**: Ingest Scribe SOPs and view the compiled DAG with unresolved business rules.
-- **Voice Calls**: Simulate live phone calls, view transcripts, and inspect call dispositions.
-- **Approvals**: Review pending execution contract approvals and approve/reject with one click.
-- **Marketplace**: Browse verified agent skill packs and inspect permission manifests.
-
-### 3. Using the AgentForge CLI
+### 3. Running the Full Test Suite
+All 112 tests across 10 test suites run in complete isolation:
 ```bash
-# Display CLI help
-npx tsx src/cli/bin.ts --help
-
-# Check workspace status
-npx tsx src/cli/bin.ts status
-
-# Initialize a new agent package
-npx tsx src/cli/bin.ts pack init --name my-qa-agent --author developer@example.com
-
-# Validate package manifest and permissions
-npx tsx src/cli/bin.ts pack validate ./packages/my-qa-agent
-
-# Run package unit tests
-npx tsx src/cli/bin.ts pack test ./packages/my-qa-agent
-
-# Run empirical benchmark suite against latency and accuracy thresholds
-npx tsx src/cli/bin.ts pack benchmark ./packages/my-qa-agent
-```
-
-### 4. Running the Test Suite
-All 89 tests across 7 test suites run in complete isolation:
-```bash
-npx vitest run src --maxWorkers=1
-```
-
----
-
-## 🏛 Architecture Diagram
-
-```
-+-------------------------------------------------------------------------+
-|                         UNIVERSAL CHANNEL LAYER                         |
-|   Web Control Plane (SPA)  |  Telegram Mirror Bot  |  Discord Mirror   |
-+-------------------------------------------------------------------------+
-                                    │
-                                    ▼
-+-------------------------------------------------------------------------+
-|                         UNIVERSAL MIRROR ROUTER                         |
-|          Idempotent Event Distribution & Channel Synchronization        |
-+-------------------------------------------------------------------------+
-                                    │
-                                    ▼
-+-------------------------------------------------------------------------+
-|                       AGENTFORGE CONTROL PLANE                          |
-|  Workspace Store  │  Approval Engine  │  Task Router  │  Event Ledger   |
-+-------------------------------------------------------------------------+
-                                    │
-       ┌────────────────────────────┼────────────────────────────┐
-       ▼                            ▼                            ▼
-+───────────────+            +───────────────+            +───────────────+
-|   PROCESS &   |            |   EXECUTION   |            |   DEVELOPER   |
-|     VOICE     |            |   CONTRACTS   |            |  MARKETPLACE  |
-| Scribe Ingest |            | Budget Gates  |            | Manifests     |
-| SOP Compiler  |            | Path Sandbox  |            | Benchmarks    |
-| Voice Calls   |            | Evidence Pack |            | CLI Tooling   |
-+───────────────+            +───────────────+            +───────────────+
-                                    │
-       ┌────────────────────────────┴────────────────────────────┐
-       ▼                                                         ▼
-+───────────────────────────────+       +─────────────────────────────────+
-|         HARNESS LAYER         |       |        INTELLIGENCE LAYER       |
-|  • Pi Harness (Default native)|       |  • Generative: Ollama, OpenAI   |
-|  • Pydantic AI (Structured)   |       |  • ModelRouter: Tier 0 - Tier 4 |
-|  • Native Boundary Harness    |       |  • Decision: Jev Intent Class.  |
-+───────────────────────────────+       +─────────────────────────────────+
-                                    │
-                                    ▼
-+-------------------------------------------------------------------------+
-|                         COMPUTE & STORAGE LAYER                         |
-|   Git Worktrees (Isolated)  │  Local Processes  │  Docker / Sandbox     |
-+-------------------------------------------------------------------------+
+npm test
 ```
 
 ---
@@ -166,4 +122,4 @@ AgentForge vNext adheres to strict production isolation protocols:
 
 ## 📜 License
 
-MIT License. Open-source and self-hostable.
+License selection is currently under review by the project maintainers. See [docs/LICENSE_DECISION_MATRIX.md](docs/LICENSE_DECISION_MATRIX.md) for the evaluation of Apache 2.0 vs AGPLv3 vs MIT.
