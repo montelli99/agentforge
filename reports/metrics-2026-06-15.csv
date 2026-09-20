@@ -1,0 +1,5 @@
+timestamp,requestId,model,source,channel,project,session,baselineTokens,optimizedTokens,tokensPrevented,reductionPercent,providerCalled,bypass,optimizationType,latencyMs,error
+"2026-06-15T00:23:22.166Z","a76eda36","llama3.1:8b","openclaw","telegram","openclaw","repeated-test-1781483001324","740","666","74","10.00","true","false","fingerprint=fp_a14acad71948d7ca","77",""
+"2026-06-15T00:23:22.087Z","98812914","llama3.1:8b","openclaw","telegram","openclaw","repeated-test-1781483001324","324","314","10","3.09","true","false","fingerprint=fp_ff19a637c38f8920","154",""
+"2026-06-15T00:23:21.930Z","febf3658","llama3.1:8b","openclaw","telegram","openclaw","repeated-test-1781483001324","322","311","11","3.42","true","false","fingerprint=fp_c48126790f3f0753","63",""
+"2026-06-15T00:23:21.861Z","78034acc","llama3.1:8b","openclaw","telegram","openclaw","repeated-test-1781483001324","324","313","11","3.40","true","false","fingerprint=fp_2fa39b5efe68d707","363",""

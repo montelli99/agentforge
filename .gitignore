@@ -1,0 +1,40 @@
+# Node / Dependencies
+node_modules/
+.pnpm-store/
+
+# Build / Output
+dist/
+build/
+coverage/
+
+# Environment / Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime / Workspace Data
+.artifacts/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+.codex-worktrees/
+.worktrees/
+tmp/
+temp/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
