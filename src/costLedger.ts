@@ -247,8 +247,9 @@ export class CostLedger {
     if (params.model) {
       filtered = filtered.filter((e) => e.model === params.model);
     }
-    if (params.since) {
-      filtered = filtered.filter((e) => e.timestamp >= params.since);
+    const since = params.since;
+    if (since !== undefined) {
+      filtered = filtered.filter((e) => e.timestamp >= since);
     }
 
     filtered.sort((a, b) => b.timestamp - a.timestamp);

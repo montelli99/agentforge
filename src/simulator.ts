@@ -4,16 +4,16 @@ import type { LabReport, ScenarioOutcome, ScenarioResult } from "./types.js";
 import type { OptimizationConfig } from "./optimization-types.js";
 import { AgentForgeBroker } from "./router.js";
 
-export function runScenario(
+export async function runScenario(
   scenario: LabScenario,
   optimizationConfig?: Partial<OptimizationConfig>,
-): ScenarioResult {
+): Promise<ScenarioResult> {
   const broker = new AgentForgeBroker(
     undefined,
     undefined,
-    optimizationConfig,
+    { ...scenario.context.optimization, ...optimizationConfig },
   );
-  const result = broker.route(scenario.context);
+  const result = await broker.route(scenario.context);
   const actual = result.outcome;
   return {
     id: scenario.id,
@@ -26,14 +26,14 @@ export function runScenario(
   };
 }
 
-export function runLab(
+export async function runLab(
   scenarios: LabScenario[],
   profile?: AgentForgeBridgeProfile,
   optimizationConfig?: Partial<OptimizationConfig>,
-): LabReport {
-  const results = scenarios.map((scenario) =>
+): Promise<LabReport> {
+  const results = await Promise.all(scenarios.map((scenario) =>
     runScenario(scenario, optimizationConfig),
-  );
+  ));
   const failed = results.filter((result) => !result.passed).length;
   return {
     generatedAt: new Date().toISOString(),

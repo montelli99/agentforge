@@ -25,6 +25,11 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
   beforeAll(async () => {
     store = new WorkspaceStore();
+    store.getUser("user-montelli")!.externalIdentities.push({
+      provider: "telegram",
+      externalUserId: "user-montelli",
+      linkedAt: new Date().toISOString(),
+    });
     server = new AgentForgeWebServer(store, testPort);
     await server.start();
   });
@@ -39,8 +44,15 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(res.status).toBe(200);
       const html = await res.text();
       expect(html).toContain("AgentForge vNext");
-      expect(html).toContain("3-column");
+      expect(html).toContain("forge-grid");
+      expect(html).toContain("Command room");
+      expect(html).toContain("Example records are present in this workspace");
+      expect(html).toContain("Execution disconnected");
       expect(html).toContain("Migration Center");
+      expect(html).toContain("Prepare and review a new SOP version");
+      expect(html).toContain("showProcessHistory");
+      expect(html).toContain("Restore as new version");
+      expect(html).toContain("rollbackProcessRevision");
     });
 
     it("should verify all 17 core navigation routes return coherent data without crash", async () => {
@@ -68,6 +80,103 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         const data = await res.json();
         expect(data).toBeDefined();
       }
+    });
+
+    it("rejects malformed, non-object, and oversized JSON request bodies with client errors", async () => {
+      const malformed = await fetch(`http://localhost:${testPort}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{invalid-json",
+      });
+      expect(malformed.status).toBe(400);
+      expect((await malformed.json()).error).toContain("valid JSON");
+
+      const nonObject = await fetch(`http://localhost:${testPort}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "[]",
+      });
+      expect(nonObject.status).toBe(400);
+      expect((await nonObject.json()).error).toContain("must be an object");
+
+      const oversized = await fetch(`http://localhost:${testPort}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: " ".repeat(8 * 1024 * 1024 + 1),
+      });
+      expect(oversized.status).toBe(413);
+      expect((await oversized.json()).error).toContain("8 MiB limit");
+    });
+
+    it("validates agent and task creation and keeps new tasks in safe initial states", async () => {
+      const invalidAgent = await fetch(`http://localhost:${testPort}/api/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Invalid Agent",
+          role: "Tester",
+          status: "active",
+          harnessPolicy: { preferredHarnessId: "missing-runtime" },
+        }),
+      });
+      expect(invalidAgent.status).toBe(400);
+
+      const agentRes = await fetch(`http://localhost:${testPort}/api/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Validated Agent", role: "Tester" }),
+      });
+      expect(agentRes.status).toBe(201);
+      const agent = await agentRes.json();
+
+      const invalidTask = await fetch(`http://localhost:${testPort}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Forged completion", status: "completed" }),
+      });
+      expect(invalidTask.status).toBe(400);
+
+      const missingAgent = await fetch(`http://localhost:${testPort}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Missing assignee", assignedAgentId: "does-not-exist" }),
+      });
+      expect(missingAgent.status).toBe(404);
+
+      const taskRes = await fetch(`http://localhost:${testPort}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Safe default task", assignedAgentId: agent.id }),
+      });
+      expect(taskRes.status).toBe(201);
+      const task = await taskRes.json();
+      expect(task.status).toBe("backlog");
+      expect(task.contract.authority.productionWrite).toBe(false);
+      expect(task.contract.authority.externalMessage).toBe(false);
+
+      const privilegedContract = {
+        ...task.contract,
+        id: "contract-privileged-test",
+        taskId: "privileged-contract-task",
+        authority: { ...task.contract.authority, productionWrite: true },
+      };
+      const privilegedTask = await fetch(`http://localhost:${testPort}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "privileged-contract-task",
+          title: "Unsupported privileged task",
+          contract: privilegedContract,
+        }),
+      });
+      expect(privilegedTask.status).toBe(400);
+
+      const duplicateTask = await fetch(`http://localhost:${testPort}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: task.id, title: "Duplicate task" }),
+      });
+      expect(duplicateTask.status).toBe(409);
     });
   });
 
@@ -108,13 +217,94 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const procData = await sopRes.json();
       expect(procData.process.unresolvedRules.length).toBeGreaterThan(0);
 
+      const revisionRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedVersion: 1,
+          rawContent: "# Seller Intake SOP\n1. Receive caller info\n2. Calculate estimated offer\n3. Deploy contract to production signer?\n4. Record owner approval",
+        }),
+      });
+      expect(revisionRes.status).toBe(202);
+      const revisionData = await revisionRes.json();
+      expect(revisionData.currentProcess).toMatchObject({ id: procData.process.id, version: 1 });
+      expect(revisionData.proposal).toMatchObject({ processId: procData.process.id, expectedVersion: 1, status: "pending" });
+      expect(revisionData.diff).toMatchObject({ processId: procData.process.id, previousVersion: 1, newVersion: 2 });
+
+      const approvalRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${revisionData.proposal.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved", approverUserId: "reviewer-1" }),
+      });
+      expect(approvalRes.status).toBe(200);
+      expect(await approvalRes.json()).toMatchObject({
+        proposal: { status: "approved", resolvedByUserId: "local-unverified-web-client" },
+        process: { id: procData.process.id, version: 2 },
+      });
+
+      const staleRevisionRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 1, rawContent: "# Stale revision\n1. This must not replace current state" }),
+      });
+      expect(staleRevisionRes.status).toBe(409);
+
+      const concurrentRevisions = await Promise.all(["Record utility status", "Record occupancy status"].map(rawContent =>
+        fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedVersion: 2, rawContent: `# Seller Intake SOP\n1. ${rawContent}` }),
+        }),
+      ));
+      expect(concurrentRevisions.map(response => response.status)).toEqual([202, 202]);
+      const concurrentData = await Promise.all(concurrentRevisions.map(response => response.json()));
+      const concurrentApproval = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${concurrentData[0].proposal.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" }),
+      });
+      expect(concurrentApproval.status).toBe(200);
+      const staleProposal = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${concurrentData[1].proposal.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" }),
+      });
+      expect(staleProposal.status).toBe(409);
+
+      const revisionsRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions`);
+      expect(revisionsRes.status).toBe(200);
+      expect(await revisionsRes.json()).toMatchObject({
+        current: { id: procData.process.id, version: 3 },
+        revisions: [expect.objectContaining({ version: 1 }), expect.objectContaining({ version: 2 })],
+        proposals: [expect.objectContaining({ status: "approved" }), expect.objectContaining({ status: "approved" }), expect.objectContaining({ status: "stale" })],
+      });
+
+      const rollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 3, targetVersion: 1 }),
+      });
+      expect(rollbackRes.status).toBe(200);
+      const rollbackData = await rollbackRes.json();
+      expect(rollbackData).toMatchObject({
+        restoredFromVersion: 1,
+        process: { id: procData.process.id, version: 4, rawContent: "# Seller Intake SOP\n1. Receive caller info\n2. Calculate estimated offer\n3. Deploy contract to production signer?" },
+      });
+
+      const staleRollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 3, targetVersion: 2 }),
+      });
+      expect(staleRollbackRes.status).toBe(409);
+
       // 4. Inbound Telegram Message & Web Reply
       const telegram = new TelegramMirrorProvider();
       const mirrorRouter = new UniversalMirrorRouter(store, telegram);
       let tgSent = "";
       telegram.sendMessage = async (m) => {
         tgSent = m.text;
-        return { messageId: "m1", canonicalChannelId: m.canonicalChannelId, timestamp: new Date().toISOString() };
+        return { externalMessageId: "m1" };
       };
 
       await telegram.ingestInboundUpdate({
@@ -141,11 +331,13 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
           title: "Synthetic Task with Approval",
           assignedAgentId: agent.id,
           priority: "high",
-          status: "in_progress",
+          status: "ready",
         }),
       });
       expect(taskRes.status).toBe(201);
       const task = await taskRes.json();
+      expect(task.status).toBe("ready");
+      store.updateTask(task.id, { status: "in_progress" });
 
       // Approval Gate
       const app = store.createApproval({
@@ -200,8 +392,16 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packageName: "real-estate-acquisitions-pack" }),
       });
-      expect(installRes.status).toBe(200);
-      const installData = await installRes.json();
+      expect(installRes.status).toBe(409);
+      const permissionReview = await installRes.json();
+      expect(permissionReview.requiresPermissionApproval).toBe(true);
+      const approvedInstallRes = await fetch(`http://localhost:${testPort}/api/packages/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageName: "real-estate-acquisitions-pack", approvedPermissions: {} }),
+      });
+      expect(approvedInstallRes.status).toBe(200);
+      const installData = await approvedInstallRes.json();
       expect(installData.status).toBe("active");
     });
   });
@@ -249,8 +449,8 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       let tgOut = 0;
       let dcOut = 0;
-      telegram.sendMessage = async () => { tgOut++; return { messageId: "tg1", canonicalChannelId: "chan-general", timestamp: "" }; };
-      discord.sendMessage = async () => { dcOut++; return { messageId: "dc1", canonicalChannelId: "chan-general", timestamp: "" }; };
+      telegram.sendMessage = async () => { tgOut++; return { externalMessageId: "tg1" }; };
+      discord.sendMessage = async () => { dcOut++; return { externalMessageId: "dc1" }; };
 
       // Inbound event from Telegram -> Must NOT echo back to Telegram (Loop suppression)
       await telegram.ingestInboundUpdate({
@@ -363,6 +563,20 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
   describe("Section 33 – 35: Empirical Router Reality & Honest Cost Accounting", () => {
     it("should accurately distinguish API_COST vs POWER_COST_ESTIMATE and MEASURED vs CONFIGURED", () => {
       const router = new EmpiricalRouter();
+      router.recordBenchmarkResult({
+        id: "bench-low-risk-ollama",
+        suiteId: "suite-general-qa",
+        targetType: "MODEL",
+        targetId: "target-tier2-llama3-8b",
+        totalCases: 10,
+        passedCases: 8,
+        failedCases: 2,
+        metrics: [],
+        artifacts: [],
+        passedOverall: false,
+        executedAt: new Date().toISOString(),
+        durationMs: 1000,
+      });
 
       // Route low risk general QA -> local Ollama 8B
       const decision = router.route({
@@ -376,7 +590,8 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(decision.costType).toBe("POWER_COST_ESTIMATE");
       expect(decision.selectedTier).toBe(2);
 
-      // Route critical risk code generation with unmeasured benchmarks -> conservative cloud frontier
+      // With no measured frontier result, the highest-tier target is only an
+      // unqualified fallback and must not be represented as passing its threshold.
       const criticalDecision = router.route({
         taskType: "code_generation",
         risk: "critical",
@@ -387,7 +602,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       expect(criticalDecision.costType).toBe("API_COST");
       expect(criticalDecision.selectedTier).toBe(4);
-      expect(criticalDecision.qualityStatus).toBe("CONFIGURED");
+      expect(criticalDecision.qualityStatus).toBe("UNKNOWN");
+      expect(criticalDecision.measuredPassRate).toBe(0);
+      expect(criticalDecision.rationale).toContain("unqualified fallback");
     });
   });
 
@@ -404,8 +621,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(retell?.productionReady).toBe(false);
 
       const native = PROVIDER_READINESS_REGISTRY.find(p => p.providerId === "harness-native");
-      expect(native?.readiness).toBe("REAL_INTEGRATION");
-      expect(native?.productionReady).toBe(true);
+      expect(native?.readiness).toBe("TEST_IMPLEMENTATION");
+      expect(native?.productionReady).toBe(false);
+      expect(native?.notes).toContain("does not provide an OS sandbox");
     });
   });
 

@@ -29,7 +29,7 @@ export class AgentForgeBroker {
     }
   }
 
-  route(context: AgentForgeContext): RoutedRun {
+  async route(context: AgentForgeContext): Promise<RoutedRun> {
     if (context.fault === "ambiguous-route" || context.fault === "fallback-exhausted") {
       return { outcome: "reject", notes: ["no deterministic runtime choice"] };
     }
@@ -95,7 +95,7 @@ export class AgentForgeBroker {
     if (this.optimizer) {
       try {
         const request = translateEnvelope(envelope);
-        const optimizationResult = this.optimizer.optimize(envelope, request);
+        const optimizationResult = await this.optimizer.optimize(envelope, request);
         if (optimizationResult.optimized) {
           finalEnvelope = optimizationResult.envelope;
           optimizationTelemetry = optimizationResult.telemetry;

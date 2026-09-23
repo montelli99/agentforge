@@ -10,6 +10,7 @@ import type {
   OperationalMemoryRecord,
   MemoryQuery,
   MemorySearchResult,
+  OperationalMemoryRepository,
 } from "../../core/providers/memory.js";
 
 export class OperationalMemoryProvider implements MemoryProvider {
@@ -18,34 +19,39 @@ export class OperationalMemoryProvider implements MemoryProvider {
 
   private store = new Map<string, OperationalMemoryRecord[]>();
 
+  constructor(private readonly repository?: OperationalMemoryRepository) {}
+
   async record(memory: Omit<OperationalMemoryRecord, "id" | "createdAt">): Promise<OperationalMemoryRecord> {
-    const records = this.store.get(memory.namespace) || [];
     const fullRecord: OperationalMemoryRecord = {
       ...memory,
       id: `mem-${crypto.randomUUID().slice(0, 8)}`,
       createdAt: new Date().toISOString(),
     };
-    records.push(fullRecord);
-    this.store.set(memory.namespace, records);
+    if (this.repository) {
+      this.repository.saveOperationalMemory(fullRecord);
+    } else {
+      const records = this.store.get(memory.namespace) || [];
+      records.push(fullRecord);
+      this.store.set(memory.namespace, records);
+    }
     return fullRecord;
   }
 
   async get(namespace: string, id: string): Promise<OperationalMemoryRecord | null> {
-    const records = this.store.get(namespace) || [];
+    const records = this.list(namespace);
     return records.find(r => r.id === id) || null;
   }
 
   async query(query: MemoryQuery): Promise<MemorySearchResult[]> {
-    const records = this.store.get(query.namespace) || [];
+    const records = this.list(query.namespace);
     const results: MemorySearchResult[] = [];
 
     for (const rec of records) {
       if (query.categories && !query.categories.includes(rec.category)) {
         continue;
       }
-      if (query.projectId && rec.projectId && rec.projectId !== query.projectId) {
-        continue;
-      }
+      // Keep intentionally shared workspace rules visible while excluding another project's private records.
+      if (query.projectId && rec.projectId && rec.projectId !== query.projectId) continue;
       if (query.tags && query.tags.length > 0) {
         const hasTag = query.tags.some(t => rec.tags.includes(t));
         if (!hasTag) continue;
@@ -68,11 +74,18 @@ export class OperationalMemoryProvider implements MemoryProvider {
   }
 
   async delete(namespace: string, id: string): Promise<boolean> {
+    if (this.repository) return this.repository.deleteOperationalMemory(namespace, id);
     const records = this.store.get(namespace) || [];
     const idx = records.findIndex(r => r.id === id);
     if (idx === -1) return false;
     records.splice(idx, 1);
     return true;
+  }
+
+  private list(namespace: string): OperationalMemoryRecord[] {
+    return this.repository
+      ? this.repository.listOperationalMemories(namespace)
+      : [...(this.store.get(namespace) || [])];
   }
 
   async getDoNotRepeatRules(namespace: string, projectId?: string): Promise<OperationalMemoryRecord[]> {

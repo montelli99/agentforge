@@ -1,0 +1,76 @@
+- generic [ref=f3e2]:
+  - banner [ref=f3e3]:
+    - generic [ref=f3e10]:
+      - heading "Settings" [level=1] [ref=f3e11]
+      - text: Configure your LLM provider and API keys
+    - link "Back to Dashboard" [ref=f3e12] [cursor=pointer]:
+      - /url: /dashboard
+  - generic [ref=f3e15]:
+    - generic [ref=f3e16]:
+      - generic [ref=f3e17]: Provider
+      - generic [ref=f3e19]:
+        - generic [ref=f3e20]: LLM Provider
+        - combobox [ref=f3e21] [cursor=pointer]:
+          - option "OpenAI" [selected]
+          - option "Ollama (Local)"
+          - option "Xiaomi MiMo (Token Plan)"
+        - generic [ref=f3e22]: Choose where AgentForge sends your requests
+    - generic [ref=f3e23]:
+      - generic [ref=f3e24]: OpenAI Configuration
+      - generic [ref=f3e26]:
+        - generic [ref=f3e27]: API Key
+        - textbox "sk-..." [ref=f3e28]
+        - generic [ref=f3e29]: Your OpenAI API key. Get it from platform.openai.com/api-keys
+    - generic [ref=f3e30]:
+      - generic [ref=f3e31]: Ollama Configuration
+      - generic [ref=f3e32]:
+        - generic [ref=f3e33]:
+          - generic [ref=f3e34]: Base URL
+          - textbox "http://localhost:11434" [ref=f3e35]
+          - generic [ref=f3e36]: "Where Ollama is running. Default: http://localhost:11434"
+        - generic [ref=f3e37]:
+          - generic [ref=f3e38]: API Key
+          - textbox "ollama-local" [ref=f3e39]
+          - generic [ref=f3e40]: Usually "ollama-local" or leave empty
+    - generic [ref=f3e41]:
+      - generic [ref=f3e42]: Xiaomi MiMo Configuration
+      - generic [ref=f3e43]:
+        - generic [ref=f3e44]:
+          - generic [ref=f3e45]: API Key
+          - textbox "tp-..." [ref=f3e46]
+          - generic [ref=f3e47]: Token Plan key (tp-...) from platform.xiaomimimo.com
+        - generic [ref=f3e48]:
+          - generic [ref=f3e49]: Base URL
+          - textbox "https://token-plan-sgp.xiaomimimo.com/v1" [ref=f3e50]
+          - generic [ref=f3e51]: Dedicated Base URL from your subscription page
+        - generic [ref=f3e52]:
+          - generic [ref=f3e53]: Model
+          - combobox [ref=f3e54] [cursor=pointer]:
+            - option "mimo-v2.5-pro (coding/reasoning, no vision)" [selected]
+            - option "mimo-v2.5 (text + vision)"
+    - generic [ref=f3e55]:
+      - generic [ref=f3e56]: Model
+      - generic [ref=f3e58]:
+        - generic [ref=f3e59]:
+          - generic [ref=f3e60]: Model Name
+          - textbox "gpt-4o-mini" [ref=f3e61]
+          - generic [ref=f3e62]: e.g. gpt-4o-mini, llama3.1:8b, qwen2.5:14b
+        - generic [ref=f3e63]:
+          - generic [ref=f3e64]: Port
+          - textbox "3000" [ref=f3e65]
+          - generic [ref=f3e66]: AgentForge server port
+    - generic [ref=f3e67]:
+      - generic [ref=f3e68]: Features
+      - generic [ref=f3e69]:
+        - generic [ref=f3e70]:
+          - generic [ref=f3e71]: Token Optimization
+          - generic [ref=f3e72] [cursor=pointer]:
+            - checkbox [checked]
+        - generic [ref=f3e74]:
+          - generic [ref=f3e75]: Metadata in Responses
+          - generic [ref=f3e76] [cursor=pointer]:
+            - checkbox [checked]
+    - generic [ref=f3e78]:
+      - button "Save Settings" [ref=f3e79] [cursor=pointer]
+      - link "Cancel" [ref=f3e80] [cursor=pointer]:
+        - /url: /dashboard

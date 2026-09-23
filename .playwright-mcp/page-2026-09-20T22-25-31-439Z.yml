@@ -1,0 +1,81 @@
+- generic [ref=f13e2]:
+  - generic [ref=f13e3]:
+    - generic [ref=f13e4]:
+      - generic [ref=f13e5]: A
+      - generic [ref=f13e6]: AgentForge
+    - generic [ref=f13e7]:
+      - generic: 🔍
+      - textbox "Search or press Ctrl+K for commands..." [ref=f13e8]
+    - generic [ref=f13e9]:
+      - generic [ref=f13e10]: Connected
+      - button "⌨" [ref=f13e13] [cursor=pointer]
+      - button "Settings" [ref=f13e14] [cursor=pointer]
+  - generic [ref=f13e15]:
+    - generic [ref=f13e16]:
+      - generic [ref=f13e17] [cursor=pointer]:
+        - generic [ref=f13e18]: 🏠
+        - text: Home
+      - generic [ref=f13e19] [cursor=pointer]:
+        - generic [ref=f13e20]: 📨
+        - text: Inbox
+        - generic [ref=f13e21]: "2"
+      - generic [ref=f13e22] [cursor=pointer]:
+        - generic [ref=f13e23]: 💬
+        - text: Messages
+    - generic [ref=f13e24]:
+      - generic [ref=f13e25]: Work
+      - generic [ref=f13e26] [cursor=pointer]:
+        - generic [ref=f13e27]: 📂
+        - text: Projects
+      - generic [ref=f13e28] [cursor=pointer]:
+        - generic [ref=f13e29]: ☑
+        - text: Tasks
+      - generic [ref=f13e30] [cursor=pointer]:
+        - generic [ref=f13e31]: 🤖
+        - text: Agents
+      - generic [ref=f13e32] [cursor=pointer]:
+        - generic [ref=f13e33]: ⚙
+        - text: Processes
+      - generic [ref=f13e34] [cursor=pointer]:
+        - generic [ref=f13e35]: ✅
+        - text: Approvals
+        - generic [ref=f13e36]: "1"
+    - generic [ref=f13e37]:
+      - generic [ref=f13e38]: Platform
+      - generic [ref=f13e39] [cursor=pointer]:
+        - generic [ref=f13e40]: 🧠
+        - text: Models
+      - generic [ref=f13e41] [cursor=pointer]:
+        - generic [ref=f13e42]: 🛒
+        - text: Marketplace
+      - generic [ref=f13e43] [cursor=pointer]:
+        - generic [ref=f13e44]: 🔄
+        - text: Migration
+    - generic [ref=f13e45]:
+      - generic [ref=f13e46]: System
+      - generic [ref=f13e47] [cursor=pointer]:
+        - generic [ref=f13e48]: 🧠
+        - text: Memory
+      - generic [ref=f13e49] [cursor=pointer]:
+        - generic [ref=f13e50]: 🎤
+        - text: Voice
+      - generic [ref=f13e51] [cursor=pointer]:
+        - generic [ref=f13e52]: 📈
+        - text: Benchmarks
+      - generic [ref=f13e53] [cursor=pointer]:
+        - generic [ref=f13e54]: 🕑
+        - text: Activity
+      - generic [ref=f13e55] [cursor=pointer]:
+        - generic [ref=f13e56]: ⚡
+        - text: Optimization
+      - generic [ref=f13e57] [cursor=pointer]:
+        - generic [ref=f13e58]: ⚙
+        - text: Settings
+  - generic [ref=f13e59]:
+    - generic [ref=f13e504]:
+      - generic [ref=f13e505]: Activity
+      - generic [ref=f13e506]: Unified workspace timeline
+    - generic [ref=f13e508]:
+      - generic [ref=f13e509]: 🕑
+      - generic [ref=f13e510]: No activity yet
+      - generic [ref=f13e511]: Agent actions, messages, approvals, and system events will appear here.

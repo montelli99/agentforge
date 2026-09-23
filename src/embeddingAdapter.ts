@@ -22,7 +22,7 @@ type OpenClawEmbeddingProvider = {
   model: string;
   maxInputTokens?: number;
   embedQuery: (text: string) => Promise<number[]>;
-  embedBatch: (texts: string[]) => Promise<number[]>;
+  embedBatch: (texts: string[]) => Promise<number[][]>;
 };
 
 function hashText(text: string): string {
@@ -81,12 +81,13 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
   private provider: OpenClawEmbeddingProvider | null = null;
   private status: EmbeddingProviderStatus;
   private fallbackToHash: boolean;
-  private dimension: number = 128;
+  dimension: number = 128;
   private ollamaBaseUrl: string | null = null;
   private ollamaModel: string | null = null;
 
   constructor(config: RealEmbeddingProviderConfig) {
     this.fallbackToHash = config.fallbackToHash;
+    this.ollamaBaseUrl = config.baseUrl || null;
     this.status = {
       active: false,
       provider: config.provider,
@@ -121,6 +122,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
             this.status.provider = "openai";
             this.status.model = model;
             this.status.dimension = json.data[0].embedding.length;
+            this.dimension = this.status.dimension;
             this.provider = {
               id: "openai",
               model,
@@ -140,7 +142,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
                   body: JSON.stringify({ model, input: texts }),
                 });
                 const bJson = await batchRes.json() as { data: Array<{ embedding: number[] }> };
-                return bJson.data[0].embedding;
+                return bJson.data.map((item) => item.embedding);
               },
             };
             console.log(`[AgentForge] Native OpenAI embedding provider active: openai/${model}`);
@@ -156,7 +158,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
   }
 
   private async initializeOllama(): Promise<void> {
-    const baseUrl = this.status.baseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+    const baseUrl = this.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434";
     const model = this.status.model || process.env.AGENTFORGE_EMBEDDING_MODEL || "nomic-embed-text";
     try {
       const probe = await fetch(`${baseUrl}/api/embeddings`, {
@@ -176,6 +178,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
       this.status.provider = "ollama";
       this.status.model = model;
       this.status.dimension = probeJson.embedding.length;
+      this.dimension = this.status.dimension;
       console.log(`[AgentForge] Real embedding provider active: ollama/${model} (dim=${this.status.dimension})`);
     } catch (error) {
       this.status.error = String(error);

@@ -12,9 +12,9 @@ import { getModelBenchmark, resetModelBenchmark, classifyPrompt } from "./modelB
 import { DefaultSpeculativeExecutor, AdaptiveSpeculativeExecutor } from "./speculativeExecution.js";
 
 describe("AgentForgeBroker", () => {
-  it("reroutes when preflight asks for revision", () => {
+  it("reroutes when preflight asks for revision", async () => {
     const broker = new AgentForgeBroker();
-    const result = broker.route({
+    const result = await broker.route({
       tenantId: "tenant-a",
       selectedRuntime: "openclaw",
       selectedTransport: "stdio",
@@ -29,9 +29,9 @@ describe("AgentForgeBroker", () => {
     expect(result.notes).toContain("explicit preflight revise");
   });
 
-  it("propagates the explicit model into the runtime request", () => {
+  it("propagates the explicit model into the runtime request", async () => {
     const broker = new AgentForgeBroker();
-    const result = broker.route({
+    const result = await broker.route({
       tenantId: "tenant-a",
       selectedRuntime: "openclaw",
       selectedTransport: "stdio",
@@ -47,16 +47,16 @@ describe("AgentForgeBroker", () => {
     expect(result.request?.headers["x-agentforge-model-id"]).toBe("claude-sonnet-4-5");
   });
 
-  it("keeps the lab green across the published scenarios", () => {
-    const report = runLab(getScenarios());
+  it("keeps the lab green across the published scenarios", async () => {
+    const report = await runLab(getScenarios());
 
     expect(report.passed).toBe(true);
     expect(report.failed).toBe(0);
     expect(report.total).toBe(30);
   });
 
-  it("handles optimization enabled scenarios", () => {
-    const report = runLab(getScenarios(), undefined, {
+  it("handles optimization enabled scenarios", async () => {
+    const report = await runLab(getScenarios(), undefined, {
       enabled: true,
       costAwareRouting: true,
       promptCompression: true,
@@ -67,8 +67,8 @@ describe("AgentForgeBroker", () => {
     expect(report.failed).toBe(0);
   });
 
-  it("handles optimization disabled scenarios", () => {
-    const report = runLab(getScenarios(), undefined, {
+  it("handles optimization disabled scenarios", async () => {
+    const report = await runLab(getScenarios(), undefined, {
       enabled: false,
     });
 

@@ -13,6 +13,8 @@ export class EventLedger {
   private seenEventIds = new Set<string>();
   private bindings = new Map<string, ExternalBinding>();
 
+  constructor(private readonly onChange?: () => void) {}
+
   // Inbound: Receive and deduplicate
   async recordInboundEvent(params: {
     eventId: string;
@@ -38,6 +40,7 @@ export class EventLedger {
 
     this.seenEventIds.add(params.eventId);
     this.ledger.push(entry);
+    this.onChange?.();
     return { entry, isDuplicate: false };
   }
 
@@ -52,6 +55,7 @@ export class EventLedger {
       if (error) {
         entry.error = error;
       }
+      this.onChange?.();
     }
   }
 
@@ -74,6 +78,7 @@ export class EventLedger {
       updatedAt: new Date().toISOString(),
     };
     this.bindings.set(id, fullBinding);
+    this.onChange?.();
     return fullBinding;
   }
 
@@ -85,5 +90,15 @@ export class EventLedger {
 
   getAllEntries(): EventLedgerEntry[] {
     return [...this.ledger];
+  }
+
+  getAllBindings(): ExternalBinding[] {
+    return [...this.bindings.values()];
+  }
+
+  restore(entries: EventLedgerEntry[], bindings: ExternalBinding[]): void {
+    this.ledger = [...entries];
+    this.seenEventIds = new Set(entries.map(entry => entry.eventId));
+    this.bindings = new Map(bindings.map(binding => [binding.id, binding]));
   }
 }

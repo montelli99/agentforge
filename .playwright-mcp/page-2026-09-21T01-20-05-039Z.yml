@@ -1,0 +1,144 @@
+- generic [ref=f19e2]:
+  - generic [ref=f19e3]:
+    - generic [ref=f19e4]: AgentForge
+    - generic [ref=f19e6]:
+      - generic [ref=f19e7] [cursor=pointer]: Home
+      - generic [ref=f19e8] [cursor=pointer]: Messages
+      - generic [ref=f19e9] [cursor=pointer]: Agent Center
+      - generic [ref=f19e10] [cursor=pointer]: Run Inspector
+      - generic [ref=f19e11] [cursor=pointer]: Approvals
+      - generic [ref=f19e12] [cursor=pointer]: Processes
+      - generic [ref=f19e13] [cursor=pointer]: Marketplace
+      - generic [ref=f19e14] [cursor=pointer]: Migration
+    - generic [ref=f19e15]:
+      - generic [ref=f19e17]: connected
+      - generic [ref=f19e18]: Ctrl+K
+  - generic [ref=f19e19]:
+    - generic [ref=f19e20]:
+      - generic [ref=f19e21]: Agents
+      - generic [ref=f19e22] [cursor=pointer]:
+        - text: Forge Developer
+        - generic [ref=f19e26]: working
+      - generic [ref=f19e27] [cursor=pointer]:
+        - text: Sarah
+        - generic [ref=f19e31]: waiting
+      - generic [ref=f19e32] [cursor=pointer]:
+        - text: Research Agent
+        - generic [ref=f19e36]: idle
+    - generic [ref=f19e37]:
+      - generic [ref=f19e38]: Tasks
+      - generic [ref=f19e39] [cursor=pointer]:
+        - text: Fix login regression
+        - generic [ref=f19e42]: 26m
+      - generic [ref=f19e43] [cursor=pointer]:
+        - text: MiMo adapter
+        - generic [ref=f19e47]: done
+    - generic [ref=f19e48]:
+      - generic [ref=f19e49]: Approvals
+      - generic [ref=f19e50] [cursor=pointer]:
+        - text: Deploy staging
+        - generic [ref=f19e53]: pending
+    - generic [ref=f19e54]:
+      - generic [ref=f19e55]: Channels
+      - generic [ref=f19e56] [cursor=pointer]:
+        - text: "#general"
+        - generic [ref=f19e59]: "3"
+      - generic [ref=f19e60] [cursor=pointer]: "#development"
+    - generic [ref=f19e63]:
+      - generic [ref=f19e64]: System
+      - generic [ref=f19e65] [cursor=pointer]: Processes
+      - generic [ref=f19e68] [cursor=pointer]: Marketplace
+      - generic [ref=f19e71] [cursor=pointer]: Migration
+  - generic [ref=f19e74]:
+    - generic [ref=f19e75]:
+      - generic [ref=f19e76]:
+        - generic [ref=f19e77]: Operations
+        - generic [ref=f19e78]: 2 agents active, 1 approval pending
+      - button "Export" [ref=f19e80] [cursor=pointer]
+    - generic [ref=f19e81]:
+      - generic [ref=f19e82]:
+        - generic [ref=f19e83]: Agents
+        - generic [ref=f19e84]: "4"
+        - generic [ref=f19e85]: 2 working
+      - generic [ref=f19e86]:
+        - generic [ref=f19e87]: Tasks
+        - generic [ref=f19e88]: "3"
+        - generic [ref=f19e89]: 1 waiting
+      - generic [ref=f19e90]:
+        - generic [ref=f19e91]: Approvals
+        - generic [ref=f19e92]: "1"
+      - generic [ref=f19e93]:
+        - generic [ref=f19e94]: Done
+        - generic [ref=f19e95]: "7"
+      - generic [ref=f19e96]:
+        - generic [ref=f19e97]: Tokens
+        - generic [ref=f19e98]: 12.8k
+    - generic [ref=f19e99]:
+      - generic [ref=f19e100]:
+        - generic [ref=f19e101]: Needs Attention
+        - generic [ref=f19e103]:
+          - generic [ref=f19e104]:
+            - generic [ref=f19e105]: Deploy Staging
+            - generic [ref=f19e106]: Pending
+          - generic [ref=f19e107]: Forge Developer — 164 tests passed
+          - generic [ref=f19e108]:
+            - button "Approve" [ref=f19e109] [cursor=pointer]
+            - button "Review" [ref=f19e110] [cursor=pointer]
+        - generic [ref=f19e111]:
+          - generic [ref=f19e112]: PPC Dialer — Failed
+          - generic [ref=f19e113]: Retry available
+      - generic [ref=f19e114]:
+        - generic [ref=f19e115]: Agents
+        - generic [ref=f19e117]:
+          - generic [ref=f19e118] [cursor=pointer]:
+            - generic [ref=f19e119]: FD
+            - generic [ref=f19e120]:
+              - generic [ref=f19e121]: Forge Developer
+              - generic [ref=f19e122]: Engineer
+            - generic [ref=f19e123]: Working
+          - generic [ref=f19e125] [cursor=pointer]:
+            - generic [ref=f19e126]: SA
+            - generic [ref=f19e127]:
+              - generic [ref=f19e128]: Sarah
+              - generic [ref=f19e129]: Acquisitions
+            - generic [ref=f19e130]: Waiting
+          - generic [ref=f19e132] [cursor=pointer]:
+            - generic [ref=f19e133]: RA
+            - generic [ref=f19e134]:
+              - generic [ref=f19e135]: Research
+              - generic [ref=f19e136]: Analysis
+            - generic [ref=f19e137]: Idle
+    - generic [ref=f19e139]:
+      - generic [ref=f19e140]: Activity
+      - table [ref=f19e142]:
+        - rowgroup [ref=f19e143]:
+          - row [ref=f19e144]:
+            - columnheader "Time" [ref=f19e145]
+            - columnheader "Event" [ref=f19e146]
+            - columnheader "Agent" [ref=f19e147]
+            - columnheader "Detail" [ref=f19e148]
+        - rowgroup [ref=f19e149]:
+          - row [ref=f19e150]:
+            - cell "22:12" [ref=f19e151]
+            - cell "Completed" [ref=f19e152]
+            - cell "Forge Dev" [ref=f19e153]
+            - cell "MiMo adapter — 28 tests" [ref=f19e154]
+          - row [ref=f19e155]:
+            - cell "22:08" [ref=f19e156]
+            - cell "Approval" [ref=f19e157]
+            - cell "Forge Dev" [ref=f19e158]
+            - cell "Deploy staging" [ref=f19e159]
+          - row [ref=f19e160]:
+            - cell "22:01" [ref=f19e161]
+            - cell "Tool" [ref=f19e162]
+            - cell "Forge Dev" [ref=f19e163]
+            - cell "edit_file" [ref=f19e164]
+          - row [ref=f19e165]:
+            - cell "21:48" [ref=f19e166]
+            - cell "Started" [ref=f19e167]
+            - cell "Forge Dev" [ref=f19e168]
+            - cell "UI Shell Redesign" [ref=f19e169]
+  - generic [ref=f19e170]:
+    - generic [ref=f19e171]: Ctrl+K
+    - generic [ref=f19e172]: Command Palette
+    - generic [ref=f19e173]: AgentForge v0.1.0-alpha

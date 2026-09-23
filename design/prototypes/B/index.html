@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>AgentForge — Direction B: Workspace Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;--bg4:#e8e8ec;--bg5:#dddde2;
+  --border:#e0e0e4;--border2:#d0d0d4;
+  --t1:#1a1a20;--t2:#555560;--t3:#888890;--t4:#b0b0b8;
+  --accent:#5b4cd4;--accent2:#4a3cc0;--accent-dim:rgba(91,76,212,0.08);
+  --green:#1a8a50;--green-dim:rgba(26,138,80,0.08);
+  --amber:#b07800;--amber-dim:rgba(176,120,0,0.08);
+  --red:#c03030;--red-dim:rgba(192,48,48,0.08);
+  --blue:#2868c8;--blue-dim:rgba(40,104,200,0.08);
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',system-ui,sans-serif;
+  --sidebar:240px;--top:48px;
+}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+input,textarea,select{font-family:inherit;font-size:inherit;color:var(--t1);background:var(--bg);border:1px solid var(--border);padding:7px 11px;border-radius:6px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.mono{font-family:var(--mono);font-size:11px}
+
+.shell{display:grid;grid-template-columns:var(--sidebar) 1fr;grid-template-rows:var(--top) 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg);border-bottom:1px solid var(--border);z-index:10}
+.topbar-brand{font-weight:700;font-size:15px;letter-spacing:-0.02em;color:var(--t1)}
+.topbar-spacer{flex:1}
+.topbar-search{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--t3);min-width:240px}
+.topbar-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3)}
+.topbar-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.topbar-btn{padding:6px 12px;border-radius:6px;font-size:12px;color:var(--t2);transition:all .12s;border:1px solid var(--border)}
+.topbar-btn:hover{background:var(--bg2);color:var(--t1)}
+.topbar-btn-p{background:var(--accent);color:white;border-color:var(--accent)}.topbar-btn-p:hover{background:var(--accent2)}
+
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+.sidebar-section{padding:0 12px;margin-bottom:4px}
+.sidebar-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--t3);padding:10px 12px 4px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:6px;font-size:13px;color:var(--t2);cursor:pointer;transition:all .12s}
+.sidebar-item:hover{background:var(--bg3);color:var(--t1)}
+.sidebar-item.active{background:var(--accent-dim);color:var(--accent);font-weight:500}
+.sidebar-item svg{width:16px;height:16px;flex-shrink:0}
+.sidebar-item .badge{margin-left:auto;font-size:10px;font-weight:600;background:var(--red);color:white;padding:1px 6px;border-radius:8px;min-width:16px;text-align:center}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 16px}
+.sidebar-spacer{flex:1}
+
+.main{overflow-y:auto;background:var(--bg);padding:24px 28px}
+.main-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.main-title{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.main-sub{font-size:12px;color:var(--t3);margin-top:3px}
+
+.card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px;transition:border-color .15s}
+.card:hover{border-color:var(--border2)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3)}
+.card-grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+.stat-row{display:flex;gap:14px;margin-bottom:20px}
+.stat{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-label{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:0.04em}
+.stat-val{font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-top:4px}
+.stat-sub{font-size:11px;color:var(--t3);margin-top:2px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.b-green{background:var(--green-dim);color:var(--green)}.b-amber{background:var(--amber-dim);color:var(--amber)}
+.b-red{background:var(--red-dim);color:var(--red)}.b-blue{background:var(--blue-dim);color:var(--blue)}
+.b-muted{background:var(--bg3);color:var(--t3)}.b-accent{background:var(--accent-dim);color:var(--accent)}
+
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:500;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn-p{background:var(--accent);color:white}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:var(--bg3);color:var(--t2);border:1px solid var(--border)}.btn-g:hover{background:var(--bg4);color:var(--t1)}
+.btn-d{background:var(--red-dim);color:var(--red)}.btn-d:hover{background:var(--red);color:white}
+.btn-s{padding:5px 10px;font-size:11px}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3);padding:8px 12px;border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--bg3);font-size:12px}
+.tbl tr:hover td{background:var(--bg2)}
+
+.agent-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .12s}
+.agent-row:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.agent-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-weight:600;font-size:13px}
+.agent-role{font-size:11px;color:var(--t3)}
+.agent-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500}
+.dot{width:6px;height:6px;border-radius:50%}.dot-g{background:var(--green)}.dot-a{background:var(--amber)}.dot-r{background:var(--red)}.dot-m{background:var(--t3)}
+
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;position:relative;padding:8px 0}
+.tl-item::before{content:'';position:absolute;left:15px;top:32px;bottom:-8px;width:1px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+.tl-dot svg{width:14px;height:14px}
+.tl-body{flex:1;min-width:0}
+.tl-title{font-size:12px;font-weight:500}
+.tl-meta{font-size:11px;color:var(--t3);margin-top:2px}
+.tl-detail{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:4px;padding:6px 8px;background:var(--bg2);border-radius:4px}
+
+.approval{padding:16px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:8px}
+.approval-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.approval-title{font-weight:600;font-size:13px}
+.approval-body{font-size:12px;color:var(--t2);margin-bottom:12px}
+.approval-actions{display:flex;gap:8px}
+
+.flow{display:flex;flex-direction:column;align-items:center;gap:0}
+.flow-node{padding:8px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:500;text-align:center;min-width:160px}
+.flow-node.active{border-color:var(--accent);background:var(--accent-dim)}
+.flow-node.done{border-color:var(--green);background:var(--green-dim)}
+.flow-node.warn{border-color:var(--amber);background:var(--amber-dim)}
+.flow-arrow{width:1px;height:16px;background:var(--border);position:relative}
+
+.msg-layout{display:grid;grid-template-columns:200px 1fr 240px;gap:0;height:calc(100vh - var(--top));margin:-24px -28px}
+.msg-ch{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:10px 0}
+.msg-ch-group{padding:0 8px}
+.msg-ch-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--t3);padding:8px 10px 4px}
+.msg-ch-item{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:5px;font-size:12px;color:var(--t3);cursor:pointer}
+.msg-ch-item:hover{background:var(--bg3);color:var(--t2)}
+.msg-ch-item.active{background:var(--accent-dim);color:var(--accent);font-weight:500}
+.msg-ch-icon{font-size:13px;width:16px;text-align:center}
+.msg-conv{display:flex;flex-direction:column;background:var(--bg)}
+.msg-conv-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg)}
+.msg-conv-title{font-weight:600;font-size:13px}
+.msg-conv-topic{font-size:11px;color:var(--t3)}
+.msg-body{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.bubble{max-width:70%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5}
+.bubble-human{background:var(--accent);color:white;align-self:flex-end;border-bottom-right-radius:4px}
+.bubble-agent{background:var(--bg2);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.bubble-system{background:var(--bg3);align-self:center;font-size:11px;color:var(--t3);padding:4px 14px;border-radius:20px}
+.bubble .sender{font-size:10px;font-weight:600;margin-bottom:3px}
+.bubble .time{font-size:9px;margin-top:3px;opacity:0.6}
+.msg-input{padding:12px 18px;border-top:1px solid var(--border);background:var(--bg)}
+.msg-input input{width:100%;padding:9px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px}
+.msg-ctx{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:14px}
+.msg-ctx-section{margin-bottom:16px}
+.msg-ctx-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--t3);margin-bottom:6px}
+.ctx-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:11px;color:var(--t2)}
+.transport-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--t3);font-weight:500}
+
+.mig-steps{display:flex;align-items:center;gap:0}
+.mig-step{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--t3);border-bottom:2px solid transparent}
+.mig-step.done{color:var(--green);border-bottom-color:var(--green)}
+.mig-step.active{color:var(--accent);border-bottom-color:var(--accent)}
+.mig-step.warn{color:var(--amber);border-bottom-color:var(--amber)}
+.mig-step svg{width:14px;height:14px}
+.mig-connector{width:20px;height:1px;background:var(--border)}
+
+.hidden{display:none!important}
+.flex{display:flex}.gap-8{gap:8px}.gap-12{gap:12px}
+.items-center{align-items:center}.justify-between{justify-content:space-between}
+.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mb-8{margin-bottom:8px}
+.text-muted{color:var(--t3)}.text-sm{font-size:11px}.text-xs{font-size:10px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">AgentForge</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      Search or Ctrl+K
+    </div>
+    <div class="topbar-status"><span class="topbar-dot"></span> Connected</div>
+    <button class="topbar-btn-p topbar-btn">+ New</button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-item active" data-page="home" onclick="showPage('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+      </div>
+      <div class="sidebar-item" data-page="messages" onclick="showPage('messages')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Messages
+      </div>
+      <div class="sidebar-item" data-page="agents" onclick="showPage('agents')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Agents
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Work</div>
+      <div class="sidebar-item" data-page="tasks" onclick="showPage('tasks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Tasks
+      </div>
+      <div class="sidebar-item" data-page="approvals" onclick="showPage('approvals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Approvals <span class="badge">1</span>
+      </div>
+      <div class="sidebar-item" data-page="processes" onclick="showPage('processes')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Processes
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Platform</div>
+      <div class="sidebar-item" data-page="marketplace" onclick="showPage('marketplace')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+        Marketplace
+      </div>
+      <div class="sidebar-item" data-page="migration" onclick="showPage('migration')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Migration
+      </div>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" data-page="settings" onclick="showPage('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.2.6.76 1.04 1.4 1.04h.09a2 2 0 1 1 0 4h-.09c-.64 0-1.2.44-1.4 1.04z"/></svg>
+        Settings
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+const pages = {};
+
+pages.home = () => `
+  <div class="main-head">
+    <div><div class="main-title">Good evening</div><div class="main-sub">4 agents — 2 working — 1 approval required</div></div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-label">Agents</div><div class="stat-val">4</div><div class="stat-sub">2 working</div></div>
+    <div class="stat"><div class="stat-label">Tasks</div><div class="stat-val">3</div><div class="stat-sub">1 waiting</div></div>
+    <div class="stat"><div class="stat-label">Approvals</div><div class="stat-val" style="color:var(--amber)">1</div><div class="stat-sub">pending</div></div>
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-val" style="color:var(--green)">7</div><div class="stat-sub">today</div></div>
+  </div>
+
+  <div class="card-grid g2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Needs Attention</div></div>
+      <div class="approval" style="margin-bottom:10px">
+        <div class="approval-head"><div class="approval-title">Deploy Staging Patch</div><span class="badge b-amber">Pending</span></div>
+        <div class="approval-body">Forge Developer requests deployment. 164 tests passed, diff verified.</div>
+        <div class="approval-actions">
+          <button class="btn btn-p btn-s">Approve</button>
+          <button class="btn btn-g btn-s">Review</button>
+          <button class="btn btn-d btn-s">Reject</button>
+        </div>
+      </div>
+      <div style="padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;border-left:3px solid var(--red)">
+        <div style="font-size:12px;font-weight:500">PPC Dialer Refresh</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">Failed — Retry available</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Agents</div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="agent-row" onclick="showPage('agents')">
+          <div class="agent-icon" style="background:#5b4cd4">FD</div>
+          <div class="agent-info"><div class="agent-name">Forge Developer</div><div class="agent-role">Software Engineer</div></div>
+          <div class="agent-status"><span class="dot dot-g"></span> Working</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-icon" style="background:#2868c8">SA</div>
+          <div class="agent-info"><div class="agent-name">Sarah</div><div class="agent-role">Acquisitions</div></div>
+          <div class="agent-status"><span class="dot dot-a"></span> Waiting</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-icon" style="background:#888">RA</div>
+          <div class="agent-info"><div class="agent-name">Research Agent</div><div class="agent-role">Analysis</div></div>
+          <div class="agent-status"><span class="dot dot-m"></span> Idle</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-icon" style="background:#aaa">VR</div>
+          <div class="agent-info"><div class="agent-name">Voice Receptionist</div><div class="agent-role">Calls</div></div>
+          <div class="agent-status"><span class="dot dot-m"></span> Offline</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card-head"><div class="card-title">Recent Work</div></div>
+    <table class="tbl">
+      <thead><tr><th>Task</th><th>Agent</th><th>Status</th><th>Elapsed</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:500">Fix login regression</td><td>Forge Developer</td><td><span class="badge b-blue">Running</span></td><td class="mono">26m</td></tr>
+        <tr><td style="font-weight:500">MiMo provider adapter</td><td>Forge Developer</td><td><span class="badge b-green">Done</span></td><td class="mono">25m</td></tr>
+        <tr><td style="font-weight:500">UI Shell Redesign</td><td>Forge Developer</td><td><span class="badge b-blue">Running</span></td><td class="mono">1h 12m</td></tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+pages.messages = () => `
+  <div class="msg-layout">
+    <div class="msg-ch">
+      <div class="msg-ch-group">
+        <div class="msg-ch-title">AgentForge</div>
+        <div class="msg-ch-item active"><span class="msg-ch-icon">#</span> general</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> development</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> tasks</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> alerts</div>
+      </div>
+      <div class="msg-ch-group">
+        <div class="msg-ch-title">Telegram</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> Pipeline</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> Underwriting</div>
+      </div>
+      <div class="msg-ch-group">
+        <div class="msg-ch-title">Discord</div>
+        <div class="msg-ch-item"><span class="msg-ch-icon">#</span> agentforge</div>
+      </div>
+    </div>
+    <div class="msg-conv">
+      <div class="msg-conv-head">
+        <span style="font-size:16px;color:var(--t3)">#</span>
+        <div><div class="msg-conv-title">general</div><div class="msg-conv-topic">Canonical channel — Web + Telegram + Discord</div></div>
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <span class="transport-badge">Web</span>
+          <span class="transport-badge">Telegram</span>
+          <span class="transport-badge">Discord</span>
+        </div>
+      </div>
+      <div class="msg-body">
+        <div class="bubble bubble-system">Channel synchronized across 3 transports</div>
+        <div class="bubble bubble-agent"><div class="sender">Forge Developer</div>AgentForge workspace initialized. MiMo provider connected.<div class="time">22:01</div></div>
+        <div class="bubble bubble-human"><div class="sender">You</div>Run the full test suite and report status.<div class="time">22:03</div></div>
+        <div class="bubble bubble-agent"><div class="sender">Forge Developer</div>164 tests passing across 13 suites. All green.<div class="time">22:05</div></div>
+        <div class="bubble bubble-human"><div class="sender">You</div>Approve the staging deployment.<div class="time">22:08</div></div>
+        <div class="bubble bubble-agent"><div class="sender">Forge Developer</div>Approval requested. Waiting for authorization.<div class="time">22:08</div></div>
+        <div class="bubble bubble-system">Approval: Deploy staging patch (medium risk)</div>
+        <div class="bubble bubble-agent"><div class="sender">Sarah</div>Lead qualification SOP updated. 2 unresolved business rules flagged.<div class="time">22:12</div></div>
+      </div>
+      <div class="msg-input"><input type="text" placeholder="Message #general"></div>
+    </div>
+    <div class="msg-ctx">
+      <div class="msg-ctx-section">
+        <div class="msg-ctx-title">Channel</div>
+        <div class="ctx-item">General workspace discussion</div>
+        <div class="ctx-item">3 transports active</div>
+      </div>
+      <div class="msg-ctx-section">
+        <div class="msg-ctx-title">Agents</div>
+        <div class="ctx-item"><span class="dot dot-g"></span> Forge Developer</div>
+        <div class="ctx-item"><span class="dot dot-a"></span> Sarah</div>
+      </div>
+      <div class="msg-ctx-section">
+        <div class="msg-ctx-title">Transports</div>
+        <div style="padding:6px 8px;background:var(--bg3);border-radius:5px;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:500">Web</div>
+          <div style="font-size:10px;color:var(--t3)">Native</div>
+        </div>
+        <div style="padding:6px 8px;background:var(--bg3);border-radius:5px;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:500">Telegram</div>
+          <div style="font-size:10px;color:var(--t3)">Topic 389</div>
+        </div>
+        <div style="padding:6px 8px;background:var(--bg3);border-radius:5px">
+          <div style="font-size:11px;font-weight:500">Discord</div>
+          <div style="font-size:10px;color:var(--t3)">#general</div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+pages.agents = () => `
+  <div class="main-head">
+    <div><div class="main-title">Forge Developer</div><div class="main-sub">Full-Stack Engineer — Working on Fix login regression</div></div>
+    <div class="flex gap-8"><button class="btn btn-g btn-s">Message</button><button class="btn btn-g btn-s">Assign Task</button><button class="btn btn-g btn-s">Pause</button></div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-label">Status</div><div class="stat-val" style="color:var(--green);font-size:16px">Working</div></div>
+    <div class="stat"><div class="stat-label">Task</div><div class="stat-val" style="font-size:14px">Fix login regression</div></div>
+    <div class="stat"><div class="stat-label">Elapsed</div><div class="stat-val" style="font-size:16px">2h 14m</div></div>
+    <div class="stat"><div class="stat-label">Model</div><div class="stat-val mono" style="font-size:12px">mimo-v2.5-pro</div></div>
+  </div>
+
+  <div class="card-grid g3">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Identity</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flex justify-between"><span class="text-muted text-sm">Agent</span><span style="font-size:12px;font-weight:500">Forge Developer</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Role</span><span style="font-size:12px">Full-Stack Engineer</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Workspace</span><span style="font-size:12px">AgentForge</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Model</span><span class="mono">mimo-v2.5-pro</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Harness</span><span style="font-size:12px">Native</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Authority</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flex justify-between items-center"><span class="text-muted text-sm">Files</span><span class="badge b-green">workspace only</span></div>
+        <div class="flex justify-between items-center"><span class="text-muted text-sm">Shell</span><span class="badge b-amber">approval</span></div>
+        <div class="flex justify-between items-center"><span class="text-muted text-sm">Network</span><span class="badge b-green">approved</span></div>
+        <div class="flex justify-between items-center"><span class="text-muted text-sm">Deploy</span><span class="badge b-red">blocked</span></div>
+        <div class="flex justify-between items-center"><span class="text-muted text-sm">Spend</span><span class="badge b-blue">$2.50 left</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Tools</div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        <span class="badge b-muted">git</span>
+        <span class="badge b-muted">terminal</span>
+        <span class="badge b-muted">vitest</span>
+        <span class="badge b-muted">diff_viewer</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card-head"><div class="card-title">Current Execution</div></div>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-dot" style="background:var(--accent-dim);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></div><div class="tl-body"><div class="tl-title">Task accepted</div><div class="tl-meta">21:48 — Fix login session regression</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--blue-dim);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="tl-body"><div class="tl-title">Jev classification</div><div class="tl-meta">complex — Tier 4</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green-dim);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="tl-body"><div class="tl-title">Memory retrieved</div><div class="tl-meta">8 items, 412 tokens</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--accent-dim);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="tl-body"><div class="tl-title">MiMo V2.5 Pro</div><div class="tl-meta">1,842 tokens, 2.3s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="tl-body"><div class="tl-title">Tool: edit_file</div><div class="tl-meta">src/server.ts, 0.3s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green-dim);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="tl-body"><div class="tl-title">Tests: 164 passed</div><div class="tl-meta">13 suites, 5.7s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="tl-body"><div class="tl-title">Approval requested</div><div class="tl-meta">Deploy staging, medium risk</div></div></div>
+    </div>
+  </div>
+`;
+
+pages.tasks = () => `
+  <div class="main-head">
+    <div><div class="main-title">Run Inspector</div><div class="main-sub">Fix login session regression — AF-142</div></div>
+    <div class="flex gap-8"><button class="btn btn-g btn-s">Evidence</button><button class="btn btn-g btn-s">Diff</button></div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-label">Status</div><div class="stat-val" style="color:var(--blue);font-size:14px">In Progress</div></div>
+    <div class="stat"><div class="stat-label">Agent</div><div class="stat-val" style="font-size:14px">Forge Developer</div></div>
+    <div class="stat"><div class="stat-label">Elapsed</div><div class="stat-val" style="font-size:14px">26m</div></div>
+    <div class="stat"><div class="stat-label">Tokens</div><div class="stat-val" style="font-size:14px">4,280</div></div>
+    <div class="stat"><div class="stat-label">Cost</div><div class="stat-val" style="font-size:14px">$0.18</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Execution Timeline</div></div>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-dot" style="background:var(--accent-dim);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></div><div class="tl-body"><div class="tl-title">Task accepted</div><div class="tl-meta">21:48:02</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--blue-dim);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="tl-body"><div class="tl-title">Jev classification</div><div class="tl-meta">complex, 0.94</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green-dim);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="tl-body"><div class="tl-title">Memory retrieved</div><div class="tl-meta">8 items, 412 tokens, 0.4s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--accent-dim);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="tl-body"><div class="tl-title">MiMo V2.5 Pro</div><div class="tl-meta">1,842 tokens, 2.3s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="tl-body"><div class="tl-title">Tool: read_file</div><div class="tl-meta">src/auth/session.ts, 0.1s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="tl-body"><div class="tl-title">Tool: edit_file</div><div class="tl-meta">src/server.ts, 0.3s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green-dim);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="tl-body"><div class="tl-title">Tests: 164 passed</div><div class="tl-meta">13 suites, 5.7s</div></div></div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--amber-dim);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="tl-body"><div class="tl-title">Approval requested</div><div class="tl-meta">Deploy staging, medium risk</div></div></div>
+    </div>
+  </div>
+`;
+
+pages.approvals = () => `
+  <div class="main-head"><div><div class="main-title">Approval Gate</div><div class="main-sub">Deploy staging patch</div></div></div>
+  <div class="card-grid g2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Request</div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div><div class="text-xs text-muted">Intent</div><div style="font-size:13px;font-weight:500;margin-top:4px">Deploy auth session patch to Staging</div></div>
+        <div><div class="text-xs text-muted">Requested By</div><div style="font-size:12px;margin-top:4px">Forge Developer</div></div>
+        <div><div class="text-xs text-muted">Reason</div><div style="font-size:12px;margin-top:4px">All 164 tests passing; diff scope verified.</div></div>
+        <div><div class="text-xs text-muted">Risk</div><div style="margin-top:4px"><span class="badge b-amber">Medium</span></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Scope</div></div>
+      <div class="card-grid g2">
+        <div style="padding:8px;background:var(--bg2);border-radius:5px"><div class="text-xs text-muted mb-8">Allowed</div><div style="font-size:11px;color:var(--green)">Read workspace files</div><div style="font-size:11px;color:var(--green)">Edit src/**</div><div style="font-size:11px;color:var(--green)">Run tests</div></div>
+        <div style="padding:8px;background:var(--bg2);border-radius:5px"><div class="text-xs text-muted mb-8">Blocked</div><div style="font-size:11px;color:var(--red)">Modify .env</div><div style="font-size:11px;color:var(--red)">Force push</div><div style="font-size:11px;color:var(--red)">Prod deploy</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button class="btn btn-d">Reject</button>
+    <button class="btn btn-g">Edit Scope</button>
+    <button class="btn btn-p">Approve Once</button>
+  </div>
+`;
+
+pages.processes = () => `
+  <div class="main-head"><div><div class="main-title">Process Compiler</div><div class="main-sub">Seller Qualification — Scribe v4</div></div></div>
+  <div class="card-grid g3">
+    <div class="card"><div class="card-head"><div class="card-title">Source</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flex justify-between"><span class="text-muted text-sm">Source</span><span class="badge b-accent">Scribe</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Version</span><span>v4</span></div>
+        <div class="flex justify-between"><span class="text-muted text-sm">Used By</span><span>Sarah</span></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-head"><div class="card-title">Tools</div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px"><span class="badge b-muted">crm_client</span><span class="badge b-muted">voice_caller</span></div>
+    </div>
+    <div class="card"><div class="card-head"><div class="card-title">Agent</div></div>
+      <div class="agent-row"><div class="agent-icon" style="background:#2868c8">SA</div><div class="agent-info"><div class="agent-name">Sarah</div><div class="agent-role">Acquisitions</div></div></div>
+    </div>
+  </div>
+  <div class="card mt-16"><div class="card-head"><div class="card-title">Executable Flow</div></div>
+    <div class="flow">
+      <div class="flow-node done">Lead Received</div><div class="flow-arrow"></div>
+      <div class="flow-node done">Contact Seller</div><div class="flow-arrow"></div>
+      <div class="flow-node active">Photos?</div><div class="flow-arrow"></div>
+      <div style="display:flex;gap:40px"><div class="flow"><div class="flow-node">No</div></div><div class="flow"><div class="flow-node warn">Yes</div></div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node warn">Review</div>
+    </div>
+  </div>
+  <div class="card mt-16" style="border-left:3px solid var(--amber)"><div class="card-head"><div class="card-title" style="color:var(--amber)">Unresolved Business Rule</div></div>
+    <div style="font-size:12px;color:var(--t2)">"Move to Ready To Underwrite" — Owner must define authority.</div>
+  </div>
+`;
+
+pages.marketplace = () => `
+  <div class="main-head"><div><div class="main-title">Marketplace</div><div class="main-sub">Discover agents, skills, tools, and workflows</div></div></div>
+  <div class="card-grid g3">
+    <div class="card"><div style="font-size:13px;font-weight:600">Real Estate PPC Team</div><div style="font-size:11px;color:var(--t3)">Community</div><div style="font-size:12px;color:var(--t2);margin-top:8px">3-agent team for PPC lead management.</div><div style="margin-top:12px"><span class="badge b-accent">Free</span></div></div>
+    <div class="card"><div style="font-size:13px;font-weight:600">Developer Agent</div><div style="font-size:11px;color:var(--t3)">AgentForge</div><div style="font-size:12px;color:var(--t2);margin-top:8px">Full-stack engineer with Git and testing.</div><div style="margin-top:12px"><span class="badge b-accent">Free</span></div></div>
+    <div class="card"><div style="font-size:13px;font-weight:600">Dental Receptionist</div><div style="font-size:11px;color:var(--t3)">Community</div><div style="font-size:12px;color:var(--t2);margin-top:8px">Voice agent for scheduling.</div><div style="margin-top:12px"><span class="badge b-accent">Free</span></div></div>
+  </div>
+`;
+
+pages.migration = () => `
+  <div class="main-head"><div><div class="main-title">Migration Center</div><div class="main-sub">Bring your agents with you</div></div></div>
+  <div class="card" style="margin-bottom:16px"><div class="mig-steps">
+    <div class="mig-step done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Inspect</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Map</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Conflicts</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step active">Dry Run</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step">Shadow</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step">Cutover</div>
+    <div class="mig-connector"></div>
+    <div class="mig-step">Rollback</div>
+  </div></div>
+  <div class="card-grid g2">
+    <div class="card"><div class="card-head"><div class="card-title">OpenClaw Import</div></div>
+      <table class="tbl"><tbody>
+        <tr><td>Agents</td><td style="text-align:right"><span class="badge b-green">8</span></td></tr>
+        <tr><td>Channels</td><td style="text-align:right"><span class="badge b-green">14</span></td></tr>
+        <tr><td>Tools</td><td style="text-align:right"><span class="badge b-green">37</span></td></tr>
+      </tbody></table>
+    </div>
+    <div class="card"><div class="card-head"><div class="card-title">Conflicts</div></div>
+      <div style="padding:8px;background:var(--amber-dim);border-radius:5px;font-size:12px;color:var(--amber)">2 unsupported tools, 1 missing secret</div>
+    </div>
+  </div>
+`;
+
+pages.settings = () => `
+  <div class="main-head"><div><div class="main-title">Settings</div></div></div>
+  <div class="card"><div class="card-head"><div class="card-title">Provider</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label class="text-xs text-muted">Provider</label><select style="width:100%;margin-top:4px"><option>MiMo</option><option>Ollama</option></select></div>
+      <div><label class="text-xs text-muted">Model</label><input value="mimo-v2.5-pro" style="width:100%;margin-top:4px"></div>
+    </div>
+    <button class="btn btn-p mt-12">Save</button>
+  </div>
+`;
+
+function showPage(name) {
+  document.getElementById('main').innerHTML = (pages[name] || pages.home)();
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.toggle('active', el.dataset.page === name));
+}
+showPage('home');
+</script>
+</body>
+</html>

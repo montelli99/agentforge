@@ -374,7 +374,8 @@ export class AgentForgeOptimizer {
       outputTokens: telemetry.originalTokens.output,
       inputCostUsd: telemetry.estimatedCostAfter.inputCostUsd,
       outputCostUsd: telemetry.estimatedCostAfter.outputCostUsd,
-      cacheHits: cacheStatus === "hit" ? 1 : 0,
+      // Cache hits return from the earlier branch, which records them there.
+      cacheHits: 0,
       compressionSavingsTokens: compressionApplied
         ? telemetry.originalTokens.total - telemetry.optimizedTokens.total
         : 0,

@@ -10,6 +10,7 @@
 
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type {
   CanonicalWorkspace,
@@ -20,16 +21,35 @@ import type {
 } from "../types/workspace.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { Task, TaskStatus } from "../types/task.js";
+import type { ExecutionContract } from "../types/contract.js";
 import type { ApprovalRequest } from "../types/approval.js";
-import type { ProcessDefinition } from "../types/process.js";
+import type { ProcessAgentBinding, ProcessDefinition, ProcessDiff, ProcessRevisionProposal } from "../types/process.js";
 import type { Call } from "../types/voice.js";
 import type { PackageManifest, PackageInstallation } from "../types/package.js";
 import type { BenchmarkResult } from "../types/benchmark.js";
-import type { AuditEntry } from "../types/audit.js";
-import type { AgentForgeUser } from "../types/identity.js";
+import type { AuditEntry, AuditOrigin } from "../types/audit.js";
+import { computeAuditHash, GENESIS_AUDIT_HASH } from "../types/audit.js";
+import type { AgentForgeUser, ExternalIdentity, UserRole, UserSummary } from "../types/identity.js";
+import type { OperationalMemoryRecord } from "../providers/memory.js";
+import {
+  AuthSession,
+  ApiKeyRecord,
+  DEFAULT_ROLE_PERMISSIONS,
+  hashPassword,
+  verifyPassword,
+  generateSessionToken,
+  generateApiKey,
+  hashApiKey,
+} from "../auth/authService.js";
 import { EventLedger } from "../ledger/eventLedger.js";
 
 export type RealtimeListener = (event: { type: string; entity: string; data: unknown }) => void;
+
+const auditTargetTypes = new Set<AuditEntry["targetType"]>([
+  "task", "agent", "contract", "approval", "message", "file", "model", "worktree", "channel",
+  "workspace", "space", "process", "process_revision", "processAgentBinding", "call", "package",
+  "installation", "memory", "benchmark", "user", "system", "harness",
+]);
 
 export interface UnifiedInboxItem {
   id: string;
@@ -44,6 +64,33 @@ export interface UnifiedInboxItem {
   metadata?: Record<string, unknown>;
 }
 
+type PersistedWorkspaceSnapshot = {
+  schemaVersion: 1 | 2 | 3 | 4 | 5;
+  workspaces: CanonicalWorkspace[];
+  spaces: CanonicalSpace[];
+  channels: CanonicalChannel[];
+  threads: CanonicalThread[];
+  messages: Array<[string, CanonicalMessage[]]>;
+  users: AgentForgeUser[];
+  agents: AgentTeammate[];
+  tasks: Task[];
+  approvals: ApprovalRequest[];
+  processes: ProcessDefinition[];
+  processRevisionHistory: Array<[string, ProcessDefinition[]]>;
+  processRevisionProposals: ProcessRevisionProposal[];
+  processAgentBindings: ProcessAgentBinding[];
+  calls: Call[];
+  packages: PackageManifest[];
+  installations: PackageInstallation[];
+  benchmarkResults: BenchmarkResult[];
+  auditEntries: AuditEntry[];
+  auditPrunedCheckpoint?: { prunedCount: number; lastPrunedHash: string; timestamp: string };
+  operationalMemories: OperationalMemoryRecord[];
+  apiKeys?: ApiKeyRecord[];
+  eventLedger: ReturnType<EventLedger["getAllEntries"]>;
+  externalBindings: ReturnType<EventLedger["getAllBindings"]>;
+};
+
 export class WorkspaceStore {
   // Canonical Maps
   private workspaces = new Map<string, CanonicalWorkspace>();
@@ -52,23 +99,45 @@ export class WorkspaceStore {
   private threads = new Map<string, CanonicalThread>();
   private messages = new Map<string, CanonicalMessage[]>(); // key: channelId
   private users = new Map<string, AgentForgeUser>();
+  private sessions = new Map<string, AuthSession>();
+  private apiKeys = new Map<string, ApiKeyRecord>();
   private agents = new Map<string, AgentTeammate>();
   private tasks = new Map<string, Task>();
   private approvals = new Map<string, ApprovalRequest>();
   private processes = new Map<string, ProcessDefinition>();
+  private processRevisionHistory = new Map<string, ProcessDefinition[]>();
+  private processRevisionProposals = new Map<string, ProcessRevisionProposal>();
+  private processAgentBindings = new Map<string, ProcessAgentBinding>();
   private calls = new Map<string, Call>();
   private packages = new Map<string, PackageManifest>();
   private installations = new Map<string, PackageInstallation>();
   private benchmarkResults: BenchmarkResult[] = [];
   private auditEntries: AuditEntry[] = [];
+  private auditPrunedCheckpoint?: { prunedCount: number; lastPrunedHash: string; timestamp: string };
+  private operationalMemories = new Map<string, OperationalMemoryRecord>();
 
-  readonly eventLedger = new EventLedger();
+  readonly eventLedger: EventLedger;
   private realtimeListeners: RealtimeListener[] = [];
+  private restoring = false;
+  private loadedLegacySnapshot = false;
+
+  get persistenceMode(): "local_json" | "in_memory" {
+    return this.persistFilePath ? "local_json" : "in_memory";
+  }
 
   constructor(private readonly persistFilePath?: string) {
+    this.eventLedger = new EventLedger(() => this.persistIfConfigured());
     this.seedDefaultWorkspace();
-    if (persistFilePath && fs.existsSync(persistFilePath)) {
-      this.loadFromFile(persistFilePath);
+    if (persistFilePath) {
+      if (fs.existsSync(persistFilePath) || fs.existsSync(`${persistFilePath}.bak`)) {
+        const source = this.loadFromFile(persistFilePath);
+        if (source === "backup" || this.loadedLegacySnapshot) {
+          // Persist the restored or migrated snapshot without rotating the source snapshot over itself.
+          this.writeSnapshot(persistFilePath, false);
+        }
+      } else {
+        this.saveToFile(persistFilePath);
+      }
     }
   }
 
@@ -82,6 +151,24 @@ export class WorkspaceStore {
 
   emit(type: string, entity: string, data: unknown): void {
     const payload = { type, entity, data };
+    if (type !== "audit_entry") {
+      const record = data && typeof data === "object" ? data as Record<string, unknown> : {};
+      const entityId = [record.id, record[`${entity}Id`], record.processId, record.taskId, record.agentId]
+        .find((value): value is string => typeof value === "string" && value.length > 0);
+      const targetType = auditTargetTypes.has(entity as AuditEntry["targetType"])
+        ? entity as AuditEntry["targetType"]
+        : "system";
+      this.appendAuditEntry({
+        origin: "system",
+        actorId: "workspace-store",
+        actorType: "system",
+        action: type,
+        targetType,
+        targetId: entityId || entity,
+        details: { eventType: type, entity },
+      });
+    }
+    this.persistIfConfigured();
     for (const listener of this.realtimeListeners) {
       try {
         listener(payload);
@@ -133,15 +220,14 @@ export class WorkspaceStore {
 
     // Default Owner User
     const ownerUser: AgentForgeUser = {
-      id: "user-montelli",
-      username: "montelli",
-      displayName: "Montelli",
+      id: "user-owner",
+      username: "owner",
+      displayName: "Workspace Owner",
       role: "owner",
       permissions: ["*"],
-      externalIdentities: [
-        { provider: "telegram", externalUserId: "12345678", linkedAt: new Date().toISOString() },
-        { provider: "discord", externalUserId: "87654321", linkedAt: new Date().toISOString() },
-      ],
+      status: "active",
+      // Real Telegram/Discord identities must be linked by the workspace owner.
+      externalIdentities: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -155,6 +241,19 @@ export class WorkspaceStore {
 
   listWorkspaces(): CanonicalWorkspace[] {
     return Array.from(this.workspaces.values());
+  }
+
+  createWorkspace(params: Omit<CanonicalWorkspace, "id" | "createdAt" | "updatedAt">): CanonicalWorkspace {
+    const id = `ws-${crypto.randomUUID().slice(0, 8)}`;
+    const ws: CanonicalWorkspace = {
+      ...params,
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.workspaces.set(id, ws);
+    this.emit("workspace_created", "workspace", ws);
+    return ws;
   }
 
   createSpace(params: Omit<CanonicalSpace, "id" | "createdAt" | "updatedAt">): CanonicalSpace {
@@ -226,8 +325,9 @@ export class WorkspaceStore {
   }
 
   // --- Agents ---
-  createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt">): AgentTeammate {
+  createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt" | "id"> & { id?: string }): AgentTeammate {
     const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
+    if (this.agents.has(id)) throw new Error(`Agent ${id} already exists`);
     const fullAgent: AgentTeammate = {
       ...agent,
       id,
@@ -257,10 +357,35 @@ export class WorkspaceStore {
   }
 
   // --- Tasks ---
-  createTask(task: Omit<Task, "id" | "createdAt" | "updatedAt">): Task {
-    const id = `AF-${Math.floor(100 + Math.random() * 900)}`;
+  createTask(task: {
+    id?: string;
+    projectId?: string;
+    title: string;
+    description?: string;
+    priority: Task["priority"];
+    status: TaskStatus;
+    assignedAgentId?: string;
+    originChannelId?: string;
+    originThreadId?: string;
+    contract?: ExecutionContract;
+    processId?: string;
+  }): Task {
+    let id = task.id;
+    if (!id) {
+      do {
+        id = `AF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      } while (this.tasks.has(id));
+    }
+    if (this.tasks.has(id)) throw new Error(`Task ${id} already exists`);
+    if (task.contract && task.contract.taskId !== id) {
+      throw new Error(`Execution contract taskId must match task id ${id}`);
+    }
+    const contract = task.contract ?? this.createRestrictedDefaultContract(id);
     const fullTask: Task = {
       ...task,
+      projectId: task.projectId ?? "proj-default",
+      description: task.description ?? "",
+      contract,
       id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -268,6 +393,28 @@ export class WorkspaceStore {
     this.tasks.set(id, fullTask);
     this.emit("task_created", "task", fullTask);
     return fullTask;
+  }
+
+  private createRestrictedDefaultContract(taskId: string): ExecutionContract {
+    return {
+      id: `contract-${taskId}`,
+      taskId,
+      version: 1,
+      repository: { baseBranch: "unresolved", baseSha: "unresolved" },
+      workspace: { requireIsolatedWorktree: true },
+      scope: { allowedPaths: [], protectedPaths: ["**"] },
+      authority: {
+        externalMessage: false,
+        productionWrite: false,
+        deployment: false,
+        forcePush: false,
+        deleteFiles: false,
+        networkOutbound: false,
+      },
+      requiredChecks: [],
+      completion: { requireEvidencePack: true, requireHumanApproval: true },
+      createdAt: new Date().toISOString(),
+    };
   }
 
   getTask(id: string): Task | undefined {
@@ -289,10 +436,11 @@ export class WorkspaceStore {
   }
 
   // --- Approvals ---
-  createApproval(approval: Omit<ApprovalRequest, "id" | "status" | "createdAt">): ApprovalRequest {
+  createApproval(approval: Omit<ApprovalRequest, "id" | "status" | "createdAt" | "description"> & { description?: string }): ApprovalRequest {
     const id = `appr-${crypto.randomUUID().slice(0, 8)}`;
     const fullApproval: ApprovalRequest = {
       ...approval,
+      description: approval.description ?? approval.action,
       id,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -320,6 +468,20 @@ export class WorkspaceStore {
     appr.decisionOrigin = params.decisionOrigin;
     appr.decisionNotes = params.decisionNotes;
     appr.decidedAt = new Date().toISOString();
+    if (appr.taskId) {
+      const task = this.tasks.get(appr.taskId);
+      if (task && task.status === "waiting_approval") {
+        if (params.status === "approved") {
+          task.status = "completed";
+          task.completedAt = new Date().toISOString();
+        } else if (params.status === "rejected") {
+          task.status = "failed";
+          task.error = `Human review rejected: ${params.decisionNotes || "Rejected by reviewer"}`;
+          task.completedAt = new Date().toISOString();
+        }
+        this.emit("task_updated", "task", task);
+      }
+    }
     this.emit("approval_resolved", "approval", appr);
     return appr;
   }
@@ -331,9 +493,126 @@ export class WorkspaceStore {
 
   // --- Processes ---
   createProcess(process: ProcessDefinition): ProcessDefinition {
+    if (this.processes.has(process.id)) throw new Error(`Process ${process.id} already exists`);
     this.processes.set(process.id, process);
     this.emit("process_created", "process", process);
     return process;
+  }
+
+  updateProcess(process: ProcessDefinition, expectedVersion: number): ProcessDefinition {
+    const existing = this.processes.get(process.id);
+    if (!existing) throw new Error(`Process ${process.id} not found`);
+    if (!Number.isSafeInteger(expectedVersion) || existing.version !== expectedVersion) {
+      throw new Error(`Process ${process.id} version conflict: expected ${expectedVersion}, current ${existing.version}`);
+    }
+    if (process.version !== expectedVersion + 1) {
+      throw new Error(`Process ${process.id} revision must increment version by exactly one`);
+    }
+    const history = this.processRevisionHistory.get(process.id) ?? [];
+    history.push(structuredClone(existing));
+    this.processRevisionHistory.set(process.id, history);
+    const updated = structuredClone(process);
+    this.processes.set(process.id, updated);
+    this.emit("process_updated", "process", updated);
+    return updated;
+  }
+
+  listProcessRevisions(processId: string): ProcessDefinition[] {
+    return (this.processRevisionHistory.get(processId) ?? []).map(revision => structuredClone(revision));
+  }
+
+  rollbackProcess(processId: string, targetVersion: number, expectedVersion: number): ProcessDefinition {
+    const current = this.processes.get(processId);
+    if (!current) throw new Error(`Process ${processId} not found`);
+    if (!Number.isSafeInteger(expectedVersion) || current.version !== expectedVersion) {
+      throw new Error(`Process ${processId} version conflict: expected ${expectedVersion}, current ${current.version}`);
+    }
+    const history = this.processRevisionHistory.get(processId) ?? [];
+    const target = history.find(revision => revision.version === targetVersion);
+    if (!target || targetVersion >= current.version) {
+      throw new Error(`Process ${processId} historical version ${targetVersion} was not found`);
+    }
+    history.push(structuredClone(current));
+    this.processRevisionHistory.set(processId, history);
+    const restored: ProcessDefinition = {
+      ...structuredClone(target),
+      version: current.version + 1,
+      updatedAt: new Date().toISOString(),
+      lastSynchronizedAt: new Date().toISOString(),
+    };
+    this.processes.set(processId, restored);
+    this.emit("process_rolled_back", "process", { processId, fromVersion: current.version, targetVersion, restoredVersion: restored.version });
+    return restored;
+  }
+
+  createProcessRevisionProposal(params: {
+    processId: string;
+    expectedVersion: number;
+    revision: ProcessDefinition;
+    diff: ProcessDiff;
+  }): ProcessRevisionProposal {
+    const current = this.processes.get(params.processId);
+    if (!current) throw new Error(`Process ${params.processId} not found`);
+    if (!Number.isSafeInteger(params.expectedVersion) || current.version !== params.expectedVersion) {
+      throw new Error(`Process ${params.processId} version conflict: expected ${params.expectedVersion}, current ${current.version}`);
+    }
+    if (params.revision.id !== params.processId || params.revision.version !== params.expectedVersion + 1) {
+      throw new Error("A proposed process revision must target this process and increment its version by exactly one.");
+    }
+    const now = new Date().toISOString();
+    const proposal: ProcessRevisionProposal = {
+      id: `process-revision-${crypto.randomUUID()}`,
+      processId: params.processId,
+      expectedVersion: params.expectedVersion,
+      revision: structuredClone(params.revision),
+      diff: structuredClone(params.diff),
+      status: "pending",
+      createdAt: now,
+    };
+    this.processRevisionProposals.set(proposal.id, proposal);
+    this.emit("process_revision_proposed", "process_revision", proposal);
+    return structuredClone(proposal);
+  }
+
+  listProcessRevisionProposals(processId?: string): ProcessRevisionProposal[] {
+    return Array.from(this.processRevisionProposals.values())
+      .filter(proposal => !processId || proposal.processId === processId)
+      .map(proposal => structuredClone(proposal));
+  }
+
+  resolveProcessRevisionProposal(params: {
+    proposalId: string;
+    status: "approved" | "rejected";
+    approverUserId: string;
+  }): { proposal: ProcessRevisionProposal; process?: ProcessDefinition } {
+    const proposal = this.processRevisionProposals.get(params.proposalId);
+    if (!proposal) throw new Error(`Process revision proposal ${params.proposalId} not found`);
+    if (proposal.status !== "pending") throw new Error(`Process revision proposal is already ${proposal.status}`);
+    const now = new Date().toISOString();
+    const current = this.processes.get(proposal.processId);
+    if (!current) throw new Error(`Process ${proposal.processId} not found`);
+    if (current.version !== proposal.expectedVersion) {
+      proposal.status = "stale";
+      proposal.resolvedAt = now;
+      proposal.resolvedByUserId = params.approverUserId;
+      this.emit("process_revision_stale", "process_revision", proposal);
+      return { proposal: structuredClone(proposal) };
+    }
+    proposal.status = params.status;
+    proposal.resolvedAt = now;
+    proposal.resolvedByUserId = params.approverUserId;
+    if (params.status === "rejected") {
+      this.emit("process_revision_rejected", "process_revision", proposal);
+      return { proposal: structuredClone(proposal) };
+    }
+    const history = this.processRevisionHistory.get(proposal.processId) ?? [];
+    history.push(structuredClone(current));
+    this.processRevisionHistory.set(proposal.processId, history);
+    const approved = { ...structuredClone(proposal.revision), updatedAt: now };
+    this.processes.set(proposal.processId, approved);
+    this.emit("process_revision_approved", "process_revision", proposal);
+    this.emit("process_updated", "process", approved);
+    return { proposal: structuredClone(proposal), process: structuredClone(approved) };
   }
 
   getProcess(id: string): ProcessDefinition | undefined {
@@ -342,6 +621,32 @@ export class WorkspaceStore {
 
   listProcesses(): ProcessDefinition[] {
     return Array.from(this.processes.values());
+  }
+
+  bindProcessToAgent(params: { processId: string; agentId: string; assignedRole: string }): ProcessAgentBinding {
+    if (!this.processes.has(params.processId)) throw new Error(`Process ${params.processId} not found`);
+    if (!this.agents.has(params.agentId)) throw new Error(`Agent ${params.agentId} not found`);
+    const assignedRole = params.assignedRole.trim();
+    if (!assignedRole || assignedRole.length > 120) throw new Error("Assigned process role must be 1 to 120 characters.");
+    const key = `${params.processId}:${params.agentId}`;
+    const existing = this.processAgentBindings.get(key);
+    if (existing?.assignedRole === assignedRole) return structuredClone(existing);
+    const binding: ProcessAgentBinding = {
+      processId: params.processId,
+      agentId: params.agentId,
+      assignedRole,
+      boundAt: new Date().toISOString(),
+    };
+    this.processAgentBindings.set(key, binding);
+    this.emit("process_agent_bound", "processAgentBinding", binding);
+    return structuredClone(binding);
+  }
+
+  listProcessAgentBindings(filter: { processId?: string; agentId?: string } = {}): ProcessAgentBinding[] {
+    return Array.from(this.processAgentBindings.values())
+      .filter(binding => (!filter.processId || binding.processId === filter.processId)
+        && (!filter.agentId || binding.agentId === filter.agentId))
+      .map(binding => structuredClone(binding));
   }
 
   // --- Calls ---
@@ -388,6 +693,18 @@ export class WorkspaceStore {
     this.emit("package_installed", "installation", inst);
   }
 
+  getInstallation(packageId: string): PackageInstallation | undefined {
+    return this.installations.get(packageId);
+  }
+
+  removeInstallation(packageId: string): boolean {
+    const existing = this.installations.get(packageId);
+    if (!existing) return false;
+    this.installations.delete(packageId);
+    this.emit("package_uninstalled", "installation", { packageId });
+    return true;
+  }
+
   listInstallations(): PackageInstallation[] {
     return Array.from(this.installations.values());
   }
@@ -405,30 +722,464 @@ export class WorkspaceStore {
   }
 
   // --- Audit ---
-  recordAudit(entry: Omit<AuditEntry, "id" | "timestamp">): AuditEntry {
+  private appendAuditEntry(entry: {
+    id?: string;
+    timestamp?: string;
+    origin: AuditOrigin;
+    actorId: string;
+    actorType: "user" | "agent" | "system";
+    action: string;
+    targetType: AuditEntry["targetType"];
+    targetId: string;
+    details: Record<string, unknown>;
+    ipAddress?: string;
+    previousHash?: string;
+    hash?: string;
+  }): AuditEntry {
+    const id = entry.id || `audit-${crypto.randomUUID().slice(0, 8)}`;
+    const timestamp = entry.timestamp || new Date().toISOString();
+    const lastEntry = this.auditEntries[this.auditEntries.length - 1];
+    const previousHash = entry.previousHash || (lastEntry?.hash ?? this.auditPrunedCheckpoint?.lastPrunedHash ?? GENESIS_AUDIT_HASH);
+    const hash = entry.hash || computeAuditHash({
+      id,
+      timestamp,
+      origin: entry.origin,
+      actorId: entry.actorId,
+      actorType: entry.actorType,
+      action: entry.action,
+      targetType: entry.targetType,
+      targetId: entry.targetId,
+      details: entry.details,
+      ipAddress: entry.ipAddress,
+      previousHash,
+    });
     const fullEntry: AuditEntry = {
       ...entry,
-      id: `audit-${crypto.randomUUID().slice(0, 8)}`,
-      timestamp: new Date().toISOString(),
+      id,
+      timestamp,
+      previousHash,
+      hash,
     };
     this.auditEntries.push(fullEntry);
+    return fullEntry;
+  }
+
+  recordAudit(entry: Omit<AuditEntry, "id" | "timestamp" | "previousHash" | "hash"> & {
+    id?: string;
+    timestamp?: string;
+    previousHash?: string;
+    hash?: string;
+  }): AuditEntry {
+    const fullEntry = this.appendAuditEntry(entry);
     this.emit("audit_entry", "audit", fullEntry);
     return fullEntry;
   }
 
-  listAuditEntries(limit = 100): AuditEntry[] {
-    return this.auditEntries.slice(-limit);
+  listAuditEntries(options: number | { limit?: number; origin?: AuditOrigin; actorId?: string; targetType?: string } = 100): AuditEntry[] {
+    const limit = typeof options === "number" ? options : (options.limit ?? 100);
+    let entries = this.auditEntries;
+    if (typeof options === "object") {
+      if (options.origin) entries = entries.filter(e => e.origin === options.origin);
+      if (options.actorId) entries = entries.filter(e => e.actorId === options.actorId);
+      if (options.targetType) entries = entries.filter(e => e.targetType === options.targetType);
+    }
+    return entries.slice(-limit);
+  }
+
+  verifyAuditChain(): { valid: boolean; totalEntries: number; brokenAtIndex?: number; reason?: string } {
+    const totalEntries = this.auditEntries.length;
+    if (totalEntries === 0) {
+      return { valid: true, totalEntries: 0 };
+    }
+
+    const initialPrevHash = this.auditPrunedCheckpoint?.lastPrunedHash || GENESIS_AUDIT_HASH;
+
+    for (let i = 0; i < totalEntries; i++) {
+      const entry = this.auditEntries[i];
+      const expectedPrevHash = i === 0 ? initialPrevHash : this.auditEntries[i - 1].hash;
+
+      if (entry.previousHash !== expectedPrevHash) {
+        return {
+          valid: false,
+          totalEntries,
+          brokenAtIndex: i,
+          reason: `previousHash mismatch at index ${i}: expected "${expectedPrevHash}", got "${entry.previousHash}"`,
+        };
+      }
+
+      const expectedHash = computeAuditHash({
+        id: entry.id,
+        timestamp: entry.timestamp,
+        origin: entry.origin,
+        actorId: entry.actorId,
+        actorType: entry.actorType,
+        action: entry.action,
+        targetType: entry.targetType,
+        targetId: entry.targetId,
+        details: entry.details,
+        ipAddress: entry.ipAddress,
+        previousHash: entry.previousHash,
+      });
+
+      if (entry.hash !== expectedHash) {
+        return {
+          valid: false,
+          totalEntries,
+          brokenAtIndex: i,
+          reason: `hash mismatch at index ${i}: computed "${expectedHash}", got "${entry.hash}"`,
+        };
+      }
+    }
+
+    return { valid: true, totalEntries };
+  }
+
+  pruneAuditTrail(options: { retentionDays?: number; maxEntries?: number } = {}): { prunedCount: number; remainingCount: number } {
+    if (this.auditEntries.length === 0) {
+      return { prunedCount: 0, remainingCount: 0 };
+    }
+
+    let cutoffIndex = 0;
+
+    if (options.retentionDays !== undefined && options.retentionDays > 0) {
+      const cutoffTime = Date.now() - options.retentionDays * 86400000;
+      for (let i = 0; i < this.auditEntries.length; i++) {
+        const entryTime = Date.parse(this.auditEntries[i].timestamp);
+        if (Number.isFinite(entryTime) && entryTime < cutoffTime) {
+          cutoffIndex = i + 1;
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (options.maxEntries !== undefined && options.maxEntries >= 0) {
+      const maxCutoff = Math.max(0, this.auditEntries.length - options.maxEntries);
+      if (maxCutoff > cutoffIndex) {
+        cutoffIndex = maxCutoff;
+      }
+    }
+
+    if (cutoffIndex === 0) {
+      return { prunedCount: 0, remainingCount: this.auditEntries.length };
+    }
+
+    const lastPrunedEntry = this.auditEntries[cutoffIndex - 1];
+    this.auditPrunedCheckpoint = {
+      prunedCount: (this.auditPrunedCheckpoint?.prunedCount || 0) + cutoffIndex,
+      lastPrunedHash: lastPrunedEntry.hash || GENESIS_AUDIT_HASH,
+      timestamp: new Date().toISOString(),
+    };
+
+    const prunedCount = cutoffIndex;
+    this.auditEntries = this.auditEntries.slice(cutoffIndex);
+    this.persistIfConfigured();
+
+    return { prunedCount, remainingCount: this.auditEntries.length };
+  }
+
+  getAuditCheckpoint(): { prunedCount: number; lastPrunedHash: string; timestamp: string } | undefined {
+    return this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
+  }
+
+  // --- Durable operational memory ---
+  listOperationalMemories(namespace: string): OperationalMemoryRecord[] {
+    return Array.from(this.operationalMemories.values()).filter(record => record.namespace === namespace);
+  }
+
+  saveOperationalMemory(record: OperationalMemoryRecord): void {
+    this.operationalMemories.set(record.id, record);
+    this.emit("operational_memory_saved", "memory", {
+      id: record.id,
+      namespace: record.namespace,
+      category: record.category,
+      title: record.title,
+    });
+  }
+
+  deleteOperationalMemory(namespace: string, id: string): boolean {
+    const record = this.operationalMemories.get(id);
+    if (!record || record.namespace !== namespace) return false;
+    this.operationalMemories.delete(id);
+    this.emit("operational_memory_deleted", "memory", { id, namespace });
+    return true;
+  }
+
+  searchOperationalMemory(queryText: string, namespace = "default"): OperationalMemoryRecord[] {
+    const lower = queryText.toLowerCase().trim();
+    if (!lower) return this.listOperationalMemories(namespace);
+    return this.listOperationalMemories(namespace).filter(record =>
+      record.title.toLowerCase().includes(lower) ||
+      record.content.toLowerCase().includes(lower) ||
+      record.tags?.some(tag => tag.toLowerCase().includes(lower))
+    );
   }
 
   // --- Users & RBAC ---
   getUser(id: string): AgentForgeUser | undefined {
+    if (id === "user-montelli") {
+      return this.users.get("user-owner") || this.users.get("user-montelli");
+    }
     return this.users.get(id);
+  }
+
+  getUserByUsername(username: string): AgentForgeUser | undefined {
+    return Array.from(this.users.values()).find(
+      u => u.username.toLowerCase() === username.toLowerCase()
+    );
+  }
+
+  listUsers(): UserSummary[] {
+    return Array.from(this.users.values()).map(u => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.displayName,
+      email: u.email,
+      role: u.role,
+      permissions: u.permissions,
+      status: u.status || "active",
+      externalIdentities: u.externalIdentities,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+    }));
+  }
+
+  createUser(params: {
+    username: string;
+    displayName: string;
+    role: UserRole;
+    email?: string;
+    password?: string;
+    permissions?: string[];
+  }): AgentForgeUser {
+    const existing = this.getUserByUsername(params.username);
+    if (existing) {
+      throw new Error(`Username '${params.username}' is already taken`);
+    }
+
+    const id = `user-${crypto.randomUUID().slice(0, 8)}`;
+    const permissions = params.permissions || DEFAULT_ROLE_PERMISSIONS[params.role] || ["tasks:read"];
+    let passwordHash: string | undefined;
+    let salt: string | undefined;
+
+    if (params.password) {
+      const creds = hashPassword(params.password);
+      passwordHash = creds.passwordHash;
+      salt = creds.salt;
+    }
+
+    const user: AgentForgeUser = {
+      id,
+      username: params.username,
+      displayName: params.displayName,
+      email: params.email,
+      role: params.role,
+      permissions,
+      passwordHash,
+      salt,
+      status: "active",
+      externalIdentities: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.users.set(id, user);
+    this.emit("user_created", "user", { id, username: user.username, role: user.role });
+    return user;
+  }
+
+  updateUser(
+    id: string,
+    updates: Partial<{ displayName: string; role: UserRole; permissions: string[]; status: "active" | "suspended"; password?: string }>
+  ): AgentForgeUser {
+    const user = this.getUser(id);
+    if (!user) throw new Error(`User ${id} not found`);
+
+    if (updates.role && updates.role !== user.role) {
+      if (user.role === "owner" && updates.role !== "owner") {
+        const activeOwners = Array.from(this.users.values()).filter(u => u.role === "owner" && u.status === "active");
+        if (activeOwners.length <= 1) {
+          throw new Error("Cannot demote the only active workspace owner");
+        }
+      }
+      user.role = updates.role;
+      user.permissions = updates.permissions || DEFAULT_ROLE_PERMISSIONS[updates.role];
+    } else if (updates.permissions) {
+      user.permissions = updates.permissions;
+    }
+
+    if (updates.displayName !== undefined) user.displayName = updates.displayName;
+    if (updates.status !== undefined) user.status = updates.status;
+
+    if (updates.password) {
+      const creds = hashPassword(updates.password);
+      user.passwordHash = creds.passwordHash;
+      user.salt = creds.salt;
+    }
+
+    user.updatedAt = new Date().toISOString();
+    this.emit("user_updated", "user", { id: user.id, role: user.role, status: user.status });
+    return user;
+  }
+
+  deleteUser(id: string): boolean {
+    const user = this.getUser(id);
+    if (!user) return false;
+    if (user.role === "owner") {
+      const activeOwners = Array.from(this.users.values()).filter(u => u.role === "owner" && u.status === "active");
+      if (activeOwners.length <= 1) {
+        throw new Error("Cannot delete the only active workspace owner");
+      }
+    }
+
+    this.users.delete(user.id);
+    // Invalidate sessions and API keys
+    for (const [token, session] of this.sessions.entries()) {
+      if (session.userId === user.id) this.sessions.delete(token);
+    }
+    for (const [keyId, apiKey] of this.apiKeys.entries()) {
+      if (apiKey.userId === user.id) this.apiKeys.delete(keyId);
+    }
+    this.emit("user_deleted", "user", { id: user.id });
+    return true;
+  }
+
+  authenticateUser(username: string, password: string): AgentForgeUser | null {
+    const user = this.getUserByUsername(username);
+    if (!user || !user.passwordHash || !user.salt) return null;
+    if (user.status === "suspended") return null;
+
+    if (verifyPassword(password, user.salt, user.passwordHash)) {
+      return user;
+    }
+    return null;
+  }
+
+  createSession(userId: string, ttlHours = 24): AuthSession {
+    const user = this.getUser(userId);
+    if (!user) throw new Error(`User ${userId} not found`);
+    if (user.status === "suspended") throw new Error("User account is suspended");
+
+    const token = generateSessionToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + ttlHours * 3600 * 1000).toISOString();
+
+    const session: AuthSession = {
+      token,
+      userId: user.id,
+      role: user.role,
+      permissions: user.permissions,
+      expiresAt,
+      createdAt: now.toISOString(),
+      lastUsedAt: now.toISOString(),
+    };
+
+    this.sessions.set(token, session);
+    return session;
+  }
+
+  validateSession(token: string): AuthSession | null {
+    const session = this.sessions.get(token);
+    if (!session) return null;
+
+    if (new Date(session.expiresAt).getTime() < Date.now()) {
+      this.sessions.delete(token);
+      return null;
+    }
+
+    const user = this.getUser(session.userId);
+    if (!user || user.status === "suspended") {
+      this.sessions.delete(token);
+      return null;
+    }
+
+    session.role = user.role;
+    session.permissions = user.permissions;
+    session.lastUsedAt = new Date().toISOString();
+    return session;
+  }
+
+  revokeSession(token: string): boolean {
+    return this.sessions.delete(token);
+  }
+
+  createApiKey(userId: string, name: string): { keyRecord: ApiKeyRecord; rawKey: string } {
+    const user = this.getUser(userId);
+    if (!user) throw new Error(`User ${userId} not found`);
+
+    const { rawKey, keyPrefix, keyHash } = generateApiKey();
+    const id = `key-${crypto.randomUUID().slice(0, 8)}`;
+    const keyRecord: ApiKeyRecord = {
+      id,
+      name,
+      keyHash,
+      keyPrefix,
+      userId: user.id,
+      role: user.role,
+      permissions: user.permissions,
+      createdAt: new Date().toISOString(),
+      revoked: false,
+    };
+
+    this.apiKeys.set(id, keyRecord);
+    this.persistIfConfigured();
+    return { keyRecord, rawKey };
+  }
+
+  validateApiKey(rawKey: string): ApiKeyRecord | null {
+    const keyHash = hashApiKey(rawKey);
+    const key = Array.from(this.apiKeys.values()).find(k => k.keyHash === keyHash && !k.revoked);
+    if (!key) return null;
+
+    const user = this.getUser(key.userId);
+    if (!user || user.status === "suspended") return null;
+
+    key.role = user.role;
+    key.permissions = user.permissions;
+    key.lastUsedAt = new Date().toISOString();
+    return key;
+  }
+
+  revokeApiKey(keyId: string): boolean {
+    const key = this.apiKeys.get(keyId);
+    if (!key) return false;
+    key.revoked = true;
+    this.persistIfConfigured();
+    return true;
+  }
+
+  listApiKeys(userId?: string): ApiKeyRecord[] {
+    const all = Array.from(this.apiKeys.values());
+    if (userId) return all.filter(k => k.userId === userId);
+    return all;
   }
 
   findUserByExternalId(provider: string, externalUserId: string): AgentForgeUser | undefined {
     return Array.from(this.users.values()).find(u =>
       u.externalIdentities.some(e => e.provider === provider && e.externalUserId === externalUserId)
     );
+  }
+
+  linkExternalIdentity(userId: string, identity: ExternalIdentity): AgentForgeUser {
+    const user = this.getUser(userId);
+    if (!user) throw new Error(`User ${userId} not found`);
+    const existingOwner = this.findUserByExternalId(identity.provider, identity.externalUserId);
+    if (existingOwner && existingOwner.id !== userId) {
+      throw new Error(`This ${identity.provider} identity is already linked to another workspace user`);
+    }
+
+    const linked = user.externalIdentities.find(item =>
+      item.provider === identity.provider && item.externalUserId === identity.externalUserId
+    );
+    if (linked) {
+      linked.externalUsername = identity.externalUsername;
+      linked.linkedAt = identity.linkedAt;
+    } else {
+      user.externalIdentities.push(identity);
+    }
+    user.updatedAt = identity.linkedAt;
+    this.emit("user_identity_linked", "user", user);
+    return user;
   }
 
   // --- Unified Inbox (Section 16: Deterministic Actionable Aggregation) ---
@@ -486,11 +1237,13 @@ export class WorkspaceStore {
     // 3. Voice Call Events
     for (const call of this.calls.values()) {
       if (call.status === "FAILED") {
+        const recipient = call.participants.find(participant => participant.role === "caller" || participant.role === "transferee");
+        const recipientPhone = recipient?.phoneNumber ?? "unknown number";
         items.push({
           id: `inbox-call-${call.id}`,
           type: "voice_event",
-          title: `Voice Call Failed to ${call.recipientPhoneNumber}`,
-          description: `Call to ${call.recipientName || call.recipientPhoneNumber} failed during telephony session.`,
+          title: `Voice Call Failed to ${recipientPhone}`,
+          description: `Call to ${recipient?.name || recipientPhone} failed during telephony session.`,
           severity: "warning",
           sourceId: call.id,
           timestamp: call.startedAt,
@@ -519,71 +1272,270 @@ export class WorkspaceStore {
     return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
-  // --- Persistence & Atomic Durability (Section 40 & 41) ---
-  saveToFile(filePath: string): void {
-    const data = {
+  // --- Persistence ---
+  private persistIfConfigured(): void {
+    if (this.persistFilePath && !this.restoring) this.saveToFile(this.persistFilePath);
+  }
+
+  saveToFile(filePath = this.persistFilePath): void {
+    if (!filePath) throw new Error("A workspace persistence path is required.");
+    this.writeSnapshot(filePath, true);
+  }
+
+  private writeSnapshot(filePath: string, rotateBackup: boolean): void {
+    const data: PersistedWorkspaceSnapshot = {
+      schemaVersion: 5,
       workspaces: Array.from(this.workspaces.values()),
       spaces: Array.from(this.spaces.values()),
       channels: Array.from(this.channels.values()),
+      threads: Array.from(this.threads.values()),
+      messages: Array.from(this.messages.entries()),
+      users: Array.from(this.users.values()),
       agents: Array.from(this.agents.values()),
       tasks: Array.from(this.tasks.values()),
       approvals: Array.from(this.approvals.values()),
       processes: Array.from(this.processes.values()),
+      processRevisionHistory: Array.from(this.processRevisionHistory.entries()),
+      processRevisionProposals: Array.from(this.processRevisionProposals.values()),
+      processAgentBindings: Array.from(this.processAgentBindings.values()),
       calls: Array.from(this.calls.values()),
       packages: Array.from(this.packages.values()),
-      auditEntries: this.auditEntries.slice(-500),
+      installations: Array.from(this.installations.values()),
+      benchmarkResults: this.benchmarkResults,
+      auditEntries: this.auditEntries,
+      auditPrunedCheckpoint: this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined,
+      operationalMemories: Array.from(this.operationalMemories.values()),
+      apiKeys: Array.from(this.apiKeys.values()),
+      eventLedger: this.eventLedger.getAllEntries(),
+      externalBindings: this.eventLedger.getAllBindings(),
     };
     const json = JSON.stringify(data, null, 2);
-    const tempPath = `${filePath}.tmp.${Date.now()}`;
+    const tempPath = `${filePath}.tmp.${process.pid}.${crypto.randomUUID()}`;
     const backupPath = `${filePath}.bak`;
 
-    // 1. Write to atomic temp file
-    fs.writeFileSync(tempPath, json, "utf-8");
-
-    // 2. Rotate backup if existing
-    if (fs.existsSync(filePath)) {
-      try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    try {
+      fs.writeFileSync(tempPath, json, { encoding: "utf-8", flag: "wx" });
+      if (rotateBackup && fs.existsSync(filePath)) {
         fs.copyFileSync(filePath, backupPath);
-      } catch {
-        // Ignore backup failure
       }
+      fs.renameSync(tempPath, filePath);
+    } catch (error) {
+      try {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      } catch {
+        // Preserve the original write error.
+      }
+      throw error;
     }
-
-    // 3. Atomic rename
-    fs.renameSync(tempPath, filePath);
   }
 
-  loadFromFile(filePath: string): void {
-    const tryLoad = (target: string): boolean => {
-      if (!fs.existsSync(target)) return false;
+  loadFromFile(filePath: string): "primary" | "backup" {
+    const candidates = [
+      { path: filePath, source: "primary" as const },
+      { path: `${filePath}.bak`, source: "backup" as const },
+    ];
+    const errors: string[] = [];
+    for (const candidate of candidates) {
+      if (!fs.existsSync(candidate.path)) continue;
       try {
-        const raw = fs.readFileSync(target, "utf-8");
-        if (!raw.trim()) return false;
-        const data = JSON.parse(raw);
-        data.workspaces?.forEach((w: CanonicalWorkspace) => this.workspaces.set(w.id, w));
-        data.spaces?.forEach((s: CanonicalSpace) => this.spaces.set(s.id, s));
-        data.channels?.forEach((c: CanonicalChannel) => this.channels.set(c.id, c));
-        data.agents?.forEach((a: AgentTeammate) => this.agents.set(a.id, a));
-        data.tasks?.forEach((t: Task) => this.tasks.set(t.id, t));
-        data.approvals?.forEach((ap: ApprovalRequest) => this.approvals.set(ap.id, ap));
-        data.processes?.forEach((p: ProcessDefinition) => this.processes.set(p.id, p));
-        data.calls?.forEach((cl: Call) => this.calls.set(cl.id, cl));
-        data.packages?.forEach((pkg: PackageManifest) => this.packages.set(pkg.name, pkg));
-        if (Array.isArray(data.auditEntries)) {
-          this.auditEntries = data.auditEntries;
+        const parsed: unknown = JSON.parse(fs.readFileSync(candidate.path, "utf-8"));
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Snapshot root must be an object.");
         }
-        return true;
-      } catch {
-        return false;
+        this.restoreSnapshot(parsed as Partial<PersistedWorkspaceSnapshot> & Record<string, unknown>);
+        return candidate.source;
+      } catch (error) {
+        errors.push(`${candidate.source}: ${error instanceof Error ? error.message : String(error)}`);
       }
+    }
+    throw new Error(`Unable to load workspace snapshot. ${errors.join("; ") || "No snapshot or backup exists."}`);
+  }
+
+  private restoreSnapshot(data: Partial<PersistedWorkspaceSnapshot> & Record<string, unknown>): void {
+    if (data.schemaVersion !== undefined && data.schemaVersion !== 1 && data.schemaVersion !== 2 && data.schemaVersion !== 3 && data.schemaVersion !== 4 && data.schemaVersion !== 5) {
+      throw new Error(`Unsupported snapshot schema version '${String(data.schemaVersion)}'.`);
+    }
+    if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5) {
+      const requiredV1: Array<keyof PersistedWorkspaceSnapshot> = [
+        "workspaces", "spaces", "channels", "threads", "messages", "users", "agents", "tasks",
+        "approvals", "processes", "calls", "packages", "installations", "benchmarkResults",
+        "auditEntries", "eventLedger", "externalBindings",
+      ];
+      const required: Array<keyof PersistedWorkspaceSnapshot> = data.schemaVersion === 1
+        ? requiredV1
+        : [...requiredV1, "operationalMemories", ...(data.schemaVersion >= 3 ? ["processRevisionHistory" as const] : []), ...(data.schemaVersion >= 4 ? ["processRevisionProposals" as const] : []), ...(data.schemaVersion >= 5 ? ["processAgentBindings" as const] : [])];
+      const missing = required.filter(key => data[key] === undefined);
+      if (missing.length) throw new Error(`Snapshot is missing required collections: ${missing.join(", ")}.`);
+    }
+    this.loadedLegacySnapshot = data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4;
+    const readArray = <T>(key: keyof PersistedWorkspaceSnapshot): T[] => {
+      const value = data[key];
+      if (value === undefined) return [];
+      if (!Array.isArray(value)) throw new Error(`Snapshot collection '${String(key)}' must be an array.`);
+      if (value.some(record => !record || typeof record !== "object" || Array.isArray(record))) {
+        throw new Error(`Snapshot collection '${String(key)}' contains a non-object record.`);
+      }
+      return value as T[];
+    };
+    const readMessages = (): Array<[string, CanonicalMessage[]]> => {
+      const value = data.messages;
+      if (value === undefined) return [];
+      if (!Array.isArray(value) || value.some(item => !Array.isArray(item) || typeof item[0] !== "string" || !Array.isArray(item[1]))) {
+        throw new Error("Snapshot messages must be [channelId, messages] pairs.");
+      }
+      if (value.some(([, channelMessages]) => channelMessages.some(message => !message || typeof message !== "object" || Array.isArray(message) || typeof message.id !== "string"))) {
+        throw new Error("Snapshot messages contain an invalid message record.");
+      }
+      return value as Array<[string, CanonicalMessage[]]>;
+    };
+    const readRecords = <T extends { id: string }>(key: keyof PersistedWorkspaceSnapshot): T[] => {
+      const records = readArray<T>(key);
+      if (records.some(record => !record || typeof record.id !== "string")) {
+        throw new Error(`Snapshot collection '${String(key)}' contains an invalid record.`);
+      }
+      return records;
     };
 
-    // Attempt primary, fall back to backup on partial/corrupt write
-    if (!tryLoad(filePath)) {
-      tryLoad(`${filePath}.bak`);
+    // Parse and validate every collection first. A bad snapshot must not partially mutate the live store.
+    const workspaces = readRecords<CanonicalWorkspace>("workspaces");
+    const spaces = readRecords<CanonicalSpace>("spaces");
+    const channels = readRecords<CanonicalChannel>("channels");
+    const threads = readRecords<CanonicalThread>("threads");
+    const messages = readMessages();
+    const users = readRecords<AgentForgeUser>("users");
+    const agents = readRecords<AgentTeammate>("agents");
+    const tasks = readRecords<Task>("tasks");
+    const approvals = readRecords<ApprovalRequest>("approvals");
+    const processes = readRecords<ProcessDefinition>("processes");
+    const processRevisionHistory = data.processRevisionHistory === undefined
+      ? []
+      : data.processRevisionHistory;
+    if (!Array.isArray(processRevisionHistory) || processRevisionHistory.some(entry =>
+      !Array.isArray(entry)
+      || typeof entry[0] !== "string"
+      || !Array.isArray(entry[1])
+      || entry[1].some(revision => !revision || typeof revision !== "object" || revision.id !== entry[0] || !Number.isSafeInteger(revision.version)),
+    )) {
+      throw new Error("Snapshot process revision history is invalid.");
+    }
+    const processRevisionProposals = readRecords<ProcessRevisionProposal>("processRevisionProposals");
+    if (processRevisionProposals.some(proposal =>
+      typeof proposal.processId !== "string"
+      || !Number.isSafeInteger(proposal.expectedVersion)
+      || !proposal.revision || proposal.revision.id !== proposal.processId
+      || !["pending", "approved", "rejected", "stale"].includes(proposal.status),
+    )) {
+      throw new Error("Snapshot process revision proposals are invalid.");
+    }
+    const processAgentBindings = readArray<ProcessAgentBinding>("processAgentBindings");
+    const bindingKeys = new Set<string>();
+    if (processAgentBindings.some(binding => {
+      if (typeof binding.processId !== "string" || !binding.processId
+        || typeof binding.agentId !== "string" || !binding.agentId
+        || !processes.some(process => process.id === binding.processId)
+        || !agents.some(agent => agent.id === binding.agentId)
+        || typeof binding.assignedRole !== "string" || !binding.assignedRole.trim() || binding.assignedRole.length > 120
+        || typeof binding.boundAt !== "string" || !Number.isFinite(Date.parse(binding.boundAt))) return true;
+      const key = `${binding.processId}:${binding.agentId}`;
+      if (bindingKeys.has(key)) return true;
+      bindingKeys.add(key);
+      return false;
+    })) {
+      throw new Error("Snapshot process-agent bindings are invalid.");
+    }
+    const calls = readRecords<Call>("calls");
+    const packages = readArray<PackageManifest>("packages");
+    if (packages.some(item => !item || typeof item.name !== "string")) throw new Error("Snapshot contains an invalid package record.");
+    const installations = readArray<PackageInstallation>("installations");
+    if (installations.some(item => !item || typeof item.packageId !== "string")) throw new Error("Snapshot contains an invalid installation record.");
+    const benchmarkResults = readArray<BenchmarkResult>("benchmarkResults");
+    const auditEntries = readArray<AuditEntry>("auditEntries");
+    const operationalMemories = readRecords<OperationalMemoryRecord>("operationalMemories");
+    const eventEntries = readRecords<ReturnType<EventLedger["getAllEntries"]>[number]>("eventLedger");
+    const bindings = readRecords<ReturnType<EventLedger["getAllBindings"]>[number]>("externalBindings");
+
+    this.restoring = true;
+    try {
+      if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5) {
+        this.workspaces.clear();
+        this.spaces.clear();
+        this.channels.clear();
+        this.threads.clear();
+        this.messages.clear();
+        this.users.clear();
+        this.agents.clear();
+        this.tasks.clear();
+        this.approvals.clear();
+        this.processes.clear();
+        this.processRevisionHistory.clear();
+        this.processRevisionProposals.clear();
+        this.processAgentBindings.clear();
+        this.calls.clear();
+        this.packages.clear();
+        this.installations.clear();
+        this.operationalMemories.clear();
+        this.apiKeys.clear();
+      }
+      for (const item of workspaces) this.workspaces.set(item.id, item);
+      for (const item of spaces) this.spaces.set(item.id, item);
+      for (const item of channels) this.channels.set(item.id, item);
+      for (const item of threads) this.threads.set(item.id, item);
+      for (const [channelId, channelMessages] of messages) this.messages.set(channelId, channelMessages);
+      for (const item of users) this.users.set(item.id, item);
+      for (const item of agents) this.agents.set(item.id, item);
+      for (const item of tasks) this.tasks.set(item.id, item);
+      for (const item of approvals) this.approvals.set(item.id, item);
+      for (const item of processes) this.processes.set(item.id, item);
+      for (const [processId, revisions] of processRevisionHistory as Array<[string, ProcessDefinition[]]>) {
+        this.processRevisionHistory.set(processId, revisions);
+      }
+      for (const proposal of processRevisionProposals) this.processRevisionProposals.set(proposal.id, proposal);
+      for (const binding of processAgentBindings) this.processAgentBindings.set(`${binding.processId}:${binding.agentId}`, binding);
+      for (const item of calls) this.calls.set(item.id, item);
+      for (const item of packages) this.packages.set(item.name, item);
+      for (const item of installations) this.installations.set(item.packageId, item);
+      this.benchmarkResults = benchmarkResults;
+      if (data.auditPrunedCheckpoint && typeof data.auditPrunedCheckpoint === "object") {
+        this.auditPrunedCheckpoint = {
+          prunedCount: Number(data.auditPrunedCheckpoint.prunedCount) || 0,
+          lastPrunedHash: String(data.auditPrunedCheckpoint.lastPrunedHash || ""),
+          timestamp: String(data.auditPrunedCheckpoint.timestamp || new Date().toISOString()),
+        };
+      } else {
+        this.auditPrunedCheckpoint = undefined;
+      }
+      this.auditEntries = auditEntries;
+      let prevHash = this.auditPrunedCheckpoint?.lastPrunedHash || GENESIS_AUDIT_HASH;
+      for (const entry of this.auditEntries) {
+        if (!entry.previousHash) {
+          entry.previousHash = prevHash;
+        }
+        if (!entry.hash) {
+          entry.hash = computeAuditHash(entry);
+        }
+        prevHash = entry.hash;
+      }
+      for (const record of operationalMemories) this.operationalMemories.set(record.id, record);
+      if (Array.isArray(data.apiKeys)) {
+        for (const item of data.apiKeys) {
+          if (item && typeof item === "object" && typeof item.id === "string") {
+            this.apiKeys.set(item.id, item);
+          }
+        }
+      }
+      this.eventLedger.restore(eventEntries, bindings);
+    } finally {
+      this.restoring = false;
     }
   }
 }
 
-// Global Singleton Instance
+export function getDefaultWorkspaceFilePath(): string {
+  const dataRoot = process.env.AGENTFORGE_DATA_DIR ||
+    path.join(process.env.LOCALAPPDATA || os.homedir(), ".agentforge");
+  return path.join(dataRoot, "workspace.json");
+}
+
+// Test and embedded callers get an isolated in-memory store unless they opt into persistence.
 export const globalStore = new WorkspaceStore();

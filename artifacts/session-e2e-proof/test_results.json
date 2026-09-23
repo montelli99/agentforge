@@ -1,0 +1,16 @@
+{
+  "taskId": "session-e2e-proof",
+  "timestamp": "2026-09-23T18:47:30.128Z",
+  "testResults": [
+    {
+      "checkName": "unit_tests",
+      "command": "check:unit_tests",
+      "passed": true,
+      "exitCode": 0,
+      "stdout": "Check [unit_tests] passed within contract parameters.",
+      "stderr": "",
+      "durationMs": 0
+    }
+  ],
+  "verifiedPassed": true
+}

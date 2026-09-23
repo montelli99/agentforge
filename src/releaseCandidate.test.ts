@@ -36,7 +36,7 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       expect(scribe?.capabilities?.length).toBe(3);
 
       const fileImport = scribe?.capabilities?.find(c => c.capability === "file_import");
-      expect(fileImport?.readiness).toBe("REAL_INTEGRATION");
+      expect(fileImport?.readiness).toBe("TEST_IMPLEMENTATION");
 
       const mcp = scribe?.capabilities?.find(c => c.capability === "mcp_integration");
       expect(mcp?.readiness).toBe("NOT_CONFIGURED");
@@ -67,8 +67,8 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
   });
 
   describe("Section 3: Pi Harness Target Capabilities", () => {
-    it("should support session start, resume, execution, tool invocation, cancellation, and timeout", async () => {
-      const pi = new PiHarnessProvider();
+    it("simulates the Pi adapter contract only when explicitly opted in", async () => {
+      const pi = new PiHarnessProvider(true);
       const session = await pi.startSession({ agentId: "agent-test", taskId: "task-1", systemPrompt: "Test" });
       expect(session.status).toBe("active");
 
@@ -93,15 +93,23 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       // Exact blocker report
       const details = pi.getReadinessDetails();
       expect(details.readiness).toBe("TEST_IMPLEMENTATION");
-      expect(details.blocker).toContain("official Pi package");
+      expect(details.blocker).toContain("official Pi integration is not implemented");
+
+      const unavailable = new PiHarnessProvider();
+      const unavailableSession = await unavailable.startSession({ agentId: "agent-test", systemPrompt: "No simulation" });
+      const unavailableResult = await unavailable.executeTask(unavailableSession.sessionId, { taskId: "task-noop", instruction: "Analyze deed" });
+      expect(unavailableResult.status).toBe("failure");
+      expect(unavailableResult.error).toContain("No task was executed");
+      expect(unavailable.capabilities.supportsTools).toBe(false);
 
       await pi.shutdown();
+      await unavailable.shutdown();
     });
   });
 
   describe("Section 4: Pydantic AI Harness Reality Validation", () => {
-    it("should report NOT_CONFIGURED when Python service is absent without crashing AgentForge", async () => {
-      const pydantic = new PydanticHarnessProvider();
+    it("reports unavailable by default and permits fixture simulation only with explicit opt-in", async () => {
+      const pydantic = new PydanticHarnessProvider(true);
       expect(pydantic.isConfigured()).toBe(false);
       expect(pydantic.getStatus()).toBe("NOT_CONFIGURED");
 
@@ -113,13 +121,21 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       expect(result.status).toBe("success");
       expect(result.output).toContain("Pydantic AI");
 
+      const unavailable = new PydanticHarnessProvider();
+      const unavailableSession = await unavailable.startSession({ agentId: "agent-py", systemPrompt: "No simulation" });
+      const unavailableResult = await unavailable.executeTask(unavailableSession.sessionId, { taskId: "task-py", instruction: "Validate schema" });
+      expect(unavailableResult.status).toBe("failure");
+      expect(unavailableResult.error).toContain("No task was executed");
+      expect(unavailable.capabilities.supportsMCP).toBe(false);
+
       await pydantic.shutdown();
+      await unavailable.shutdown();
     });
   });
 
   describe("Section 5: AgentForge Native Harness Boundary Governance", () => {
     it("should enforce ExecutionContract file boundaries and veto forbidden paths below model layer", async () => {
-      const native = new AgentForgeNativeHarnessProvider();
+      const native = new AgentForgeNativeHarnessProvider(true);
       const session = await native.startSession({ agentId: "agent-native", taskId: "task-native", systemPrompt: "Native" });
 
       const strictContract: ExecutionContract = {
@@ -277,7 +293,7 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       expect(res2.valid).toBe(false);
       expect(res2.violations.some(v => v.includes("Forbidden executable or binary"))).toBe(true);
 
-      // 3. Symlink / Path traversal file
+      // 3. Manifest path traversal; symlink checks require archive extraction support.
       const traversalPackage: PackageManifest = {
         ...scriptPackage,
         name: "traversal-pack",
@@ -286,7 +302,7 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       };
       const res3 = packageProvider.validatePackage(traversalPackage);
       expect(res3.valid).toBe(false);
-      expect(res3.violations.some(v => v.includes("Path traversal or symlink escape"))).toBe(true);
+      expect(res3.violations.some(v => v.includes("Path traversal"))).toBe(true);
 
       // 4. Oversized package (>25MB)
       const oversizedPackage: PackageManifest = {
@@ -314,9 +330,9 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
 
   describe("Section 23 & 24: Windows First-Class & Cross-Platform Portability", () => {
     it("should correctly handle paths with spaces and cross-platform path separators", () => {
-      const spacePath = "C:\\Users\\mscott\\My Workspaces\\AgentForge Project\\src\\index.ts";
+      const spacePath = "C:\\workspace\\My Workspaces\\AgentForge Project\\src\\index.ts";
       const normalized = spacePath.replace(/\\/g, "/");
-      expect(normalized).toBe("C:/Users/mscott/My Workspaces/AgentForge Project/src/index.ts");
+      expect(normalized).toBe("C:/workspace/My Workspaces/AgentForge Project/src/index.ts");
       expect(normalized.includes(" ")).toBe(true);
       expect(path.posix.basename(normalized)).toBe("index.ts");
     });

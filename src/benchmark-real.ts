@@ -20,10 +20,10 @@ async function runBenchmark() {
   console.log("Original:", repoTokens, "tokens");
   console.log("BEFORE:", repoContext.substring(0, 150) + "...\n");
 
-  const r1 = optimizer.eliminateLargeContext({ content: repoContext, contentType: "repo", tokenCount: repoTokens });
+  const r1 = optimizer.eliminateLargeContext({ content: repoContext, contentType: "repo", tokenCount: repoTokens, tenantId: "bench", provider: "anthropic", model: "claude-3-5-sonnet" });
   console.log("First call eliminated:", r1.eliminated);
 
-  const r2 = optimizer.eliminateLargeContext({ content: repoContext, contentType: "repo", tokenCount: repoTokens });
+  const r2 = optimizer.eliminateLargeContext({ content: repoContext, contentType: "repo", tokenCount: repoTokens, tenantId: "bench", provider: "anthropic", model: "claude-3-5-sonnet" });
   console.log("Second call eliminated:", r2.eliminated);
   console.log("Tokens saved:", r2.eliminatedTokens);
   console.log("AFTER:", r2.replacedWith);
@@ -40,10 +40,10 @@ async function runBenchmark() {
   console.log("=== 50k Conversation ===");
   console.log("Original:", convTokens, "tokens");
 
-  const c1 = optimizer.eliminateLargeContext({ content: conv, contentType: "conversation", tokenCount: convTokens });
+  const c1 = optimizer.eliminateLargeContext({ content: conv, contentType: "conversation", tokenCount: convTokens, tenantId: "bench", provider: "anthropic", model: "claude-3-5-sonnet" });
   console.log("First call eliminated:", c1.eliminated);
 
-  const c2 = optimizer.eliminateLargeContext({ content: conv, contentType: "conversation", tokenCount: convTokens });
+  const c2 = optimizer.eliminateLargeContext({ content: conv, contentType: "conversation", tokenCount: convTokens, tenantId: "bench", provider: "anthropic", model: "claude-3-5-sonnet" });
   console.log("Second call eliminated:", c2.eliminated);
   console.log("Tokens saved:", c2.eliminatedTokens);
   console.log("AFTER:", c2.replacedWith);
@@ -64,20 +64,21 @@ async function runBenchmark() {
     tenantId: "bench",
     estimatedInputTokens: 25000,
     estimatedOutputTokens: 2000,
-    costPer1kInput: 0.003,
-    costPer1kOutput: 0.015,
+    provider: "anthropic",
+    model: "claude-3-5-sonnet",
   });
 
   console.log("Bypassed:", bypassResult.bypassed);
   console.log("Answer:", bypassResult.answer);
-  console.log("Tokens avoided:", bypassResult.tokensAvoided);
-  console.log("Cost avoided: $" + bypassResult.estimatedCostAvoidedUsd.toFixed(4));
+  const bypassTokensAvoided = bypassResult.tokenAccount?.avoidedTotalTokens ?? 0;
+  console.log("Tokens avoided:", bypassTokensAvoided);
+  console.log("Cost avoided: $" + (bypassResult.tokenAccount?.costAvoidedUsd ?? 0).toFixed(4));
 
   // Summary
   console.log("\n=== TOTAL TOKENS PREVENTED ===");
   console.log("Context elimination:", r2.eliminatedTokens + c2.eliminatedTokens);
-  console.log("Memory bypass:", bypassResult.tokensAvoided);
-  console.log("Grand total:", r2.eliminatedTokens + c2.eliminatedTokens + bypassResult.tokensAvoided);
+  console.log("Memory bypass:", bypassTokensAvoided);
+  console.log("Grand total:", r2.eliminatedTokens + c2.eliminatedTokens + bypassTokensAvoided);
 }
 
 runBenchmark().catch(console.error);

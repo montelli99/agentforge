@@ -1,7 +1,7 @@
 /**
  * Pi Harness Provider
- * Section 5: Top Initial Harness Target #1 (Default Native Execution Candidate)
- * Lightweight, embeddable, fits TypeScript/Node architecture.
+ * Section 5: Planned harness target #1.
+ * Contract behavior is available only as an explicit test simulation; the Pi SDK is not integrated.
  */
 
 import crypto from "node:crypto";
@@ -19,13 +19,15 @@ import type {
 export class PiHarnessProvider implements HarnessProvider {
   readonly id = "pi";
   readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: true,
-    supportsTools: true,
-    supportsMCP: true,
-    supportsPauseResume: true,
-    supportsContextCompaction: true,
-    supportedRuntimes: ["node", "bun"],
+    supportsStreaming: false,
+    supportsTools: false,
+    supportsMCP: false,
+    supportsPauseResume: false,
+    supportsContextCompaction: false,
+    supportedRuntimes: [],
   };
+
+  constructor(private readonly simulationEnabled = false) {}
 
   private sessions = new Map<string, HarnessSession>();
   private sessionStates = new Map<string, HarnessState>();
@@ -83,6 +85,17 @@ export class PiHarnessProvider implements HarnessProvider {
       throw new Error(`Pi session ${sessionId} not found`);
     }
 
+    if (!this.simulationEnabled) {
+      return {
+        taskId: task.taskId,
+        sessionId,
+        status: "failure",
+        output: "",
+        error: "Pi execution is unavailable: the official Pi harness integration is not installed. No task was executed.",
+        durationMs: 0,
+      };
+    }
+
     const startTime = Date.now();
     const state = this.sessionStates.get(sessionId);
     if (state) {
@@ -136,6 +149,10 @@ export class PiHarnessProvider implements HarnessProvider {
       throw new Error(`Pi session ${sessionId} not found`);
     }
 
+    if (!this.simulationEnabled) {
+      throw new Error("Pi tool execution is unavailable: the official Pi harness integration is not installed.");
+    }
+
     const events = this.activeStreams.get(sessionId) || [];
     events.push({
       sessionId,
@@ -158,8 +175,8 @@ export class PiHarnessProvider implements HarnessProvider {
   getReadinessDetails(): { readiness: string; blocker: string; candidateTier: string } {
     return {
       readiness: "TEST_IMPLEMENTATION",
-      candidateTier: "Default Native Harness Candidate",
-      blocker: "Upstream official Pi package (@mariofg/pi or pi-ai) is not installed in local environment; clean public adapter and subprocess protocol active.",
+      candidateTier: "Planned harness target (not implemented)",
+      blocker: "The official Pi integration is not implemented; only an explicitly enabled contract simulation is available.",
     };
   }
 

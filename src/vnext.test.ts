@@ -20,11 +20,11 @@ import {
 
 describe("AgentForge vNext Foundation Architecture", () => {
   describe("Harness Provider Strategy (Section 5 & 6)", () => {
-    it("runs Pi Harness as default native execution candidate", async () => {
-      const pi = new PiHarnessProvider();
+    it("exercises the Pi contract fixture only when simulation is explicitly enabled", async () => {
+      const pi = new PiHarnessProvider(true);
       expect(pi.id).toBe("pi");
-      expect(pi.capabilities.supportsStreaming).toBe(true);
-      expect(pi.capabilities.supportsTools).toBe(true);
+      expect(pi.capabilities.supportsStreaming).toBe(false);
+      expect(pi.capabilities.supportsTools).toBe(false);
 
       const session = await pi.startSession({
         agentId: "agent-alex",
@@ -45,8 +45,8 @@ describe("AgentForge vNext Foundation Architecture", () => {
       await pi.shutdown();
     });
 
-    it("runs Pydantic AI Harness for structured execution", async () => {
-      const pydantic = new PydanticHarnessProvider();
+    it("exercises the Pydantic contract fixture only when simulation is explicitly enabled", async () => {
+      const pydantic = new PydanticHarnessProvider(true);
       expect(pydantic.id).toBe("pydantic");
 
       const session = await pydantic.startSession({
@@ -63,8 +63,8 @@ describe("AgentForge vNext Foundation Architecture", () => {
       await pydantic.shutdown();
     });
 
-    it("runs AgentForge Native Harness with contract enforcement capabilities", async () => {
-      const native = new AgentForgeNativeHarnessProvider();
+    it("exercises the native contract fixture only when simulation is explicitly enabled", async () => {
+      const native = new AgentForgeNativeHarnessProvider(true);
       expect(native.id).toBe("agentforge_native");
 
       const session = await native.startSession({
@@ -77,6 +77,17 @@ describe("AgentForge vNext Foundation Architecture", () => {
       });
       expect(result.status).toBe("success");
 
+      await native.shutdown();
+    });
+
+    it("does not claim harness execution when only the contract-test fixture is installed", async () => {
+      const native = new AgentForgeNativeHarnessProvider();
+      const session = await native.startSession({ agentId: "agent-native", systemPrompt: "No execution" });
+      const result = await native.executeTask(session.sessionId, { taskId: "AF-104", instruction: "Run tests" });
+      expect(result.status).toBe("failure");
+      expect(result.error).toContain("No task was executed");
+      expect(native.capabilities.supportsTools).toBe(false);
+      expect(native.capabilities.supportsMCP).toBe(false);
       await native.shutdown();
     });
   });
@@ -115,6 +126,59 @@ describe("AgentForge vNext Foundation Architecture", () => {
       });
       expect(expertRoute.tier).toBe(4);
       expect(expertRoute.model).toBe("gpt-4o");
+    });
+
+    it("routes local work only to discovered models and skips an unverified local vision target", async () => {
+      const router = new ModelRouter();
+      router.registerProvider({
+        id: "ollama",
+        name: "Test Ollama",
+        defaultTier: 2,
+        isAvailable: async () => true,
+        listModels: async () => ["gemma4:e4b"],
+        generate: async () => { throw new Error("not used in route selection"); },
+        async *stream() {},
+      });
+      router.registerProvider({
+        id: "openai",
+        name: "Test OpenAI",
+        defaultTier: 4,
+        isAvailable: async () => true,
+        listModels: async () => ["gpt-4o-mini"],
+        generate: async () => { throw new Error("not used in route selection"); },
+        async *stream() {},
+      });
+
+      const local = await router.selectTarget({
+        taskComplexity: "simple",
+        requiresToolCalling: false,
+        requiresStructuredOutput: false,
+      });
+      expect(local.providerId).toBe("ollama");
+      expect(local.model).toBe("gemma4:e4b");
+
+      const vision = await router.selectTarget({
+        taskComplexity: "simple",
+        requiresToolCalling: false,
+        requiresStructuredOutput: false,
+        requiresVision: true,
+      });
+      expect(vision.providerId).toBe("openai");
+      expect(vision.model).toBe("gpt-4o-mini");
+
+      const toolTask = await router.selectTarget({
+        taskComplexity: "simple",
+        requiresToolCalling: true,
+        requiresStructuredOutput: false,
+      });
+      expect(toolTask.providerId).toBe("openai");
+
+      await expect(router.selectTarget({
+        taskComplexity: "simple",
+        requiresToolCalling: true,
+        requiresStructuredOutput: false,
+        forceLocalOnly: true,
+      })).rejects.toThrow("no suitable discovered local model");
     });
   });
 
@@ -168,7 +232,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
     it("handles Discord interactions and native web channels", async () => {
       const discord = new DiscordMirrorProvider();
       const events: any[] = [];
-      discord.onEvent(async (e) => events.push(e));
+      discord.onEvent(async (e) => { events.push(e); });
 
       await discord.ingestInteraction({
         interactionId: "disc-99",
@@ -185,7 +249,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
 
       const web = new NativeWebChannelProvider();
       const webEvents: any[] = [];
-      web.onEvent(async (e) => webEvents.push(e));
+      web.onEvent(async (e) => { webEvents.push(e); });
       await web.sendUserMessage("general", "user-web", "Hello native workspace");
       expect(webEvents).toHaveLength(1);
     });
@@ -264,6 +328,11 @@ describe("AgentForge vNext Foundation Architecture", () => {
 
       const networkCheck = enforcer.checkAuthority(testContract, "networkOutbound");
       expect(networkCheck.allowed).toBe(true);
+
+      expect(enforcer.validateBashCommand("curl https://example.com", testContract).allowed).toBe(true);
+      const deployCheck = enforcer.validateBashCommand("fly deploy", testContract);
+      expect(deployCheck.allowed).toBe(false);
+      expect(deployCheck.violation).toContain("Deployment and package publishing are denied");
     });
   });
 
@@ -385,7 +454,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
         })
         .recordCommand({
           command: "pnpm test src/auth/login.test.ts",
-          cwd: "C:/Users/mscott/AI_Workspace/AgentForge-Staging",
+          cwd: process.cwd(),
           timestamp: new Date().toISOString(),
           exitCode: 0,
           durationMs: 450,

@@ -40,7 +40,7 @@ export const OPENCLAW_LEGACY_FIXTURE = {
       {
         id: "claw-agent-dev",
         name: "DevBot",
-        systemPrompt: "You are the senior full-stack developer assisting Montelli with code, tests, and deployments.",
+        systemPrompt: "You are a senior full-stack developer assisting the workspace owner with code, tests, and deployments.",
         tools: ["bash", "git", "vitest", "file_editor"],
         assignedTopicId: 42,
         model: "openai/gpt-4o",

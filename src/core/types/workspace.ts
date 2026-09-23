@@ -19,7 +19,7 @@ export interface CanonicalSpace {
   workspaceId: string;
   name: string;
   description?: string;
-  provider: "agentforge" | "telegram" | "discord";
+  provider: "agentforge" | "telegram" | "discord" | "web" | "cli" | "api";
   externalId?: string;
   createdAt: string;
   updatedAt: string;
@@ -35,7 +35,7 @@ export interface CanonicalChannel {
   topic?: string;
   visibility: ChannelVisibility;
   archived: boolean;
-  provider: "agentforge" | "telegram" | "discord";
+  provider: "agentforge" | "telegram" | "discord" | "web" | "cli" | "api";
   externalId?: string;
   createdAt: string;
   updatedAt: string;
@@ -70,7 +70,7 @@ export interface CanonicalMessage {
   attachments?: MessageAttachment[];
   replyToMessageId?: string;
   externalMessageId?: string;
-  externalProvider?: "telegram" | "discord" | "web" | "api";
+  externalProvider?: "telegram" | "discord" | "web" | "api" | "cli";
   createdAt: string;
   updatedAt: string;
 }

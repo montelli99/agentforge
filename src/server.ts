@@ -3,11 +3,18 @@ import https from "node:https";
 import httpImport from "node:http";
 import crypto from "node:crypto";
 import { execSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { createOptimizer } from "./optimizer.js";
 import { aggregateTelemetry } from "./telemetry.js";
 import { getCostLedger } from "./costLedger.js";
+import { PROVIDER_READINESS_REGISTRY } from "./core/types/providerReadiness.js";
+import { globalStore } from "./core/store/workspaceStore.js";
 import { estimateTokens } from "./tokenAccounting.js";
 import type { OptimizationConfig } from "./optimization-types.js";
 import type { CanonicalEnvelope } from "./types.js";
@@ -48,6 +55,10 @@ function writeEnvFile(settings: Record<string, string>): void {
   lines.push(`OLLAMA_BASE_URL=${settings.OLLAMA_BASE_URL || "http://localhost:11434"}`);
   lines.push(`OLLAMA_API_KEY=${settings.OLLAMA_API_KEY || ""}`);
   lines.push("");
+  lines.push("# Xiaomi MiMo configuration (required when provider=mimo)");
+  lines.push(`MIMO_API_KEY=${settings.MIMO_API_KEY || ""}`);
+  lines.push(`MIMO_BASE_URL=${settings.MIMO_BASE_URL || "https://token-plan-sgp.xiaomimimo.com/v1"}`);
+  lines.push("");
   lines.push("# Model name");
   lines.push(`AGENTFORGE_MODEL=${settings.AGENTFORGE_MODEL || "gpt-4o-mini"}`);
   lines.push("");
@@ -78,6 +89,8 @@ const OPTIMIZATION_ENABLED = process.env.AGENTFORGE_OPTIMIZATION !== "false";
 const METADATA_ENABLED = process.env.AGENTFORGE_METADATA !== "false";
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY || "";
+const MIMO_API_KEY = process.env.MIMO_API_KEY || "";
+const MIMO_BASE_URL = process.env.MIMO_BASE_URL || "https://token-plan-sgp.xiaomimimo.com/v1";
 const EMBEDDING_PROVIDER = process.env.AGENTFORGE_EMBEDDING_PROVIDER || "ollama";
 const EMBEDDING_MODEL = process.env.AGENTFORGE_EMBEDDING_MODEL || "nomic-embed-text";
 const EMBEDDING_BASE_URL = process.env.AGENTFORGE_EMBEDDING_BASE_URL || OLLAMA_BASE_URL;
@@ -208,7 +221,7 @@ export function setMemoryBypassEnabled(enabled: boolean): void {
 }
 
 function getOptimizationStatus(): DashboardMetrics["optimizationStatus"] {
-  const providerActive = !!(OPENAI_API_KEY || PROVIDER === "ollama");
+  const providerActive = !!(OPENAI_API_KEY || PROVIDER === "ollama" || (PROVIDER === "mimo" && MIMO_API_KEY));
   const embeddingsActive = embeddingProviderStatus.active && embeddingProviderStatus.mode === "real";
   const memBypassActive = memoryBypassEnabled && embeddingsActive;
   const blockers: string[] = [];
@@ -701,7 +714,7 @@ async function handleChatCompletions(
     return;
   }
 
-  if (!OPENAI_API_KEY && provider !== "ollama" && provider !== "minimax") {
+  if (!OPENAI_API_KEY && provider !== "ollama" && provider !== "minimax" && provider !== "mimo") {
     const latencyMs = Date.now() - startTime;
     error = "Provider API key not configured";
     logRequestEntry({
@@ -813,8 +826,8 @@ function handleHealth(_req: http.IncomingMessage, res: http.ServerResponse): voi
       model: MODEL,
     },
     provider: {
-      available: !!(OPENAI_API_KEY || PROVIDER === "ollama"),
-      forwardingEnabled: !!(OPENAI_API_KEY || PROVIDER === "ollama"),
+      available: !!(OPENAI_API_KEY || PROVIDER === "ollama" || (PROVIDER === "mimo" && MIMO_API_KEY)),
+      forwardingEnabled: !!(OPENAI_API_KEY || PROVIDER === "ollama" || (PROVIDER === "mimo" && MIMO_API_KEY)),
     },
     memory: {
       providerActive: true,
@@ -941,6 +954,19 @@ function handleDashboardJson(_req: http.IncomingMessage, res: http.ServerRespons
   const metrics = collectMetrics();
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(metrics, null, 2));
+}
+
+function handleApp(_req: http.IncomingMessage, res: http.ServerResponse): void {
+  const appHtmlPath = path.join(__dirname, "app.html");
+  if (fs.existsSync(appHtmlPath)) {
+    const html = fs.readFileSync(appHtmlPath, "utf-8");
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(html);
+  } else {
+    // Fallback: serve inline if file not found
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end("<html><body><h1>AgentForge</h1><p>App loading... <a href='/dashboard'>Legacy Dashboard</a></p></body></html>");
+  }
 }
 
 function handleDashboard(_req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -1657,6 +1683,8 @@ async function handleSaveSettings(req: http.IncomingMessage, res: http.ServerRes
     OPENAI_API_KEY: body.openaiApiKey !== undefined ? body.openaiApiKey : currentSettings.OPENAI_API_KEY || "",
     OLLAMA_BASE_URL: body.ollamaBaseUrl || currentSettings.OLLAMA_BASE_URL || "http://localhost:11434",
     OLLAMA_API_KEY: body.ollamaApiKey !== undefined ? body.ollamaApiKey : currentSettings.OLLAMA_API_KEY || "",
+    MIMO_API_KEY: body.mimoApiKey !== undefined ? body.mimoApiKey : currentSettings.MIMO_API_KEY || "",
+    MIMO_BASE_URL: body.mimoBaseUrl || currentSettings.MIMO_BASE_URL || "https://token-plan-sgp.xiaomimimo.com/v1",
     AGENTFORGE_MODEL: body.model || currentSettings.AGENTFORGE_MODEL || "gpt-4o-mini",
     AGENTFORGE_PORT: body.port || currentSettings.AGENTFORGE_PORT || "3000",
     AGENTFORGE_OPTIMIZATION: body.optimization !== undefined ? String(body.optimization) : currentSettings.AGENTFORGE_OPTIMIZATION || "true",
@@ -1834,6 +1862,7 @@ function handleSettingsPage(_req: http.IncomingMessage, res: http.ServerResponse
           <select class="form-select" id="provider" onchange="toggleProvider()">
             <option value="openai" ${provider === "openai" ? "selected" : ""}>OpenAI</option>
             <option value="ollama" ${provider === "ollama" ? "selected" : ""}>Ollama (Local)</option>
+            <option value="mimo" ${provider === "mimo" ? "selected" : ""}>Xiaomi MiMo (Token Plan)</option>
           </select>
           <div class="form-hint">Choose where AgentForge sends your requests</div>
         </div>
@@ -1863,6 +1892,29 @@ function handleSettingsPage(_req: http.IncomingMessage, res: http.ServerResponse
           <label class="form-label">API Key</label>
           <input class="form-input" type="password" id="ollamaApiKey" placeholder="ollama-local" autocomplete="off">
           <div class="form-hint">Usually "ollama-local" or leave empty</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="mimo-section">
+      <div class="section-header">Xiaomi MiMo Configuration</div>
+      <div class="section-body">
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input class="form-input" type="password" id="mimoApiKey" placeholder="tp-..." autocomplete="off">
+          <div class="form-hint">Token Plan key (tp-...) from platform.xiaomimimo.com</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base URL</label>
+          <input class="form-input" type="text" id="mimoBaseUrl" placeholder="https://token-plan-sgp.xiaomimimo.com/v1">
+          <div class="form-hint">Dedicated Base URL from your subscription page</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Model</label>
+          <select class="form-select" id="mimoModel">
+            <option value="mimo-v2.5-pro">mimo-v2.5-pro (coding/reasoning, no vision)</option>
+            <option value="mimo-v2.5">mimo-v2.5 (text + vision)</option>
+          </select>
         </div>
       </div>
     </div>
@@ -1919,6 +1971,7 @@ function toggleProvider() {
   const provider = document.getElementById("provider").value;
   document.getElementById("openai-section").classList.toggle("active", provider === "openai");
   document.getElementById("ollama-section").classList.toggle("active", provider === "ollama");
+  document.getElementById("mimo-section").classList.toggle("active", provider === "mimo");
 }
 
 function showToast(message, type) {
@@ -1984,6 +2037,233 @@ loadSettings();
   res.end(html);
 }
 
+// ── Canonical Store Integration ─────────────────────
+// Seed demo data through the real WorkspaceStore (same as webServer.ts)
+function seedDemoData(): void {
+  // Agents
+  if (globalStore.listAgents().length === 0) {
+    globalStore.createAgent({
+      id: "agent-alex", name: "Alex", avatarUrl: "🤖", role: "Full-Stack Engineer",
+      description: "TypeScript, Python, testing, and Git worktree isolation.",
+      status: "working", currentTaskId: "AF-142",
+      harnessPolicy: { preferredHarnessId: "pi", autoResume: true },
+      modelPolicy: { preferredTier: 4, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
+      decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "local_workspace" },
+      memoryNamespace: "engineering", tools: ["git", "terminal", "vitest", "diff_viewer"],
+      permissions: ["repo:read", "repo:branch", "test:run"], assignedChannelIds: ["chan-development"],
+    });
+    globalStore.createAgent({
+      id: "agent-sarah", name: "Sarah", avatarUrl: "💼", role: "Acquisitions Specialist",
+      description: "Seller intake, lead qualification, and photo inspection.",
+      status: "idle",
+      harnessPolicy: { preferredHarnessId: "pydantic", autoResume: true },
+      modelPolicy: { preferredTier: 3, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
+      decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "none" },
+      memoryNamespace: "acquisitions", tools: ["crm_client", "voice_caller", "property_records"],
+      permissions: ["crm:read", "crm:write", "voice:outbound"], assignedChannelIds: ["chan-general", "chan-calls"],
+    });
+  }
+  // Tasks
+  if (globalStore.listTasks().length === 0) {
+    globalStore.createTask({
+      id: "AF-142",
+      projectId: "proj-agentforge", title: "Fix login session regression",
+      description: "Ensure session tokens are preserved across worktree branches",
+      priority: "high", status: "in_progress", assignedAgentId: "agent-alex",
+      contract: { id: "contract-AF-142", taskId: "AF-142", version: 1, repository: { baseBranch: "origin/master", baseSha: "802e04a" }, workspace: { requireIsolatedWorktree: true }, scope: { allowedPaths: ["src/**"], protectedPaths: [".env", "package.json"] }, authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: true }, requiredChecks: [{ type: "unit_tests", required: true }], completion: { requireEvidencePack: true, requireHumanApproval: true }, createdAt: new Date().toISOString() },
+    });
+    globalStore.createTask({
+      projectId: "proj-agentforge", title: "Implement MiMo provider adapter",
+      description: "Add Xiaomi MiMo as a real generative model provider",
+      priority: "medium", status: "completed", assignedAgentId: "agent-alex",
+    });
+    globalStore.createTask({
+      projectId: "proj-agentforge", title: "UI Shell Redesign",
+      description: "Replace token dashboard with AI Workforce OS interface",
+      priority: "high", status: "in_progress", assignedAgentId: "agent-alex",
+    });
+  }
+  // Approvals
+  if (globalStore.listApprovals().length === 0) {
+    globalStore.createApproval({
+      taskId: "AF-142", requesterAgentId: "agent-alex",
+      action: "Deploy auth session patch to Staging",
+      description: "All 164 tests passing; diff scope verified within allowed contract boundaries.",
+      risk: "medium",
+      evidenceSummary: { filesCount: 2, testsPassed: true, diffSnippet: "+ export const SESSION_TIMEOUT = 3600;" },
+    });
+  }
+  // Processes
+  if (globalStore.listProcesses().length === 0) {
+    globalStore.createProcess({
+      id: "proc-seller-qual",
+      title: "Seller Qualification",
+      version: 4,
+      sourceType: "manual",
+      description: "Sample seller intake workflow with a photo request branch.",
+      steps: [
+        { id: "s1", sequence: 1, title: "Receive lead", instruction: "Record the seller and property details." },
+        { id: "s2", sequence: 2, title: "Call seller", instruction: "Speak with the seller and confirm motivation and timeline." },
+        { id: "s3", sequence: 3, title: "Request photos", instruction: "Request current property photos before qualification." },
+      ],
+      inputs: [],
+      outputs: [],
+      unresolvedRules: [{
+        id: "rule-seller-escalation",
+        processId: "proc-seller-qual",
+        stepId: "s2",
+        question: "When should a seller intake be escalated?",
+        description: "The escalation threshold has not been defined.",
+        severity: "warning",
+        resolved: false,
+      }],
+      lastSynchronizedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  // Messages (seed into general channel)
+  const generalMessages = globalStore.listMessages("chan-general", 10);
+  if (generalMessages.length === 0) {
+    globalStore.createMessage({ channelId: "chan-general", authorId: "agent-alex", authorType: "agent", content: "Local demo workspace initialized. Provider connections are not configured." });
+    globalStore.createMessage({ channelId: "chan-general", authorId: "user-montelli", authorType: "user", content: "Run the local test suite and report status." });
+    globalStore.createMessage({ channelId: "chan-general", authorId: "agent-alex", authorType: "agent", content: "This workspace contains sample data only; no external provider was contacted." });
+  }
+}
+seedDemoData();
+
+function handleApiRoute(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {
+  const path = url.pathname;
+  const method = req.method;
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  if (method === "OPTIONS") {
+    res.writeHead(204, { "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type" });
+    res.end();
+    return;
+  }
+
+  try {
+    if (method === "GET" && path === "/api/status") {
+      const agents = globalStore.listAgents();
+      const tasks = globalStore.listTasks();
+      const approvals = globalStore.listApprovals("pending");
+      const channels = globalStore.listChannels();
+      res.writeHead(200);
+      res.end(JSON.stringify({ status: "active", version: "0.1.0-alpha", agents: agents.length, tasks: tasks.length, approvals: approvals.length, channels: channels.length }));
+    } else if (method === "GET" && path === "/api/agents") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listAgents()));
+    } else if (method === "GET" && path === "/api/tasks") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listTasks()));
+    } else if (method === "GET" && path === "/api/approvals") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listApprovals()));
+    } else if (method === "POST" && path === "/api/approvals/resolve") {
+      let body = "";
+      req.on("data", (chunk: Buffer) => body += chunk);
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          const result = globalStore.resolveApproval({
+            approvalId: parsed.id,
+            status: parsed.action === "approve" ? "approved" : "rejected",
+            approverUserId: "user-montelli",
+            decisionOrigin: "web",
+          });
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, approval: result }));
+        } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: String(e) })); }
+      });
+      return;
+    } else if (method === "GET" && path === "/api/workspace") {
+      const ws = globalStore.getWorkspace();
+      const spaces = globalStore.listSpaces();
+      const channels = globalStore.listChannels();
+      res.writeHead(200);
+      res.end(JSON.stringify({ workspace: ws, spaces, channels }));
+    } else if (method === "GET" && path === "/api/processes") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listProcesses()));
+    } else if (method === "GET" && path === "/api/messages") {
+      const channelId = url.searchParams.get("channelId") || "chan-general";
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listMessages(channelId, 50)));
+    } else if (method === "POST" && path === "/api/messages") {
+      let body = "";
+      req.on("data", (chunk: Buffer) => body += chunk);
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          const msg = globalStore.createMessage({ channelId: parsed.channelId || "chan-general", authorId: "user-montelli", authorType: "user", content: parsed.content });
+          res.writeHead(201);
+          res.end(JSON.stringify(msg));
+        } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: String(e) })); }
+      });
+      return;
+    } else if (method === "POST" && path === "/api/tasks") {
+      let body = "";
+      req.on("data", (chunk: Buffer) => body += chunk);
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          const task = globalStore.createTask(parsed);
+          res.writeHead(201);
+          res.end(JSON.stringify(task));
+        } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: String(e) })); }
+      });
+      return;
+    } else if (method === "GET" && path === "/api/inbox") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.getUnifiedInbox()));
+    } else if (method === "GET" && path === "/api/packages") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listPackages()));
+    } else if (method === "GET" && path === "/api/models") {
+      res.writeHead(200);
+      res.end(JSON.stringify(PROVIDER_READINESS_REGISTRY.filter(p => p.category === "generative_model")));
+    } else if (method === "GET" && path === "/api/migration/sources") {
+      res.writeHead(200);
+      res.end(JSON.stringify([
+        { id: "openclaw-legacy", name: "OpenClaw (Legacy)", status: "fixture_verified" },
+        { id: "openclaw-current", name: "OpenClaw (Current)", status: "fixture_verified" },
+        { id: "hermes", name: "Hermes Agent", status: "fixture_verified" },
+        { id: "grok", name: "Grok Bot", status: "partial_support" },
+        { id: "generic", name: "Generic Import", status: "supported" },
+      ]));
+    } else if (method === "GET" && path === "/api/readiness") {
+      res.writeHead(200);
+      res.end(JSON.stringify(PROVIDER_READINESS_REGISTRY));
+    } else if (method === "GET" && path === "/api/calls") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listCalls()));
+    } else if (method === "GET" && path === "/api/audit") {
+      res.writeHead(200);
+      res.end(JSON.stringify(globalStore.listAuditEntries(50)));
+    } else if (method === "POST" && path === "/api/agents") {
+      let body = "";
+      req.on("data", (chunk: Buffer) => body += chunk);
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          const agent = globalStore.createAgent(parsed);
+          res.writeHead(201);
+          res.end(JSON.stringify(agent));
+        } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: String(e) })); }
+      });
+      return;
+    } else {
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: { message: "Not found", type: "invalid_request_error" } }));
+    }
+  } catch (e) {
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: { message: String(e), type: "server_error" } }));
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://localhost:${PORT}`);
 
@@ -2002,6 +2282,8 @@ const server = http.createServer(async (req, res) => {
       handleDailySummary(req, res);
     } else if (req.method === "GET" && url.pathname === "/dashboard.json") {
       handleDashboardJson(req, res);
+    } else if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/app")) {
+      handleApp(req, res);
     } else if (req.method === "GET" && url.pathname === "/dashboard") {
       handleDashboard(req, res);
     } else if (req.method === "GET" && url.pathname === "/settings") {
@@ -2010,6 +2292,8 @@ const server = http.createServer(async (req, res) => {
       handleGetSettings(req, res);
     } else if (req.method === "POST" && url.pathname === "/api/settings") {
       await handleSaveSettings(req, res);
+    } else if (url.pathname.startsWith("/api/")) {
+      handleApiRoute(req, res, url);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: { message: "Not found", type: "invalid_request_error" } }));
@@ -2141,6 +2425,10 @@ if (process.argv[1] &&
     console.log(`[AgentForge] Metadata: ${METADATA_ENABLED ? "enabled" : "disabled"}`);
     if (PROVIDER === "ollama") {
       console.log(`[AgentForge] Ollama URL: ${OLLAMA_BASE_URL}`);
+    }
+    if (PROVIDER === "mimo") {
+      console.log(`[AgentForge] MiMo URL: ${MIMO_BASE_URL}`);
+      console.log(`[AgentForge] MiMo Key: ${MIMO_API_KEY ? "configured" : "NOT SET"}`);
     }
     console.log(`[AgentForge] Dashboard: http://localhost:${PORT}/dashboard`);
   });

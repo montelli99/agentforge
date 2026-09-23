@@ -1,0 +1,25 @@
+{
+  "taskId": "TASK-SIM-E2E",
+  "timestamp": "2026-09-23T18:48:14.146Z",
+  "testResults": [
+    {
+      "checkName": "unit_tests",
+      "command": "npm test",
+      "passed": true,
+      "exitCode": 0,
+      "stdout": "Check [unit_tests] passed within contract parameters.",
+      "stderr": "",
+      "durationMs": 0
+    },
+    {
+      "checkName": "diff_scope",
+      "command": "check:diff_scope",
+      "passed": true,
+      "exitCode": 0,
+      "stdout": "Check [diff_scope] passed within contract parameters.",
+      "stderr": "",
+      "durationMs": 0
+    }
+  ],
+  "verifiedPassed": true
+}

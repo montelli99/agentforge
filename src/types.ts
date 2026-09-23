@@ -30,6 +30,7 @@ export type AgentForgeContext = {
     preflight: ReflectionDecision;
     postResult: ReflectionDecision;
   };
+  optimization?: Partial<import("./optimization-types.js").OptimizationConfig>;
 };
 
 export type CanonicalEnvelope = {

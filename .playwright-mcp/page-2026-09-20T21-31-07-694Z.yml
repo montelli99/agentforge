@@ -1,0 +1,71 @@
+- generic [ref=f9e2]:
+  - generic [ref=f9e3]:
+    - generic [ref=f9e4]:
+      - generic [ref=f9e5]: A
+      - generic [ref=f9e6]: AgentForge
+    - generic [ref=f9e7]:
+      - generic: 🔍
+      - textbox "Search or press Ctrl+K for commands..." [ref=f9e8]
+    - generic [ref=f9e9]:
+      - generic [ref=f9e10]: Connected
+      - button "⌨" [ref=f9e13] [cursor=pointer]
+      - button "Settings" [ref=f9e14] [cursor=pointer]
+  - generic [ref=f9e15]:
+    - generic [ref=f9e16]:
+      - generic [ref=f9e17] [cursor=pointer]:
+        - generic [ref=f9e18]: 🏠
+        - text: Home
+      - generic [ref=f9e19] [cursor=pointer]:
+        - generic [ref=f9e20]: 📨
+        - text: Inbox
+      - generic [ref=f9e21] [cursor=pointer]:
+        - generic [ref=f9e22]: 💬
+        - text: Messages
+    - generic [ref=f9e23]:
+      - generic [ref=f9e24]: Work
+      - generic [ref=f9e25] [cursor=pointer]:
+        - generic [ref=f9e26]: 📂
+        - text: Projects
+      - generic [ref=f9e27] [cursor=pointer]:
+        - generic [ref=f9e28]: ☑
+        - text: Tasks
+      - generic [ref=f9e29] [cursor=pointer]:
+        - generic [ref=f9e30]: 🤖
+        - text: Agents
+      - generic [ref=f9e31] [cursor=pointer]:
+        - generic [ref=f9e32]: ⚙
+        - text: Processes
+      - generic [ref=f9e33] [cursor=pointer]:
+        - generic [ref=f9e34]: ✅
+        - text: Approvals
+    - generic [ref=f9e35]:
+      - generic [ref=f9e36]: Platform
+      - generic [ref=f9e37] [cursor=pointer]:
+        - generic [ref=f9e38]: 🧠
+        - text: Models
+      - generic [ref=f9e39] [cursor=pointer]:
+        - generic [ref=f9e40]: 🛒
+        - text: Marketplace
+      - generic [ref=f9e41] [cursor=pointer]:
+        - generic [ref=f9e42]: 🔄
+        - text: Migration
+    - generic [ref=f9e43]:
+      - generic [ref=f9e44]: System
+      - generic [ref=f9e45] [cursor=pointer]:
+        - generic [ref=f9e46]: 🧠
+        - text: Memory
+      - generic [ref=f9e47] [cursor=pointer]:
+        - generic [ref=f9e48]: 🎤
+        - text: Voice
+      - generic [ref=f9e49] [cursor=pointer]:
+        - generic [ref=f9e50]: 📈
+        - text: Benchmarks
+      - generic [ref=f9e51] [cursor=pointer]:
+        - generic [ref=f9e52]: 🕑
+        - text: Activity
+      - generic [ref=f9e53] [cursor=pointer]:
+        - generic [ref=f9e54]: ⚡
+        - text: Optimization
+      - generic [ref=f9e55] [cursor=pointer]:
+        - generic [ref=f9e56]: ⚙
+        - text: Settings

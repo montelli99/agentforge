@@ -6,13 +6,17 @@
  * Handles remote control slash commands and button callbacks with server-side RBAC and audit.
  */
 
+import crypto from "node:crypto";
 import type { WorkspaceStore } from "../store/workspaceStore.js";
 import type { TelegramMirrorProvider } from "../../providers/channels/telegramMirror.js";
 import type { DiscordMirrorProvider } from "../../providers/channels/discordMirror.js";
 import type { NativeWebChannelProvider } from "../../providers/channels/nativeWebChannel.js";
 import type { InboundChannelEvent } from "../providers/channel.js";
+import type { CanonicalMessage } from "../types/workspace.js";
 
 export class UniversalMirrorRouter {
+  private readonly pendingTelegramLinks = new Map<string, { userId: string; expiresAt: number }>();
+
   constructor(
     private readonly store: WorkspaceStore,
     private readonly telegram?: TelegramMirrorProvider,
@@ -32,6 +36,14 @@ export class UniversalMirrorRouter {
     if (this.web) {
       this.web.onEvent(evt => this.handleInboundEvent(evt));
     }
+    this.store.subscribe((evt) => {
+      if (evt.type === "message_created" && evt.entity === "message") {
+        const msg = evt.data as CanonicalMessage;
+        if (msg && msg.channelId && msg.content && !msg.externalProvider) {
+          this.broadcastCanonicalMessage(msg.channelId, msg.content, msg.authorId).catch(() => {});
+        }
+      }
+    });
   }
 
   /**
@@ -50,8 +62,7 @@ export class UniversalMirrorRouter {
     if (isDuplicate) return;
 
     // 2. Resolve Canonical User Identity & Authorization
-    const user = this.store.findUserByExternalId(event.provider, event.externalUserId) ||
-      this.store.getUser("user-montelli"); // Fallback to workspace owner for authorized tests
+    const user = this.store.findUserByExternalId(event.provider, event.externalUserId);
 
     // 3. Resolve or Create Canonical Channel Binding
     let canonicalChannel = this.store.findMirroredChannel(
@@ -106,13 +117,27 @@ export class UniversalMirrorRouter {
 
     // 4. Handle Slash Commands / Remote Control Actions
     if (event.eventType === "command") {
-      await this.handleCommand(event, canonicalChannel.id, user?.id || "user-anonymous");
+      if (event.provider === "telegram" && event.payload.command?.toLowerCase() === "/link") {
+        await this.handleTelegramLinkCommand(event, canonicalChannel.id, entry.id);
+        return;
+      }
+      if (!user) {
+        this.store.eventLedger.updateEventStatus(entry.id, "failed", "Unlinked external identity.");
+        await this.rejectUnlinkedRemoteAction(event, canonicalChannel.id);
+        return;
+      }
+      await this.handleCommand(event, canonicalChannel.id, user.id);
       this.store.eventLedger.updateEventStatus(entry.id, "applied");
       return;
     }
 
     if (event.eventType === "action_button_clicked") {
-      await this.handleActionButton(event, canonicalChannel.id, user?.id || "user-anonymous");
+      if (!user) {
+        this.store.eventLedger.updateEventStatus(entry.id, "failed", "Unlinked external identity.");
+        await this.rejectUnlinkedRemoteAction(event, canonicalChannel.id);
+        return;
+      }
+      await this.handleActionButton(event, canonicalChannel.id, user.id);
       this.store.eventLedger.updateEventStatus(entry.id, "applied");
       return;
     }
@@ -142,7 +167,91 @@ export class UniversalMirrorRouter {
     }
   }
 
-  /**
+  issueTelegramLinkCode(userId: string): { code: string; expiresAt: string } {
+    const user = this.store.getUser(userId);
+    if (!user || user.role !== "owner") throw new Error("Only a workspace owner can issue a Telegram link code");
+
+    const now = Date.now();
+    for (const [hash, pending] of this.pendingTelegramLinks) {
+      if (pending.expiresAt <= now) this.pendingTelegramLinks.delete(hash);
+    }
+
+    const code = crypto.randomBytes(9).toString("base64url").toUpperCase();
+    const expiresAt = now + 10 * 60 * 1000;
+    this.pendingTelegramLinks.set(this.hashLinkCode(code), { userId, expiresAt });
+    return { code, expiresAt: new Date(expiresAt).toISOString() };
+  }
+
+  private async handleTelegramLinkCommand(
+    event: InboundChannelEvent,
+    canonicalChannelId: string,
+    ledgerEntryId: string,
+  ): Promise<void> {
+    const code = ((event.payload.commandArgs || []) as string[])[0]?.trim().toUpperCase();
+    const pending = code ? this.pendingTelegramLinks.get(this.hashLinkCode(code)) : undefined;
+    const isPrivateChat = !event.externalWorkspaceId.startsWith("-");
+    if (code && pending && isPrivateChat) this.pendingTelegramLinks.delete(this.hashLinkCode(code));
+
+    let replyText = "That Telegram link code is missing, expired, or already used. Create a fresh code in the local AgentForge Settings page and send /link CODE in a private Telegram chat.";
+    let linkedUserId: string | undefined;
+    if (!isPrivateChat && pending) {
+      replyText = "For safety, Telegram accounts can only be linked in a private chat with the bot. Your code remains valid; send /link CODE privately.";
+    } else if (pending && pending.expiresAt > Date.now()) {
+      try {
+        this.store.linkExternalIdentity(pending.userId, {
+          provider: "telegram",
+          externalUserId: event.externalUserId,
+          externalUsername: event.externalUsername,
+          linkedAt: new Date().toISOString(),
+        });
+        linkedUserId = pending.userId;
+        replyText = "Telegram is linked to your AgentForge owner account. You can now use its authorized read and control features. This did not connect Telegram or change any external bot configuration.";
+      } catch (error) {
+        replyText = error instanceof Error ? error.message : "Telegram identity could not be linked.";
+      }
+    }
+
+    if (this.telegram) await this.telegram.sendMessage({ canonicalChannelId, text: replyText });
+    this.store.recordAudit({
+      origin: "telegram",
+      actorId: linkedUserId || event.externalUserId,
+      actorType: "user",
+      action: linkedUserId ? "identity.telegram.linked" : "identity.telegram.link_rejected",
+      targetType: "channel",
+      targetId: canonicalChannelId,
+      details: { linkedUserId, username: event.externalUsername, accepted: Boolean(linkedUserId) },
+    });
+    this.store.eventLedger.updateEventStatus(ledgerEntryId, linkedUserId ? "applied" : "failed", linkedUserId ? undefined : "Invalid, expired, or conflicting Telegram link code.");
+  }
+
+  private hashLinkCode(code: string): string {
+    return crypto.createHash("sha256").update(code).digest("hex");
+  }
+
+  private async rejectUnlinkedRemoteAction(event: InboundChannelEvent, canonicalChannelId: string): Promise<void> {
+    const reason = "External identity is not linked to an AgentForge user.";
+    this.store.recordAudit({
+      origin: event.provider,
+      actorId: event.externalUserId,
+      actorType: "user",
+      action: "remote_action.rejected",
+      targetType: "channel",
+      targetId: canonicalChannelId,
+      details: { eventType: event.eventType, reason },
+    });
+    if (event.provider === "telegram" && this.telegram) {
+      await this.telegram.sendMessage({
+        canonicalChannelId,
+        text: "Access denied. This Telegram account is not linked to an AgentForge user. Ask the workspace owner to link it before using remote commands or approval buttons.",
+      });
+    } else if (event.provider === "discord" && this.discord) {
+      await this.discord.sendMessage({
+        canonicalChannelId,
+        text: "Access denied. This Discord account is not linked to an AgentForge user.",
+      });
+    }
+  }
+
   /**
    * Handles remote slash commands (/status, /tasks, /agents, /approvals, /models, /compute, /pause, /resume, /cancel, /approve, /reject, /diff, /evidence, /retry, /ask)
    * Enforces Section 10: All actions go through canonical identity, authorization, policy, execution contract, and audit.
@@ -156,7 +265,7 @@ export class UniversalMirrorRouter {
     const cmd = rawCmd.toLowerCase();
     const args = (event.payload.commandArgs || []) as string[];
     const user = this.store.getUser(userId);
-    const isViewer = user?.role === "viewer";
+    if (!user) return;
 
     let replyText = "";
 
@@ -179,25 +288,24 @@ export class UniversalMirrorRouter {
       replyText = `🚨 *Pending Approvals (${pending.length})*\n` +
         (pending.length ? pending.map(a => `- [${a.id}] Task ${a.taskId}: ${a.action} (Risk: ${a.risk})`).join("\n") : "No pending approvals.");
     } else if (cmd === "/models") {
-      replyText = `🧠 *Model Routing Tiers*\n` +
-        `• Tier 0: Deterministic Logic / Policy Filters\n` +
-        `• Tier 1: System-1 Classifier (Jev Router / Intent)\n` +
-        `• Tier 2: Fast Local Generative (Ollama 3B-8B)\n` +
-        `• Tier 3: Strong Local Generative (Ollama 70B / DeepSeek)\n` +
-        `• Tier 4: Frontier Cloud Generative (GPT-4o / Claude 3.5 Sonnet / Gemini)`;
+      replyText = `🧠 *Model Routing*\n` +
+        `The local control plane can show registered providers, but Telegram does not yet run or validate a model request. Check the AgentForge Models view for current registry readiness.`;
     } else if (cmd === "/compute") {
       replyText = `⚙️ *Compute & Sandbox Status*\n` +
-        `• Worktree Manager: Active (Isolated Git worktrees)\n` +
-        `• Local Process Runner: Ready\n` +
-        `• Docker Sandbox: Connected\n` +
-        `• E2B Cloud Sandbox: Ready`;
+        `• Tracked isolated worktrees: ${this.store.listTasks().filter(task => task.worktree?.isIsolated).length}\n` +
+        `• Sandbox providers: not configured\n` +
+        `• Host resource telemetry: not connected`;
     } else if (cmd === "/diff") {
       const taskId = args[0];
       if (!taskId) {
         replyText = `Usage: /diff <taskId>`;
       } else {
         const task = this.store.getTask(taskId);
-        replyText = task ? `📄 *Diff for ${taskId}*\n\`\`\`diff\n+ // verified changes for task ${taskId}\n+ export const COMPLETED = true;\n\`\`\`` : `Task not found: ${taskId}`;
+        replyText = !task
+          ? `Task not found: ${taskId}`
+          : task.evidencePack
+            ? `📄 *Verified Diff for ${taskId}*\nFiles: ${task.evidencePack.diffStat.filesCount}\nInsertions: ${task.evidencePack.diffStat.insertions}\nDeletions: ${task.evidencePack.diffStat.deletions}\nBase: ${task.evidencePack.baseSha}\nFinal: ${task.evidencePack.finalSha || "not recorded"}`
+            : `No verified diff is attached to ${taskId}.`;
       }
     } else if (cmd === "/evidence") {
       const taskId = args[0];
@@ -205,7 +313,17 @@ export class UniversalMirrorRouter {
         replyText = `Usage: /evidence <taskId>`;
       } else {
         const task = this.store.getTask(taskId);
-        replyText = task ? `📦 *Evidence Pack for ${taskId}*\n• Task: ${task.title}\n• Status: ${task.status}\n• Contract Verified: YES\n• SHA: 802e04a -> 458a92d\n• Tests: 89/89 passing` : `Task not found: ${taskId}`;
+        if (!task) {
+          replyText = `Task not found: ${taskId}`;
+        } else if (!task.evidencePack) {
+          replyText = `No evidence pack has been generated for ${taskId}; I cannot report its diff or test status as verified.`;
+        } else {
+          const passed = task.evidencePack.testResults.filter(test => test.passed).length;
+          replyText = `📦 *Evidence Pack for ${taskId}*\n` +
+            `• Task: ${task.title}\n• Status: ${task.status}\n• Contract verified: ${task.evidencePack.verifiedPassed ? "yes" : "no"}\n` +
+            `• Tests: ${passed}/${task.evidencePack.testResults.length} passed\n• Files changed: ${task.evidencePack.diffStat.filesCount}\n` +
+            `• Base: ${task.evidencePack.baseSha}\n• Final: ${task.evidencePack.finalSha || "not recorded"}`;
+        }
       }
     } else if (cmd === "/ask") {
       const agentId = args[0];
@@ -217,13 +335,14 @@ export class UniversalMirrorRouter {
         if (!agent) {
           replyText = `Agent not found: ${agentId}`;
         } else {
-          replyText = `💬 *${agent.name}*: Received inquiry "${question}". Routing to harness [${agent.harnessPolicy?.preferredHarnessId || "pi"}]...`;
+          replyText = `💬 *${agent.name}* is listed in the workspace, but Telegram has no connected agent execution route yet. Your inquiry was not submitted or executed.`;
         }
       }
     }
-    // Modifying commands (require elevated role / non-viewer)
-    else if (isViewer) {
-      replyText = `⛔ *Access Denied*: User "${userId}" with role "viewer" is not authorized to execute mutating command ${cmd}.`;
+    // Mutating commands require an explicit server-side permission.
+    else if (this.getRequiredPermission(cmd) && !this.hasPermission(user, this.getRequiredPermission(cmd)!)) {
+      const permission = this.getRequiredPermission(cmd)!;
+      replyText = `⛔ *Access Denied*: User "${userId}" is not authorized for ${permission}.`;
       this.store.recordAudit({
         origin: event.provider,
         actorId: userId,
@@ -231,7 +350,7 @@ export class UniversalMirrorRouter {
         action: `command.rejected`,
         targetType: "channel",
         targetId: canonicalChannelId,
-        details: { command: rawCmd, reason: "RBAC: viewer cannot execute mutating commands" },
+        details: { command: rawCmd, permission, role: user.role, reason: "RBAC permission denied" },
       });
       if (event.provider === "telegram" && this.telegram) {
         await this.telegram.sendMessage({
@@ -255,8 +374,7 @@ export class UniversalMirrorRouter {
       if (!task) {
         replyText = `Usage: /resume <taskId> (Task not found)`;
       } else {
-        this.store.updateTask(task.id, { status: "in_progress" });
-        replyText = `▶️ Task [${task.id}] "${task.title}" has been resumed.`;
+        replyText = `Cannot resume task [${task.id}] "${task.title}": no agent worker is connected. Its status remains ${task.status}; no work was queued or run.`;
       }
     } else if (cmd === "/cancel") {
       const taskId = args[0];
@@ -273,8 +391,7 @@ export class UniversalMirrorRouter {
       if (!task) {
         replyText = `Usage: /retry <taskId> (Task not found)`;
       } else {
-        this.store.updateTask(task.id, { status: "in_progress" });
-        replyText = `🔄 Task [${task.id}] "${task.title}" queued for retry with fresh worktree.`;
+        replyText = `Cannot retry task [${task.id}] "${task.title}": no agent worker is connected. Its status remains ${task.status}; no retry was queued.`;
       }
     } else if (cmd === "/approve" || cmd === "/reject") {
       const targetId = args[0];
@@ -309,6 +426,11 @@ export class UniversalMirrorRouter {
         canonicalChannelId,
         text: replyText,
       });
+    } else if (event.provider === "discord" && this.discord) {
+      await this.discord.sendMessage({
+        canonicalChannelId,
+        text: replyText,
+      });
     }
 
     this.store.recordAudit({
@@ -320,6 +442,16 @@ export class UniversalMirrorRouter {
       targetId: canonicalChannelId,
       details: { command: rawCmd, args, replyLength: replyText.length },
     });
+  }
+
+  private getRequiredPermission(command: string): string | undefined {
+    if (command === "/approve" || command === "/reject") return "approvals:decide";
+    if (["/pause", "/resume", "/cancel", "/retry"].includes(command)) return "tasks:control";
+    return undefined;
+  }
+
+  private hasPermission(user: { role: string; permissions: string[] }, permission: string): boolean {
+    return user.role !== "viewer" && (user.permissions.includes("*") || user.permissions.includes(permission));
   }
 
   /**
@@ -334,12 +466,21 @@ export class UniversalMirrorRouter {
     const targetId = event.payload.actionPayload?.targetId as string;
     const user = this.store.getUser(userId);
 
-    // Enforce RBAC on button actions
-    if (user?.role === "viewer") {
-      const errMsg = `⛔ Action rejected: Viewer "${userId}" cannot execute ${actionId}`;
+    // Approval callbacks are privileged actions; unknown users are rejected before this method.
+    if (!user || !this.hasPermission(user, "approvals:decide")) {
+      const errMsg = `⛔ Action rejected: User "${userId}" is not authorized to decide approvals.`;
       if (event.provider === "telegram" && this.telegram) {
         await this.telegram.sendMessage({ canonicalChannelId, text: errMsg });
       }
+      this.store.recordAudit({
+        origin: event.provider,
+        actorId: userId,
+        actorType: "user",
+        action: "remote_action.rejected",
+        targetType: "channel",
+        targetId: canonicalChannelId,
+        details: { actionId, reason: "RBAC permission denied" },
+      });
       return;
     }
 
@@ -377,6 +518,8 @@ export class UniversalMirrorRouter {
         const confirmMsg = `✅ Approval ${approval.id} for task ${approval.taskId} marked *${actionId.toUpperCase()}* via ${event.provider}`;
         if (event.provider === "telegram" && this.telegram) {
           await this.telegram.sendMessage({ canonicalChannelId, text: confirmMsg });
+        } else if (event.provider === "discord" && this.discord) {
+          await this.discord.sendMessage({ canonicalChannelId, text: confirmMsg });
         }
       }
     }

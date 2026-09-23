@@ -194,15 +194,21 @@ async function runBenchmark() {
 
   const repoResult1 = optimizer.eliminateLargeContext({
     content: repoContext,
-    contentType: 'repo_context',
+    contentType: 'repo',
     tokenCount: repoTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`First call - Eliminated: ${repoResult1.eliminated}`);
 
   const repoResult2 = optimizer.eliminateLargeContext({
     content: repoContext,
-    contentType: 'repo_context',
+    contentType: 'repo',
     tokenCount: repoTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`Second call - Eliminated: ${repoResult2.eliminated}`);
   console.log(`Tokens saved: ${repoResult2.eliminatedTokens}`);
@@ -224,15 +230,21 @@ async function runBenchmark() {
 
   const convResult1 = optimizer.eliminateLargeContext({
     content: conversation,
-    contentType: 'conversation_history',
+    contentType: 'conversation',
     tokenCount: conversationTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`First call - Eliminated: ${convResult1.eliminated}`);
 
   const convResult2 = optimizer.eliminateLargeContext({
     content: conversation,
-    contentType: 'conversation_history',
+    contentType: 'conversation',
     tokenCount: conversationTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`Second call - Eliminated: ${convResult2.eliminated}`);
   console.log(`Tokens saved: ${convResult2.eliminatedTokens}`);
@@ -254,15 +266,21 @@ async function runBenchmark() {
 
   const ragResult1 = optimizer.eliminateLargeContext({
     content: ragPayload,
-    contentType: 'rag_context',
+    contentType: 'rag',
     tokenCount: ragTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`First call - Eliminated: ${ragResult1.eliminated}`);
 
   const ragResult2 = optimizer.eliminateLargeContext({
     content: ragPayload,
-    contentType: 'rag_context',
+    contentType: 'rag',
     tokenCount: ragTokens,
+    tenantId: 'benchmark',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`Second call - Eliminated: ${ragResult2.eliminated}`);
   console.log(`Tokens saved: ${ragResult2.eliminatedTokens}`);
@@ -279,19 +297,20 @@ async function runBenchmark() {
     tenantId: 'benchmark',
     estimatedInputTokens: largePromptTokens + 2000,
     estimatedOutputTokens: 1000,
-    costPer1kInput: 0.003,
-    costPer1kOutput: 0.015,
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
   });
   console.log(`Bypassed: ${bypassResult.bypassed}`);
-  console.log(`Tokens avoided: ${bypassResult.tokensAvoided}`);
-  console.log(`Cost avoided: $${bypassResult.estimatedCostAvoidedUsd.toFixed(4)}\n`);
+  const bypassTokensAvoided = bypassResult.tokenAccount?.avoidedTotalTokens ?? 0;
+  console.log(`Tokens avoided: ${bypassTokensAvoided}`);
+  console.log(`Cost avoided: $${(bypassResult.tokenAccount?.costAvoidedUsd ?? 0).toFixed(4)}\n`);
 
   // Summary
   console.log('=== Summary ===');
   const totalTokensSaved = repoResult2.eliminatedTokens + convResult2.eliminatedTokens + ragResult2.eliminatedTokens;
   console.log(`Total tokens eliminated from context: ${totalTokensSaved}`);
-  console.log(`Memory bypass tokens avoided: ${bypassResult.tokensAvoided}`);
-  console.log(`Grand total tokens prevented: ${totalTokensSaved + bypassResult.tokensAvoided}`);
+  console.log(`Memory bypass tokens avoided: ${bypassTokensAvoided}`);
+  console.log(`Grand total tokens prevented: ${totalTokensSaved + bypassTokensAvoided}`);
 }
 
 runBenchmark().catch(console.error);

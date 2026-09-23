@@ -191,6 +191,43 @@ describe("AgentForge vNext Extension Architecture", () => {
       expect(res.errors).toHaveLength(0);
     });
 
+    it("rejects malformed runtime manifests without throwing", () => {
+      const malformed: unknown[] = [
+        null,
+        [],
+        { schemaVersion: "1.0.0", name: "broken", capabilities: "agent", permissions: [] },
+      ];
+
+      for (const candidate of malformed) {
+        const result = packageProvider.validatePackage(candidate as PackageManifest);
+        expect(result.valid).toBe(false);
+        expect(result.violations.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("validates package paths by path segment and rejects reserved device names", () => {
+      const base: PackageManifest = {
+        schemaVersion: "1.0.0",
+        name: "safe-package",
+        version: "1.0.0",
+        publisher: { id: "pub-test", name: "Test Publisher" },
+        description: "Path validation test",
+        license: "UNLICENSED",
+        agentforgeVersion: ">=0.1.0",
+        capabilities: [{ id: "cap-safe", name: "Safe", description: "Safe capability", type: "tool" }],
+        permissions: { filesystem: { workspace: { read: true, write: false }, home: { read: false } } },
+        files: ["src/release..notes.md"],
+      };
+      expect(packageProvider.validatePackage(base).valid).toBe(true);
+      expect(packageProvider.validatePackage({ ...base, files: ["src/../outside.txt"] }).valid).toBe(false);
+      expect(packageProvider.validatePackage({ ...base, files: ["src/folder./file.txt"] }).valid).toBe(false);
+      expect(packageProvider.validatePackage({ ...base, name: "CON" }).valid).toBe(false);
+      expect(packageProvider.validatePackage({
+        ...base,
+        permissions: { filesystem: { additionalPaths: ["../../secrets"] } },
+      }).valid).toBe(false);
+    });
+
     it("strictly blocks package permissions that exceed ExecutionContract authority", () => {
       const maliciousManifest: PackageManifest = {
         schemaVersion: "1.0.0",
@@ -239,6 +276,22 @@ describe("AgentForge vNext Extension Architecture", () => {
       expect(inst.status).toBe("active");
       expect(packageProvider.getInstalled("dental-claims-agent")).toBeDefined();
       expect(packageProvider.listInstalled()).toHaveLength(1);
+    });
+
+    it("rejects permission approval beyond the package manifest request", () => {
+      const manifest: PackageManifest = {
+        schemaVersion: "1.0.0", name: "limited-pack", version: "1.0.0",
+        publisher: { id: "pub-test", name: "Test Publisher" }, description: "Permission boundary test",
+        license: "MIT", agentforgeVersion: "*",
+        capabilities: [{ id: "cap-test", name: "Test", description: "Test capability", type: "tool" }],
+        permissions: { filesystem: { workspace: { read: true, write: false } } },
+      };
+      expect(() => packageProvider.installPackage({
+        manifest,
+        installedByUserId: "user-montelli",
+        workspaceId: "ws-test",
+        approvedPermissions: { filesystem: { workspace: { read: true, write: true } } },
+      })).toThrow("subset of the permissions requested");
     });
   });
 
@@ -291,7 +344,9 @@ describe("AgentForge vNext Extension Architecture", () => {
 
       const compat = runner.evaluateCompatibility("MODEL", "qwen2.5:3b", result);
       expect(compat.compatible).toBe(true);
-      expect(compat.supportedFeatures).toContain("tool_calling");
+      expect(compat.supportedFeatures).toEqual([]);
+      expect(compat.unsupportedFeatures).toEqual([]);
+      expect(compat.recommendedTiers).toEqual([]);
     });
   });
 });

@@ -6,6 +6,8 @@ export function formatReport(report: LabReport): string {
   const lines: string[] = [];
   lines.push("# AgentForge Lab Report");
   lines.push(`Generated: ${report.generatedAt}`);
+  lines.push("");
+  lines.push("> Scope: local deterministic lab scenarios. PASS means the scenario matched its expected result; it is not evidence of a live provider, real migration, production security, or external-system behavior.");
   if (report.profile) {
     lines.push(`Model: ${report.profile.model.provider}/${report.profile.model.model}`);
     if (report.profile.imageModel) {

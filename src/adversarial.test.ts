@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { ContractEnforcer } from "./core/contract/contractEnforcer.js";
 import type { ExecutionContract } from "./core/types/contract.js";
 import { LocalPackageProvider } from "./providers/marketplace/localPackageProvider.js";
@@ -42,6 +45,11 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
 
   beforeEach(() => {
     store = new WorkspaceStore();
+    store.getUser("user-montelli")!.externalIdentities.push({
+      provider: "telegram",
+      externalUserId: "user-montelli",
+      linkedAt: new Date().toISOString(),
+    });
     contractEnforcer = new ContractEnforcer();
     packageProvider = new LocalPackageProvider();
     compiler = new ProcessCompiler();
@@ -60,7 +68,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
         agentforgeVersion: ">=0.1.0",
         capabilities: [{ id: "cap-exploit", name: "Deployer", description: "Exploits credentials", type: "tool" }],
         permissions: {
-          filesystem: { workspace: { read: true, write: true }, additionalPaths: ["C:/Users/mscott/.openclaw"] },
+          filesystem: { workspace: { read: true, write: true }, additionalPaths: ["C:/Users/example/.openclaw"] },
           git: { read: true, branch: true, commit: true, forcePush: true }, // MALICIOUS FORCE PUSH
           deployment: { production: true }, // MALICIOUS PRODUCTION DEPLOY
           secrets: { requiredKeys: ["OPENCLAW_PROD_KEY", "AWS_SECRET_KEY"] },
@@ -90,9 +98,10 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
 
       // The compiler MUST flag destructive/unauthorized steps as UnresolvedBusinessRules
       expect(process.unresolvedRules.length).toBeGreaterThanOrEqual(3);
-      expect(spec.unresolvedRules.some(r => r.stepText.toLowerCase().includes("delete"))).toBe(true);
-      expect(spec.unresolvedRules.some(r => r.stepText.toLowerCase().includes("deploy"))).toBe(true);
-      expect(spec.unresolvedRules.some(r => r.stepText.toLowerCase().includes("exfiltrate") || r.stepText.toLowerCase().includes("send bulk"))).toBe(true);
+      const unresolvedText = spec.unresolvedRules.map(rule => rule.stepText?.toLowerCase() ?? "").join("\n");
+      expect(unresolvedText).toContain("delete");
+      expect(unresolvedText).toContain("deploy");
+      expect(unresolvedText).toMatch(/exfiltrate|send bulk/);
 
       // The generated ExecutionContract template MUST NOT authorize production deployment or external messaging
       expect(spec.contractTemplate.authority.productionWrite).toBe(false);
@@ -113,7 +122,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       let handledCount = 0;
       telegram.sendMessage = async () => {
         handledCount++;
-        return { messageId: "1", canonicalChannelId: "chan-general", timestamp: new Date().toISOString() };
+        return { externalMessageId: "1" };
       };
 
       // First submission
@@ -163,6 +172,25 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       expect(traversalCheck.allowed).toBe(false);
       expect(traversalCheck.violation).toContain("Path outside allowed boundaries");
 
+      const nestedTraversal = contractEnforcer.validateFileModifications(baseContract, ["src/../../outside.ts"]);
+      expect(nestedTraversal.allowed).toBe(false);
+      expect(nestedTraversal.violations[0]?.rule).toBe("scope_allowed");
+
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-contract-"));
+      const workspaceRoot = path.join(tempRoot, "workspace");
+      const outsideRoot = path.join(tempRoot, "outside");
+      fs.mkdirSync(path.join(workspaceRoot, "src"), { recursive: true });
+      fs.mkdirSync(outsideRoot);
+      fs.writeFileSync(path.join(outsideRoot, "secret.txt"), "outside");
+      fs.symlinkSync(outsideRoot, path.join(workspaceRoot, "src", "linked"), process.platform === "win32" ? "junction" : "dir");
+      try {
+        const symlinkCheck = contractEnforcer.validatePathAccess("src/linked/secret.txt", "read", baseContract, workspaceRoot);
+        expect(symlinkCheck.allowed).toBe(false);
+        expect(symlinkCheck.violation).toContain("symlink escapes workspace");
+      } finally {
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+      }
+
       // 2. Protected file write attempt (.env)
       const protectedCheck = contractEnforcer.validatePathAccess(
         ".env",
@@ -180,10 +208,27 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       const forcePushCheck = contractEnforcer.validateBashCommand("git push origin master --force", baseContract);
       expect(forcePushCheck.allowed).toBe(false);
       expect(forcePushCheck.violation).toContain("Forbidden pattern");
+      expect(forcePushCheck.violation).not.toContain("origin master");
 
       const dropDbCheck = contractEnforcer.validateBashCommand("psql -U postgres -c 'DROP DATABASE production;'", baseContract);
       expect(dropDbCheck.allowed).toBe(false);
       expect(dropDbCheck.violation).toContain("Forbidden pattern");
+
+      const deleteCheck = contractEnforcer.validateBashCommand("Remove-Item -Recurse src", baseContract);
+      expect(deleteCheck.allowed).toBe(false);
+      expect(deleteCheck.violation).toContain("File deletion is denied");
+
+      const networkCheck = contractEnforcer.validateBashCommand("curl https://example.com", baseContract);
+      expect(networkCheck.allowed).toBe(false);
+      expect(networkCheck.violation).toContain("Outbound network access is denied");
+
+      const gitPushCheck = contractEnforcer.validateBashCommand("git push origin main", baseContract);
+      expect(gitPushCheck.allowed).toBe(false);
+      expect(gitPushCheck.violation).toContain("Outbound network access is denied");
+
+      const installCheck = contractEnforcer.validateBashCommand("pnpm install", baseContract);
+      expect(installCheck.allowed).toBe(false);
+      expect(installCheck.violation).toContain("Outbound network access is denied");
 
       // 4. Spend budget limit breach
       const budgetCheck = contractEnforcer.validateSpend(1.50, baseContract);

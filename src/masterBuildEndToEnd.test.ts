@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest";
+import http from "node:http";
 import { WorkspaceStore } from "./core/store/workspaceStore.js";
 import { UniversalMirrorRouter } from "./core/mirror/universalMirrorRouter.js";
 import { TelegramMirrorProvider } from "./providers/channels/telegramMirror.js";
@@ -14,6 +15,10 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
     store = new WorkspaceStore();
     telegram = new TelegramMirrorProvider();
     router = new UniversalMirrorRouter(store, telegram);
+    store.getUser("user-montelli")!.externalIdentities.push(
+      { provider: "telegram", externalUserId: "owner-1", linkedAt: new Date().toISOString() },
+      { provider: "telegram", externalUserId: "user-montelli", linkedAt: new Date().toISOString() },
+    );
 
     // Register a viewer user to test RBAC rejection
     (store as any).users.set("user-viewer", {
@@ -29,11 +34,34 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
   });
 
   describe("Section 10 & 11: Remote Control Surface & RBAC Authorization", () => {
+    it("does not treat an unlinked Telegram sender as the workspace owner", async () => {
+      const task = store.createTask({ id: "task-unlinked-owner", title: "Protected task", priority: "high", status: "in_progress" });
+      let responseText = "";
+      telegram.sendMessage = async message => {
+        responseText = message.text;
+        return { externalMessageId: "denied-unlinked" };
+      };
+
+      await telegram.ingestInboundUpdate({
+        updateId: 1901,
+        chatId: "-100123456",
+        userId: "not-linked-to-any-account",
+        text: `/cancel ${task.id}`,
+      });
+
+      expect(store.getTask(task.id)?.status).toBe("in_progress");
+      expect(responseText).toContain("not linked to an AgentForge user");
+      expect(store.listAuditEntries(1)[0]).toMatchObject({
+        action: "remote_action.rejected",
+        actorId: "not-linked-to-any-account",
+      });
+    });
+
     it("should allow read-only slash commands for all users (/status, /agents, /models, /compute)", async () => {
       let sentText = "";
       telegram.sendMessage = async (msg) => {
         sentText = msg.text;
-        return { messageId: "msg-1", canonicalChannelId: msg.canonicalChannelId, timestamp: new Date().toISOString() };
+        return { externalMessageId: "msg-1" };
       };
 
       // Test /status
@@ -64,8 +92,7 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
         userId: "99999",
         text: "/models",
       });
-      expect(sentText).toContain("Tier 0");
-      expect(sentText).toContain("Tier 4");
+      expect(sentText).toContain("does not yet run or validate a model request");
 
       // Test /compute
       await telegram.ingestInboundUpdate({
@@ -75,14 +102,39 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
         userId: "99999",
         text: "/compute",
       });
-      expect(sentText).toContain("Worktree Manager");
+      expect(sentText).toContain("Sandbox providers: not configured");
+    });
+
+    it("does not invent diffs, test evidence, or agent execution results", async () => {
+      const task = store.createTask({ id: "task-no-evidence", title: "Unverified task", priority: "medium", status: "ready" });
+      let sentText = "";
+      telegram.sendMessage = async message => {
+        sentText = message.text;
+        return { externalMessageId: "no-fabricated-result" };
+      };
+
+      await telegram.ingestInboundUpdate({ updateId: 1903, chatId: "-100123456", userId: "owner-1", text: `/diff ${task.id}` });
+      expect(sentText).toContain("No verified diff is attached");
+
+      await telegram.ingestInboundUpdate({ updateId: 1904, chatId: "-100123456", userId: "owner-1", text: `/evidence ${task.id}` });
+      expect(sentText).toContain("cannot report its diff or test status as verified");
+
+      store.createAgent({
+        id: "agent-ask-test", name: "Test agent", role: "tester", description: "Test-only agent", status: "idle",
+        harnessPolicy: { preferredHarnessId: "native", autoResume: false },
+        modelPolicy: { preferredTier: 0, preferredModel: "none", preferredProvider: "none", allowCloudFallback: false },
+        decisionPolicy: { useSystem1Router: false }, computePolicy: { environment: "none" }, memoryNamespace: "test",
+        tools: [], permissions: [], assignedChannelIds: [],
+      });
+      await telegram.ingestInboundUpdate({ updateId: 1905, chatId: "-100123456", userId: "owner-1", text: "/ask agent-ask-test inspect this" });
+      expect(sentText).toContain("Your inquiry was not submitted or executed");
     });
 
     it("should reject mutating commands when executed by a viewer (Section 10 RBAC gate)", async () => {
       let sentText = "";
       telegram.sendMessage = async (msg) => {
         sentText = msg.text;
-        return { messageId: "msg-2", canonicalChannelId: msg.canonicalChannelId, timestamp: new Date().toISOString() };
+        return { externalMessageId: "msg-2" };
       };
 
       // Viewer attempts to pause task
@@ -95,7 +147,7 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       });
 
       expect(sentText).toContain("Access Denied");
-      expect(sentText).toContain("not authorized to execute mutating command /pause");
+      expect(sentText).toContain("not authorized for tasks:control");
 
       // Verify audit logged the rejected security attempt
       const audit = store.listAuditEntries(1)[0];
@@ -103,7 +155,19 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       expect(audit.actorId).toBe("user-viewer");
     });
 
-    it("should execute task lifecycle operations for authorized users (/pause, /resume, /cancel, /retry)", async () => {
+    it("does not allow a viewer to approve through an interactive callback", async () => {
+      const approval = store.createApproval({ taskId: "task-viewer-approval", requesterAgentId: "agent-alex", action: "Publish", risk: "high" });
+      await telegram.ingestInboundUpdate({
+        updateId: 1902,
+        chatId: "-100123456",
+        userId: "99999",
+        callbackData: `approve:${approval.id}`,
+      });
+      expect(store.getApproval(approval.id)?.status).toBe("pending");
+      expect(store.listAuditEntries(1)[0].action).toBe("remote_action.rejected");
+    });
+
+    it("should not claim resume or retry succeeded when no agent worker is connected", async () => {
       const task = store.createTask({
         id: "task-test-cycle",
         projectId: "proj-1",
@@ -116,7 +180,7 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       let sentText = "";
       telegram.sendMessage = async (msg) => {
         sentText = msg.text;
-        return { messageId: "msg-3", canonicalChannelId: msg.canonicalChannelId, timestamp: new Date().toISOString() };
+        return { externalMessageId: "msg-3" };
       };
 
       // Pause task
@@ -138,8 +202,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
         userId: "owner-1",
         text: `/resume ${task.id}`,
       });
-      expect(store.getTask(task.id)?.status).toBe("in_progress");
-      expect(sentText).toContain("has been resumed");
+      expect(store.getTask(task.id)?.status).toBe("paused");
+      expect(sentText).toContain("no agent worker is connected");
+      expect(sentText).toContain("no work was queued or run");
 
       // Cancel task
       await telegram.ingestInboundUpdate({
@@ -160,8 +225,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
         userId: "owner-1",
         text: `/retry ${task.id}`,
       });
-      expect(store.getTask(task.id)?.status).toBe("in_progress");
-      expect(sentText).toContain("queued for retry");
+      expect(store.getTask(task.id)?.status).toBe("cancelled");
+      expect(sentText).toContain("no agent worker is connected");
+      expect(sentText).toContain("no retry was queued");
     });
   });
 
@@ -224,16 +290,16 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       router.recordBenchmarkResult({
         id: "bench-1",
         suiteId: "suite-coding",
-        target: { id: "t1", type: "MODEL", name: "llama3.1:8b" },
-        startedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
+        targetType: "MODEL",
+        targetId: "target-tier2-llama3-8b",
         totalCases: 20,
         passedCases: 16, // 80% pass rate
         failedCases: 4,
-        passRate: 0.80,
-        averageLatencyMs: 450,
-        totalCostUsd: 0.002,
         metrics: [],
+        artifacts: [],
+        passedOverall: false,
+        executedAt: new Date().toISOString(),
+        durationMs: 9000,
       });
 
       // Test 1: Low-risk task requiring standard output -> Should pick cheap Tier 2 (Llama 3.1: 8B at $0.0005)
@@ -248,7 +314,8 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       expect(lowRiskDecision.selectedTargetId).toBe("target-tier2-llama3-8b");
       expect(lowRiskDecision.estimatedCostUsd).toBeLessThan(0.001);
 
-      // Test 2: Critical-risk task requiring 95% threshold -> Llama (80%) fails threshold, must escalate to Tier 4 (GPT-4o)
+      // Test 2: Critical-risk task requires 95%; local evidence is 80%, while GPT
+      // has no benchmark. GPT is selected only as an explicitly unqualified fallback.
       const criticalRiskDecision = router.route({
         taskType: "code_generation",
         risk: "critical", // threshold 95%
@@ -259,7 +326,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
 
       expect(criticalRiskDecision.selectedTier).toBe(4);
       expect(criticalRiskDecision.selectedTargetId).toBe("target-tier4-gpt4o");
-      expect(criticalRiskDecision.measuredPassRate).toBeGreaterThanOrEqual(0.95);
+      expect(criticalRiskDecision.measuredPassRate).toBe(0);
+      expect(criticalRiskDecision.qualityStatus).toBe("UNKNOWN");
+      expect(criticalRiskDecision.rationale).toContain("unqualified fallback");
       expect(criticalRiskDecision.fallbackTargetIds.length).toBeGreaterThan(0);
     });
   });
@@ -278,6 +347,12 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
     });
 
     it("should serve /api/inbox, /api/models, /api/compute, and /api/route", async () => {
+      const statusRes = await fetch(`http://localhost:${testPort}/api/status`);
+      expect(statusRes.status).toBe(200);
+      const status = await statusRes.json();
+      expect(status.status).toBe("active");
+      expect(status.dataMode).toBe("SAMPLE_DATA_PRESENT");
+
       // 1. GET /api/inbox
       const inboxRes = await fetch(`http://localhost:${testPort}/api/inbox`);
       expect(inboxRes.status).toBe(200);
@@ -294,8 +369,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       const computeRes = await fetch(`http://localhost:${testPort}/api/compute`);
       expect(computeRes.status).toBe(200);
       const compute = await computeRes.json();
-      expect(compute.status).toBe("healthy");
-      expect(compute.memoryBudget.systemTotalRamGb).toBe(32);
+      expect(compute.status).toBe("PARTIAL_NOT_CONFIGURED");
+      expect(compute.memoryBudget.status).toBe("NOT_MEASURED");
+      expect(compute.sandboxes.docker).toBe("NOT_CONFIGURED");
 
       // 4. POST /api/route
       const routeRes = await fetch(`http://localhost:${testPort}/api/route`, {
@@ -312,6 +388,62 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       const decision = await routeRes.json();
       expect(decision.selectedTier).toBeDefined();
       expect(decision.decisionRule).toBeDefined();
+
+      const invalidRouteRes = await fetch(`http://localhost:${testPort}/api/route`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskType: "code_generation", risk: "critical" }),
+      });
+      expect(invalidRouteRes.status).toBe(400);
+    });
+
+    it("restricts browser cross-origin access to the local AgentForge origin", async () => {
+      const allowed = await fetch(`http://localhost:${testPort}/api/status`, {
+        headers: { Origin: `http://localhost:${testPort}` },
+      });
+      expect(allowed.headers.get("access-control-allow-origin")).toBe(`http://localhost:${testPort}`);
+
+      const blocked = await fetch(`http://localhost:${testPort}/api/status`, {
+        headers: { Origin: "https://untrusted.example" },
+      });
+      expect(blocked.status).toBe(403);
+      expect(blocked.headers.get("access-control-allow-origin")).toBeNull();
+
+      const messagesBefore = server.store.listMessages("chan-general").length;
+      const blockedMutation = await fetch(`http://localhost:${testPort}/api/messages`, {
+        method: "POST",
+        headers: {
+          Origin: "https://untrusted.example",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: "must not be written" }),
+      });
+      expect(blockedMutation.status).toBe(403);
+      expect(server.store.listMessages("chan-general")).toHaveLength(messagesBefore);
+
+      const blockedPreflight = await fetch(`http://localhost:${testPort}/api/agents`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://untrusted.example",
+          "Access-Control-Request-Method": "POST",
+        },
+      });
+      expect(blockedPreflight.status).toBe(403);
+
+      const blockedHostStatus = await new Promise<number>((resolve, reject) => {
+        const request = http.request({
+          hostname: "127.0.0.1",
+          port: testPort,
+          path: "/api/status",
+          headers: { Host: `attacker.example:${testPort}` },
+        }, response => {
+          response.resume();
+          resolve(response.statusCode ?? 0);
+        });
+        request.on("error", reject);
+        request.end();
+      });
+      expect(blockedHostStatus).toBe(403);
     });
 
     it("should handle task control actions via REST (/pause, /resume, /diff, /evidence)", async () => {
@@ -329,23 +461,28 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       expect(pauseRes.status).toBe(200);
       expect(server.store.getTask(task.id)?.status).toBe("paused");
 
-      // POST /resume
+      // POST /resume must not fake task execution while no worker is wired.
       const resumeRes = await fetch(`http://localhost:${testPort}/api/tasks/${task.id}/resume`, { method: "POST" });
-      expect(resumeRes.status).toBe(200);
-      expect(server.store.getTask(task.id)?.status).toBe("in_progress");
+      expect(resumeRes.status).toBe(409);
+      expect(server.store.getTask(task.id)?.status).toBe("paused");
+
+      const retryRes = await fetch(`http://localhost:${testPort}/api/tasks/${task.id}/retry`, { method: "POST" });
+      expect(retryRes.status).toBe(409);
+      expect(server.store.getTask(task.id)?.status).toBe("paused");
 
       // GET /diff
       const diffRes = await fetch(`http://localhost:${testPort}/api/tasks/${task.id}/diff`);
-      expect(diffRes.status).toBe(200);
+      expect(diffRes.status).toBe(409);
       const diffData = await diffRes.json();
-      expect(diffData.diffSnippet).toContain("diff --git");
+      expect(diffData.available).toBe(false);
+      expect(diffData.reason).toContain("No verified evidence pack");
 
       // GET /evidence
       const evRes = await fetch(`http://localhost:${testPort}/api/tasks/${task.id}/evidence`);
-      expect(evRes.status).toBe(200);
+      expect(evRes.status).toBe(409);
       const evData = await evRes.json();
-      expect(evData.contractPassed).toBe(true);
-      expect(evData.testsPassed).toBe(89);
+      expect(evData.available).toBe(false);
+      expect(evData.status).toBe("NOT_AVAILABLE");
     });
   });
 });

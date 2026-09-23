@@ -11,6 +11,7 @@ export type TaskStatus =
   | "in_progress"
   | "verification_running"
   | "waiting_approval"
+  | "paused"
   | "approved"
   | "completed"
   | "failed"
@@ -40,6 +41,7 @@ export interface Task {
   originThreadId?: string;
 
   contract: ExecutionContract;
+  processId?: string;
   worktree?: TaskWorktreeInfo;
   evidencePack?: EvidencePack;
 
