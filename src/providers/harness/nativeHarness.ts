@@ -21,13 +21,15 @@ import { ContractEnforcer } from "../../core/contract/contractEnforcer.js";
 export class AgentForgeNativeHarnessProvider implements HarnessProvider {
   readonly id = "agentforge_native";
   readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: true,
-    supportsTools: true,
-    supportsMCP: true,
-    supportsPauseResume: true,
-    supportsContextCompaction: true,
-    supportedRuntimes: ["node", "tsx", "sandbox"],
+    supportsStreaming: false,
+    supportsTools: false,
+    supportsMCP: false,
+    supportsPauseResume: false,
+    supportsContextCompaction: false,
+    supportedRuntimes: [],
   };
+
+  constructor(private readonly simulationEnabled = false) {}
 
   private contractEnforcer = new ContractEnforcer();
   private sessions = new Map<string, HarnessSession>();
@@ -58,7 +60,7 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
         sessionId,
         taskId: config.taskId,
         type: "session_started",
-        payload: { harness: "agentforge_native", contractEnforced: true },
+        payload: { harness: "agentforge_native", simulationOnly: true },
         timestamp: new Date().toISOString(),
       },
     ]);
@@ -84,6 +86,17 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`AgentForge native session ${sessionId} not found`);
+    }
+
+    if (!this.simulationEnabled) {
+      return {
+        taskId: task.taskId,
+        sessionId,
+        status: "failure",
+        output: "",
+        error: "AgentForge Native Harness is a contract-test fixture, not an execution engine. No task was executed.",
+        durationMs: 0,
+      };
     }
 
     const events = this.activeStreams.get(sessionId) || [];

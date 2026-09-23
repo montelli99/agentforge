@@ -1,9 +1,9 @@
 import type {
-  AgentForgeModelChoice,
   CostEstimate,
   ProviderCapabilities,
   TokenEstimate,
 } from "./optimization-types.js";
+import type { AgentForgeModelChoice } from "./types.js";
 
 const CHARS_PER_TOKEN = 4;
 

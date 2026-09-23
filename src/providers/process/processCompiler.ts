@@ -34,17 +34,22 @@ export class ProcessCompiler {
 
       // Check for privileged verbs that MUST have business rule backing
       const lower = step.instruction.toLowerCase();
-      if (
-        (lower.includes("delete") ||
-          lower.includes("move lead") ||
-          lower.includes("transfer") ||
-          lower.includes("approve") ||
-          lower.includes("underwrite") ||
-          lower.includes("deploy") ||
-          lower.includes("exfiltrate") ||
-          lower.includes("send bulk")) &&
-        !unresolvedRules.some(r => r.stepId === step.id)
-      ) {
+      const requiresAuthorization =
+        lower.includes("delete") ||
+        lower.includes("move lead") ||
+        lower.includes("transfer") ||
+        lower.includes("approve") ||
+        lower.includes("underwrite") ||
+        lower.includes("deploy") ||
+        lower.includes("exfiltrate") ||
+        lower.includes("send bulk");
+      const hasExplicitAuthorizationBlocker = unresolvedRules.some(rule =>
+        rule.stepId === step.id
+        && !rule.resolved
+        && rule.severity === "blocker"
+        && /explicit business authority|explicit authorization criteria/i.test(`${rule.question} ${rule.description}`),
+      );
+      if (requiresAuthorization && !hasExplicitAuthorizationBlocker) {
         unresolvedRules.push({
           id: `rule-auth-${step.id}`,
           processId: process.id,
@@ -71,7 +76,7 @@ export class ProcessCompiler {
 
     const hasBlockers = unresolvedRules.some(r => !r.resolved);
 
-    const suggestedContract: any = {
+    const suggestedContract: Pick<ExecutionContract, "scope" | "authority" | "completion"> = {
       scope: {
         allowedPaths: ["workspace/**"],
         protectedPaths: [".env", "credentials/**", "production/**"],
@@ -82,7 +87,7 @@ export class ProcessCompiler {
         deployment: false, // Never authorized by SOP alone
         forcePush: false,
         deleteFiles: false,
-        networkOutbound: true,
+        networkOutbound: false, // SOP text does not grant network authority
       },
       completion: {
         requireEvidencePack: true,

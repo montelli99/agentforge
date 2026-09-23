@@ -23,7 +23,16 @@ export class AgentForgeCli {
    * Initializes a new agentforge-pack directory structure
    */
   packInit(targetDir: string, packageName: string): { success: boolean; createdPath: string } {
-    const packPath = path.join(targetDir, packageName);
+    if (!/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(packageName)
+      || packageName.endsWith(".")
+      || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(packageName)) {
+      throw new Error("Package name must be a safe 1-64 character slug.");
+    }
+    const resolvedTargetDir = path.resolve(targetDir);
+    const packPath = path.resolve(resolvedTargetDir, packageName);
+    if (path.dirname(packPath) !== resolvedTargetDir) {
+      throw new Error("Package path must stay inside the selected target directory.");
+    }
     if (fs.existsSync(packPath)) {
       throw new Error(`Directory ${packPath} already exists`);
     }
@@ -57,7 +66,7 @@ export class AgentForgeCli {
         verified: false,
       },
       description: `AgentForge package: ${packageName}`,
-      license: "Apache-2.0",
+      license: "UNLICENSED",
       agentforgeVersion: ">=0.1.0",
       capabilities: [
         {
@@ -68,10 +77,11 @@ export class AgentForgeCli {
         },
       ],
       permissions: {
-        filesystem: { workspace: { read: true, write: true } },
-        git: { read: true, branch: true, commit: true, forcePush: false },
-        network: { outbound: true },
+        filesystem: { workspace: { read: false, write: false } },
+        git: { read: false, branch: false, commit: false, forcePush: false },
+        network: { outbound: false },
       },
+      files: ["manifest.json", "README.md"],
       testsPath: "tests",
       documentationPath: "README.md",
     };
@@ -84,7 +94,7 @@ export class AgentForgeCli {
 
     fs.writeFileSync(
       path.join(packPath, "README.md"),
-      `# ${packageName}\n\nAgentForge portable package bundle.\n`,
+      `# ${packageName}\n\nAgentForge package starter.\n\nSelect a license and review the manifest before publishing.\n`,
       "utf-8",
     );
 
@@ -101,11 +111,48 @@ export class AgentForgeCli {
     }
 
     try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as PackageManifest;
-      const res = this.packageProvider.validateManifest(manifest);
-      return { valid: res.valid, errors: res.errors, warnings: [] };
+      const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { valid: false, errors: ["Manifest must be a JSON object"], warnings: [] };
+      }
+      const manifestRecord = parsed as Record<string, unknown>;
+      if (manifestRecord.dependencies !== undefined && !Array.isArray(manifestRecord.dependencies)) {
+        return { valid: false, errors: ["Manifest dependencies must be an array"], warnings: [] };
+      }
+      if (manifestRecord.files !== undefined
+        && (!Array.isArray(manifestRecord.files) || manifestRecord.files.some(file => typeof file !== "string"))) {
+        return { valid: false, errors: ["Manifest files must be an array of paths"], warnings: [] };
+      }
+      const res = this.packageProvider.validatePackage(manifestRecord as unknown as PackageManifest);
+      return { valid: res.valid, errors: res.violations, warnings: res.warnings };
     } catch (err) {
       return { valid: false, errors: [`JSON parse error: ${err}`], warnings: [] };
+    }
+  }
+
+  /** Inspects a ZIP package against its manifest without extracting or executing it. */
+  packInspectArchive(packDir: string, archivePath: string): { valid: boolean; errors: string[]; entries: string[] } {
+    const manifestPath = path.join(packDir, "manifest.json");
+    if (!fs.existsSync(manifestPath)) return { valid: false, errors: ["Missing manifest.json"], entries: [] };
+    try {
+      const stat = fs.lstatSync(archivePath);
+      if (!stat.isFile() || stat.isSymbolicLink()) {
+        return { valid: false, errors: ["Archive path must be a regular, non-symlink file."], entries: [] };
+      }
+      if (stat.size > 25 * 1024 * 1024) {
+        return { valid: false, errors: ["Archive exceeds the 25 MiB inspection limit."], entries: [] };
+      }
+      const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { valid: false, errors: ["Manifest must be a JSON object"], entries: [] };
+      }
+      const result = this.packageProvider.inspectPackageArchive(
+        parsed as PackageManifest,
+        fs.readFileSync(archivePath),
+      );
+      return { valid: result.valid, errors: result.errors, entries: result.entries.map(entry => entry.path) };
+    } catch (error) {
+      return { valid: false, errors: [`Archive inspection failed: ${String(error)}`], entries: [] };
     }
   }
 
@@ -119,9 +166,9 @@ export class AgentForgeCli {
     }
 
     return {
-      passed: true,
-      testCount: 4,
-      output: `All 4 package integration checks passed for ${path.basename(packDir)}`,
+      passed: false,
+      testCount: 0,
+      output: `Package test execution is not implemented yet; no tests were run for ${path.basename(packDir)}.`,
     };
   }
 
@@ -137,7 +184,7 @@ export class AgentForgeCli {
         {
           id: "c1",
           name: "Manifest Read",
-          description: "Inspect manifest latency",
+          description: "Measure local manifest validation",
           input: { dir: packDir },
           expectedOutput: { ok: true },
           timeoutMs: 500,
@@ -148,12 +195,15 @@ export class AgentForgeCli {
     };
 
     const result = await this.benchmarkRunner.runSuite(suite, path.basename(packDir), async () => {
-      return { output: { ok: true }, latencyMs: 12 };
+      const start = performance.now();
+      const validation = this.packValidate(packDir);
+      const latencyMs = performance.now() - start;
+      return { output: { ok: validation.valid }, latencyMs };
     });
 
     return {
       passed: result.passedOverall,
-      score: 100,
+      score: result.metrics.find(metric => metric.name === "pass_rate")?.value ?? 0,
       latencyMs: result.durationMs,
     };
   }
@@ -161,10 +211,10 @@ export class AgentForgeCli {
   /**
    * Returns current AgentForge system status
    */
-  status(): { version: string; status: string; components: string[] } {
+  status(): { version: string; status: "staging_not_release_ready"; components: string[] } {
     return {
       version: "vNext-0.1.0",
-      status: "ready",
+      status: "staging_not_release_ready",
       components: [
         "Universal Mirror (Telegram/Discord/Web)",
         "Execution Control Plane",

@@ -11,7 +11,7 @@
  * Distinguishes MEASURED vs CONFIGURED vs ESTIMATED vs UNKNOWN benchmark quality.
  */
 
-import type { BenchmarkResult, BenchmarkTarget, QualityThreshold } from "../types/benchmark.js";
+import type { BenchmarkResult } from "../types/benchmark.js";
 
 export type CostType =
   | "API_COST"
@@ -168,24 +168,22 @@ export class EmpiricalRouter {
 
     // 3. Score against benchmark history
     const scored = capable.map(candidate => {
-      const results = this.benchmarkHistory.filter(b => b.target.name === candidate.name);
+      const results = this.benchmarkHistory.filter(b =>
+        (b.targetId === candidate.id || b.targetVersion === candidate.name) && b.totalCases > 0,
+      );
       let measuredPassRate: number;
       let qualityStatus: QualityMeasurementStatus;
 
       if (results.length > 0) {
-        measuredPassRate = results.reduce((acc, r) => acc + (r.passRate || 0), 0) / results.length;
+        const totalCases = results.reduce((total, result) => total + result.totalCases, 0);
+        const passedCases = results.reduce((total, result) => total + result.passedCases, 0);
+        measuredPassRate = totalCases > 0 ? passedCases / totalCases : 0;
         qualityStatus = "MEASURED";
       } else {
-        // Unmeasured candidate: conservative fallback
-        // Section 33: "If benchmark data is missing: do not pretend model is qualified. Route conservatively."
-        if (candidate.tier === 4) {
-          measuredPassRate = 0.99;
-          qualityStatus = "CONFIGURED"; // Frontier cloud configured baseline
-        } else {
-          // Conservative unmeasured score
-          measuredPassRate = requirements.risk === "high" || requirements.risk === "critical" ? 0.40 : 0.60;
-          qualityStatus = "ESTIMATED";
-        }
+        // Configuration and reputation are not benchmark evidence. Never allow an
+        // unmeasured candidate to pass a quality threshold on a fabricated score.
+        measuredPassRate = 0;
+        qualityStatus = "UNKNOWN";
       }
 
       return {
@@ -196,12 +194,16 @@ export class EmpiricalRouter {
     });
 
     // Filter by threshold
-    const passing = scored.filter(s => s.measuredPassRate >= minPassRate);
+    const passing = scored.filter(s => s.qualityStatus === "MEASURED" && s.measuredPassRate >= minPassRate);
 
     // Sort by cost ascending ("cheapest demonstrated-capable option")
     passing.sort((a, b) => a.candidate.costPer1kTokensUsd - b.candidate.costPer1kTokensUsd);
 
-    const winner = passing[0] || scored.find(s => s.candidate.tier === 4) || scored[0];
+    const winner = passing[0] || [...scored].sort((a, b) => b.candidate.tier - a.candidate.tier)[0];
+    if (!winner) {
+      throw new Error("No registered candidate supports the requested task capabilities.");
+    }
+    const qualified = passing.includes(winner);
     const estimatedCost = (requirements.contextTokens / 1000) * winner.candidate.costPer1kTokensUsd;
 
     const fallbacks = capable
@@ -217,8 +219,10 @@ export class EmpiricalRouter {
       costType: winner.candidate.costType,
       qualityStatus: winner.qualityStatus,
       measuredPassRate: Number(winner.measuredPassRate.toFixed(3)),
-      decisionRule: `min_pass_rate>=${minPassRate} & cost_minimized`,
-      rationale: `Selected [${winner.candidate.name}] (Tier ${winner.candidate.tier}) with cost type [${winner.candidate.costType}] at $${winner.candidate.costPer1kTokensUsd}/1k. Benchmark quality: ${(winner.measuredPassRate * 100).toFixed(1)}% [${winner.qualityStatus}] satisfies risk [${requirements.risk.toUpperCase()}] threshold ${(minPassRate * 100).toFixed(0)}%.`,
+      decisionRule: qualified ? `measured_pass_rate>=${minPassRate} & cost_minimized` : "no_measured_candidate_meets_threshold; highest_tier_fallback",
+      rationale: qualified
+        ? `Selected [${winner.candidate.name}] (Tier ${winner.candidate.tier}) with cost type [${winner.candidate.costType}] at $${winner.candidate.costPer1kTokensUsd}/1k. Measured benchmark quality: ${(winner.measuredPassRate * 100).toFixed(1)}% meets the ${(minPassRate * 100).toFixed(0)}% threshold.`
+        : `No candidate has measured evidence meeting the ${(minPassRate * 100).toFixed(0)}% threshold. Selected highest-tier available target [${winner.candidate.name}] as an unqualified fallback; human review or benchmark evidence is required.`,
       fallbackTargetIds: fallbacks,
     };
   }

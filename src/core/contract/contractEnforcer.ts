@@ -4,6 +4,8 @@
  * Enforces policy and limits BELOW the model and harness.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import type { ExecutionContract, AuthorityGates } from "../types/contract.js";
 
 export interface EnforcementViolation {
@@ -42,7 +44,7 @@ export class ContractEnforcer {
   /**
    * Validates planned or modified file paths against the execution contract
    */
-  validateFileModifications(contract: ExecutionContract, modifiedPaths: string[]): ContractValidationResult {
+  validateFileModifications(contract: ExecutionContract, modifiedPaths: string[], workspaceRoot?: string): ContractValidationResult {
     const violations: EnforcementViolation[] = [];
 
     // Check max files
@@ -54,33 +56,21 @@ export class ContractEnforcer {
     }
 
     for (const filePath of modifiedPaths) {
-      // 1. Check protected paths (Strict veto)
-      const isProtected = contract.scope.protectedPaths.some(pattern =>
-        this.matchPathPattern(pattern, filePath)
-      );
-
-      if (isProtected) {
+      const access = this.validatePathAccess(filePath, "write", contract, workspaceRoot);
+      if (!access.allowed && access.violation?.includes("protected")) {
         violations.push({
           rule: "scope_protected",
-          description: `Path '${filePath}' is explicitly protected by contract ${contract.id}`,
+          description: access.violation,
           path: filePath,
         });
         continue;
       }
-
-      // 2. Check allowed paths (If allowedPaths specified, must match at least one)
-      if (contract.scope.allowedPaths && contract.scope.allowedPaths.length > 0) {
-        const isAllowed = contract.scope.allowedPaths.some(pattern =>
-          this.matchPathPattern(pattern, filePath)
-        );
-
-        if (!isAllowed) {
-          violations.push({
-            rule: "scope_allowed",
-            description: `Path '${filePath}' is outside allowed scope: [${contract.scope.allowedPaths.join(", ")}]`,
-            path: filePath,
-          });
-        }
+      if (!access.allowed) {
+        violations.push({
+          rule: "scope_allowed",
+          description: access.violation ?? `Path '${filePath}' is outside contract scope`,
+          path: filePath,
+        });
       }
     }
 
@@ -119,18 +109,20 @@ export class ContractEnforcer {
     filePath: string,
     accessType: "read" | "write",
     contract: ExecutionContract,
+    workspaceRoot?: string,
   ): { allowed: boolean; violation?: string } {
     const normalized = filePath.replace(/\\/g, "/");
+    const segments = normalized.split("/");
 
     // 1. Check traversal or out-of-boundary escape
-    if (normalized.includes("..") || normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
+    if (normalized.includes("\0") || segments.some(segment => segment === "..") || normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
       return { allowed: false, violation: `Path outside allowed boundaries: path traversal detected (${filePath})` };
     }
 
     // 2. Check protected paths
     const isProtected = contract.scope.protectedPaths.some(pattern => this.matchPathPattern(pattern, normalized));
     if (isProtected) {
-      return { allowed: false, violation: `Access to protected path forbidden: ${filePath}` };
+      return { allowed: false, violation: `Access to protected path forbidden: explicitly protected (${filePath})` };
     }
 
     // 3. Check allowed paths
@@ -138,6 +130,37 @@ export class ContractEnforcer {
       const isAllowed = contract.scope.allowedPaths.some(pattern => this.matchPathPattern(pattern, normalized));
       if (!isAllowed) {
         return { allowed: false, violation: `Path outside allowed boundaries: ${filePath}` };
+      }
+    }
+
+    if (workspaceRoot) {
+      try {
+        const canonicalRoot = fs.realpathSync(workspaceRoot);
+        const resolvedTarget = path.resolve(canonicalRoot, normalized);
+        const relativeTarget = path.relative(canonicalRoot, resolvedTarget);
+        if (relativeTarget === ".." || relativeTarget.startsWith(`..${path.sep}`) || path.isAbsolute(relativeTarget)) {
+          return { allowed: false, violation: `Path outside allowed boundaries: resolved path escapes workspace (${filePath})` };
+        }
+
+        let existingAncestor = resolvedTarget;
+        while (!fs.existsSync(existingAncestor)) {
+          try {
+            fs.lstatSync(existingAncestor);
+            break;
+          } catch {
+            const parent = path.dirname(existingAncestor);
+            if (parent === existingAncestor) throw new Error("No existing parent path");
+            existingAncestor = parent;
+          }
+        }
+
+        const canonicalAncestor = fs.realpathSync(existingAncestor);
+        const relativeAncestor = path.relative(canonicalRoot, canonicalAncestor);
+        if (relativeAncestor === ".." || relativeAncestor.startsWith(`..${path.sep}`) || path.isAbsolute(relativeAncestor)) {
+          return { allowed: false, violation: `Path outside allowed boundaries: symlink escapes workspace (${filePath})` };
+        }
+      } catch {
+        return { allowed: false, violation: `Path outside allowed boundaries: could not verify workspace path (${filePath})` };
       }
     }
 
@@ -151,6 +174,7 @@ export class ContractEnforcer {
     command: string,
     contract: ExecutionContract,
   ): { allowed: boolean; violation?: string } {
+    const deny = (reason: string) => ({ allowed: false, violation: reason });
     const forbiddenPatterns = [
       /rm\s+(-[a-zA-Z]*r[a-zA-Z]*f|--recursive|--force)/i,
       /git\s+push.*(--force|-f\b)/i,
@@ -163,8 +187,30 @@ export class ContractEnforcer {
 
     for (const pat of forbiddenPatterns) {
       if (pat.test(command)) {
-        return { allowed: false, violation: `Forbidden pattern detected in command: ${command}` };
+        return deny("Forbidden pattern detected in shell command; command text omitted from policy output");
       }
+    }
+
+    // These checks are defense in depth. The execution adapter must still run
+    // commands inside an OS sandbox because shell syntax can obscure effects.
+    const deletesFiles = /\b(?:rm|rmdir|unlink|del|erase)\b|\bRemove-Item\b|\bgit\s+clean\b|\bgit\s+reset\s+--hard\b/i.test(command);
+    if (deletesFiles && !contract.authority.deleteFiles) {
+      return deny("File deletion is denied by ExecutionContract authority gates");
+    }
+
+    const forcePush = /\bgit\s+push\b[^;&|]*(?:--force(?:-with-lease)?|(?:^|\s)-[a-z]*f[a-z]*)/i.test(command);
+    if (forcePush && !contract.authority.forcePush) {
+      return deny("Force push is denied by ExecutionContract authority gates");
+    }
+
+    const outboundNetwork = /\b(?:curl|wget|Invoke-WebRequest|Invoke-RestMethod|fetch|nc|ncat|netcat|ssh|scp|sftp)\b|\bgit\s+(?:push|fetch|pull|clone)\b|\b(?:npm|pnpm|yarn|bun)\s+(?:install|add|publish)\b/i.test(command);
+    if (outboundNetwork && !contract.authority.networkOutbound) {
+      return deny("Outbound network access is denied by ExecutionContract authority gates");
+    }
+
+    const deploysOrPublishes = /\b(?:fly|vercel|wrangler)\s+deploy\b|\b(?:npm|pnpm|yarn|bun)\s+publish\b|\bdocker\s+push\b|\bkubectl\s+apply\b/i.test(command);
+    if (deploysOrPublishes && !contract.authority.deployment) {
+      return deny("Deployment and package publishing are denied by ExecutionContract authority gates");
     }
 
     return { allowed: true };

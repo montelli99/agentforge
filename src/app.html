@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-root:#09090b;--bg-surface:#111113;--bg-elevated:#18181b;--bg-hover:#1f1f23;
+  --bg-active:#27272a;--border:#27272a;--border-subtle:#1e1e22;
+  --text-primary:#fafafa;--text-secondary:#a1a1aa;--text-muted:#52525b;
+  --accent:#8b5cf6;--accent-dim:rgba(139,92,246,0.12);--accent-hover:#7c3aed;
+  --green:#22c55e;--green-dim:rgba(34,197,94,0.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);
+  --radius:8px;--radius-lg:12px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.3);
+  --sidebar-w:240px;--topbar-h:52px;
+}
+html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-root);color:var(--text-primary);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+input,textarea,select{font-family:inherit;font-size:inherit;color:var(--text-primary);background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+::selection{background:var(--accent);color:white}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+
+/* ── App Shell ─────────────────────────────────── */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--topbar-h) 1fr;height:100vh;overflow:hidden}
+
+/* ── Topbar ────────────────────────────────────── */
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border);z-index:10}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;white-space:nowrap}
+.topbar-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),#6d28d9);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white}
+.topbar-search{flex:1;max-width:480px;margin:0 auto;position:relative}
+.topbar-search input{width:100%;padding:7px 12px 7px 34px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text-secondary)}
+.topbar-search input::placeholder{color:var(--text-muted)}
+.topbar-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.topbar-btn{padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;color:var(--text-secondary);transition:all .15s}
+.topbar-btn:hover{background:var(--bg-hover);color:var(--text-primary)}
+.topbar-btn-primary{background:var(--accent);color:white}
+.topbar-btn-primary:hover{background:var(--accent-hover)}
+.topbar-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
+.topbar-status-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+/* ── Sidebar ───────────────────────────────────── */
+.sidebar{background:var(--bg-surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:2px}
+.sidebar-section{padding:0 8px;margin-bottom:4px}
+.sidebar-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);padding:8px 12px 4px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .12s;white-space:nowrap}
+.sidebar-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.sidebar-item.active{background:var(--accent-dim);color:var(--accent)}
+.sidebar-item .icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.sidebar-item .badge{margin-left:auto;font-size:11px;font-weight:600;background:var(--red);color:white;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 12px}
+.sidebar-spacer{flex:1}
+
+/* ── Main Content ──────────────────────────────── */
+.main{overflow-y:auto;background:var(--bg-root);padding:24px}
+.main-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.main-title{font-size:22px;font-weight:700}
+.main-subtitle{font-size:13px;color:var(--text-muted);margin-top:2px}
+
+/* ── Cards ─────────────────────────────────────── */
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;transition:border-color .15s}
+.card:hover{border-color:#333}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:600}
+.card-grid{display:grid;gap:16px}
+.card-grid-2{grid-template-columns:repeat(2,1fr)}
+.card-grid-3{grid-template-columns:repeat(3,1fr)}
+.card-grid-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1200px){.card-grid-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.card-grid-3,.card-grid-2{grid-template-columns:1fr}}
+
+/* ── Stat Cards ────────────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-0.02em}
+.stat-sub{font-size:12px;color:var(--text-muted)}
+
+/* ── Status Badges ─────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-blue{background:var(--blue-dim);color:var(--blue)}
+.badge-muted{background:var(--bg-elevated);color:var(--text-muted)}
+.badge-accent{background:var(--accent-dim);color:var(--accent)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot-green{background:var(--green)}
+.dot-amber{background:var(--amber)}
+.dot-red{background:var(--red)}
+.dot-muted{background:var(--text-muted)}
+
+/* ── Agent Cards ───────────────────────────────── */
+.agent-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:all .15s}
+.agent-card:hover{border-color:var(--accent);background:var(--bg-elevated)}
+.agent-avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;flex-shrink:0}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-weight:600;font-size:14px}
+.agent-role{font-size:12px;color:var(--text-muted);margin-top:1px}
+.agent-status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+
+/* ── Task Cards ────────────────────────────────── */
+.task-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.task-card:hover{border-color:#333}
+.task-priority{width:3px;height:32px;border-radius:2px;flex-shrink:0}
+.task-priority-high{background:var(--red)}
+.task-priority-medium{background:var(--amber)}
+.task-priority-low{background:var(--green)}
+.task-info{flex:1;min-width:0}
+.task-title{font-weight:500;font-size:13px}
+.task-meta{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;gap:12px}
+
+/* ── Approval Cards ────────────────────────────── */
+.approval-card{padding:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);border-left:3px solid var(--amber)}
+.approval-card .approval-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.approval-card .approval-title{font-weight:600;font-size:14px}
+.approval-card .approval-body{font-size:13px;color:var(--text-secondary);margin-bottom:12px}
+.approval-card .approval-actions{display:flex;gap:8px}
+.btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn-ghost{color:var(--text-secondary)}.btn-ghost:hover{background:var(--bg-hover);color:var(--text-primary)}
+.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:var(--accent-hover)}
+.btn-danger{background:var(--red-dim);color:var(--red)}.btn-danger:hover{background:var(--red);color:white}
+.btn-outline{border:1px solid var(--border);color:var(--text-secondary)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ── Progress ──────────────────────────────────── */
+.progress-bar{height:6px;background:var(--bg-elevated);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+
+/* ── Table ─────────────────────────────────────── */
+.table{width:100%;border-collapse:collapse}
+.table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);padding:10px 12px;border-bottom:1px solid var(--border)}
+.table td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.table tr:hover td{background:var(--bg-hover)}
+
+/* ── Messages Layout ───────────────────────────── */
+.messages-layout{display:grid;grid-template-columns:220px 1fr 260px;gap:0;height:calc(100vh - var(--topbar-h));overflow:hidden}
+.msg-channels{background:var(--bg-surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+.msg-channel-group{padding:0 8px}
+.msg-channel-group-title{font-size:11px;font-weight:600;color:var(--text-muted);padding:8px 12px 4px;display:flex;align-items:center;gap:6px}
+.msg-channel{display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);cursor:pointer}
+.msg-channel:hover{background:var(--bg-hover);color:var(--text-secondary)}
+.msg-channel.active{background:var(--accent-dim);color:var(--accent)}
+.msg-channel .ch-icon{font-size:14px;width:18px;text-align:center}
+.msg-conversation{display:flex;flex-direction:column;background:var(--bg-root)}
+.msg-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg-surface)}
+.msg-header-name{font-weight:600;font-size:14px}
+.msg-header-topic{font-size:12px;color:var(--text-muted)}
+.msg-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.msg-bubble{max-width:75%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg-bubble-human{background:var(--accent);color:white;align-self:flex-end;border-bottom-right-radius:4px}
+.msg-bubble-agent{background:var(--bg-elevated);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.msg-bubble .msg-sender{font-size:11px;font-weight:600;margin-bottom:4px;opacity:0.8}
+.msg-bubble .msg-time{font-size:10px;margin-top:4px;opacity:0.6}
+.msg-input{padding:12px 20px;border-top:1px solid var(--border);background:var(--bg-surface)}
+.msg-input input{width:100%;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);font-size:13px}
+.msg-context{background:var(--bg-surface);border-left:1px solid var(--border);overflow-y:auto;padding:16px}
+.msg-context-section{margin-bottom:20px}
+.msg-context-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px}
+.context-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--text-secondary)}
+
+/* ── Command Palette ───────────────────────────── */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding-top:20vh;backdrop-filter:blur(4px)}
+.cmd-palette{width:520px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden}
+.cmd-input{width:100%;padding:14px 16px;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:15px;color:var(--text-primary)}
+.cmd-input::placeholder{color:var(--text-muted)}
+.cmd-results{max-height:320px;overflow-y:auto;padding:6px}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);cursor:pointer}
+.cmd-item:hover,.cmd-item.selected{background:var(--accent-dim);color:var(--accent)}
+.cmd-item .cmd-icon{font-size:14px;width:20px;text-align:center}
+.cmd-item .cmd-label{flex:1}
+.cmd-item .cmd-hint{font-size:11px;color:var(--text-muted)}
+
+/* ── Empty State ───────────────────────────────── */
+.empty{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:0.5}
+.empty-title{font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:4px}
+.empty-desc{font-size:13px}
+
+/* ── Provider Card ─────────────────────────────── */
+.provider-card{padding:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.provider-card .provider-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.provider-card .provider-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.provider-card .provider-name{font-weight:600;font-size:15px}
+.provider-card .provider-status{font-size:11px;margin-top:2px}
+.provider-card .provider-models{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.provider-card .model-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-elevated);border-radius:var(--radius-sm)}
+.provider-card .model-name{font-size:13px;font-weight:500}
+.provider-card .model-caps{display:flex;gap:4px;flex-wrap:wrap}
+.cap-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg-hover);color:var(--text-muted)}
+
+/* ── Migration Card ────────────────────────────── */
+.migration-card{padding:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:all .15s}
+.migration-card:hover{border-color:var(--accent)}
+.migration-card .mig-icon{font-size:28px;margin-bottom:12px}
+.migration-card .mig-name{font-weight:600;font-size:15px;margin-bottom:4px}
+.migration-card .mig-desc{font-size:12px;color:var(--text-muted);line-height:1.5}
+.migration-card .mig-status{margin-top:12px}
+
+/* ── Marketplace Card ──────────────────────────── */
+.market-card{padding:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:all .15s}
+.market-card:hover{border-color:var(--accent)}
+.market-card .mkt-icon{font-size:28px;margin-bottom:10px}
+.market-card .mkt-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.market-card .mkt-publisher{font-size:11px;color:var(--text-muted);margin-bottom:8px}
+.market-card .mkt-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px}
+.market-card .mkt-footer{display:flex;align-items:center;justify-content:space-between}
+.market-card .mkt-price{font-size:12px;font-weight:600;color:var(--accent)}
+
+/* ── Flow Diagram ──────────────────────────────── */
+.flow{display:flex;flex-direction:column;align-items:center;gap:0}
+.flow-node{padding:10px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-weight:500;text-align:center;min-width:180px}
+.flow-node.active{border-color:var(--accent);background:var(--accent-dim)}
+.flow-arrow{width:2px;height:20px;background:var(--border);position:relative}
+.flow-arrow::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--border)}
+
+/* ── Misc ──────────────────────────────────────── */
+.section-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title .count{font-size:11px;font-weight:500;color:var(--text-muted);background:var(--bg-elevated);padding:1px 8px;border-radius:10px}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s}
+.tab:hover{color:var(--text-secondary)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.hidden{display:none!important}
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:slideIn .2s}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">A</div>
+      <span>AgentForge</span>
+    </div>
+    <div class="topbar-search">
+      <span class="topbar-search-icon">&#128269;</span>
+      <input type="text" id="searchInput" placeholder="Search or press Ctrl+K for commands..." onfocus="showCmdPalette()" readonly>
+    </div>
+    <div class="topbar-actions">
+      <div class="topbar-status"><span class="topbar-status-dot"></span> <span id="statusText">Connected</span></div>
+      <button class="topbar-btn" onclick="showCmdPalette()" title="Command Palette (Ctrl+K)">&#9000;</button>
+      <button class="topbar-btn-primary topbar-btn" onclick="navigate('/settings')">Settings</button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-item active" data-page="home" onclick="navigate('/home')">
+        <span class="icon">&#127968;</span> Home
+      </div>
+      <div class="sidebar-item" data-page="inbox" onclick="navigate('/inbox')">
+        <span class="icon">&#128232;</span> Inbox <span class="badge" id="inboxBadge" style="display:none">0</span>
+      </div>
+      <div class="sidebar-item" data-page="messages" onclick="navigate('/messages')">
+        <span class="icon">&#128172;</span> Messages
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Work</div>
+      <div class="sidebar-item" data-page="projects" onclick="navigate('/projects')">
+        <span class="icon">&#128194;</span> Projects
+      </div>
+      <div class="sidebar-item" data-page="tasks" onclick="navigate('/tasks')">
+        <span class="icon">&#9745;</span> Tasks <span class="badge" id="tasksBadge" style="display:none">0</span>
+      </div>
+      <div class="sidebar-item" data-page="agents" onclick="navigate('/agents')">
+        <span class="icon">&#129302;</span> Agents
+      </div>
+      <div class="sidebar-item" data-page="processes" onclick="navigate('/processes')">
+        <span class="icon">&#9881;</span> Processes
+      </div>
+      <div class="sidebar-item" data-page="approvals" onclick="navigate('/approvals')">
+        <span class="icon">&#9989;</span> Approvals <span class="badge" id="approvalsBadge" style="display:none">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Platform</div>
+      <div class="sidebar-item" data-page="models" onclick="navigate('/models')">
+        <span class="icon">&#129504;</span> Models
+      </div>
+      <div class="sidebar-item" data-page="marketplace" onclick="navigate('/marketplace')">
+        <span class="icon">&#128722;</span> Marketplace
+      </div>
+      <div class="sidebar-item" data-page="migration" onclick="navigate('/migration')">
+        <span class="icon">&#128260;</span> Migration
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">System</div>
+      <div class="sidebar-item" data-page="memory" onclick="navigate('/memory')">
+        <span class="icon">&#129504;</span> Memory
+      </div>
+      <div class="sidebar-item" data-page="voice" onclick="navigate('/voice')">
+        <span class="icon">&#127908;</span> Voice
+      </div>
+      <div class="sidebar-item" data-page="benchmarks" onclick="navigate('/benchmarks')">
+        <span class="icon">&#128200;</span> Benchmarks
+      </div>
+      <div class="sidebar-item" data-page="activity" onclick="navigate('/activity')">
+        <span class="icon">&#128337;</span> Activity
+      </div>
+      <div class="sidebar-item" data-page="graph" onclick="navigate('/graph')">
+        <span class="icon">&#128376;</span> Graph &amp; Topology
+      </div>
+      <div class="sidebar-item" data-page="optimization" onclick="navigate('/optimization')">
+        <span class="icon">&#9889;</span> Optimization
+      </div>
+      <div class="sidebar-item" data-page="settings" onclick="navigate('/settings')">
+        <span class="icon">&#9881;</span> Settings
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main" id="main"></div>
+</div>
+
+<!-- Command Palette -->
+<div class="cmd-overlay hidden" id="cmdPalette" onclick="hideCmdPalette(event)">
+  <div class="cmd-palette" onclick="event.stopPropagation()">
+    <input type="text" class="cmd-input" id="cmdInput" placeholder="Type a command or search..." oninput="filterCommands(this.value)">
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── State ──────────────────────────────────────────
+let currentPage = 'home';
+let statusData = {}, agents = [], tasks = [], approvals = [], channels = [], processes = [], messages = [];
+let inbox = [], packages = [], models = [], migrationSources = [];
+
+// ── Router ─────────────────────────────────────────
+function navigate(page) {
+  currentPage = page.replace(/^\//,'');
+  window.location.hash = currentPage;
+  render();
+}
+
+window.addEventListener('hashchange', () => {
+  currentPage = window.location.hash.slice(1) || 'home';
+  render();
+});
+
+// ── Data Loading ───────────────────────────────────
+async function loadAll() {
+  try {
+    const [s, a, t, ap, ch, p, m, ib, pk, mdl, ms] = await Promise.allSettled([
+      fetch('/api/status').then(r=>r.json()),
+      fetch('/api/agents').then(r=>r.json()),
+      fetch('/api/tasks').then(r=>r.json()),
+      fetch('/api/approvals').then(r=>r.json()),
+      fetch('/api/workspace').then(r=>r.json()),
+      fetch('/api/processes').then(r=>r.json()),
+      fetch('/api/messages').then(r=>r.json()),
+      fetch('/api/inbox').then(r=>r.json()),
+      fetch('/api/packages').then(r=>r.json()),
+      fetch('/api/models').then(r=>r.json()),
+      fetch('/api/migration/sources').then(r=>r.json()),
+    ]);
+    statusData = s.status==='fulfilled'?s.value:{};
+    agents = a.status==='fulfilled'?a.value:[];
+    tasks = t.status==='fulfilled'?t.value:[];
+    approvals = ap.status==='fulfilled'?ap.value:[];
+    channels = ch.status==='fulfilled'?ch.value:{};
+    processes = p.status==='fulfilled'?p.value:[];
+    messages = m.status==='fulfilled'?m.value:[];
+    inbox = ib.status==='fulfilled'?ib.value:[];
+    packages = pk.status==='fulfilled'?pk.value:[];
+    models = mdl.status==='fulfilled'?mdl.value:[];
+    migrationSources = ms.status==='fulfilled'?ms.value:[];
+    updateBadges();
+  } catch(e) { console.error('Load failed:', e); }
+}
+
+function updateBadges() {
+  const pendingApprovals = approvals.filter(a => a.status==='pending').length;
+  const pendingTasks = tasks.filter(t => t.status==='waiting'||t.status==='failed').length;
+  setBadge('approvalsBadge', pendingApprovals);
+  setBadge('tasksBadge', pendingTasks);
+  setBadge('inboxBadge', inbox.length);
+}
+function setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = n > 0 ? '' : 'none';
+  el.textContent = n;
+}
+
+// ── Render ─────────────────────────────────────────
+function render() {
+  const main = document.getElementById('main');
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === currentPage);
+  });
+  const renderer = pages[currentPage] || pages.home;
+  main.innerHTML = renderer();
+  if (currentPage === 'graph' && typeof initGraphCanvas === 'function') {
+    setTimeout(initGraphCanvas, 50);
+  }
+}
+
+// ── Pages ──────────────────────────────────────────
+const pages = {};
+
+pages.home = () => {
+  const activeAgents = agents.filter(a => a.status==='working'||a.status==='executing');
+  const waitingTasks = tasks.filter(t => t.status==='waiting'||t.status==='queued');
+  const failedTasks = tasks.filter(t => t.status==='failed');
+  const pendingApprovals = approvals.filter(a => a.status==='pending');
+  const runningTasks = tasks.filter(t => t.status==='running'||t.status==='executing');
+  const completedTasks = tasks.filter(t => t.status==='completed');
+  const projects = channels.spaces || [];
+
+  return `
+    <div class="main-header">
+      <div>
+        <div class="main-title">Welcome back</div>
+        <div class="main-subtitle">${agents.length} agents &middot; ${activeAgents.length} working &middot; ${tasks.length} tasks</div>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="card-grid card-grid-4" style="margin-bottom:24px">
+      <div class="card stat">
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value">${activeAgents.length}</div>
+        <div class="stat-sub">of ${agents.length} total</div>
+      </div>
+      <div class="card stat">
+        <div class="stat-label">Running Tasks</div>
+        <div class="stat-value">${runningTasks.length}</div>
+        <div class="stat-sub">${waitingTasks.length} waiting</div>
+      </div>
+      <div class="card stat">
+        <div class="stat-label">Needs Approval</div>
+        <div class="stat-value" style="color:${pendingApprovals.length?'var(--amber)':'var(--green)'}">${pendingApprovals.length}</div>
+        <div class="stat-sub">${pendingApprovals.length?'action required':'all clear'}</div>
+      </div>
+      <div class="card stat">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" style="color:var(--green)">${completedTasks.length}</div>
+        <div class="stat-sub">${failedTasks.length} failed</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Needs Attention -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Needs Attention</div></div>
+        ${pendingApprovals.length || failedTasks.length ? '' : '<div class="empty"><div class="empty-icon">&#10003;</div><div class="empty-title">All clear</div><div class="empty-desc">Nothing needs your attention right now</div></div>'}
+        ${pendingApprovals.slice(0,3).map(a => `
+          <div class="approval-card" style="margin-bottom:10px">
+            <div class="approval-header">
+              <div class="approval-title">${esc(a.title||'Approval Request')}</div>
+              <span class="badge badge-amber">Pending</span>
+            </div>
+            <div class="approval-body">${esc(a.description||a.agent||'Requires review')}</div>
+            <div class="approval-actions">
+              <button class="btn btn-primary btn-sm" onclick="resolveApproval('${a.id}','approve')">Approve</button>
+              <button class="btn btn-ghost btn-sm" onclick="resolveApproval('${a.id}','reject')">Reject</button>
+            </div>
+          </div>
+        `).join('')}
+        ${failedTasks.slice(0,2).map(t => `
+          <div class="task-card" style="margin-bottom:10px">
+            <div class="task-priority task-priority-high"></div>
+            <div class="task-info">
+              <div class="task-title">${esc(t.title||t.id)}</div>
+              <div class="task-meta"><span class="badge badge-red">Failed</span> <span>${esc(t.agent||'')}</span></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Active Agents -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Agents</div></div>
+        ${agents.length ? agents.map(a => `
+          <div class="agent-card" style="margin-bottom:8px" onclick="navigate('/agents')">
+            <div class="agent-avatar" style="background:${agentColor(a.name)}">${initials(a.name)}</div>
+            <div class="agent-info">
+              <div class="agent-name">${esc(a.name)}</div>
+              <div class="agent-role">${esc(a.role||'Agent')}</div>
+            </div>
+            <div class="agent-status"><span class="dot dot-${statusColor(a.status)}"></span> ${esc(a.status||'idle')}</div>
+          </div>
+        `).join('') : '<div class="empty"><div class="empty-icon">&#129302;</div><div class="empty-title">No agents yet</div><div class="empty-desc">Create your first AI teammate</div></div>'}
+      </div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><div class="card-title">Recent Tasks</div><button class="btn btn-ghost btn-sm" onclick="navigate('/tasks')">View all &rarr;</button></div>
+      ${tasks.length ? tasks.slice(0,5).map(t => `
+        <div class="task-card" style="margin-bottom:8px">
+          <div class="task-priority task-priority-${t.risk||'medium'}"></div>
+          <div class="task-info">
+            <div class="task-title">${esc(t.title||t.id)}</div>
+            <div class="task-meta">
+              <span class="badge badge-${statusBadge(t.status)}">${esc(t.status||'queued')}</span>
+              <span>${esc(t.agent||'unassigned')}</span>
+              ${t.elapsed?`<span>${t.elapsed}</span>`:''}
+            </div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty"><div class="empty-icon">&#9745;</div><div class="empty-title">No tasks yet</div><div class="empty-desc">Tasks will appear here when agents start working</div></div>'}
+    </div>
+  `;
+};
+
+pages.inbox = () => `
+  <div class="main-header">
+    <div><div class="main-title">Inbox</div><div class="main-subtitle">${inbox.length} items need your attention</div></div>
+  </div>
+  ${inbox.length ? inbox.map(item => `
+    <div class="card" style="margin-bottom:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="badge badge-${item.type==='approval'?'amber':item.type==='error'?'red':'blue'}">${esc(item.type||'item')}</span>
+        <div style="flex:1">
+          <div style="font-weight:500;font-size:13px">${esc(item.title||item.message||'Item')}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(item.source||'')} ${item.timestamp?'&middot; '+esc(item.timestamp):''}</div>
+        </div>
+        ${item.type==='approval'?`<button class="btn btn-primary btn-sm">Review</button>`:''}
+      </div>
+    </div>
+  `).join('') : '<div class="card"><div class="empty"><div class="empty-icon">&#128232;</div><div class="empty-title">Inbox empty</div><div class="empty-desc">No pending items</div></div></div>'}
+`;
+
+pages.messages = () => {
+  const ch = channels.channels || [];
+  const spaces = channels.spaces || [];
+  const firstCh = ch[0];
+  return `
+    <div class="messages-layout" style="margin:-24px;height:calc(100vh - var(--topbar-h))">
+      <div class="msg-channels">
+        <div class="msg-channel-group">
+          <div class="msg-channel-group-title">${esc(channels.workspace?.name||'AgentForge')}</div>
+          ${spaces.map(s => {
+            const spaceCh = ch.filter(c => c.spaceId === s.id);
+            return `
+              <div class="msg-channel-group-title" style="margin-top:8px">${esc(s.name)}</div>
+              ${spaceCh.map(c => `
+                <div class="msg-channel ${firstCh&&c.id===firstCh.id?'active':''}" onclick="selectChannel('${c.id}')">
+                  <span class="ch-icon">#</span> ${esc(c.name)}
+                </div>
+              `).join('')}
+            `;
+          }).join('')}
+          ${!spaces.length ? ch.map(c => `
+            <div class="msg-channel ${firstCh&&c.id===firstCh.id?'active':''}">
+              <span class="ch-icon">#</span> ${esc(c.name)}
+            </div>
+          `).join('') : ''}
+        </div>
+      </div>
+      <div class="msg-conversation">
+        <div class="msg-header">
+          <span style="font-size:16px">#</span>
+          <div>
+            <div class="msg-header-name">${esc(firstCh?.name||'general')}</div>
+            <div class="msg-header-topic">${esc(firstCh?.topic||'Workspace channel')}</div>
+          </div>
+        </div>
+        <div class="msg-body" id="msgBody">
+          ${messages.length ? messages.slice(-20).map(m => `
+            <div class="msg-bubble msg-bubble-${m.role==='user'?'human':'agent'}">
+              <div class="msg-sender">${esc(m.sender||m.role||'agent')}</div>
+              <div>${esc(m.content||'')}</div>
+              <div class="msg-time">${m.timestamp?new Date(m.timestamp).toLocaleTimeString():''}</div>
+            </div>
+          `).join('') : `
+            <div class="empty" style="margin:auto">
+              <div class="empty-icon">&#128172;</div>
+              <div class="empty-title">No messages yet</div>
+              <div class="empty-desc">Send a message to start the conversation</div>
+            </div>
+          `}
+        </div>
+        <div class="msg-input">
+          <input type="text" placeholder="Message #${esc(firstCh?.name||'general')}" onkeydown="if(event.key==='Enter')sendMsg(this)">
+        </div>
+      </div>
+      <div class="msg-context">
+        <div class="msg-context-section">
+          <div class="msg-context-title">Channel Info</div>
+          <div class="context-item">&#128101; ${firstCh?.members||0} members</div>
+          <div class="context-item">&#128194; ${esc(firstCh?.spaceId||'default')}</div>
+        </div>
+        <div class="msg-context-section">
+          <div class="msg-context-title">Bound Agents</div>
+          ${agents.slice(0,3).map(a => `
+            <div class="context-item"><span class="dot dot-${statusColor(a.status)}"></span> ${esc(a.name)}</div>
+          `).join('') || '<div class="context-item" style="color:var(--text-muted)">No agents bound</div>'}
+        </div>
+        <div class="msg-context-section">
+          <div class="msg-context-title">Active Tasks</div>
+          ${tasks.filter(t=>t.status==='running').slice(0,3).map(t => `
+            <div class="context-item">&#9745; ${esc(t.title||t.id)}</div>
+          `).join('') || '<div class="context-item" style="color:var(--text-muted)">No active tasks</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+pages.agents = () => `
+  <div class="main-header">
+    <div><div class="main-title">Agents</div><div class="main-subtitle">${agents.length} teammates</div></div>
+    <button class="btn btn-primary">+ New Agent</button>
+  </div>
+  <div class="card-grid card-grid-3">
+    ${agents.length ? agents.map(a => `
+      <div class="agent-card">
+        <div class="agent-avatar" style="background:${agentColor(a.name)}">${initials(a.name)}</div>
+        <div class="agent-info">
+          <div class="agent-name">${esc(a.name)}</div>
+          <div class="agent-role">${esc(a.role||'Agent')}</div>
+        </div>
+        <div class="agent-status"><span class="dot dot-${statusColor(a.status)}"></span> ${esc(a.status||'idle')}</div>
+      </div>
+    `).join('') : `
+      <div class="card" style="grid-column:1/-1">
+        <div class="empty">
+          <div class="empty-icon">&#129302;</div>
+          <div class="empty-title">No agents yet</div>
+          <div class="empty-desc">Create your first AI teammate to get started</div>
+          <button class="btn btn-primary" style="margin-top:16px">+ Create Agent</button>
+        </div>
+      </div>
+    `}
+  </div>
+`;
+
+pages.tasks = () => {
+  const byStatus = { queued:[], running:[], waiting:[], completed:[], failed:[] };
+  tasks.forEach(t => { (byStatus[t.status]||byStatus.queued).push(t); });
+  return `
+    <div class="main-header">
+      <div><div class="main-title">Tasks</div><div class="main-subtitle">${tasks.length} total</div></div>
+      <button class="btn btn-primary">+ New Task</button>
+    </div>
+    <div class="tab-bar">
+      <div class="tab active">All</div>
+      <div class="tab">Running</div>
+      <div class="tab">Waiting</div>
+      <div class="tab">Completed</div>
+      <div class="tab">Failed</div>
+    </div>
+    ${tasks.length ? `
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="table">
+          <thead><tr><th>Task</th><th>Agent</th><th>Status</th><th>Risk</th><th>Elapsed</th></tr></thead>
+          <tbody>
+            ${tasks.map(t => `
+              <tr>
+                <td><strong>${esc(t.title||t.id)}</strong></td>
+                <td>${esc(t.agent||'unassigned')}</td>
+                <td><span class="badge badge-${statusBadge(t.status)}">${esc(t.status)}</span></td>
+                <td><span class="badge badge-${t.risk==='high'?'red':t.risk==='low'?'green':'amber'}">${esc(t.risk||'medium')}</span></td>
+                <td style="color:var(--text-muted)">${esc(t.elapsed||'-')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : '<div class="card"><div class="empty"><div class="empty-icon">&#9745;</div><div class="empty-title">No tasks</div><div class="empty-desc">Tasks appear when agents are assigned work</div></div></div>'}
+  `;
+};
+
+pages.processes = () => `
+  <div class="main-header">
+    <div><div class="main-title">Processes</div><div class="main-subtitle">${processes.length} SOPs and workflows</div></div>
+    <button class="btn btn-primary">+ Import Process</button>
+  </div>
+  <div class="card-grid card-grid-2">
+    ${processes.length ? processes.map(p => `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">${esc(p.name||p.id)}</div>
+          <span class="badge badge-muted">${esc(p.source||'manual')}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${esc(p.description||'No description')}</div>
+        <div style="font-size:11px;color:var(--text-muted)">
+          ${p.steps?p.steps.length+' steps':'No steps'} &middot; ${p.agents?p.agents.length+' agents':'No agents'}
+        </div>
+      </div>
+    `).join('') : '<div class="card" style="grid-column:1/-1"><div class="empty"><div class="empty-icon">&#9881;</div><div class="empty-title">No processes</div><div class="empty-desc">Import an SOP or create a workflow</div></div></div>'}
+  </div>
+`;
+
+pages.approvals = () => `
+  <div class="main-header">
+    <div><div class="main-title">Approvals</div><div class="main-subtitle">${approvals.length} total &middot; ${approvals.filter(a=>a.status==='pending').length} pending</div></div>
+  </div>
+  ${approvals.length ? approvals.map(a => `
+    <div class="approval-card" style="margin-bottom:12px">
+      <div class="approval-header">
+        <div class="approval-title">${esc(a.title||'Approval')}</div>
+        <span class="badge badge-${a.status==='approved'?'green':a.status==='rejected'?'red':'amber'}">${esc(a.status)}</span>
+      </div>
+      <div class="approval-body">${esc(a.description||'Requires review')}</div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--text-muted);margin-bottom:12px">
+        <span>Agent: ${esc(a.agent||'unknown')}</span>
+        <span>Risk: ${esc(a.risk||'medium')}</span>
+        ${a.timestamp?`<span>${new Date(a.timestamp).toLocaleString()}</span>`:''}
+      </div>
+      ${a.status==='pending'?`<div class="approval-actions">
+        <button class="btn btn-primary btn-sm" onclick="resolveApproval('${a.id}','approve')">Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="resolveApproval('${a.id}','reject')">Reject</button>
+      </div>`:''}
+    </div>
+  `).join('') : '<div class="card"><div class="empty"><div class="empty-icon">&#9989;</div><div class="empty-title">No approvals</div><div class="empty-desc">Approval requests will appear here</div></div></div>'}
+`;
+
+pages.models = () => `
+  <div class="main-header">
+    <div><div class="main-title">Models & Providers</div><div class="main-subtitle">Manage your AI providers</div></div>
+  </div>
+  <div class="card-grid card-grid-2">
+    <div class="provider-card">
+      <div class="provider-header">
+        <div class="provider-icon" style="background:var(--accent-dim)">&#129504;</div>
+        <div>
+          <div class="provider-name">Xiaomi MiMo</div>
+          <div class="provider-status"><span class="badge badge-green">Connected</span></div>
+        </div>
+      </div>
+      <div class="provider-models">
+        <div class="model-row">
+          <div>
+            <div class="model-name">mimo-v2.5-pro</div>
+            <div class="model-caps"><span class="cap-tag">coding</span><span class="cap-tag">reasoning</span><span class="cap-tag">tools</span></div>
+          </div>
+          <span class="badge badge-accent">Default</span>
+        </div>
+        <div class="model-row">
+          <div>
+            <div class="model-name">mimo-v2.5</div>
+            <div class="model-caps"><span class="cap-tag">text</span><span class="cap-tag">vision</span><span class="cap-tag">tools</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="provider-card">
+      <div class="provider-header">
+        <div class="provider-icon" style="background:var(--green-dim)">&#127760;</div>
+        <div>
+          <div class="provider-name">Ollama (Local)</div>
+          <div class="provider-status"><span class="badge badge-muted">Optional</span></div>
+        </div>
+      </div>
+      <div class="provider-models">
+        <div class="model-row">
+          <div>
+            <div class="model-name">Local models</div>
+            <div class="model-caps"><span class="cap-tag">text</span><span class="cap-tag">$0 cost</span></div>
+          </div>
+          <span class="badge badge-muted">Auto-detect</span>
+        </div>
+      </div>
+    </div>
+    <div class="provider-card">
+      <div class="provider-header">
+        <div class="provider-icon" style="background:var(--blue-dim)">&#128640;</div>
+        <div>
+          <div class="provider-name">OpenAI</div>
+          <div class="provider-status"><span class="badge badge-muted">Not configured</span></div>
+        </div>
+      </div>
+      <div class="provider-models">
+        <div class="model-row">
+          <div><div class="model-name">GPT-4o / GPT-5 series</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+pages.marketplace = () => `
+  <div class="main-header">
+    <div><div class="main-title">Marketplace</div><div class="main-subtitle">Discover and install agents, skills, and workflows</div></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active">Featured</div>
+    <div class="tab">Agents</div>
+    <div class="tab">Skills</div>
+    <div class="tab">Processes</div>
+    <div class="tab">Templates</div>
+  </div>
+  <div class="card-grid card-grid-3">
+    ${packages.length ? packages.map(p => `
+      <div class="market-card">
+        <div class="mkt-icon">${p.type==='agent'?'&#129302;':p.type==='process'?'&#9881;':'&#128230;'}</div>
+        <div class="mkt-name">${esc(p.name||p.id)}</div>
+        <div class="mkt-publisher">${esc(p.publisher||'Community')}</div>
+        <div class="mkt-desc">${esc(p.description||'No description')}</div>
+        <div class="mkt-footer">
+          <span class="mkt-price">${p.price?p.price==='free'?'Free':'$'+p.price:'Free'}</span>
+          <button class="btn btn-outline btn-sm">Install</button>
+        </div>
+      </div>
+    `).join('') : `
+      <div class="card" style="grid-column:1/-1">
+        <div class="empty">
+          <div class="empty-icon">&#128722;</div>
+          <div class="empty-title">Marketplace Coming Soon</div>
+          <div class="empty-desc">Publish and discover agents, skills, and workflows. Currently in development.</div>
+        </div>
+      </div>
+    `}
+  </div>
+`;
+
+pages.migration = () => `
+  <div class="main-header">
+    <div>
+      <div class="main-title">Migration Center</div>
+      <div class="main-subtitle">Bring your agents with you</div>
+    </div>
+  </div>
+  <div class="card-grid card-grid-2">
+    <div class="migration-card" onclick="startMigration('openclaw-legacy')">
+      <div class="mig-icon">&#128260;</div>
+      <div class="mig-name">OpenClaw (Legacy)</div>
+      <div class="mig-desc">Migrate from legacy OpenClaw workspace. Inspect, plan, dry-run, and verify before cutover.</div>
+      <div class="mig-status"><span class="badge badge-green">Fixture verified</span></div>
+    </div>
+    <div class="migration-card" onclick="startMigration('openclaw-current')">
+      <div class="mig-icon">&#128260;</div>
+      <div class="mig-name">OpenClaw (Current)</div>
+      <div class="mig-desc">Import from current OpenClaw workspace with full compatibility mapping.</div>
+      <div class="mig-status"><span class="badge badge-green">Fixture verified</span></div>
+    </div>
+    <div class="migration-card" onclick="startMigration('hermes')">
+      <div class="mig-icon">&#128640;</div>
+      <div class="mig-name">Hermes Agent</div>
+      <div class="mig-desc">Import agents and configurations from Hermes platform.</div>
+      <div class="mig-status"><span class="badge badge-green">Fixture verified</span></div>
+    </div>
+    <div class="migration-card" onclick="startMigration('grok')">
+      <div class="mig-icon">&#129302;</div>
+      <div class="mig-name">Grok Bot</div>
+      <div class="mig-desc">Migrate Grok Bot configurations. Some actions may require manual review.</div>
+      <div class="mig-status"><span class="badge badge-amber">Partial support</span></div>
+    </div>
+    <div class="migration-card" onclick="startMigration('generic')">
+      <div class="mig-icon">&#128196;</div>
+      <div class="mig-name">Generic Import</div>
+      <div class="mig-desc">Import from a generic agent manifest JSON file.</div>
+      <div class="mig-status"><span class="badge badge-green">Supported</span></div>
+    </div>
+  </div>
+`;
+
+pages.memory = () => `
+  <div class="main-header">
+    <div><div class="main-title">Memory</div><div class="main-subtitle">Agent knowledge and operational state</div></div>
+  </div>
+  <div class="card-grid card-grid-3">
+    <div class="card stat">
+      <div class="stat-label">Working Memory</div>
+      <div class="stat-value" style="font-size:20px">Active</div>
+      <div class="stat-sub">Current session context</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-label">Long-Term Knowledge</div>
+      <div class="stat-value" style="font-size:20px">Ready</div>
+      <div class="stat-sub">Embedding provider active</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-label">Provider</div>
+      <div class="stat-value" style="font-size:20px">${statusData.memory?.embeddingProvider||'hash-fallback'}</div>
+      <div class="stat-sub">${statusData.memory?.embeddingDimension||128}d embeddings</div>
+    </div>
+  </div>
+`;
+
+pages.voice = () => `
+  <div class="main-header">
+    <div><div class="main-title">Voice</div><div class="main-subtitle">Call management and voice providers</div></div>
+  </div>
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon">&#127908;</div>
+      <div class="empty-title">Voice System</div>
+      <div class="empty-desc">Mock voice provider available for testing. Retell integration is a skeleton awaiting staging credentials.</div>
+    </div>
+  </div>
+`;
+
+pages.benchmarks = () => `
+  <div class="main-header">
+    <div><div class="main-title">Benchmarks</div><div class="main-subtitle">Empirical provider comparisons</div></div>
+  </div>
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon">&#128200;</div>
+      <div class="empty-title">No benchmark runs yet</div>
+      <div class="empty-desc">Run benchmarks to compare model performance, latency, and cost across providers.</div>
+    </div>
+  </div>
+`;
+
+pages.activity = () => `
+  <div class="main-header">
+    <div><div class="main-title">Activity</div><div class="main-subtitle">Unified workspace timeline</div></div>
+  </div>
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon">&#128337;</div>
+      <div class="empty-title">No activity yet</div>
+      <div class="empty-desc">Agent actions, messages, approvals, and system events will appear here.</div>
+    </div>
+  </div>
+`;
+
+pages.optimization = () => `
+  <div class="main-header">
+    <div><div class="main-title">Optimization Engine</div><div class="main-subtitle">Token elimination and context management</div></div>
+  </div>
+  <div class="card-grid card-grid-4" style="margin-bottom:20px">
+    <div class="card stat"><div class="stat-label">Tokens Seen</div><div class="stat-value" style="font-size:20px">${statusData.metrics?.requests||0}</div></div>
+    <div class="card stat"><div class="stat-label">Tokens Prevented</div><div class="stat-value" style="font-size:20px">${statusData.metrics?.tokensPrevented||0}</div></div>
+    <div class="card stat"><div class="stat-label">Provider Calls</div><div class="stat-value" style="font-size:20px">0</div></div>
+    <div class="card stat"><div class="stat-label">Cost Saved</div><div class="stat-value" style="font-size:20px">$0.00</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px">Engine Components</div>
+    <table class="table">
+      <thead><tr><th>Component</th><th>Status</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td>Fingerprinting</td><td><span class="badge badge-green">Active</span></td><td style="color:var(--text-muted)">Exact + semantic context matching</td></tr>
+        <tr><td>Provider Forwarding</td><td><span class="badge badge-${statusData.provider?.forwardingEnabled?'green':'muted'}">${statusData.provider?.forwardingEnabled?'Active':'Inactive'}</span></td><td style="color:var(--text-muted)">Routes to configured provider</td></tr>
+        <tr><td>Real Embeddings</td><td><span class="badge badge-${statusData.memory?.embeddingMode==='real'?'green':'amber'}">${statusData.memory?.embeddingMode||'hash-fallback'}</span></td><td style="color:var(--text-muted)">${statusData.memory?.embeddingProvider||'none'} / ${statusData.memory?.embeddingModel||'none'}</td></tr>
+        <tr><td>Memory Bypass</td><td><span class="badge badge-muted">Inactive</span></td><td style="color:var(--text-muted)">Requires real embeddings</td></tr>
+        <tr><td>Semantic Cache</td><td><span class="badge badge-green">Active</span></td><td style="color:var(--text-muted)">Context fingerprint cache</td></tr>
+        <tr><td>Prompt Compression</td><td><span class="badge badge-green">Active</span></td><td style="color:var(--text-muted)">Reduces redundant context</td></tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+pages.settings = () => `
+  <div class="main-header">
+    <div><div class="main-title">Settings</div><div class="main-subtitle">Configure your AgentForge instance</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="margin-bottom:16px">Provider Configuration</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:4px">Active Provider</label>
+        <select id="setProvider" style="width:100%">
+          <option value="openai">OpenAI</option>
+          <option value="mimo">Xiaomi MiMo (Token Plan)</option>
+          <option value="ollama">Ollama (Local)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:4px">Default Model</label>
+        <input type="text" id="setModel" value="${statusData.optimization?.model||'gpt-4o-mini'}" style="width:100%">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="saveSettings()">Save Settings</button>
+  </div>
+`;
+
+pages.graph = () => `
+  <div class="main-header" style="margin-bottom:14px">
+    <div>
+      <div class="main-title" style="display:flex; align-items:center; gap:8px">
+        <span>Obsidian Topology</span>
+        <span class="badge badge-accent" style="font-size:11px">FORCE-DIRECTED GRAPH</span>
+      </div>
+      <div class="main-subtitle">Interactive cybernetic visualization of AI teammates, execution harnesses, memory namespaces, and contracts</div>
+    </div>
+    <div style="display:flex; gap:8px">
+      <button class="btn btn-outline btn-sm" onclick="resetGraphPhysics()">Reset Layout</button>
+      <button class="btn btn-outline btn-sm" id="btnTogglePhysics" onclick="toggleGraphPhysics()">Freeze Physics</button>
+      <button class="btn btn-primary btn-sm" onclick="pulseGraphParticles()">Pulse Data Flow</button>
+    </div>
+  </div>
+
+  <!-- AgentOps Telemetry HUD -->
+  <div class="card-grid card-grid-4" style="margin-bottom:14px">
+    <div class="card stat" style="padding:14px">
+      <div class="stat-label">Active Nodes</div>
+      <div class="stat-value" id="hudNodeCount" style="color:var(--accent); font-size:22px">--</div>
+      <div class="stat-sub">Connected entities</div>
+    </div>
+    <div class="card stat" style="padding:14px">
+      <div class="stat-label">Memory Namespace</div>
+      <div class="stat-value" style="color:var(--green); font-size:22px">32 GB Pool</div>
+      <div class="stat-sub">Operational &amp; Semantic</div>
+    </div>
+    <div class="card stat" style="padding:14px">
+      <div class="stat-label">Local Router Latency</div>
+      <div class="stat-value" style="color:#00e5ff; font-size:22px">12 ms</div>
+      <div class="stat-sub">Ollama &amp; MiMo Fast-Path</div>
+    </div>
+    <div class="card stat" style="padding:14px">
+      <div class="stat-label">Contract Integrity</div>
+      <div class="stat-value" style="color:var(--green); font-size:22px">100% Locked</div>
+      <div class="stat-sub">ExecutionContract Active</div>
+    </div>
+  </div>
+
+  <!-- Interactive Canvas & Inspector Grid -->
+  <div style="display:grid; grid-template-columns:1fr 340px; gap:16px; margin-bottom:16px">
+    <div style="position:relative; background:#040711; border:1px solid #1c2738; border-radius:var(--radius-lg); overflow:hidden; min-height:540px; display:flex; flex-direction:column">
+      <div style="position:absolute; top:12px; left:14px; z-index:10; display:flex; gap:6px; background:rgba(6,12,22,0.85); padding:4px 8px; border-radius:6px; border:1px solid #1f2e46; backdrop-filter:blur(8px)">
+        <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('all')">All</button>
+        <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('agent')">Agents</button>
+        <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('harness')">Harnesses</button>
+        <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('model')">Models</button>
+      </div>
+      <canvas id="obsidianCanvas" style="width:100%; height:540px; cursor:grab"></canvas>
+      <div style="position:absolute; bottom:10px; left:14px; color:var(--text-muted); font-size:11px; pointer-events:none">
+        Drag nodes to reposition · Hover to inspect · Springs automatically balance
+      </div>
+    </div>
+
+    <!-- Right Inspector Panel -->
+    <div style="display:flex; flex-direction:column; gap:14px">
+      <div class="card" id="graphNodeInspector" style="flex:1; padding:16px">
+        <div class="card-title" style="margin-bottom:12px; font-size:13px; color:var(--accent); text-transform:uppercase; letter-spacing:0.05em">Node Inspector</div>
+        <div id="inspectorContent" style="color:var(--text-secondary); font-size:12px; line-height:1.6">
+          <p>Click any node on the graph to inspect its runtime bindings, model policy, harness adapter, and execution contracts.</p>
+        </div>
+      </div>
+      
+      <!-- Mini Live Activity Stream -->
+      <div class="card" style="padding:14px; max-height:220px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:11px; background:#070d18">
+        <div style="color:var(--text-muted); font-size:10px; font-weight:700; text-transform:uppercase; margin-bottom:8px">Topology Telemetry Feed</div>
+        <div id="graphEventFeed" style="display:flex; flex-direction:column; gap:6px; color:#7dd3fc">
+          <div>[SYNC] Topology graph initialized</div>
+          <div>[FORCE] Physics repulsion constant: 4500</div>
+          <div>[ROUTE] ModelRouter tier 4: active</div>
+          <div>[CONTRACT] Protected paths locked (.env, src/core)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+// ── Obsidian Force-Directed Graph Engine ───────────
+let graphSim = null;
+
+function initGraphCanvas() {
+  const canvas = document.getElementById('obsidianCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const width = rect.width;
+  const height = rect.height;
+
+  // Build Graph Nodes dynamically from loaded workspace state
+  const nodes = [
+    { id: 'core', label: 'AgentForge Core', type: 'core', color: '#8b5cf6', radius: 24, x: width / 2, y: height / 2, vx: 0, vy: 0, details: { role: 'Platform Kernel', status: 'ONLINE', authority: 'ROOT' } },
+    { id: 'ollama', label: 'Ollama (Local)', type: 'model', color: '#00e5ff', radius: 18, x: width / 2 - 160, y: height / 2 - 120, vx: 0, vy: 0, details: { provider: 'Ollama', models: 'DeepSeek-R1-14B, Llama3.1:8B', latency: '12ms' } },
+    { id: 'openai', label: 'OpenAI Gateway', type: 'model', color: '#10b981', radius: 16, x: width / 2 - 200, y: height / 2 + 100, vx: 0, vy: 0, details: { provider: 'OpenAI', tier: 'Tier 4', model: 'gpt-4o' } },
+    { id: 'mimo', label: 'MiMo Token Plan', type: 'model', color: '#f59e0b', radius: 16, x: width / 2 - 240, y: height / 2 - 20, vx: 0, vy: 0, details: { provider: 'MiMo', models: 'mimo-v2.5', status: 'CONFIGURED' } },
+    { id: 'worktree', label: 'Worktree Sandbox', type: 'harness', color: '#ec4899', radius: 18, x: width / 2 + 180, y: height / 2 - 130, vx: 0, vy: 0, details: { isolation: 'Git Worktree', permissions: 'Strict Sandboxed', deleteFiles: 'FALSE' } },
+    { id: 'memory', label: 'Operational Memory', type: 'memory', color: '#a855f7', radius: 17, x: width / 2 - 60, y: height / 2 + 160, vx: 0, vy: 0, details: { persistence: 'SQLite WAL', capacity: '32GB Pool', mode: 'Semantic + Hash' } },
+    { id: 'contract', label: 'Execution Contract', type: 'contract', color: '#38bdf8', radius: 17, x: width / 2 + 140, y: height / 2 + 150, vx: 0, vy: 0, details: { id: 'contract-vnext-strict', protectedPaths: ['.env', 'src/core/*'], maxFiles: 10 } },
+  ];
+
+  // Add loaded agents
+  (agents || []).forEach((agent, i) => {
+    const angle = (i / Math.max(agents.length, 1)) * Math.PI * 1.5;
+    const r = 140;
+    nodes.push({
+      id: agent.id,
+      label: agent.name || 'Agent',
+      type: 'agent',
+      color: agentColor(agent.name),
+      radius: 19,
+      x: width / 2 + Math.cos(angle) * r,
+      y: height / 2 + Math.sin(angle) * r,
+      vx: 0,
+      vy: 0,
+      details: { role: agent.role, status: agent.status, harness: agent.harnessPolicy?.preferredHarnessId || 'pi', model: agent.modelPolicy?.preferredModel || 'gpt-4o' }
+    });
+  });
+
+  const nodeMap = new Map();
+  nodes.forEach(n => nodeMap.set(n.id, n));
+
+  // Build Links
+  const links = [
+    { source: 'core', target: 'ollama', length: 150 },
+    { source: 'core', target: 'openai', length: 160 },
+    { source: 'core', target: 'mimo', length: 170 },
+    { source: 'core', target: 'worktree', length: 160 },
+    { source: 'core', target: 'memory', length: 140 },
+    { source: 'core', target: 'contract', length: 140 },
+    { source: 'worktree', target: 'contract', length: 110 },
+  ];
+
+  (agents || []).forEach(agent => {
+    links.push({ source: 'core', target: agent.id, length: 130 });
+    links.push({ source: agent.id, target: 'contract', length: 150 });
+    links.push({ source: agent.id, target: 'worktree', length: 140 });
+  });
+
+  // Animated Particles
+  const particles = [];
+  for (let i = 0; i < 24; i++) {
+    particles.push({
+      linkIndex: Math.floor(Math.random() * links.length),
+      progress: Math.random(),
+      speed: 0.004 + Math.random() * 0.008,
+    });
+  }
+
+  const hudNodeCount = document.getElementById('hudNodeCount');
+  if (hudNodeCount) hudNodeCount.textContent = nodes.length;
+
+  // Physics simulation state
+  let isRunning = true;
+  let draggedNode = null;
+  let hoveredNode = null;
+  let selectedNode = null;
+
+  // Mouse interaction
+  canvas.onmousedown = (e) => {
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+    for (const n of nodes) {
+      const dx = mouseX - n.x;
+      const dy = mouseY - n.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= n.radius + 6) {
+        draggedNode = n;
+        selectedNode = n;
+        canvas.style.cursor = 'grabbing';
+        updateInspector(n);
+        break;
+      }
+    }
+  };
+
+  canvas.onmousemove = (e) => {
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+    if (draggedNode) {
+      draggedNode.x = mouseX;
+      draggedNode.y = mouseY;
+      draggedNode.vx = 0;
+      draggedNode.vy = 0;
+      return;
+    }
+
+    let found = null;
+    for (const n of nodes) {
+      const dx = mouseX - n.x;
+      const dy = mouseY - n.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= n.radius + 6) {
+        found = n;
+        break;
+      }
+    }
+    hoveredNode = found;
+    canvas.style.cursor = found ? 'pointer' : 'grab';
+  };
+
+  canvas.onmouseup = () => {
+    draggedNode = null;
+    canvas.style.cursor = 'grab';
+  };
+
+  function updateInspector(node) {
+    const content = document.getElementById('inspectorContent');
+    if (!content) return;
+    let detailHtml = '<div style="margin-bottom:8px"><strong>' + esc(node.label) + '</strong> <span class="badge" style="background:rgba(255,255,255,0.1); color:' + node.color + '">' + esc(node.type.toUpperCase()) + '</span></div>';
+    detailHtml += '<div style="display:flex; flex-direction:column; gap:4px">';
+    for (const [k, v] of Object.entries(node.details || {})) {
+      detailHtml += '<div style="display:flex; justify-content:space-between"><span>' + esc(k) + ':</span><span class="mono" style="color:#fafafa">' + esc(v) + '</span></div>';
+    }
+    detailHtml += '</div>';
+    content.innerHTML = detailHtml;
+
+    const feed = document.getElementById('graphEventFeed');
+    if (feed) {
+      feed.innerHTML += '<div>[NODE] Inspected ' + esc(node.label) + ' (' + esc(node.type) + ')</div>';
+      feed.scrollTop = feed.scrollHeight;
+    }
+  }
+
+  function simulate() {
+    if (isRunning) {
+      // Repulsion between all nodes
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          if (dist < 320) {
+            const force = (320 - dist) / dist * 0.45;
+            if (a !== draggedNode) { a.vx -= dx * force; a.vy -= dy * force; }
+            if (b !== draggedNode) { b.vx += dx * force; b.vy += dy * force; }
+          }
+        }
+      }
+
+      // Spring attraction along links
+      for (const link of links) {
+        const a = nodeMap.get(link.source);
+        const b = nodeMap.get(link.target);
+        if (!a || !b) continue;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const diff = dist - link.length;
+        const force = diff * 0.035;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        if (a !== draggedNode) { a.vx += fx; a.vy += fy; }
+        if (b !== draggedNode) { b.vx -= fx; b.vy -= fy; }
+      }
+
+      // Central gravity & position update
+      for (const n of nodes) {
+        if (n === draggedNode) continue;
+        n.vx += (width / 2 - n.x) * 0.012;
+        n.vy += (height / 2 - n.y) * 0.012;
+
+        n.vx *= 0.85; // Damping
+        n.vy *= 0.85;
+
+        n.x += n.vx;
+        n.y += n.vy;
+
+        // Boundary constraint
+        n.x = Math.max(n.radius + 10, Math.min(width - n.radius - 10, n.x));
+        n.y = Math.max(n.radius + 10, Math.min(height - n.radius - 10, n.y));
+      }
+    }
+
+    // Render Canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw grid background
+    ctx.strokeStyle = '#0c1524';
+    ctx.lineWidth = 1;
+    const gridStep = 40;
+    for (let x = 0; x < width; x += gridStep) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    for (let y = 0; y < height; y += gridStep) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+
+    // Draw Links
+    for (const link of links) {
+      const a = nodeMap.get(link.source);
+      const b = nodeMap.get(link.target);
+      if (!a || !b) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = (selectedNode && (selectedNode === a || selectedNode === b)) ? 'rgba(0,229,255,0.7)' : 'rgba(100,120,160,0.22)';
+      ctx.lineWidth = (selectedNode && (selectedNode === a || selectedNode === b)) ? 2 : 1.2;
+      ctx.stroke();
+    }
+
+    // Draw animated data flow particles
+    for (const p of particles) {
+      const link = links[p.linkIndex];
+      if (!link) continue;
+      const a = nodeMap.get(link.source);
+      const b = nodeMap.get(link.target);
+      if (!a || !b) continue;
+
+      p.progress += p.speed;
+      if (p.progress > 1) p.progress = 0;
+
+      const px = a.x + (b.x - a.x) * p.progress;
+      const py = a.y + (b.y - a.y) * p.progress;
+
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#00e5ff';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#00e5ff';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Draw Nodes
+    for (const n of nodes) {
+      const isHovered = hoveredNode === n;
+      const isSelected = selectedNode === n;
+
+      // Glow halo on active or hovered nodes
+      if (isHovered || isSelected || n.type === 'core') {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius + (isHovered ? 8 : 4), 0, Math.PI * 2);
+        ctx.fillStyle = n.color + '26';
+        ctx.fill();
+      }
+
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#090e1a';
+      ctx.fill();
+      ctx.strokeStyle = isSelected ? '#ffffff' : n.color;
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.shadowBlur = isHovered ? 14 : 6;
+      ctx.shadowColor = n.color;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Inner dot
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = n.color;
+      ctx.fill();
+
+      // Label
+      ctx.font = '500 11px Inter, sans-serif';
+      ctx.fillStyle = isSelected ? '#ffffff' : '#cbd5e1';
+      ctx.textAlign = 'center';
+      ctx.fillText(n.label, n.x, n.y + n.radius + 15);
+    }
+
+    graphSim = requestAnimationFrame(simulate);
+  }
+
+  if (graphSim) cancelAnimationFrame(graphSim);
+  graphSim = requestAnimationFrame(simulate);
+
+  window.resetGraphPhysics = () => {
+    nodes.forEach(n => {
+      n.x = width / 2 + (Math.random() - 0.5) * 200;
+      n.y = height / 2 + (Math.random() - 0.5) * 200;
+      n.vx = 0;
+      n.vy = 0;
+    });
+  };
+
+  window.toggleGraphPhysics = () => {
+    isRunning = !isRunning;
+    const btn = document.getElementById('btnTogglePhysics');
+    if (btn) btn.textContent = isRunning ? 'Freeze Physics' : 'Resume Physics';
+  };
+
+  window.pulseGraphParticles = () => {
+    particles.forEach(p => { p.speed *= 2.5; });
+    setTimeout(() => {
+      particles.forEach(p => { p.speed /= 2.5; });
+    }, 1500);
+  };
+
+  window.filterGraph = (type) => {
+    nodes.forEach(n => {
+      if (type === 'all' || n.type === type || n.type === 'core') {
+        n.radius = n.type === 'core' ? 24 : 18;
+      } else {
+        n.radius = 8;
+      }
+    });
+  };
+}
+
+// ── Helpers ────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function agentColor(name) {
+  const colors = ['#8b5cf6','#3b82f6','#22c55e','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16'];
+  let hash = 0; for (const c of name||'') hash = c.charCodeAt(0) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+function statusColor(s) {
+  if (s==='working'||s==='executing') return 'green';
+  if (s==='waiting'||s==='queued') return 'amber';
+  if (s==='failed'||s==='error') return 'red';
+  return 'muted';
+}
+function statusBadge(s) {
+  if (s==='completed') return 'green';
+  if (s==='running'||s==='executing') return 'blue';
+  if (s==='waiting'||s==='queued') return 'amber';
+  if (s==='failed') return 'red';
+  return 'muted';
+}
+
+// ── Actions ────────────────────────────────────────
+async function resolveApproval(id, action) {
+  try {
+    await fetch('/api/approvals/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id,action}) });
+    toast(`Approval ${action}d`);
+    await loadAll(); render();
+  } catch(e) { toast('Failed: '+e.message,'error'); }
+}
+
+async function saveSettings() {
+  const provider = document.getElementById('setProvider').value;
+  const model = document.getElementById('setModel').value;
+  try {
+    await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({provider,model}) });
+    toast('Settings saved. Restart server to apply.');
+  } catch(e) { toast('Failed','error'); }
+}
+
+function sendMsg(input) {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  const body = document.getElementById('msgBody');
+  body.innerHTML += `<div class="msg-bubble msg-bubble-human"><div>You</div><div>${esc(text)}</div></div>`;
+  body.scrollTop = body.scrollHeight;
+  fetch('/api/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content:text}) }).then(loadAll);
+}
+
+function startMigration(source) { toast('Migration from '+source+' — connect via API to begin inspection'); }
+
+// ── Command Palette ────────────────────────────────
+const commands = [
+  {icon:'&#127968;',label:'Go to Home',hint:'Dashboard',action:()=>navigate('/home')},
+  {icon:'&#128232;',label:'Go to Inbox',hint:'Pending items',action:()=>navigate('/inbox')},
+  {icon:'&#128172;',label:'Go to Messages',hint:'Workspace chat',action:()=>navigate('/messages')},
+  {icon:'&#129302;',label:'Go to Agents',hint:'Manage teammates',action:()=>navigate('/agents')},
+  {icon:'&#9745;',label:'Go to Tasks',hint:'Task management',action:()=>navigate('/tasks')},
+  {icon:'&#9881;',label:'Go to Processes',hint:'SOPs and workflows',action:()=>navigate('/processes')},
+  {icon:'&#9989;',label:'Go to Approvals',hint:'Review requests',action:()=>navigate('/approvals')},
+  {icon:'&#129504;',label:'Go to Models',hint:'Provider management',action:()=>navigate('/models')},
+  {icon:'&#128722;',label:'Go to Marketplace',hint:'Discover agents',action:()=>navigate('/marketplace')},
+  {icon:'&#128260;',label:'Go to Migration',hint:'Import agents',action:()=>navigate('/migration')},
+  {icon:'&#128376;',label:'Go to Graph & Topology',hint:'Obsidian force-directed physics graph',action:()=>navigate('/graph')},
+  {icon:'&#9889;',label:'Go to Optimization',hint:'Token engine',action:()=>navigate('/optimization')},
+  {icon:'&#9881;',label:'Go to Settings',hint:'Configuration',action:()=>navigate('/settings')},
+];
+
+function showCmdPalette() {
+  const el = document.getElementById('cmdPalette');
+  el.classList.remove('hidden');
+  const input = document.getElementById('cmdInput');
+  input.value = ''; input.focus();
+  renderCommands(commands);
+}
+
+function hideCmdPalette(e) {
+  if (e && e.target !== document.getElementById('cmdPalette')) return;
+  document.getElementById('cmdPalette').classList.add('hidden');
+}
+
+function filterCommands(q) {
+  const filtered = commands.filter(c => c.label.toLowerCase().includes(q.toLowerCase()) || c.hint.toLowerCase().includes(q.toLowerCase()));
+  renderCommands(filtered);
+}
+
+function renderCommands(list) {
+  document.getElementById('cmdResults').innerHTML = list.map(c => `
+    <div class="cmd-item" onclick="hideCmdPalette();(${c.action.toString()})()">
+      <span class="cmd-icon">${c.icon}</span>
+      <span class="cmd-label">${c.label}</span>
+      <span class="cmd-hint">${c.hint}</span>
+    </div>
+  `).join('');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); showCmdPalette(); }
+  if (e.key==='Escape') document.getElementById('cmdPalette').classList.add('hidden');
+});
+
+// ── Toast ──────────────────────────────────────────
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.borderLeftColor = type==='error'?'var(--red)':'var(--green)';
+  el.style.borderLeftWidth = '3px';
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Init ───────────────────────────────────────────
+(async () => {
+  await loadAll();
+  currentPage = window.location.hash.slice(1) || 'home';
+  render();
+  setInterval(async () => { await loadAll(); render(); }, 30000);
+})();
+</script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+import type { ExecutionContract } from "./contract.js";
+
 /**
  * Process Knowledge & Process-to-Agent Domain Model
  * Sections 9, 10, 11, 12, 13, 14, 15
@@ -104,6 +106,18 @@ export interface ProcessDiff {
   detectedAt: string;
 }
 
+export interface ProcessRevisionProposal {
+  id: string;
+  processId: string;
+  expectedVersion: number;
+  revision: ProcessDefinition;
+  diff: ProcessDiff;
+  status: "pending" | "approved" | "rejected" | "stale";
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedByUserId?: string;
+}
+
 export interface ProcessAgentBinding {
   processId: string;
   agentId: string;
@@ -118,7 +132,7 @@ export interface AgentSpecification {
   requiredTools: string[];
   requiredPermissions: string[];
   unresolvedRules: UnresolvedBusinessRule[];
-  suggestedExecutionContract: Record<string, unknown>;
-  contractTemplate?: any;
+  suggestedExecutionContract: Pick<ExecutionContract, "scope" | "authority" | "completion">;
+  contractTemplate: Pick<ExecutionContract, "scope" | "authority" | "completion">;
   testScenarios: Array<{ name: string; input: string; expectedOutput: string }>;
 }

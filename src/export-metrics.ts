@@ -15,23 +15,66 @@ const BASE_URL = process.env.AGENTFORGE_URL || "http://localhost:3000";
 const TODAY = new Date().toISOString().slice(0, 10);
 const REPORTS_DIR = path.join(process.cwd(), "reports");
 
-function ensureDir(dir) {
+type MetricRequest = {
+  timestamp?: string;
+  requestId?: string;
+  model?: string;
+  source?: string;
+  channel?: string;
+  project?: string;
+  session?: string;
+  baselineTokens?: number;
+  optimizedTokens?: number;
+  tokensPrevented?: number;
+  reductionPercent?: number;
+  providerCalled?: boolean;
+  bypass?: boolean;
+  optimizationType?: string;
+  latencyMs?: number;
+  error?: string;
+};
+
+type DashboardMetrics = {
+  latestRequests?: MetricRequest[];
+  topSavingsEvents?: MetricRequest[];
+  requests?: number;
+  tokensSeen?: number;
+  tokensPrevented?: number;
+  providerCallsAvoided?: number;
+  estimatedCostSaved?: number;
+  averageReductionPercent?: number;
+  lastHourRequests?: number;
+  cacheHits?: number;
+  memoryBypassHits?: number;
+  contextEliminationHits?: number;
+  compressionSavings?: number;
+};
+
+type DailyMetrics = {
+  date?: string;
+  requests?: number;
+  tokensPrevented?: number;
+  estimatedCostSaved?: number;
+  providerCallsAvoided?: number;
+};
+
+function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-async function fetchJson(path) {
+async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`);
-  return res.json();
+  return await res.json() as T;
 }
 
-async function fetchText(path) {
+async function fetchText(path: string): Promise<string> {
   const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`);
   return res.text();
 }
 
-function buildCsv(requests) {
+function buildCsv(requests: MetricRequest[]): string {
   const header = [
     "timestamp",
     "requestId",
@@ -77,7 +120,7 @@ function buildCsv(requests) {
   return [header, ...rows].join("\n");
 }
 
-function buildSummaryMd(dashboard, daily) {
+function buildSummaryMd(dashboard: DashboardMetrics, daily: DailyMetrics): string {
   const d = dashboard || {};
   const day = daily || {};
 
@@ -160,8 +203,8 @@ async function main() {
   console.log(`[export:metrics] Fetching from ${BASE_URL}...`);
 
   const [dashboard, daily, csvText] = await Promise.all([
-    fetchJson("/dashboard.json"),
-    fetchJson("/summary/daily"),
+    fetchJson<DashboardMetrics>("/dashboard.json"),
+    fetchJson<DailyMetrics>("/summary/daily"),
     fetchText("/metrics.csv"),
   ]);
 

@@ -49,10 +49,10 @@ async function main(): Promise<void> {
   const profile = loadAgentForgeBridgeProfile();
   const optimizationConfig = parseOptimizationConfig(process.argv.slice(2));
 
-  const runs = Array.from({ length: iterations }, () =>
+  const runs = await Promise.all(Array.from({ length: iterations }, () =>
     runLab(getScenarios(profile), profile, optimizationConfig),
-  );
-  const report = runs[runs.length - 1] ?? runLab(getScenarios(profile), profile, optimizationConfig);
+  ));
+  const report = runs[runs.length - 1] ?? await runLab(getScenarios(profile), profile, optimizationConfig);
   const markdown = formatReport(report);
 
   await fs.mkdir(reportDir, { recursive: true });

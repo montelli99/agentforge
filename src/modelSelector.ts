@@ -1,5 +1,4 @@
 import type {
-  AgentForgeModelChoice,
   CostEstimate,
   LatencyPreference,
   ModelSelectionResult,
@@ -7,12 +6,12 @@ import type {
   ProviderCapabilities,
   TaskComplexity,
 } from "./optimization-types.js";
+import type { AgentForgeModelChoice } from "./types.js";
 import {
   estimateCost,
   estimateTokens,
   getCheapestModel,
   getProviderCapabilities,
-  MODEL_FAMILY,
 } from "./cost.js";
 
 const TASK_COMPLEXITY_KEYWORDS: Record<TaskComplexity, string[]> = {

@@ -59,5 +59,10 @@ export interface ExecutionContract {
     requireHumanApproval: boolean;
   };
 
+  budget?: {
+    maxSpendUsd?: number;
+    maxDurationSeconds?: number;
+  };
+
   createdAt: string;
 }

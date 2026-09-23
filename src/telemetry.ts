@@ -1,9 +1,9 @@
 import type {
-  AgentForgeModelChoice,
   CostEstimate,
   OptimizationTelemetry,
   TokenEstimate,
 } from "./optimization-types.js";
+import type { AgentForgeModelChoice } from "./types.js";
 import { estimateCost, estimateTokens } from "./cost.js";
 
 export function createTelemetry(params: {

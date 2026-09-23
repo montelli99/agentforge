@@ -1,7 +1,7 @@
 /**
  * Pydantic AI Harness Provider
- * Section 5: Harness Target #2
- * Structured capability composition and durable execution.
+ * Section 5: Planned harness target #2.
+ * No Python service adapter is implemented; contract simulation is test-only and opt-in.
  */
 
 import crypto from "node:crypto";
@@ -19,24 +19,26 @@ import type {
 export class PydanticHarnessProvider implements HarnessProvider {
   readonly id = "pydantic";
   readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: true,
-    supportsTools: true,
-    supportsMCP: true,
-    supportsPauseResume: true,
+    supportsStreaming: false,
+    supportsTools: false,
+    supportsMCP: false,
+    supportsPauseResume: false,
     supportsContextCompaction: false,
-    supportedRuntimes: ["python", "uvicorn", "fastapi-bridge"],
+    supportedRuntimes: [],
   };
+
+  constructor(private readonly simulationEnabled = false) {}
 
   private sessions = new Map<string, HarnessSession>();
   private sessionStates = new Map<string, HarnessState>();
   private activeStreams = new Map<string, HarnessEvent[]>();
 
   isConfigured(): boolean {
-    return !!process.env.PYDANTIC_AI_SERVICE_URL || !!process.env.PYDANTIC_BRIDGE_PORT;
+    return false;
   }
 
   getStatus(): "NOT_CONFIGURED" | "ACTIVE" {
-    return this.isConfigured() ? "ACTIVE" : "NOT_CONFIGURED";
+    return "NOT_CONFIGURED";
   }
 
   async startSession(config: HarnessSessionConfig): Promise<HarnessSession> {
@@ -89,6 +91,17 @@ export class PydanticHarnessProvider implements HarnessProvider {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Pydantic session ${sessionId} not found`);
+    }
+
+    if (!this.simulationEnabled) {
+      return {
+        taskId: task.taskId,
+        sessionId,
+        status: "failure",
+        output: "",
+        error: "Pydantic execution is unavailable: no Pydantic service adapter is implemented. No task was executed.",
+        durationMs: 0,
+      };
     }
 
     const startTime = Date.now();

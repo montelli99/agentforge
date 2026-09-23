@@ -11,6 +11,20 @@ import type {
   StreamChunk,
 } from "../../core/providers/model.js";
 
+function toChatCompletionBody(options: ModelRequestOptions, stream: boolean): Record<string, unknown> {
+  return {
+    model: options.model,
+    messages: options.messages,
+    temperature: options.temperature,
+    max_tokens: options.maxTokens,
+    tools: options.tools,
+    tool_choice: options.toolChoice,
+    response_format: options.responseFormat === "json" ? { type: "json_object" } : undefined,
+    stop: options.stop,
+    stream,
+  };
+}
+
 export class OpenAIModelProvider implements GenerativeModelProvider {
   readonly id: string;
   readonly name: string;
@@ -56,13 +70,8 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({
-        model: options.model,
-        messages: options.messages,
-        temperature: options.temperature,
-        max_tokens: options.maxTokens,
-        stream: false,
-      }),
+      body: JSON.stringify(toChatCompletionBody(options, false)),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!res.ok) {
@@ -72,7 +81,17 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
 
     const json = await res.json() as {
       id: string;
-      choices: Array<{ message: { content: string }; finish_reason?: string }>;
+      choices: Array<{
+        message: {
+          content?: string | null;
+          tool_calls?: Array<{
+            id: string;
+            type: "function";
+            function: { name: string; arguments: string };
+          }>;
+        };
+        finish_reason?: string;
+      }>;
       usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
     };
 
@@ -80,11 +99,13 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
       id: json.id,
       model: options.model,
       content: json.choices?.[0]?.message?.content || "",
+      toolCalls: json.choices?.[0]?.message?.tool_calls,
       usage: {
         promptTokens: json.usage?.prompt_tokens || 0,
         completionTokens: json.usage?.completion_tokens || 0,
         totalTokens: json.usage?.total_tokens || 0,
-        estimatedCostUsd: ((json.usage?.prompt_tokens || 0) * 0.15 + (json.usage?.completion_tokens || 0) * 0.6) / 1_000_000,
+        // A generic OpenAI-compatible gateway may price each provider/model differently.
+        // Leave cost unknown until model-specific pricing evidence is available.
       },
       finishReason: json.choices?.[0]?.finish_reason,
     };
@@ -101,13 +122,8 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({
-        model: options.model,
-        messages: options.messages,
-        temperature: options.temperature,
-        max_tokens: options.maxTokens,
-        stream: true,
-      }),
+      body: JSON.stringify(toChatCompletionBody(options, true)),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!res.ok || !res.body) {
@@ -117,6 +133,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    const toolIdsByIndex = new Map<number, string>();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -131,9 +148,28 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         if (trimmed.startsWith("data: ")) {
           try {
             const data = JSON.parse(trimmed.slice(6));
+            const delta = data.choices?.[0]?.delta;
+            const toolCalls = delta?.tool_calls?.map((call: {
+              index?: number;
+              id?: string;
+              function?: { name?: string; arguments?: string };
+            }, position: number) => {
+              const index = call.index ?? position;
+              const id = call.id ?? toolIdsByIndex.get(index) ?? `tool-index-${index}`;
+              toolIdsByIndex.set(index, id);
+              return {
+                id,
+                type: "function" as const,
+                function: {
+                  name: call.function?.name,
+                  arguments: call.function?.arguments,
+                },
+              };
+            });
             yield {
               id: data.id,
-              deltaText: data.choices?.[0]?.delta?.content,
+              deltaText: delta?.content,
+              toolCalls: toolCalls?.length ? toolCalls : undefined,
               finishReason: data.choices?.[0]?.finish_reason,
             };
           } catch {

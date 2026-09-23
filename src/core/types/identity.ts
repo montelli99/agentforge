@@ -1,6 +1,6 @@
 /**
  * Identity & Unified Permissions
- * Section 17: Identity
+ * Section 11 & 17: Identity + RBAC
  * Permissions follow the USER across Web, Telegram, Discord, CLI, and API.
  */
 
@@ -20,6 +20,22 @@ export interface AgentForgeUser {
   email?: string;
   role: UserRole;
   permissions: string[];
+  passwordHash?: string;
+  salt?: string;
+  status?: "active" | "suspended" | "pending";
+  externalIdentities: ExternalIdentity[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSummary {
+  id: string;
+  username: string;
+  displayName: string;
+  email?: string;
+  role: UserRole;
+  permissions: string[];
+  status: "active" | "suspended" | "pending";
   externalIdentities: ExternalIdentity[];
   createdAt: string;
   updatedAt: string;

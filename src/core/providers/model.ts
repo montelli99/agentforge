@@ -25,6 +25,7 @@ export interface ModelRequestOptions {
   maxTokens?: number;
   tools?: unknown[];
   toolChoice?: unknown;
+  responseFormat?: "json";
   stop?: string[];
   stream?: boolean;
 }

@@ -1,76 +1,37 @@
-# AgentForge Launch Checklist
+# AgentForge Release Readiness Checklist
 
-Use this checklist before sharing AgentForge with first users.
+**Current status: NOT READY TO RELEASE.** This is the staging gate for the current vNext control plane. A passing unit-test suite does not satisfy the live integration, security, persistence, or product-acceptance gates below.
 
-## Installation
+## Reproducible local checks
 
-- [ ] `npm install` completes without errors
-- [ ] No peer dependency warnings
-- [ ] `node_modules` size is reasonable
+- [ ] Install dependencies with `pnpm install --frozen-lockfile`.
+- [ ] `pnpm test` passes without provider credentials or external writes.
+- [ ] `pnpm typecheck` passes on the supported Node.js version.
+- [ ] `pnpm build` emits the vNext server and CLI into `dist/`.
+- [ ] Start the built vNext server (`pnpm start`, or set `PORT` when the default is occupied).
+- [ ] Complete an 8-hour read-only endpoint soak with `scripts/soak-vnext.ps1`; review the full log for any `FAIL` entries.
+- [ ] Verify `GET /api/status`, `/api/readiness`, `/api/agents`, `/api/tasks`, and `/api/compute` return truthful, internally consistent values.
+- [ ] Verify an absent task evidence pack is reported as unavailable; never show invented diffs, tests, or verification hashes.
+- [ ] Smoke-test the actual web UI in a browser, including each navigation view, create/edit paths, error states, and reconnect behavior.
 
-## Tests
+## Security and data integrity
 
-- [ ] `npm test` passes all tests (0 failures)
-- [ ] Server tests pass
-- [ ] Broker tests pass
-- [ ] Phase 3D tests pass
+- [ ] Add authenticated user identity and authorization to all mutating control-plane actions.
+- [ ] Verify external browser origins cannot access local mutation endpoints; keep the server bound to loopback by default.
+- [ ] Verify real workspace persistence, atomic recovery, schema versioning, backup/restore, and crash recovery.
+- [ ] Verify secrets never appear in logs, evidence packs, migration output, or exported artifacts.
+- [ ] Verify worktree and package path boundaries against traversal, symlink, malformed input, and cleanup failures.
+- [ ] Verify approvals are enforced by the execution path, not only displayed in the UI.
 
-## Server
+## Integrations and product acceptance
 
-- [ ] `npm run start` starts server on port 3000
-- [ ] Server logs show optimization status
-- [ ] Server logs show API key status (configured or NOT SET)
+- [ ] Complete the original numbered requirements-to-code-and-test traceability review.
+- [ ] Clearly separate live integrations from mocks, fixtures, demos, and unconfigured capabilities in UI and docs.
+- [ ] Complete real-provider tests for each integration claimed as supported; use isolated test accounts and explicit authorization.
+- [ ] Verify external messaging and telephony remain disabled unless specifically configured and approved.
+- [ ] Validate marketplace package signing/provenance, permission review, install isolation, publisher identity, and removal/rollback.
+- [ ] Define and test an accessible, responsive first-run and agent-creation experience with a non-technical user.
+- [ ] Update installation, upgrade, backup, troubleshooting, privacy, licensing, and contributor documentation.
+- [ ] Review every pricing, benchmark, readiness, and release claim against current evidence.
 
-## Endpoints
-
-- [ ] `GET /health` returns `{"status":"ok"}`
-- [ ] `GET /health` shows `provider.available: false` without API key
-- [ ] `GET /health` shows `provider.available: true` with API key
-- [ ] `GET /dashboard` returns HTML page
-- [ ] `GET /dashboard.json` returns metrics JSON
-- [ ] `POST /v1/chat/completions` accepts OpenAI request shape
-- [ ] `POST /v1/chat/completions` returns OpenAI response shape
-- [ ] Response includes `agentforge` metadata when enabled
-- [ ] Response excludes `agentforge` metadata when `AGENTFORGE_METADATA=false`
-
-## Provider Behavior
-
-- [ ] Without API key: returns 503 with clear error message
-- [ ] Without API key: memory bypass still works if cached
-- [ ] With API key: forwards to provider and returns response
-- [ ] With API key: logs request with latency
-
-## Demo
-
-- [ ] `npm run demo` completes without errors
-- [ ] Demo shows 3 scenarios (baseline, same request, one file changed)
-- [ ] Demo shows tokens prevented for each scenario
-- [ ] Demo shows dashboard summary at end
-
-## Dashboard
-
-- [ ] Dashboard loads in browser at `http://localhost:3000/dashboard`
-- [ ] Dashboard shows Total Tokens Prevented
-- [ ] Dashboard shows Estimated $ Saved
-- [ ] Dashboard shows Provider Calls Avoided
-- [ ] Dashboard shows Avg Reduction %
-- [ ] Dashboard updates after new requests
-
-## Documentation
-
-- [ ] README quickstart is copy/paste usable
-- [ ] curl examples work
-- [ ] `.env.example` exists and is documented
-- [ ] LAUNCH_CHECKLIST.md exists
-
-## Benchmark
-
-- [ ] `npx tsx src/benchmark-quick.ts` runs successfully
-- [ ] Benchmark shows savings for unchanged context (88%+)
-- [ ] Benchmark shows savings for changed context (60%+)
-
-## Final Verification
-
-- [ ] All items above are checked
-- [ ] No console errors during normal operation
-- [ ] Server handles Ctrl+C gracefully
+Do not mark this checklist complete until each applicable item has a linked, reproducible evidence artifact and a reviewer has checked the actual user workflow.

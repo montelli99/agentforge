@@ -2,6 +2,11 @@ import http from "node:http";
 
 const BASE = process.env.AGENTFORGE_URL || "http://localhost:3000";
 
+function getErrorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
+  return typeof error.code === "string" ? error.code : undefined;
+}
+
 function get(path: string): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     http.get(`${BASE}${path}`, (res) => {
@@ -179,7 +184,7 @@ async function runSmoke(): Promise<void> {
       req.write(data);
       req.end();
     });
-    if (res.status === 503 && res.body.error?.code === "provider_key_missing") {
+    if (res.status === 503 && getErrorCode(res.body.error) === "provider_key_missing") {
       console.log("   PASS (503 provider_key_missing)\n");
     } else {
       console.log(`   FAIL: status=${res.status} body=${JSON.stringify(res.body)}\n`);
@@ -232,7 +237,7 @@ async function runSmoke(): Promise<void> {
       req.write(data);
       req.end();
     });
-    if (res.status === 503 && res.body.error?.code === "provider_key_missing") {
+    if (res.status === 503 && getErrorCode(res.body.error) === "provider_key_missing") {
       console.log("   PASS (503 provider_key_missing)\n");
     } else if (res.status === 200) {
       console.log(`   PASS (200 response with provider forwarding)\n`);

@@ -10,6 +10,7 @@ export interface ModelRoutingSpec {
   taskComplexity: "simple" | "moderate" | "complex" | "expert";
   requiresToolCalling: boolean;
   requiresStructuredOutput: boolean;
+  requiresVision?: boolean;
   maxCostUsd?: number;
   forceLocalOnly?: boolean;
 }
@@ -29,30 +30,55 @@ export class ModelRouter {
   }
 
   async selectTarget(spec: ModelRoutingSpec): Promise<RouteTarget> {
-    const hasOllama = this.providers.has("ollama") && await this.providers.get("ollama")!.isAvailable();
+    const ollama = this.providers.get("ollama");
+    const localTaskCapabilitiesUnverified = spec.requiresVision === true
+      || spec.requiresToolCalling
+      || spec.requiresStructuredOutput;
+    const hasOllama = !localTaskCapabilitiesUnverified && !!ollama && await ollama.isAvailable();
+    const ollamaModels = hasOllama ? await ollama.listModels().catch(() => []) : [];
+    const selectLocalModel = (preferred: string): string | undefined =>
+      ollamaModels.find(model => model === preferred) ?? ollamaModels[0];
     const hasOpenAI = this.providers.has("openai") && await this.providers.get("openai")!.isAvailable();
+    const hasMiMo = this.providers.has("mimo") && await this.providers.get("mimo")!.isAvailable();
 
-    // If strictly simple and local is available -> Tier 2 (fast local)
-    if (spec.taskComplexity === "simple" && hasOllama) {
+    // Route local work only to a model actually discovered on the local daemon.
+    const simpleLocalModel = selectLocalModel("qwen2.5:3b");
+    const moderateLocalModel = selectLocalModel("llama3.1:8b");
+    if (spec.taskComplexity === "simple" && simpleLocalModel) {
       return {
         tier: 2,
         providerId: "ollama",
-        model: "qwen2.5:3b",
-        reason: "Simple task routed to fast local Tier 2 model for zero marginal cost",
+        model: simpleLocalModel,
+        reason: "Simple task routed to a discovered local model; no external API cost",
       };
     }
 
-    // If moderate complexity and local is available -> Tier 3 (strong local)
-    if (spec.taskComplexity === "moderate" && hasOllama) {
+    if (spec.taskComplexity === "moderate" && moderateLocalModel) {
       return {
         tier: 3,
         providerId: "ollama",
-        model: "llama3.1:8b",
-        reason: "Moderate complexity routed to stronger local Tier 3 model",
+        model: moderateLocalModel,
+        reason: "Moderate task routed to a discovered local model; no external API cost",
       };
     }
 
-    // If complex/expert or requires advanced tools/cloud -> Tier 4
+    if (spec.forceLocalOnly && !simpleLocalModel && !moderateLocalModel) {
+      throw new Error("Local-only routing requested, but no suitable discovered local model is available for this task.");
+    }
+
+    // Complex/expert: prefer MiMo if available (cost-effective frontier)
+    if (hasMiMo && !spec.forceLocalOnly) {
+      const needsVision = spec.requiresVision === true;
+      const model = needsVision ? "mimo-v2.5" : "mimo-v2.5-pro";
+      return {
+        tier: 4,
+        providerId: "mimo",
+        model,
+        reason: `Routed to MiMo ${model} at Tier 4 (vision=${needsVision})`,
+      };
+    }
+
+    // Fallback to OpenAI if available
     if (hasOpenAI && !spec.forceLocalOnly) {
       return {
         tier: 4,
@@ -63,20 +89,20 @@ export class ModelRouter {
     }
 
     // Fallback to local if available
-    if (hasOllama) {
+    if (moderateLocalModel || simpleLocalModel) {
       return {
         tier: 3,
         providerId: "ollama",
-        model: "llama3.1:8b",
-        reason: "Fallback to available local model",
+        model: moderateLocalModel ?? simpleLocalModel!,
+        reason: "Fallback to a discovered local model; no external API cost",
       };
     }
 
     // Default target
     return {
       tier: 4,
-      providerId: "openai",
-      model: spec.taskComplexity === "expert" ? "gpt-4o" : "gpt-4o-mini",
+      providerId: hasMiMo ? "mimo" : "openai",
+      model: hasMiMo ? "mimo-v2.5-pro" : (spec.taskComplexity === "expert" ? "gpt-4o" : "gpt-4o-mini"),
       reason: "Default configuration target",
     };
   }

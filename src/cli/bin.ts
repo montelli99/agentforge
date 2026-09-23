@@ -30,6 +30,16 @@ async function main() {
       if (!res.valid) console.error(res.errors);
       return;
     }
+    if (sub === "inspect-archive") {
+      const target = args[2] || process.cwd();
+      const archive = args[3];
+      if (!archive) throw new Error("Usage: agentforge pack inspect-archive <package-directory> <archive.zip>");
+      const res = cli.packInspectArchive(target, archive);
+      console.log(`Archive inspection: ${res.valid ? "PASSED" : "FAILED"}`);
+      if (res.entries.length > 0) console.log(`Files inspected: ${res.entries.length}`);
+      if (!res.valid) console.error(res.errors);
+      return;
+    }
     if (sub === "test") {
       const target = args[2] || process.cwd();
       const res = cli.packTest(target);
@@ -44,7 +54,7 @@ async function main() {
     }
   }
 
-  console.log("Usage: agentforge [status | pack init <name> | pack validate <path> | pack test <path> | pack benchmark <path>]");
+  console.log("Usage: agentforge [status | pack init <name> | pack validate <path> | pack inspect-archive <package-directory> <archive.zip> | pack test <path> | pack benchmark <path>]");
 }
 
 main().catch(err => {

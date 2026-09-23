@@ -55,3 +55,10 @@ export interface MemoryProvider {
   delete(namespace: string, id: string): Promise<boolean>;
   getDoNotRepeatRules(namespace: string, projectId?: string): Promise<OperationalMemoryRecord[]>;
 }
+
+/** Synchronous repository boundary used by providers backed by the canonical workspace snapshot. */
+export interface OperationalMemoryRepository {
+  listOperationalMemories(namespace: string): OperationalMemoryRecord[];
+  saveOperationalMemory(record: OperationalMemoryRecord): void;
+  deleteOperationalMemory(namespace: string, id: string): boolean;
+}

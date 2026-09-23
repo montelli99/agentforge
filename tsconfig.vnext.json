@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "files": ["src/server/start.ts", "src/cli/bin.ts"],
+  "include": []
+}

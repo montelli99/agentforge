@@ -120,24 +120,83 @@ export class ScribeProcessProvider implements ProcessKnowledgeProvider {
   async detectDiff(current: ProcessDefinition, updatedRawContent: string): Promise<ProcessDiff> {
     const updated = await this.ingest({
       sourceType: current.sourceType,
+      sourceUri: current.sourceUri,
       rawContent: updatedRawContent,
     });
+    return this.compareProcesses(current, updated);
+  }
 
-    const addedSteps = updated.steps.filter(
-      us => !current.steps.some(cs => cs.instruction === us.instruction)
-    );
-    const deletedSteps = current.steps.filter(
-      cs => !updated.steps.some(us => us.instruction === cs.instruction)
-    );
+  compareProcesses(current: ProcessDefinition, updated: ProcessDefinition): ProcessDiff {
+    const oldSteps = current.steps;
+    const newSteps = updated.steps;
+    if (oldSteps.length * newSteps.length > 1_000_000) {
+      throw new RangeError("Process diff exceeds the safe step-comparison limit; reduce the document size before comparing revisions.");
+    }
+    const lcs = Array.from({ length: oldSteps.length + 1 }, () => Array<number>(newSteps.length + 1).fill(0));
+    for (let oldIndex = oldSteps.length - 1; oldIndex >= 0; oldIndex--) {
+      for (let newIndex = newSteps.length - 1; newIndex >= 0; newIndex--) {
+        lcs[oldIndex][newIndex] = oldSteps[oldIndex].instruction === newSteps[newIndex].instruction
+          ? lcs[oldIndex + 1][newIndex + 1] + 1
+          : Math.max(lcs[oldIndex + 1][newIndex], lcs[oldIndex][newIndex + 1]);
+      }
+    }
+    const exactMatches: Array<[number, number]> = [];
+    for (let oldIndex = 0, newIndex = 0; oldIndex < oldSteps.length && newIndex < newSteps.length;) {
+      if (oldSteps[oldIndex].instruction === newSteps[newIndex].instruction) {
+        exactMatches.push([oldIndex++, newIndex++]);
+      } else if (lcs[oldIndex + 1][newIndex] >= lcs[oldIndex][newIndex + 1]) {
+        oldIndex++;
+      } else {
+        newIndex++;
+      }
+    }
+
+    const pairs: Array<{ oldIndex: number; newIndex: number; modified: boolean }> = [];
+    let oldCursor = 0;
+    let newCursor = 0;
+    for (const [matchedOld, matchedNew] of [...exactMatches, [oldSteps.length, newSteps.length] as [number, number]]) {
+      const pairedCount = Math.min(matchedOld - oldCursor, matchedNew - newCursor);
+      for (let offset = 0; offset < pairedCount; offset++) {
+        pairs.push({ oldIndex: oldCursor + offset, newIndex: newCursor + offset, modified: true });
+      }
+      if (matchedOld < oldSteps.length) pairs.push({ oldIndex: matchedOld, newIndex: matchedNew, modified: false });
+      oldCursor = matchedOld + 1;
+      newCursor = matchedNew + 1;
+    }
+
+    const matchedOldIndexes = new Set(pairs.map(pair => pair.oldIndex));
+    const matchedNewIndexes = new Set(pairs.map(pair => pair.newIndex));
+    const addedSteps = newSteps.filter((_, index) => !matchedNewIndexes.has(index));
+    const deletedSteps = oldSteps.filter((_, index) => !matchedOldIndexes.has(index));
+    const modifiedSteps: ProcessDiff["modifiedSteps"] = [];
+
+    for (const pair of pairs) {
+      if (!pair.modified) continue;
+      const previous = oldSteps[pair.oldIndex];
+      const step = newSteps[pair.newIndex];
+      const changes: Record<string, unknown> = {};
+      for (const key of ["sequence", "title", "instruction", "toolRequirements", "permissionsRequired", "expectedEvidence", "decisionPoint", "exceptionHandler"] as const) {
+        if (JSON.stringify(previous[key] ?? null) !== JSON.stringify(step[key] ?? null)) {
+          changes[key] = { previous: previous[key] ?? null, updated: step[key] ?? null };
+        }
+      }
+      if (Object.keys(changes).length > 0) modifiedSteps.push({ stepId: step.id, changes });
+    }
+
+    const ruleKey = (rule: UnresolvedBusinessRule) => `${rule.stepId}\u0000${rule.question}\u0000${rule.severity}`;
+    const previousRuleKeys = new Set(current.unresolvedRules.map(ruleKey));
+    const newUnresolvedRules = updated.unresolvedRules
+      .filter(rule => !previousRuleKeys.has(ruleKey(rule)))
+      .map(rule => ({ ...rule, processId: current.id }));
 
     return {
       processId: current.id,
       previousVersion: current.version,
       newVersion: current.version + 1,
       addedSteps,
-      modifiedSteps: [],
+      modifiedSteps,
       deletedStepIds: deletedSteps.map(s => s.id),
-      newUnresolvedRules: updated.unresolvedRules,
+      newUnresolvedRules,
       affectedAgentIds: [],
       detectedAt: new Date().toISOString(),
     };

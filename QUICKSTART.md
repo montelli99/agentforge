@@ -1,195 +1,72 @@
 # AgentForge Quickstart
 
-Get AgentForge running in under 10 minutes.
+Run the current AgentForge control plane locally. This quickstart uses the built-in mock/local state and does not connect to a live CRM, messaging, or telephony account.
 
-## Prerequisites
+## Requirements
 
-- Node.js 18+ (20+ recommended)
-- npm or pnpm
+- Node.js 22 or newer
+- pnpm 10 or newer
 
-## 1. Clone and Install
-
-```bash
-git clone https://github.com/your-org/agentforge.git
-cd agentforge
-npm install
-```
-
-## 2. Configure
+## Install and build
 
 ```bash
-cp .env.example .env
+pnpm install --frozen-lockfile
+pnpm build
 ```
 
-**Option A: OpenAI API key**
-```
-OPENAI_API_KEY=sk-your-key-here
-```
-
-**Option B: Ollama (local, no API key needed)**
-```
-AGENTFORGE_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-AGENTFORGE_MODEL=llama3.1:8b
-```
-
-**Option C: Mock mode (no key, no Ollama)**
-Server works without an API key in mock mode — optimization runs, responses are simulated.
-
-## 3. Start the Server
+## Start the server
 
 ```bash
-npm run start
+pnpm start
 ```
 
-You should see:
+The server listens on `http://localhost:3000` by default. Set `PORT` to use another port.
 
-```
-[AgentForge] Server running on http://localhost:3000
-[AgentForge] Optimization: enabled
-[AgentForge] Provider: openai/gpt-4o-mini
-[AgentForge] API Key: configured
-[AgentForge] Dashboard: http://localhost:3000/dashboard
-```
-
-## 4. Verify It Works
+## Check readiness
 
 ```bash
-curl -s http://localhost:3000/health
+curl -i http://localhost:3000/api/status
+curl -i http://localhost:3000/api/readiness
 ```
 
-Expected: `{"status":"ok",...}`
+The control plane also exposes `GET /api/agents`, `GET /api/tasks`, and `GET /api/compute`. These endpoints report the current local staging state; they do not imply that external providers are connected.
 
-## 5. Send a Request
+## Run the test suite
 
 ```bash
-curl -s http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o-mini",
-    "messages": [
-      {"role":"user","content":"Say hello from AgentForge"}
-    ]
-  }'
+pnpm test
+pnpm typecheck
+pnpm check
 ```
 
-You get an OpenAI-compatible response with `agentforge` metadata showing tokens prevented.
+`pnpm check` runs the full strict source-tree typecheck, test suite, and production build.
 
-## 6. Run the Demo
+Provider-backed live tests are opt-in. They require both a provider credential and `AGENTFORGE_LIVE_TESTS=1`; ordinary tests do not make paid provider calls.
+
+## Development mode
 
 ```bash
-npm run demo
+pnpm dev
 ```
 
-This sends 3 requests and shows you the savings:
+This runs the same vNext server directly from TypeScript. `pnpm legacy` starts the older experimental server for compatibility checks.
 
-1. **Baseline** — first request, full context
-2. **Same request** — should hit cache/memory
-3. **One file changed** — partial context elimination
+## Consolidate Markdown references
 
-## 7. View the Dashboard
-
-Open in browser: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
-
-The dashboard auto-refreshes via Server-Sent Events (SSE). No page reload needed.
-
-**All monitoring endpoints:**
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /dashboard` | Live HTML dashboard with auto-refresh |
-| `GET /dashboard.json` | JSON metrics (latest 50 requests, last-hour stats) |
-| `GET /events` | SSE stream — real-time request events |
-| `GET /metrics.csv` | CSV export of all request logs |
-| `GET /summary/daily` | Daily summary: requests, savings, top models, top types |
-| `GET /health` | Health check with provider/memory/optimization status |
-| `GET /version` | Version, git commit, build date |
-
-**Quick curl examples:**
+Regenerate the flat review copy and its index from Markdown files in this repository:
 
 ```bash
-# Live metrics
-curl -s http://localhost:3000/dashboard.json | jq
-
-# Daily summary
-curl -s http://localhost:3000/summary/daily | jq
-
-# Export CSV
-curl -s http://localhost:3000/metrics.csv -o metrics.csv
-
-# SSE stream (Ctrl+C to stop)
-curl -N http://localhost:3000/events
+pnpm docs:collect
 ```
 
-## 8. Run the Benchmark
+To include a Markdown artifact stored outside the repository, pass it explicitly:
 
 ```bash
-npm run benchmark
+pnpm docs:collect -- --extra "path/to/artifact.md"
 ```
 
-Shows savings across 6 scenarios (repo unchanged, one file changed, one line changed, new file, conversation, RAG).
+The script rejects filename collisions rather than silently overwriting a document. The indexed source files remain canonical; the consolidated folder is a review copy.
 
-## 9. Run Tests
+## Current scope
 
-```bash
-npm test
-```
-
-All tests should pass.
-
-## Common Errors
-
-### `EADDRINUSE: address already in use :::3000`
-
-Another process is using port 3000. Either kill it or change ports:
-
-```bash
-export AGENTFORGE_PORT=3001
-npm run start
-```
-
-### `Provider API key not configured`
-
-You sent a request but didn't set `OPENAI_API_KEY` or `AGENTFORGE_PROVIDER=ollama`. Either:
-
-1. Set the key: `export OPENAI_API_KEY=sk-...`
-2. Use Ollama: `export AGENTFORGE_PROVIDER=ollama`
-3. Or accept mock responses (optimization still works, responses are simulated)
-
-### `ECONNREFUSED` (Ollama)
-
-Ollama isn't running. Start it first: `ollama serve`
-
-### `ECONNREFUSED` (general)
-
-Server isn't running. Start it first: `npm run start`
-
-### `Cannot find module`
-
-Run `npm install` first.
-
-## Docker
-
-```bash
-docker build -t agentforge .
-docker run --env-file .env -p 3000:3000 agentforge
-```
-
-## Ollama Setup (Local LLM, No API Key)
-
-1. Install Ollama: https://ollama.com
-2. Pull a model: `ollama pull llama3.1:8b`
-3. Start Ollama: `ollama serve`
-4. Configure AgentForge:
-   ```
-   AGENTFORGE_PROVIDER=ollama
-   OLLAMA_BASE_URL=http://localhost:11434
-   AGENTFORGE_MODEL=llama3.1:8b
-   ```
-5. Start AgentForge: `npm run start`
-6. Test: `curl http://localhost:3000/health`
-
-## Next Steps
-
-- Read [FIRST_TESTER_GUIDE.md](FIRST_TESTER_GUIDE.md) for what to test
-- Fill out [TESTER_FEEDBACK.md](TESTER_FEEDBACK.md) with your results
+AgentForge is in active staging. Review `LAUNCH_CHECKLIST.md` before describing it as production-ready. The current UI and endpoints are a local control-plane foundation; real integrations, authorization, persistence/recovery, security review, marketplace distribution, and human acceptance remain release gates.
