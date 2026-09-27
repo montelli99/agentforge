@@ -77,9 +77,8 @@ after explicit owner approval.
 archive report, and registry provenance.
 
 **Current state:** local package-ready audit passes and hosted CI is recorded
-for the public repository. The passing run is
-[36359613619](https://github.com/montelli99/agentforge/actions/runs/36359613619)
-on commit `a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32`. Registry publication and
+for the public repository. Passing run `36359613619` verified commit
+`a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32`. Registry publication and
 provenance verification remain separate operator-approved release actions.
 
 ## Governing documents
