@@ -45,7 +45,7 @@ export type EventStatus =
 export interface EventLedgerEntry {
   id: string;                    // unique ledger entry sequence id
   eventId: string;               // unique deduplication id (e.g. hash of provider + external id)
-  origin: "telegram" | "discord" | "web" | "cli" | "agent" | "system" | "api";
+  origin: "telegram" | "discord" | "slack" | "web" | "cli" | "agent" | "system" | "api";
   eventType: string;             // e.g. "message.created", "channel.created", "approval.resolved"
   payload: Record<string, unknown>;
   status: EventStatus;

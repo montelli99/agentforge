@@ -7,6 +7,7 @@
  */
 
 import type { SecretProvider, SecretMetadata } from "../providers/secret.js";
+import { redactRuntimeValue } from "./runtimeRedaction.js";
 
 export class IsolatedSecretStore implements SecretProvider {
   readonly id = "isolated_secret_store";
@@ -74,28 +75,10 @@ export class IsolatedSecretStore implements SecretProvider {
   }
 
   /**
-   * Sanitizes any object or payload, ensuring secrets or potential secret keys are masked or stripped.
+   * Sanitizes data before it crosses into durable artifacts. This uses both
+   * credential-shaped keys and credential-shaped values, including short values.
    */
   sanitizeData<T>(data: T): T {
-    if (!data || typeof data !== "object") return data;
-
-    if (Array.isArray(data)) {
-      return data.map(item => this.sanitizeData(item)) as unknown as T;
-    }
-
-    const sanitized: Record<string, unknown> = {};
-    const secretKeysRegex = /(token|secret|password|api_?key|private_?key|auth)/i;
-
-    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-      if (secretKeysRegex.test(key) && typeof value === "string") {
-        sanitized[key] = "[REDACTED_SECRET]";
-      } else if (typeof value === "object" && value !== null) {
-        sanitized[key] = this.sanitizeData(value);
-      } else {
-        sanitized[key] = value;
-      }
-    }
-
-    return sanitized as T;
+    return redactRuntimeValue(data) as T;
   }
 }

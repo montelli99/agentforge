@@ -11,19 +11,40 @@ import type {
   InboundChannelEvent,
   OutboundChannelMessage,
   OutboundTopicUpdate,
+  ChannelProviderReadiness,
 } from "../../core/providers/channel.js";
 import type { ApprovalRequest } from "../../core/types/approval.js";
+import { DiscordGatewayRelay, type DiscordGatewayBridge } from "./discordGatewayRelay.js";
+
+type DiscordLiveTransport = { isConnected(): boolean; isReady?(): boolean; start?(): Promise<void>; stop?(): void; sendMessage?(channelId: string, text: string): Promise<string> };
 
 export class DiscordMirrorProvider implements ChannelProvider {
   readonly id = "discord_mirror";
   readonly type: ChannelProviderType = "discord";
 
+  readiness(): ChannelProviderReadiness {
+    const live = Boolean(this.liveTransport?.isReady?.() ?? this.liveTransport?.isConnected());
+    return { status: live ? "live" : "sandbox", summary: live
+      ? "Discord is connected through the standalone Gateway v10 transport and routed through the canonical AgentForge mirror."
+      : "Discord mirror contracts and a standalone Gateway v10 transport are available; an authenticated gateway/session relay can also be attached without copying provider secrets.", capabilities: ["channel binding", "interaction normalization", "remote-control policy handling", "outbound message contract", "standalone Gateway v10 transport", "gateway/session relay"], missing: live ? [] : ["live provider acceptance"] };
+  }
+
+  attachLiveTransport(transport: DiscordLiveTransport): void { this.liveTransport = transport; }
+
+  createGatewayRelay(bridge: DiscordGatewayBridge): DiscordGatewayRelay {
+    return new DiscordGatewayRelay(this, bridge);
+  }
+
   private eventHandlers: Array<(event: InboundChannelEvent) => Promise<void>> = [];
   private channelBindings = new Map<string, string>(); // canonicalChannelId <-> discordChannelId
   private sentMessages: Array<{ messageId: string; targetChannel: string; text: string }> = [];
+  private liveTransport?: DiscordLiveTransport;
 
-  async initialize(): Promise<void> {}
+  async initialize(): Promise<void> {
+    await this.liveTransport?.start?.();
+  }
   async shutdown(): Promise<void> {
+    this.liveTransport?.stop?.();
     this.eventHandlers = [];
   }
 
@@ -71,7 +92,24 @@ export class DiscordMirrorProvider implements ChannelProvider {
     command?: string;
     customId?: string;
     actionPayload?: Record<string, unknown>;
+    text?: string;
+    eventType?: "interaction" | "message";
   }): Promise<void> {
+    if (interaction.eventType === "message") {
+      const event: InboundChannelEvent = {
+        id: `discord-msg-${interaction.interactionId}`,
+        provider: "discord",
+        eventType: "message",
+        externalWorkspaceId: interaction.guildId,
+        externalChannelId: interaction.channelId,
+        externalUserId: interaction.userId,
+        externalUsername: interaction.username,
+        payload: { text: interaction.text || "" },
+        timestamp: new Date().toISOString(),
+      };
+      for (const h of this.eventHandlers) await h(event);
+      return;
+    }
     if (interaction.command) {
       const event: InboundChannelEvent = {
         id: `discord-cmd-${interaction.interactionId}`,
@@ -101,6 +139,12 @@ export class DiscordMirrorProvider implements ChannelProvider {
   }
 
   async sendMessage(message: OutboundChannelMessage): Promise<{ externalMessageId: string }> {
+    const discordChannelId = this.channelBindings.get(message.canonicalChannelId);
+    if (this.liveTransport?.sendMessage && discordChannelId) {
+      const externalMessageId = await this.liveTransport.sendMessage(discordChannelId, message.text);
+      this.sentMessages.push({ messageId: externalMessageId, targetChannel: message.canonicalChannelId, text: message.text });
+      return { externalMessageId };
+    }
     const externalMessageId = `discord-msg-${crypto.randomUUID().slice(0, 8)}`;
     this.sentMessages.push({
       messageId: externalMessageId,

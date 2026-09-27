@@ -7,7 +7,7 @@ IT DOES NOT REPLACE IT.
 
 Continue using all previously established architectural requirements, especially:
 
-- complete isolation from production OpenClaw/PPC
+- complete isolation from unrelated production systems
 - canonical AgentForge workspace
 - bidirectional Web/Telegram/Discord mirroring
 - Pi as initial default harness candidate
@@ -898,7 +898,7 @@ Calls should appear inside AgentForge workspace/channel context.
 
 Example:
 
-PPC
+external workflow
 ├── Seller Responses
 ├── Underwriting
 └── Calls

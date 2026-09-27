@@ -41,10 +41,20 @@ export interface ProcessExecutionTrace {
   status: "completed" | "waiting_for_approval" | "failed";
   stepResults: StepExecutionResult[];
   unresolvedBlockers: UnresolvedBusinessRule[];
+  /** The public engine currently validates sequencing and authority; it does not pretend to perform side effects. */
+  executionMode: "validated_only";
 }
 
+export type GovernedStepExecutor = (input: {
+  step: ProcessStep;
+  taskId: string;
+  agent: AgentTeammate;
+  contract: ExecutionContract;
+  worktreePath: string;
+}) => Promise<{ output?: string }>;
+
 export class ProcessExecutionEngine {
-  constructor(private readonly store: WorkspaceStore) {}
+  constructor(private readonly store: WorkspaceStore, private readonly stepExecutor?: GovernedStepExecutor) {}
 
   /**
    * Evaluates whether a process step requires privileged authority
@@ -76,6 +86,7 @@ export class ProcessExecutionEngine {
     taskId: string;
     worktreePath: string;
     approvedStepIds?: Set<string>;
+    stepExecutor?: GovernedStepExecutor;
   }): Promise<ProcessExecutionTrace> {
     const { process, agent, contract, taskId, approvedStepIds = new Set<string>() } = params;
     const startedAt = new Date().toISOString();
@@ -126,16 +137,33 @@ export class ProcessExecutionEngine {
         break;
       }
 
-      // Step is authorized to run
+      // Step is authorized to run. Without an injected executor this remains a
+      // truthful validation-only trace; providers opt into real effects explicitly.
+      let stepStatus: StepExecutionResult["status"] = "completed";
+      let stepOutput = `Governed validation passed under contract authority. Step ${step.sequence} is ready; no external side effect executor is configured.`;
+      let stepError: string | undefined;
+      const stepExecutor = params.stepExecutor || this.stepExecutor;
+      if (stepExecutor) {
+        try {
+          const result = await stepExecutor({ step, taskId, agent, contract, worktreePath: params.worktreePath });
+          stepOutput = result.output || `Governed step ${step.sequence} executed by the connected provider.`;
+        } catch (error) {
+          stepStatus = "failed";
+          stepError = error instanceof Error ? error.message : String(error);
+          overallStatus = "failed";
+        }
+      }
       stepResults.push({
         stepId: step.id,
         sequence: step.sequence,
         title: step.title || `Step ${step.sequence}`,
         instruction: step.instruction,
-        status: "completed",
-        output: `Governed execution passed under contract authority. Step ${step.sequence} executed cleanly.`,
+        status: stepStatus,
+        output: stepOutput,
+        error: stepError,
         timestamp: stepTimestamp,
       });
+      if (stepStatus === "failed") break;
     }
 
     const completedAt = overallStatus === "completed" ? new Date().toISOString() : undefined;
@@ -152,6 +180,7 @@ export class ProcessExecutionEngine {
       status: overallStatus,
       stepResults,
       unresolvedBlockers,
+      executionMode: "validated_only",
     };
   }
 

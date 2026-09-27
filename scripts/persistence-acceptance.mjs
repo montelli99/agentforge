@@ -64,18 +64,33 @@ try {
   await startServer(port);
   const initialStatus = await (await fetch(`http://127.0.0.1:${port}/api/status`)).json();
   assert.equal(initialStatus.dataMode, "EMPTY", "fresh durable user storage must be identified as an empty workspace");
-  const [initialAgents, initialTasks, initialPackages] = await Promise.all([
+  const [initialAgents, initialTasks, initialPackages, initialDriftBaselines] = await Promise.all([
     fetch(`http://127.0.0.1:${port}/api/agents`).then(response => response.json()),
     fetch(`http://127.0.0.1:${port}/api/tasks`).then(response => response.json()),
     fetch(`http://127.0.0.1:${port}/api/packages`).then(response => response.json()),
+    fetch(`http://127.0.0.1:${port}/api/drift/baselines`).then(response => response.json()),
   ]);
   assert.equal(initialAgents.length, 0, "durable user storage must not be seeded with example agents");
   assert.equal(initialTasks.length, 0, "durable user storage must not be seeded with example tasks");
   assert.equal(initialPackages.available.length, 0, "durable user storage must not be seeded with example marketplace packages");
+  assert.equal(initialDriftBaselines.length, 0, "durable user storage must not invent model or harness performance baselines");
+  const unconfiguredDrift = await fetch(`http://127.0.0.1:${port}/api/drift/evaluate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Connection: "close" },
+    body: JSON.stringify({ targetId: "asserted-model", passRatePct: 100, avgLatencyMs: 1 }),
+  });
+  assert.equal(unconfiguredDrift.status, 409, "durable user storage must reject manually asserted drift results without an evaluation source");
+  const setupResponse = await fetch(`http://127.0.0.1:${port}/api/setup-guide/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Connection: "close" },
+    body: JSON.stringify({ rawGoalText: "Prepare a durable local workspace for launcher acceptance." }),
+  });
+  assert.equal(setupResponse.status, 201, "first launcher must let the Setup Guide prepare a local project conversation");
+  const setup = await setupResponse.json();
   const created = await fetch(`http://127.0.0.1:${port}/api/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Connection: "close" },
-    body: JSON.stringify({ channelId: "chan-general", content: "Launcher persistence acceptance marker" }),
+    body: JSON.stringify({ channelId: setup.channel.id, threadId: setup.thread.id, content: "Launcher persistence acceptance marker" }),
   });
   assert.equal(created.status, 201, "first launcher must accept the test message");
   const workspaceResponse = await fetch(`http://127.0.0.1:${port}/api/workspaces`, {
@@ -165,7 +180,7 @@ try {
   await stopServer();
 
   await startServer(port);
-  const response = await fetch(`http://127.0.0.1:${port}/api/messages?channelId=chan-general`, { headers: { Connection: "close" } });
+  const response = await fetch(`http://127.0.0.1:${port}/api/threads/${encodeURIComponent(setup.thread.id)}/messages`, { headers: { Connection: "close" } });
   assert.equal(response.status, 200, "restarted launcher must serve messages");
   const messages = await response.json();
   assert.ok(messages.some(message => message.content === "Launcher persistence acceptance marker"), "message must survive process restart");

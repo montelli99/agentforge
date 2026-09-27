@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { WorkspaceStore } from '../dist/core/store/workspaceStore.js';
+import { AgentForgeWebServer } from '../dist/server/webServer.js';
+const directory=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-evidence-ui-'));
+const store=new WorkspaceStore(path.join(directory,'workspace.json'));
+const project=store.createSpace({name:'Evidence UI fixture',workspaceId:'ws-default',provider:'agentforge'});
+const task=store.createTask({title:'UI fixture — not an agent execution',description:'Synthetic records for checking presentation only.',projectId:project.id,status:'waiting_approval',priority:'low'});
+store.updateTask(task.id,{evidencePack:{id:'fixture-evidence',taskId:task.id,agentId:'fixture',objective:'Verify the evidence reader presentation using labeled fixtures.',contractId:task.contract.id,baseSha:'fixture-base',finalSha:'fixture-final',filesChanged:[{filePath:'src/example.ts',status:'modified',linesAdded:1,linesDeleted:1,patch:'@@ -1 +1 @@\n-export const answer = 0;\n+export const answer = 42;'}],diffStat:{filesCount:1,insertions:1,deletions:1},commandsExecuted:[{command:'fixture check',cwd:'fixture/project',timestamp:new Date().toISOString(),exitCode:1,durationMs:125}],testResults:[{checkName:'UI fixture failing check',command:'fixture check',passed:false,exitCode:1,stdout:'Example output',stderr:'Example failure detail',durationMs:125}],artifacts:[],generatedAt:new Date().toISOString(),verifiedPassed:false}});
+store.createApproval({taskId:task.id,requesterAgentId:'fixture',action:'Fixture review request',description:'Synthetic approval for verifying review controls. Not a production decision.',risk:'low'});
+const planTask=store.createTask({title:'Plan review fixture — execution disabled',description:'Review-only sample commands; no execution backend is connected.',projectId:project.id,status:'backlog',priority:'low'});
+store.updateTask(planTask.id,{contract:{...planTask.contract,requiredChecks:[{type:'build',command:'node --version',required:true}]}});
+const server=new AgentForgeWebServer(store,0);await server.start();console.log('UI_FIXTURE '+server.getBaseUrl());
+process.on('SIGINT',async()=>{await server.stop();process.exit(0)});

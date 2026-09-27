@@ -10,12 +10,17 @@ import type {
   ChannelProviderType,
   InboundChannelEvent,
   OutboundChannelMessage,
+  ChannelProviderReadiness,
 } from "../../core/providers/channel.js";
 import type { ApprovalRequest } from "../../core/types/approval.js";
 
 export class NativeWebChannelProvider implements ChannelProvider {
   readonly id = "agentforge_native_web";
   readonly type: ChannelProviderType = "web";
+
+  readiness(): ChannelProviderReadiness {
+    return { status: "local", summary: "Local workspace channel used by the AgentForge web application.", capabilities: ["local inbound messages", "local outbound messages", "workspace persistence"], missing: ["external provider transport"] };
+  }
 
   private eventHandlers: Array<(event: InboundChannelEvent) => Promise<void>> = [];
   private liveFeed: OutboundChannelMessage[] = [];

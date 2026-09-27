@@ -68,6 +68,30 @@ describe("completion goal API", () => {
     expect(session.originalGoal.immutableHash).toMatch(/^[a-f0-9]{64}$/);
     expect(session.prd.requirements.length).toBeGreaterThan(1);
 
+    const requirementId = session.prd.requirements[0]!.id;
+    const traceability = await fetch(`${base}/api/completion/sessions/goal-persistence-check/traceability/${requirementId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Connection: "close" },
+      body: JSON.stringify({
+        codeArtifacts: ["src/planner.ts"],
+        testNames: ["src/planner.test.ts"],
+        evidencePackIds: ["evidence/planner.json"],
+      }),
+    });
+    expect(traceability.status).toBe(200);
+    const traced = await traceability.json() as { traceability: Array<{ requirementId: string; taskIds: string[]; codeArtifacts: string[]; testNames: string[]; evidencePackIds: string[] }> };
+    expect(traced.traceability.find(item => item.requirementId === requirementId)).toMatchObject({
+      taskIds: ["goal-persistence-check"],
+      codeArtifacts: ["src/planner.ts"],
+      testNames: ["src/planner.test.ts"],
+      evidencePackIds: ["evidence/planner.json"],
+    });
+
+    const malformedTraceability = await fetch(`${base}/api/completion/sessions/goal-persistence-check/traceability/${requirementId}`, {
+      method: "POST", headers: { "Content-Type": "application/json", Connection: "close" }, body: JSON.stringify({ codeArtifacts: [""] }),
+    });
+    expect(malformedTraceability.status).toBe(400);
+
     const duplicate = await fetch(`${base}/api/completion/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Connection: "close" },
@@ -83,6 +107,8 @@ describe("completion goal API", () => {
     const recovered = await restored.json() as typeof session;
     expect(recovered.originalGoal).toEqual(session.originalGoal);
     expect(recovered.prd.requirements.map(requirement => requirement.id)).toEqual(session.prd.requirements.map(requirement => requirement.id));
+    expect((recovered as typeof recovered & { traceability: Array<{ requirementId: string; evidencePackIds: string[] }> }).traceability
+      .find(record => record.requirementId === requirementId)?.evidencePackIds).toEqual(["evidence/planner.json"]);
 
     const listed = await fetch(`${base}/api/completion/sessions`, { headers: { Connection: "close" } });
     expect((await listed.json() as Array<{ taskId: string }>).map(item => item.taskId)).toEqual(["goal-persistence-check"]);
@@ -105,7 +131,76 @@ describe("completion goal API", () => {
     expect(missing.status).toBe(404);
   });
 
-  it("orchestrates completion session start, execution, report, and signed evidence seal", async () => {
+  it("recovers goal sessions from the backup snapshot when the primary is damaged", async () => {
+    dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-goal-recovery-"));
+    const storePath = path.join(dataDirectory, "completion-sessions.json");
+    const port = await availablePort();
+    const createServer = () => new AgentForgeWebServer(
+      new WorkspaceStore(),
+      port,
+      new CompletionEngine(undefined, new JsonCompletionSessionStore(storePath)),
+    );
+    server = createServer();
+    await server.start();
+    const base = `http://127.0.0.1:${port}`;
+    const first = await fetch(`${base}/api/completion/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Connection: "close" },
+      body: JSON.stringify({ taskId: "backup-session", rawGoalText: "Keep the first durable goal session." }),
+    });
+    expect(first.status).toBe(201);
+    const second = await fetch(`${base}/api/completion/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Connection: "close" },
+      body: JSON.stringify({ taskId: "backup-session-second", rawGoalText: "Create a backup snapshot." }),
+    });
+    expect(second.status).toBe(201);
+    expect(fs.existsSync(`${storePath}.bak`)).toBe(true);
+    await server.stop();
+    fs.writeFileSync(storePath, "{ damaged", "utf8");
+
+    server = createServer();
+    await server.start();
+    const restored = await fetch(`${base}/api/completion/sessions/backup-session`, { headers: { Connection: "close" } });
+    expect(restored.status).toBe(200);
+    expect((await restored.json() as { taskId: string }).taskId).toBe("backup-session");
+
+    // A write after recovery must repair the primary without replacing the
+    // valid backup with the damaged source file.
+    const repair = await fetch(`${base}/api/completion/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Connection: "close" },
+      body: JSON.stringify({ taskId: "post-recovery-session", rawGoalText: "Repair the recovered primary snapshot." }),
+    });
+    expect(repair.status).toBe(201);
+    expect(() => JSON.parse(fs.readFileSync(`${storePath}.bak`, "utf8"))).not.toThrow();
+  });
+
+  it("recovers a stale completion-session writer lock", async () => {
+    dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-goal-lock-"));
+    const storePath = path.join(dataDirectory, "completion-sessions.json");
+    const port = await availablePort();
+    server = new AgentForgeWebServer(
+      new WorkspaceStore(),
+      port,
+      new CompletionEngine(undefined, new JsonCompletionSessionStore(storePath)),
+    );
+    await server.start();
+    const lockPath = `${storePath}.lock`;
+    fs.writeFileSync(lockPath, JSON.stringify({ pid: 1, createdAt: "old" }), "utf8");
+    const stale = new Date(Date.now() - 60_000);
+    fs.utimesSync(lockPath, stale, stale);
+
+    const created = await fetch(`http://127.0.0.1:${port}/api/completion/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Connection: "close" },
+      body: JSON.stringify({ taskId: "stale-lock-session", rawGoalText: "Recover the stale local writer lock." }),
+    });
+    expect(created.status).toBe(201);
+    expect(fs.existsSync(lockPath)).toBe(false);
+  });
+
+  it("keeps completion execution fail-closed until a real worker backend is installed", async () => {
     const port = await availablePort();
     const store = new WorkspaceStore();
     // Seed operational memory record
@@ -121,12 +216,6 @@ describe("completion goal API", () => {
 
     server = new AgentForgeWebServer(store, port);
     await server.start();
-    // Enable simulation mode so executeTask proceeds through the full evidence chain
-    // without requiring a live production model/tool backend.
-    (server.taskWorkerRuntime as any).options.simulationMode = true;
-    server.taskWorkerRuntime.start();
-
-
     const base = `http://127.0.0.1:${port}`;
     const goalText = [
       "BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM",
@@ -156,7 +245,7 @@ describe("completion goal API", () => {
     const startedData = await startRes.json() as { state: string };
     expect(startedData.state).toBe("EXECUTING");
 
-    // 3. Create corresponding task in store and execute via /run
+    // 3. Create the corresponding task. The server has no executor by default.
     store.createTask({
       id: "session-e2e-proof",
       title: "Hardened Staging Execution",
@@ -177,24 +266,15 @@ describe("completion goal API", () => {
     });
 
     const runRes = await fetch(`${base}/api/completion/sessions/session-e2e-proof/run`, { method: "POST" });
-    expect(runRes.status).toBe(200);
-    const runData = await runRes.json() as { task: { status: string; error?: string; evidencePack: any }; session: { state: string; verifiedByEngine: boolean } };
-    expect(runData.task.status).toBe("completed");
-    expect(runData.session.state).toBe("COMPLETE_VERIFIED");
-    expect(runData.session.verifiedByEngine).toBe(true);
+    expect(runRes.status).toBe(409);
+    expect((await runRes.json() as { error: string }).error).toMatch(/not connected/i);
+    expect(store.getTask("session-e2e-proof")?.status).toBe("ready");
 
-    // 4. Verify EvidencePack contains signed evidence seal
-    const evPack = runData.task.evidencePack;
-    expect(evPack).toBeDefined();
-    expect(evPack.artifacts.some((a: any) => a.name === "signed_evidence_seal.sha256")).toBe(true);
-    expect(evPack.commandsExecuted.some((c: any) => c.command.includes("memory:retrieve-context"))).toBe(true);
-
-    // 5. Generate final report via /report
+    // 4. A progress report may exist, but it cannot claim verified completion.
     const reportRes = await fetch(`${base}/api/completion/sessions/session-e2e-proof/report`);
     expect(reportRes.status).toBe(200);
-    const reportData = await reportRes.json() as { report: string };
-    expect(reportData.report).toContain("AgentForge Verified Completion Report");
-    expect(reportData.report).toContain("COMPLETE_VERIFIED");
-    expect(reportData.report).toContain("YES (Verified)");
+    const report = (await reportRes.json() as { report: string }).report;
+    expect(report).not.toContain("COMPLETE_VERIFIED");
+    expect(report).not.toContain("YES (Verified)");
   });
 });

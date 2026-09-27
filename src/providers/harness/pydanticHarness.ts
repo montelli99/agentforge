@@ -1,10 +1,11 @@
 /**
- * Pydantic AI Harness Provider
+ * Optional Pydantic AI Execution Engine
  * Section 5: Planned harness target #2.
  * No Python service adapter is implemented; contract simulation is test-only and opt-in.
  */
 
 import crypto from "node:crypto";
+import { redactRuntimeError } from "../../core/secret/runtimeRedaction.js";
 import type {
   HarnessProvider,
   HarnessCapabilities,
@@ -15,30 +16,26 @@ import type {
   HarnessEvent,
   HarnessState,
 } from "../../core/providers/harness.js";
+import type { PydanticHttpExecutor } from "./pydanticHttpExecutor.js";
 
 export class PydanticHarnessProvider implements HarnessProvider {
   readonly id = "pydantic";
-  readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: false,
-    supportsTools: false,
-    supportsMCP: false,
-    supportsPauseResume: false,
-    supportsContextCompaction: false,
-    supportedRuntimes: [],
-  };
+  readonly capabilities: HarnessCapabilities;
 
-  constructor(private readonly simulationEnabled = false) {}
+  constructor(private readonly simulationEnabled = false, private readonly executor?: PydanticHttpExecutor) {
+    this.capabilities = { supportsStreaming: false, supportsTools: Boolean(executor), supportsMCP: false, supportsPauseResume: false, supportsContextCompaction: false, supportedRuntimes: executor ? ["pydantic-http"] : [] };
+  }
 
   private sessions = new Map<string, HarnessSession>();
   private sessionStates = new Map<string, HarnessState>();
   private activeStreams = new Map<string, HarnessEvent[]>();
 
   isConfigured(): boolean {
-    return false;
+    return Boolean(this.executor);
   }
 
   getStatus(): "NOT_CONFIGURED" | "ACTIVE" {
-    return "NOT_CONFIGURED";
+    return this.executor ? "ACTIVE" : "NOT_CONFIGURED";
   }
 
   async startSession(config: HarnessSessionConfig): Promise<HarnessSession> {
@@ -93,6 +90,17 @@ export class PydanticHarnessProvider implements HarnessProvider {
       throw new Error(`Pydantic session ${sessionId} not found`);
     }
 
+    if (this.executor) {
+      const startTime = Date.now();
+      try {
+        const result = await this.executor.executeTask({ session, task });
+        const state = this.sessionStates.get(sessionId);
+        if (state) { state.messageCount += 1; state.totalTokens += result.tokensUsed?.total ?? 0; state.lastActive = new Date().toISOString(); }
+        return { taskId: task.taskId, sessionId, status: "success", output: result.output, tokensUsed: result.tokensUsed, durationMs: Date.now() - startTime };
+      } catch (error) {
+        return { taskId: task.taskId, sessionId, status: "failure", output: "", error: redactRuntimeError(error), durationMs: Date.now() - startTime };
+      }
+    }
     if (!this.simulationEnabled) {
       return {
         taskId: task.taskId,
@@ -116,7 +124,7 @@ export class PydanticHarnessProvider implements HarnessProvider {
       taskId: task.taskId,
       sessionId,
       status: "success",
-      output: `[Pydantic AI Harness] Structured output validated for task: ${task.taskId}`,
+      output: `[Pydantic AI Execution Engine] Structured output validated for task: ${task.taskId}`,
       tokensUsed: { prompt: 140, completion: 60, total: 200 },
       durationMs: Date.now() - startTime,
     };

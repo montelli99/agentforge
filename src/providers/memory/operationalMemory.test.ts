@@ -40,4 +40,13 @@ describe("OperationalMemoryProvider", () => {
     expect(await memory.delete("workspace", projectRule.id)).toBe(true);
     expect(await memory.delete("workspace", projectRule.id)).toBe(false);
   });
+
+  it("ranks title and content term matches ahead of weaker matches", async () => {
+    const memory = new OperationalMemoryProvider();
+    const weak = await memory.record({ namespace: "workspace", category: "general_fact", title: "Operating note", content: "Keep the process visible.", tags: [] });
+    const strong = await memory.record({ namespace: "workspace", category: "general_fact", title: "Docker execution failure", content: "Docker execution failed because the daemon was unavailable.", tags: ["docker"] });
+    const results = await memory.query({ namespace: "workspace", queryText: "docker execution", limit: 2 });
+    expect(results[0]?.record.id).toBe(strong.id);
+    expect(results.map(result => result.record.id)).not.toContain(weak.id);
+  });
 });

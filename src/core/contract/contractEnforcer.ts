@@ -48,7 +48,7 @@ export class ContractEnforcer {
     const violations: EnforcementViolation[] = [];
 
     // Check max files
-    if (contract.scope.maxFilesChanged && modifiedPaths.length > contract.scope.maxFilesChanged) {
+    if (contract.scope.maxFilesChanged !== undefined && modifiedPaths.length > contract.scope.maxFilesChanged) {
       violations.push({
         rule: "max_files",
         description: `Modified files count (${modifiedPaths.length}) exceeds contract maximum (${contract.scope.maxFilesChanged})`,

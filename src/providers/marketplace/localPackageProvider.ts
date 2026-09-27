@@ -400,6 +400,11 @@ export class LocalPackageProvider {
     if (!this.isPermissionApprovalValid(params.manifest.permissions, params.approvedPermissions)) {
       throw new Error("Approved package permissions must be a subset of the permissions requested by the manifest.");
     }
+    // Package names are the durable installation key. Replacing an existing record
+    // would silently discard the publisher/version that the owner reviewed.
+    if (this.installedPackages.has(params.manifest.name)) {
+      throw new Error("Package is already installed. Uninstall it before installing a replacement so publisher and permission review remain explicit.");
+    }
     const installationId = `pkg-inst-${crypto.randomUUID().slice(0, 8)}`;
     const installation: PackageInstallation = {
       id: installationId,
@@ -426,7 +431,9 @@ export class LocalPackageProvider {
     approvedPermissions: PermissionManifest;
     contract?: ExecutionContract;
   }): { installation: PackageInstallation; inspection: ArchiveInspection } {
-    const inspection = inspectPackageZipArchive(params.archiveBuffer);
+    // Installation must enforce the same manifest-to-archive binding as preview.
+    // Inspecting ZIP structure alone would allow an undeclared file to be installed.
+    const inspection = this.inspectPackageArchive(params.manifest, params.archiveBuffer);
     if (!inspection.valid) {
       throw new Error(`Archive inspection failed: ${inspection.errors.join("; ")}`);
     }

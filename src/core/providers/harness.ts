@@ -1,7 +1,7 @@
 /**
  * HarnessProvider Interface
  * Section 5: Harness Strategy
- * Top two targets: Pi, Pydantic AI Harness, plus AgentForge Native.
+ * AgentForge owns the harness contract; Pi and Pydantic are optional execution engines.
  */
 
 export interface HarnessCapabilities {

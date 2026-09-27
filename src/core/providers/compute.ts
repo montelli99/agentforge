@@ -7,6 +7,7 @@ export interface ExecutionCommandOptions {
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 export interface CommandExecutionResult {

@@ -991,10 +991,10 @@ pages.graph = () => `
   <div class="main-header" style="margin-bottom:14px">
     <div>
       <div class="main-title" style="display:flex; align-items:center; gap:8px">
-        <span>Obsidian Topology</span>
+        <span>Workspace topology</span>
         <span class="badge badge-accent" style="font-size:11px">FORCE-DIRECTED GRAPH</span>
       </div>
-      <div class="main-subtitle">Interactive cybernetic visualization of AI teammates, execution harnesses, memory namespaces, and contracts</div>
+      <div class="main-subtitle">Interactive view of AI teammates, the AgentForge harness, optional execution engines, memory, and contracts</div>
     </div>
     <div style="display:flex; gap:8px">
       <button class="btn btn-outline btn-sm" onclick="resetGraphPhysics()">Reset Layout</button>
@@ -1036,7 +1036,7 @@ pages.graph = () => `
         <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('harness')">Harnesses</button>
         <button class="btn-ghost btn-sm" style="font-size:11px" onclick="filterGraph('model')">Models</button>
       </div>
-      <canvas id="obsidianCanvas" style="width:100%; height:540px; cursor:grab"></canvas>
+      <canvas id="workspaceCanvas" style="width:100%; height:540px; cursor:grab"></canvas>
       <div style="position:absolute; bottom:10px; left:14px; color:var(--text-muted); font-size:11px; pointer-events:none">
         Drag nodes to reposition · Hover to inspect · Springs automatically balance
       </div>
@@ -1065,11 +1065,11 @@ pages.graph = () => `
   </div>
 `;
 
-// ── Obsidian Force-Directed Graph Engine ───────────
+// ── Workspace relationship graph ───────────────────
 let graphSim = null;
 
 function initGraphCanvas() {
-  const canvas = document.getElementById('obsidianCanvas');
+  const canvas = document.getElementById('workspaceCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -1459,7 +1459,7 @@ const commands = [
   {icon:'&#129504;',label:'Go to Models',hint:'Provider management',action:()=>navigate('/models')},
   {icon:'&#128722;',label:'Go to Marketplace',hint:'Discover agents',action:()=>navigate('/marketplace')},
   {icon:'&#128260;',label:'Go to Migration',hint:'Import agents',action:()=>navigate('/migration')},
-  {icon:'&#128376;',label:'Go to Graph & Topology',hint:'Obsidian force-directed physics graph',action:()=>navigate('/graph')},
+  {icon:'&#128376;',label:'Go to Graph & Topology',hint:'Workspace relationship graph',action:()=>navigate('/graph')},
   {icon:'&#9889;',label:'Go to Optimization',hint:'Token engine',action:()=>navigate('/optimization')},
   {icon:'&#9881;',label:'Go to Settings',hint:'Configuration',action:()=>navigate('/settings')},
 ];

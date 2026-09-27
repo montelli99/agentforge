@@ -1,12 +1,7 @@
 /**
- * Sanitized OpenClaw Legacy Production Architecture Fixture
- * Section 13: Legacy OpenClaw Fixture
- * 
- * STRICT PRIVACY GUARANTEE:
- * ZERO seller PII, ZERO production credentials, ZERO phone numbers, ZERO live tokens.
- * Accurately models the structural characteristics of the owner's legacy production OpenClaw stack.
+ * Generic sanitized legacy workspace fixture.
+ * It exercises migration without representing a real customer, workflow, or integration.
  */
-
 export const OPENCLAW_LEGACY_FIXTURE = {
   version: "openclaw-2026.04.1-legacy",
   environment: "production-sanitized-fixture",
@@ -17,23 +12,23 @@ export const OPENCLAW_LEGACY_FIXTURE = {
       topics: [
         { id: 1, name: "General" },
         { id: 42, name: "Engineering / Dev" },
-        { id: 108, name: "Acquisitions / PPC Leads" },
+        { id: 108, name: "Operations / Intake" },
         { id: 250, name: "Approvals & Hotfixes" },
       ],
       enableTopicMirroring: true,
-      hasCredentialsConfigured: true, // Reports PRESENT, does not expose secret
+      hasCredentialsConfigured: true,
     },
     models: {
       defaultProvider: "ollama",
       defaultModel: "llama3:8b",
-      decisionProvider: "jev-router-mock",
+      decisionProvider: "router-mock",
       fallbackChain: ["ollama/llama3:8b", "ollama/deepseek-coder:33b", "openai/gpt-4o"],
       hasOpenAiKey: true,
       hasAnthropicKey: false,
     },
     memory: {
       provider: "sqlite-vector",
-      namespace: "openclaw-main",
+      namespace: "legacy-workspace",
       embeddingModel: "text-embedding-3-small",
     },
     agents: [
@@ -46,10 +41,10 @@ export const OPENCLAW_LEGACY_FIXTURE = {
         model: "openai/gpt-4o",
       },
       {
-        id: "claw-agent-lead-intake",
-        name: "LeadBot",
-        systemPrompt: "You qualify incoming real estate leads from webhooks and forms. Mark unqualified leads politely.",
-        tools: ["crm_read", "crm_write", "sms_send"],
+        id: "claw-agent-intake",
+        name: "IntakeBot",
+        systemPrompt: "You organize incoming requests and route them to the right workspace process.",
+        tools: ["records_read", "records_write", "message_send"],
         assignedTopicId: 108,
         model: "ollama/llama3:8b",
       },
@@ -57,11 +52,11 @@ export const OPENCLAW_LEGACY_FIXTURE = {
     tools: [
       { name: "bash", category: "compute", requiresApproval: true },
       { name: "git", category: "vcs", requiresApproval: false },
-      { name: "crm_write", category: "crm", requiresApproval: true },
-      { name: "sms_send", category: "messaging", requiresApproval: true },
+      { name: "records_write", category: "records", requiresApproval: true },
+      { name: "message_send", category: "messaging", requiresApproval: true },
     ],
     schedules: [
-      { id: "cron-morning-scan", cron: "0 8 * * *", task: "Scan uncontacted leads", agentId: "claw-agent-lead-intake" },
+      { id: "cron-intake-review", cron: "0 8 * * *", task: "Review untriaged requests", agentId: "claw-agent-intake" },
       { id: "cron-git-health", cron: "0 0 * * 0", task: "Prune stale branches", agentId: "claw-agent-dev" },
     ],
     durableState: {

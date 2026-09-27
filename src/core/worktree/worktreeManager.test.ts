@@ -26,6 +26,20 @@ afterEach(() => {
 });
 
 describe("WorktreeManager", () => {
+  it("validates resumed checkout identity while preserving unfinished edits", async () => {
+    const root = createRepository();
+    const manager = new WorktreeManager(root);
+    const info = await manager.createWorktree({ taskId: "resume", branchName: "task/resume" });
+    fs.writeFileSync(path.join(info.worktreePath, "README.md"), "unfinished work\n");
+    expect(manager.validateWorktree(info, "resume", info.baseSha)).toBe(info.worktreePath);
+    expect(() => manager.validateWorktree({ ...info, worktreePath: root }, "resume", info.baseSha)).toThrow();
+    expect(() => manager.validateWorktree(info, "other-task", info.baseSha)).toThrow();
+    expect(() => manager.validateWorktree(info, "resume", "0".repeat(40))).toThrow();
+    execFileSync("git", ["checkout", "-b", "unexpected"], { cwd: info.worktreePath, stdio: "pipe" });
+    expect(() => manager.validateWorktree(info, "resume", info.baseSha)).toThrow("branch changed");
+    expect(fs.readFileSync(path.join(info.worktreePath, "README.md"), "utf-8")).toBe("unfinished work\n");
+  });
+
   it("creates and removes a real Git worktree", async () => {
     const root = createRepository();
     const manager = new WorktreeManager(root);

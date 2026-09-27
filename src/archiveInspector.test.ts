@@ -137,6 +137,41 @@ describe("marketplace ZIP archive inspection", () => {
     expect(inspectPackageZipArchive(malformed).valid).toBe(false);
   });
 
+  it("refuses installation when an archive contains files absent from its manifest", () => {
+    const provider = new LocalPackageProvider();
+    const archive = makeStoredZip([{ path: "manifest.json" }, { path: "undeclared.txt" }]);
+
+    expect(() => provider.installFromArchive({
+      archiveBuffer: archive,
+      manifest: { ...manifest, files: ["manifest.json"], sizeBytes: archive.length },
+      installedByUserId: "user-fixture",
+      workspaceId: "workspace-fixture",
+      approvedPermissions: {},
+    })).toThrow("Archive contains an undeclared file");
+    expect(provider.listInstalled()).toHaveLength(0);
+  });
+
+  it("requires an explicit uninstall before a package name can be replaced", () => {
+    const provider = new LocalPackageProvider();
+    provider.installPackage({
+      manifest,
+      installedByUserId: "user-fixture",
+      workspaceId: "workspace-fixture",
+      approvedPermissions: {},
+    });
+
+    expect(() => provider.installPackage({
+      manifest: { ...manifest, version: "2.0.0", publisher: { id: "different-publisher", name: "Different Publisher" } },
+      installedByUserId: "user-fixture",
+      workspaceId: "workspace-fixture",
+      approvedPermissions: {},
+    })).toThrow("Uninstall it before installing a replacement");
+    expect(provider.getInstalled(manifest.name)).toMatchObject({
+      version: manifest.version,
+      packageId: manifest.name,
+    });
+  });
+
   it("rejects duplicate manifest file paths even when case differs", () => {
     const result = new LocalPackageProvider().inspectPackageArchive({
       ...manifest,

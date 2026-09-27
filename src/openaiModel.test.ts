@@ -63,4 +63,19 @@ describe("OpenAI-compatible model adapter", () => {
     expect(events[1].toolCalls?.[0]?.function.arguments).toBe("{\"id\":2}");
     expect(events[1].finishReason).toBe("tool_calls");
   });
+
+  it("does not surface a credential-shaped provider response", async () => {
+    const secret = "sk-response-secret";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(`upstream echoed Bearer ${secret}`, { status: 401 })));
+
+    const provider = new OpenAIModelProvider("test-key", "https://example.test/v1");
+    await expect(provider.generate({
+      model: "test-model",
+      messages: [{ role: "user", content: "hello" }],
+    })).rejects.toThrow("[REDACTED_SECRET]");
+    await expect(provider.generate({
+      model: "test-model",
+      messages: [{ role: "user", content: "hello" }],
+    })).rejects.not.toThrow(secret);
+  });
 });

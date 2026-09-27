@@ -29,6 +29,14 @@ export interface OperationalMemoryRecord {
   commitSha?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  version?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+  archived?: boolean;
+  revisions?: Array<{
+    version: number; title: string; content: string; category: MemoryCategory;
+    tags: string[]; archived: boolean; savedAt: string; actorId?: string;
+  }>;
 }
 
 export interface MemoryQuery {
@@ -38,6 +46,7 @@ export interface MemoryQuery {
   tags?: string[];
   projectId?: string;
   limit?: number;
+  includeArchived?: boolean;
 }
 
 export interface MemorySearchResult {

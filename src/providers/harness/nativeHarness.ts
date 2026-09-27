@@ -1,11 +1,12 @@
 /**
- * AgentForge Native Harness Provider
+ * AgentForge Harness Native Execution Provider
  * Section 6: AgentForge Native Harness
  * Built around execution contracts, policy enforcement, durability, worktree isolation,
  * verification, evidence, and provider routing.
  */
 
 import crypto from "node:crypto";
+import { redactRuntimeError } from "../../core/secret/runtimeRedaction.js";
 import type {
   HarnessProvider,
   HarnessCapabilities,
@@ -17,19 +18,15 @@ import type {
   HarnessState,
 } from "../../core/providers/harness.js";
 import { ContractEnforcer } from "../../core/contract/contractEnforcer.js";
+import type { NativeComputeExecutor } from "./nativeComputeExecutor.js";
 
 export class AgentForgeNativeHarnessProvider implements HarnessProvider {
   readonly id = "agentforge_native";
-  readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: false,
-    supportsTools: false,
-    supportsMCP: false,
-    supportsPauseResume: false,
-    supportsContextCompaction: false,
-    supportedRuntimes: [],
-  };
+  readonly capabilities: HarnessCapabilities;
 
-  constructor(private readonly simulationEnabled = false) {}
+  constructor(private readonly simulationEnabled = false, private readonly executor?: NativeComputeExecutor) {
+    this.capabilities = { supportsStreaming: false, supportsTools: Boolean(executor), supportsMCP: false, supportsPauseResume: Boolean(executor), supportsContextCompaction: false, supportedRuntimes: executor ? ["agentforge-compute"] : [] };
+  }
 
   private contractEnforcer = new ContractEnforcer();
   private sessions = new Map<string, HarnessSession>();
@@ -65,6 +62,8 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
       },
     ]);
 
+    if (this.executor) await this.executor.createSession({ session });
+
     return session;
   }
 
@@ -88,13 +87,22 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
       throw new Error(`AgentForge native session ${sessionId} not found`);
     }
 
+    if (this.executor) {
+      const startTime = Date.now();
+      try {
+        const result = await this.executor.executeTask({ session, task });
+        return { taskId: task.taskId, sessionId, status: "success", output: result.output, filesModified: result.filesModified, durationMs: Date.now() - startTime };
+      } catch (error) {
+        return { taskId: task.taskId, sessionId, status: "failure", output: "", error: redactRuntimeError(error), durationMs: Date.now() - startTime };
+      }
+    }
     if (!this.simulationEnabled) {
       return {
         taskId: task.taskId,
         sessionId,
         status: "failure",
         output: "",
-        error: "AgentForge Native Harness is a contract-test fixture, not an execution engine. No task was executed.",
+        error: "AgentForge Harness has no execution backend configured. No task was executed.",
         durationMs: 0,
       };
     }
@@ -195,6 +203,7 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
   }
 
   async shutdown(): Promise<void> {
+    if (this.executor) await this.executor.shutdown();
     this.sessions.clear();
     this.sessionStates.clear();
     this.activeStreams.clear();

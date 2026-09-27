@@ -11,18 +11,26 @@ import type { WorkspaceStore } from "../store/workspaceStore.js";
 import type { TelegramMirrorProvider } from "../../providers/channels/telegramMirror.js";
 import type { DiscordMirrorProvider } from "../../providers/channels/discordMirror.js";
 import type { NativeWebChannelProvider } from "../../providers/channels/nativeWebChannel.js";
+import type { SlackMirrorProvider } from "../../providers/channels/slackMirror.js";
 import type { InboundChannelEvent } from "../providers/channel.js";
 import type { CanonicalMessage } from "../types/workspace.js";
+import { AgentForgeController } from "../../controller/agentController.js";
+import type { MemoryProvider } from "../providers/memory.js";
+import { redactRuntimeError } from "../secret/runtimeRedaction.js";
 
 export class UniversalMirrorRouter {
   private readonly pendingTelegramLinks = new Map<string, { userId: string; expiresAt: number }>();
+  private readonly controller: AgentForgeController;
 
   constructor(
     private readonly store: WorkspaceStore,
     private readonly telegram?: TelegramMirrorProvider,
     private readonly discord?: DiscordMirrorProvider,
     private readonly web?: NativeWebChannelProvider,
+    memory?: MemoryProvider,
+    private readonly slack?: SlackMirrorProvider,
   ) {
+    this.controller = new AgentForgeController(undefined, memory);
     this.setupListeners();
   }
 
@@ -35,6 +43,9 @@ export class UniversalMirrorRouter {
     }
     if (this.web) {
       this.web.onEvent(evt => this.handleInboundEvent(evt));
+    }
+    if (this.slack) {
+      this.slack.onEvent(evt => this.handleInboundEvent(evt));
     }
     this.store.subscribe((evt) => {
       if (evt.type === "message_created" && evt.entity === "message") {
@@ -66,7 +77,7 @@ export class UniversalMirrorRouter {
 
     // 3. Resolve or Create Canonical Channel Binding
     let canonicalChannel = this.store.findMirroredChannel(
-      event.provider as "telegram" | "discord",
+      event.provider as "telegram" | "discord" | "slack",
       event.externalChannelId,
     );
 
@@ -113,7 +124,44 @@ export class UniversalMirrorRouter {
         syncDirection: "bidirectional",
         syncState: "active",
       });
+      // Keep the provider's outbound routing map in sync with the canonical
+      // binding created for a newly discovered Telegram topic.
+      if (event.provider === "telegram" && this.telegram) {
+        this.telegram.bindTopic(
+          event.externalWorkspaceId,
+          Number(event.externalChannelId) || 1,
+          canonicalChannel.id,
+          `Topic ${event.externalChannelId}`,
+        );
+      }
     }
+
+    // Every channel event receives the same bounded controller handoff as API
+    // task routing. This keeps Telegram, Discord, Slack, and the web surface
+    // on one decision path without granting the channel direct execution power.
+    const eventText = typeof event.payload.text === "string" ? event.payload.text : event.eventType;
+    const inspection = await this.controller.inspect(eventText, {
+      provider: event.provider,
+      eventType: event.eventType,
+      channelId: canonicalChannel.id,
+      externalUserId: event.externalUserId,
+    });
+    this.store.recordAudit({
+      origin: "api",
+      actorId: user?.id || "external-unlinked",
+      actorType: "system",
+      action: "channel_controller_inspected",
+      targetType: "channel",
+      targetId: canonicalChannel.id,
+      details: {
+        provider: event.provider,
+        eventId: event.id,
+        intent: inspection.intent,
+        requiresApproval: inspection.requiresApproval,
+        contextPacketId: inspection.contextPacket.id,
+        packedTokens: inspection.contextPacket.packedTokens,
+      },
+    });
 
     // 4. Handle Slash Commands / Remote Control Actions
     if (event.eventType === "command") {
@@ -192,10 +240,10 @@ export class UniversalMirrorRouter {
     const isPrivateChat = !event.externalWorkspaceId.startsWith("-");
     if (code && pending && isPrivateChat) this.pendingTelegramLinks.delete(this.hashLinkCode(code));
 
-    let replyText = "That Telegram link code is missing, expired, or already used. Create a fresh code in the local AgentForge Settings page and send /link CODE in a private Telegram chat.";
+    let replyText = "That Telegram link code is missing, expired, or already used. Create a fresh code in the local AgentForge Settings page and send /link CODE from your authorized Telegram session in a private chat.";
     let linkedUserId: string | undefined;
     if (!isPrivateChat && pending) {
-      replyText = "For safety, Telegram accounts can only be linked in a private chat with the bot. Your code remains valid; send /link CODE privately.";
+      replyText = "For safety, Telegram accounts can only be linked in a private chat from your authorized Telegram session. Your code remains valid; send /link CODE privately.";
     } else if (pending && pending.expiresAt > Date.now()) {
       try {
         this.store.linkExternalIdentity(pending.userId, {
@@ -207,7 +255,7 @@ export class UniversalMirrorRouter {
         linkedUserId = pending.userId;
         replyText = "Telegram is linked to your AgentForge owner account. You can now use its authorized read and control features. This did not connect Telegram or change any external bot configuration.";
       } catch (error) {
-        replyText = error instanceof Error ? error.message : "Telegram identity could not be linked.";
+        replyText = redactRuntimeError(error, "Telegram identity could not be linked.");
       }
     }
 

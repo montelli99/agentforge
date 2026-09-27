@@ -6,7 +6,7 @@
 
 export interface ScopePolicy {
   allowedPaths: string[];      // e.g. ["modules/system1/**", "src/core/**"]
-  protectedPaths: string[];    // e.g. ["modules/ppc-safety-validator.cjs", "package.json", ".env"]
+  protectedPaths: string[];    // e.g. ["modules/safety-validator.cjs", "package.json", ".env"]
   maxFilesChanged?: number;
   maxLinesChanged?: number;
 }

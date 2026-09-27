@@ -45,6 +45,13 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     expect(tgOutboundCount).toBe(0);
   });
 
+  it("keeps external adapters visibly bounded to sandbox readiness", () => {
+    expect(telegram.readiness?.().status).toBe("sandbox");
+    expect(discord.readiness?.().status).toBe("sandbox");
+    expect(telegram.readiness?.().missing).toContain("live provider acceptance");
+    expect(discord.readiness?.().missing).toContain("live provider acceptance");
+  });
+
   it("mirrors native workspace messages out to bound Discord channels", async () => {
     let sentToDiscord: { channelId: string; text: string } | null = null;
     discord.sendMessage = async (msg) => {

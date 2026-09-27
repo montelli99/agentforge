@@ -28,6 +28,7 @@ export interface ModelRequestOptions {
   responseFormat?: "json";
   stop?: string[];
   stream?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface ModelResponseUsage {

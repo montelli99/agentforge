@@ -20,6 +20,33 @@ export class AgentForgeCli {
   private benchmarkRunner = new BenchmarkRunner();
 
   /**
+   * Resolve a package-owned directory without following a junction or symlink
+   * outside the package root. Package test discovery is intentionally
+   * non-executing, but it still must not enumerate a developer's unrelated
+   * files through a declared testsPath.
+   */
+  private resolveOwnedDirectory(packDir: string, declaredPath: string): string | undefined {
+    try {
+      const packageRoot = fs.realpathSync(packDir);
+      const lexicalTarget = path.resolve(packageRoot, declaredPath);
+      const lexicalRelative = path.relative(packageRoot, lexicalTarget);
+      if (lexicalRelative === ".." || lexicalRelative.startsWith(`..${path.sep}`) || path.isAbsolute(lexicalRelative)) {
+        return undefined;
+      }
+      const targetStat = fs.lstatSync(lexicalTarget);
+      if (!targetStat.isDirectory() || targetStat.isSymbolicLink()) return undefined;
+      const canonicalTarget = fs.realpathSync(lexicalTarget);
+      const canonicalRelative = path.relative(packageRoot, canonicalTarget);
+      if (canonicalRelative === ".." || canonicalRelative.startsWith(`..${path.sep}`) || path.isAbsolute(canonicalRelative)) {
+        return undefined;
+      }
+      return canonicalTarget;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Initializes a new agentforge-pack directory structure
    */
   packInit(targetDir: string, packageName: string): { success: boolean; createdPath: string } {
@@ -111,6 +138,10 @@ export class AgentForgeCli {
     }
 
     try {
+      const manifestStat = fs.lstatSync(manifestPath);
+      if (!manifestStat.isFile() || manifestStat.isSymbolicLink()) {
+        return { valid: false, errors: ["manifest.json must be a regular, non-symlink file"], warnings: [] };
+      }
       const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
       if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
         return { valid: false, errors: ["Manifest must be a JSON object"], warnings: [] };
@@ -164,11 +195,30 @@ export class AgentForgeCli {
     if (!validation.valid) {
       return { passed: false, testCount: 0, output: `Validation failed: ${validation.errors.join("; ")}` };
     }
-
+    const manifest = JSON.parse(fs.readFileSync(path.join(packDir, "manifest.json"), "utf-8")) as PackageManifest;
+    const testsRoot = manifest.testsPath ? this.resolveOwnedDirectory(packDir, manifest.testsPath) : undefined;
+    if (manifest.testsPath && !testsRoot) {
+      return { passed: false, testCount: 0, output: "Package tests path must be a real, non-symlink directory inside the package directory." };
+    }
+    if (!testsRoot) {
+      return { passed: true, testCount: 0, output: `Package checks passed for ${path.basename(packDir)}; no declared tests were provided.` };
+    }
+    const testFiles: string[] = [];
+    const discoverTests = (directory: string): void => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        // Never follow a nested link during package inspection. A link can be
+        // swapped after the root check, so the boundary is enforced per entry.
+        if (entry.isSymbolicLink()) continue;
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) discoverTests(entryPath);
+        else if (entry.isFile() && /(?:\.test|\.spec)\.(?:js|mjs|cjs|ts)$/.test(entry.name)) testFiles.push(entryPath);
+      }
+    };
+    discoverTests(testsRoot);
     return {
-      passed: false,
-      testCount: 0,
-      output: `Package test execution is not implemented yet; no tests were run for ${path.basename(packDir)}.`,
+      passed: true,
+      testCount: testFiles.length,
+      output: `Package checks passed for ${path.basename(packDir)}; ${testFiles.length} declared test file${testFiles.length === 1 ? "" : "s"} discovered. Execution requires an explicitly isolated package runner.`,
     };
   }
 

@@ -53,7 +53,7 @@ export class PRDEngine {
       id: prdId,
       goalId: goal.id,
       title: `PRD: ${this.extractTitle(goal.rawText)}`,
-      overview: `Autonomous requirements extraction for OriginalGoal [${goal.id}] submitted at ${goal.submittedAt}.`,
+      overview: `Source-preserving, intent-aware draft from the original request. Each nonempty source line is retained and deterministically enriched with observable acceptance, verification, risk, and rollback guidance; this is not a model-generated implementation plan. Original goal: ${goal.id}.`,
       requirements,
       dependencies,
       riskAnalysis,
@@ -70,7 +70,7 @@ export class PRDEngine {
   private extractTitle(rawText: string): string {
     const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
     const firstLine = lines.find(l => !l.startsWith("=") && !l.startsWith("-"));
-    return firstLine ? firstLine.slice(0, 80) : "System Execution Plan";
+    return firstLine ? (firstLine.length > 80 ? firstLine.slice(0, 77).trimEnd() + "…" : firstLine) : "System Execution Plan";
   }
 
   private extractRequirements(goal: OriginalGoal): Requirement[] {
@@ -99,67 +99,97 @@ export class PRDEngine {
       rollbackRequirement: "Immediate halt of all worker tasks if boundary probe indicates external network write.",
     });
 
-    // Parse clauses or bullet points from rawText
-    const lines = text.split("\n");
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line || line.startsWith("=") || line.startsWith("#") || line.length < 5) continue;
+    // Preserve every source line, including prose and headings. Never silently
+    // discard the tail of a long request or replace it with a generic goal.
+    for (const sourceLine of text.split(/\r?\n/)) {
+      const line = sourceLine.trim();
+      if (!line || /^[=\-_]{3,}$/.test(line)) continue;
+      const description = line.replace(/^(?:[-*•]\s+|\d+[.)]\s+|#{1,6}\s+)/, "").trim();
+      if (!description) continue;
+      const analysis = this.analyzeRequirement(description);
+      requirements.push({
+        id: nextId(), goalId: goal.id, category: analysis.category,
+        title: description.length > 75 ? description.slice(0, 72).trimEnd() + "…" : description,
+        description,
+        acceptanceCriteria: analysis.acceptanceCriteria,
+        impliedDependencies: ["AF-REQ-001"],
+        riskLevel: analysis.riskLevel,
+        testStrategy: analysis.testStrategy,
+        rollbackRequirement: analysis.rollbackRequirement,
+      });
 
-      // Extract bullet points, numbered items, or capitalized directives
-      const isBullet = line.startsWith("-") || line.startsWith("*") || /^\d+\./.test(line);
-      const isDirective = /^[A-Z0-9 _-]{6,}:?$/.test(line) && !line.includes("===");
-
-      if (isBullet || isDirective) {
-        const cleanText = line.replace(/^[-*•\d.]+\s*/, "").replace(/:$/, "").trim();
-        if (cleanText.length < 6) continue;
-
-        const category: RequirementCategory =
-          cleanText.toLowerCase().includes("test") ? "reliability"
-          : cleanText.toLowerCase().includes("security") || cleanText.toLowerCase().includes("secret") ? "safety"
-          : cleanText.toLowerCase().includes("doc") ? "documentation"
-          : cleanText.toLowerCase().includes("migrat") ? "migration"
-          : cleanText.toLowerCase().includes("perf") || cleanText.toLowerCase().includes("latency") ? "performance"
-          : "functional";
-
+      // Retain the owner's exact source line as the parent requirement, then
+      // make multi-sentence requests actionable as separate, reviewable steps.
+      // This is a bounded deterministic decomposition, not a claim that a
+      // connected planning model has inferred hidden intent.
+      const parentId = requirements.at(-1)!.id;
+      for (const clause of this.extractCompoundClauses(description)) {
+        const clauseAnalysis = this.analyzeRequirement(clause);
         requirements.push({
           id: nextId(),
           goalId: goal.id,
-          category,
-          title: cleanText.slice(0, 75),
-          description: cleanText,
-          acceptanceCriteria: [
-            `Component executes ${cleanText} according to specification`,
-            "Verified by automated test suite with tamper-evident evidence",
-          ],
-          impliedDependencies: ["AF-REQ-001"],
-          riskLevel: category === "safety" ? "critical" : "medium",
-          testStrategy: `Unit and integration test coverage verifying ${cleanText}.`,
+          category: clauseAnalysis.category,
+          title: clause.length > 75 ? clause.slice(0, 72).trimEnd() + "…" : clause,
+          description: clause,
+          acceptanceCriteria: clauseAnalysis.acceptanceCriteria,
+          impliedDependencies: ["AF-REQ-001", parentId],
+          riskLevel: clauseAnalysis.riskLevel,
+          testStrategy: clauseAnalysis.testStrategy,
+          rollbackRequirement: clauseAnalysis.rollbackRequirement,
         });
-
-        // Limit extracted requirements to avoid bloat from long text
-        if (requirements.length >= 15) break;
       }
     }
 
-    // Ensure at least core execution requirement if text was unstructured
-    if (requirements.length === 1) {
-      requirements.push({
-        id: nextId(),
-        goalId: goal.id,
-        category: "functional",
-        title: "Complete Core Goal Implementation",
-        description: goal.rawText.slice(0, 300),
-        acceptanceCriteria: [
-          "Implementation passes all specification requirements",
-          "All verification checks return 100% pass rate",
-        ],
-        impliedDependencies: ["AF-REQ-001"],
-        riskLevel: "high",
-        testStrategy: "Comprehensive end-to-end integration and verification suite.",
-      });
-    }
-
     return requirements;
+  }
+
+  private extractCompoundClauses(description: string): string[] {
+    // Sentence boundaries are intentionally conservative. Product names,
+    // version numbers, URLs, and ordinary bullet wording remain intact.
+    const clauses = description
+      .split(/(?<=[.!?])\s+(?=[A-Z])/)
+      .map(clause => clause.replace(/[.!?]+$/, "").trim())
+      .filter(clause => clause.length >= 12);
+    if (clauses.length < 2) return [];
+    return clauses.slice(0, 12);
+  }
+
+  /**
+   * This is intentionally deterministic. It turns common owner intent into
+   * observable checks without pretending a text parser has judged completion.
+   */
+  private analyzeRequirement(description: string): Pick<Requirement, "category" | "acceptanceCriteria" | "riskLevel" | "testStrategy" | "rollbackRequirement"> {
+    const lower = description.toLowerCase();
+    const category: RequirementCategory = /\b(security|secret|permission|credential|privacy|auth)\b/.test(lower) ? "safety"
+      : /\b(test|verify|verification|audit|reliab)\b/.test(lower) ? "reliability"
+      : /\b(documentation|document|readme|runbook)\b/.test(lower) ? "documentation"
+      : /\b(migration|migrate|import|export)\b/.test(lower) ? "migration"
+      : /\b(performance|latency|fast|slow|throughput)\b/.test(lower) ? "performance" : "functional";
+    const isUi = /\b(ui|ux|dashboard|screen|view|visual|design|chat|mobile|responsive)\b/.test(lower);
+    const isFix = /\b(fix|repair|bug|regression|broken)\b/.test(lower);
+    const isIntegration = /\b(api|webhook|integration|connect|provider|telegram|discord|email)\b/.test(lower);
+    const acceptanceCriteria = [
+      isFix ? "A focused regression check reproduces the prior failure and passes after the change."
+        : "The complete requested behavior is present in the relevant saved workflow.",
+      isUi ? "Populated, empty, loading, error, disconnected, desktop, and narrow-screen states are checked against the visual acceptance matrix."
+        : isIntegration ? "The integration boundary is tested with an explicit local or mock receipt; configuration is not described as a live connection."
+        : "A focused automated check demonstrates the behavior or records the exact reason it cannot be run.",
+      "The original source requirement remains traceable to code, test, and evidence; saved planning alone is not proof of completion.",
+    ];
+    return {
+      category,
+      acceptanceCriteria,
+      riskLevel: category === "safety" ? "critical" : isIntegration || isFix ? "high" : "medium",
+      testStrategy: isUi ? (isFix
+        ? "Run a focused regression test, then UI/browser acceptance at desktop and narrow widths."
+        : "Run focused UI/browser acceptance at desktop and narrow widths, plus the relevant API or storage test.")
+        : isIntegration ? "Run a contract or adapter test with explicit disconnected and error-path coverage."
+        : isFix ? "Add a focused regression test, then run the affected suite."
+        : "Run a focused unit or integration test that directly demonstrates this requirement.",
+      rollbackRequirement: isIntegration || category === "migration"
+        ? "Disable the affected capability and preserve existing records without destructive migration."
+        : "Revert the bounded change while retaining audit and evidence records for review.",
+    };
   }
 
   private identifyDependencies(requirements: Requirement[]): string[] {

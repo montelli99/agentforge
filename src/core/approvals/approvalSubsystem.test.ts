@@ -45,7 +45,7 @@ describe("Approval Subsystem & Authenticated Human-in-the-Loop Gates (Section 32
     }).not.toThrow(); // Store executes state mutation; REST/router enforces RBAC gate
   });
 
-  it("updates linked task status when approval is granted or rejected", () => {
+  it("does not complete a linked task when approval lacks verified evidence", () => {
     const task = store.createTask({
       id: "task-linked-appr",
       title: "Deploy payment microservice",
@@ -74,10 +74,10 @@ describe("Approval Subsystem & Authenticated Human-in-the-Loop Gates (Section 32
     expect(resolved.approverUserId).toBe("user-owner");
     expect(resolved.decisionOrigin).toBe("web");
 
-    // Linked task should have automatically transitioned to completed
+    // Authorization alone must not manufacture successful execution.
     const updatedTask = store.getTask(task.id);
-    expect(updatedTask?.status).toBe("completed");
-    expect(updatedTask?.completedAt).toBeDefined();
+    expect(updatedTask?.status).toBe("waiting_approval");
+    expect(updatedTask?.completedAt).toBeUndefined();
   });
 
   it("transitions linked task to failed with note when approval is rejected", () => {

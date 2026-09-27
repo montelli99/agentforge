@@ -1,8 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { WorkspaceStore } from "../store/workspaceStore.js";
-import { TaskWorkerRuntime } from "./taskWorkerRuntime.js";
+import { TaskWorkerRuntime, type TaskExecutionBackend } from "./taskWorkerRuntime.js";
 import { AgentForgeWebServer } from "../../server/webServer.js";
 import type { Task } from "../types/task.js";
+import { OperationalMemoryProvider } from "../../providers/memory/operationalMemory.js";
+
+/** Explicit test double. Production never receives a fake executor. */
+function testExecutionBackend(): TaskExecutionBackend {
+  return {
+    getReadiness: () => ({
+      ready: true,
+      blockers: [],
+      capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+    }),
+    execute: async ({ task }) => ({
+      commandsExecuted: task.contract.requiredChecks.map(check => ({
+        command: check.command || `check:${check.type}`, cwd: process.cwd(), timestamp: new Date().toISOString(), exitCode: 0, durationMs: 1,
+      })),
+      testResults: task.contract.requiredChecks.map(check => ({
+        checkName: check.type, command: check.command || `check:${check.type}`, passed: true, exitCode: 0, stdout: "test executor", stderr: "", durationMs: 1,
+      })),
+      filesChanged: [], artifacts: [], finalSha: "test-sha",
+    }),
+  };
+}
 
 describe("TaskWorkerRuntime & Server Integration", () => {
   let store: WorkspaceStore;
@@ -21,10 +42,11 @@ describe("TaskWorkerRuntime & Server Integration", () => {
   });
 
   it("initializes with honest initial state and fails closed without a production backend", () => {
-    // Without simulationMode, isRunning must remain false after start() — the block fires
+    // Without an execution backend, start must remain fail-closed.
     expect(runtime.isRunning()).toBe(false);
     expect(runtime.getActiveWorkerCount()).toBe(0);
     expect(runtime.getActiveTasksCount()).toBe(0);
+    expect(runtime.getActiveTaskIds()).toEqual([]);
 
     // Calling start without a real backend must not set the running flag
     runtime.start();
@@ -35,7 +57,7 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     // The block reason must be present and descriptive
     const reason = runtime.getExecutionBlockReason();
     expect(reason).toBeDefined();
-    expect(reason).toMatch(/no production execution backend/i);
+    expect(reason).toMatch(/no execution backend/i);
 
     // Stop is idempotent even when not started
     runtime.stop();
@@ -62,16 +84,22 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       },
     });
 
-    await expect(runtime.executeTask(task.id)).rejects.toThrow(/no production execution backend/i);
+    await expect(runtime.executeTask(task.id)).rejects.toThrow(/no execution backend/i);
     // Task should NOT have been moved to completed
     expect(["ready", "backlog"].includes(store.getTask(task.id)?.status ?? "")).toBe(true);
   });
 
-  it("simulationMode unlocks the runtime for isolated unit test execution", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, undefined, {
+  it("can attach a backend after setup and records its readiness", () => {
+    const readiness = runtime.configureBackend(testExecutionBackend());
+    expect(readiness.ready).toBe(true);
+    expect(runtime.canExecuteTasks()).toBe(true);
+    expect(store.listAuditEntries().some(entry => entry.action === "TASK_WORKER_BACKEND_CONFIGURED")).toBe(true);
+  });
+
+  it("runs only through an explicit execution backend", async () => {
+    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
-      simulationMode: true,
     });
 
     try {
@@ -83,7 +111,7 @@ describe("TaskWorkerRuntime & Server Integration", () => {
 
       const task = store.createTask({
         id: "TASK-SIM-E2E",
-        title: "Simulation mode end-to-end task execution",
+        title: "Explicit test backend end-to-end task execution",
         priority: "high",
         status: "ready",
         contract: {
@@ -114,17 +142,183 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(ev.commandsExecuted.length).toBeGreaterThan(0);
       expect(ev.testResults.length).toBe(2);
       expect(ev.testResults.every(t => t.passed)).toBe(true);
-      expect(ev.filesChanged.length).toBeGreaterThan(0);
+      // The coordinator preserves what the executor reported; it invents no diff.
+      expect(ev.filesChanged).toEqual([]);
     } finally {
       simRuntime.stop();
     }
   });
 
-  it("simulationMode: requireHumanApproval transitions task to waiting_approval", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, undefined, {
+  it("redacts credential-shaped backend output before persisting an evidence pack", async () => {
+    const exposedToken = "sk-evidencepackfixture1234567890";
+    const backend: TaskExecutionBackend = {
+      getReadiness: () => ({
+        ready: true,
+        blockers: [],
+        capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+      }),
+      execute: async () => ({
+        commandsExecuted: [],
+        testResults: [{
+          checkName: "unit_tests", command: "pnpm test", passed: true, exitCode: 0,
+          stdout: `test output included ${exposedToken}`,
+          stderr: `test warning included Bearer ${exposedToken}`,
+          durationMs: 1,
+        }],
+        filesChanged: [{
+          filePath: "src/example.ts", status: "modified", linesAdded: 1, linesDeleted: 1,
+          patch: `+const credential = \"${exposedToken}\";`,
+        }],
+        artifacts: [], finalSha: "test-sha",
+      }),
+    };
+    const simRuntime = new TaskWorkerRuntime(store, backend, { repoRoot: process.cwd(), autoStart: false });
+
+    try {
+      const task = store.createTask({
+        id: "TASK-EVIDENCE-REDACTION",
+        title: "Redact untrusted executor output",
+        priority: "high",
+        status: "ready",
+        contract: {
+          id: "contract-evidence-redaction", taskId: "TASK-EVIDENCE-REDACTION", version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" },
+          workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [{ type: "unit_tests", command: "pnpm test", required: true }],
+          completion: { requireEvidencePack: true, requireHumanApproval: false },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const completed = await simRuntime.executeTask(task.id);
+      const evidence = completed.evidencePack!;
+      const serializedEvidence = JSON.stringify(evidence);
+      expect(serializedEvidence).not.toContain(exposedToken);
+      expect(evidence.testResults[0].stdout).toContain("[REDACTED_SECRET]");
+      expect(evidence.testResults[0].stderr).toBe("test warning included Bearer [REDACTED_SECRET]");
+      expect(evidence.filesChanged[0].patch).toContain("[REDACTED_SECRET]");
+    } finally {
+      simRuntime.stop();
+    }
+  });
+
+  it("redacts credential-shaped backend failures before persisting task or audit records", async () => {
+    const exposedToken = "sk-failurefixture1234567890";
+    const backend: TaskExecutionBackend = {
+      getReadiness: () => ({
+        ready: true,
+        blockers: [],
+        capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+      }),
+      execute: async () => { throw new Error(`backend failed with Bearer ${exposedToken}`); },
+    };
+    const simRuntime = new TaskWorkerRuntime(store, backend, { repoRoot: process.cwd(), autoStart: false });
+
+    try {
+      const task = store.createTask({
+        id: "TASK-FAILURE-REDACTION",
+        title: "Redact backend failures",
+        priority: "high",
+        status: "ready",
+        contract: {
+          id: "contract-failure-redaction", taskId: "TASK-FAILURE-REDACTION", version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" },
+          workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [{ type: "unit_tests", command: "pnpm test", required: true }],
+          completion: { requireEvidencePack: true, requireHumanApproval: false },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const failed = await simRuntime.executeTask(task.id);
+      expect(failed.status).toBe("failed");
+      expect(failed.error).toContain("Bearer [REDACTED_SECRET]");
+      expect(JSON.stringify(failed)).not.toContain(exposedToken);
+      const audit = store.listAuditEntries().find(entry => entry.action === "TASK_EXECUTION_FAILED" && entry.targetId === task.id);
+      expect(JSON.stringify(audit)).not.toContain(exposedToken);
+      expect(JSON.stringify(audit)).toContain("[REDACTED_SECRET]");
+    } finally {
+      simRuntime.stop();
+    }
+  });
+
+  it("builds worker context from scoped operational memory without crossing project boundaries", async () => {
+    const memory = new OperationalMemoryProvider();
+    await memory.record({
+      namespace: "workspace",
+      category: "do_not_repeat",
+      title: "Shared safety rule",
+      content: "Keep verification evidence with every completed task.",
+      tags: ["safety"],
+    });
+    await memory.record({
+      namespace: "workspace",
+      projectId: "project-alpha",
+      category: "project_constraint",
+      title: "Alpha delivery rule",
+      content: "Alpha work requires a release note before completion.",
+      tags: ["alpha"],
+    });
+    await memory.record({
+      namespace: "workspace",
+      projectId: "project-beta",
+      category: "general_fact",
+      title: "Beta private note",
+      content: "Beta-only information must never enter alpha execution.",
+      tags: ["beta"],
+    });
+
+    let receivedContextText = "";
+    let receivedSourceIds: string[] = [];
+    const backend = testExecutionBackend();
+    const originalExecute = backend.execute;
+    backend.execute = async input => {
+      receivedContextText = input.contextPacket?.content || "";
+      receivedSourceIds = input.contextPacket?.sources.map(source => source.id) || [];
+      return originalExecute(input);
+    };
+    const runtimeWithMemory = new TaskWorkerRuntime(store, backend, {
+      repoRoot: process.cwd(), autoStart: false, memoryProvider: memory, memoryNamespace: "workspace",
+    });
+    try {
+      const task = store.createTask({
+        id: "TASK-MEMORY-SCOPED",
+        projectId: "project-alpha",
+        title: "Prepare alpha release evidence",
+        description: "Prepare and verify release evidence.",
+        priority: "medium",
+        status: "ready",
+        contract: {
+          id: "contract-memory-scoped", taskId: "TASK-MEMORY-SCOPED", version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" },
+          workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [{ type: "unit_tests", required: true }],
+          completion: { requireEvidencePack: true, requireHumanApproval: false },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      await runtimeWithMemory.executeTask(task.id);
+      expect(receivedContextText).toContain("Shared safety rule");
+      expect(receivedContextText).toContain("Alpha delivery rule");
+      expect(receivedContextText).not.toContain("Beta private note");
+      expect(receivedSourceIds).toHaveLength(3);
+      expect(store.listAuditEntries().some(entry => entry.action === "TASK_CONTEXT_PACKED" && entry.targetId === task.id)).toBe(true);
+    } finally {
+      runtimeWithMemory.stop();
+    }
+  });
+
+  it("explicit backend: requireHumanApproval transitions task to waiting_approval", async () => {
+    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
-      simulationMode: true,
     });
 
     try {
@@ -179,12 +373,12 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     });
 
     // Pause is a local record operation — no backend required
-    const paused = runtime.pauseTask(task.id);
+    const paused = await runtime.pauseTask(task.id);
     expect(paused.status).toBe("paused");
     expect(store.getTask(task.id)?.status).toBe("paused");
 
     // Resume is rejected without changing the task because no executor is connected
-    await expect(runtime.resumeTask(task.id)).rejects.toThrow(/no production execution backend/i);
+    await expect(runtime.resumeTask(task.id)).rejects.toThrow(/no execution backend/i);
     expect(store.getTask(task.id)?.status).toBe("paused");
 
     // Cancel is a local record operation — no backend required
@@ -192,7 +386,7 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     expect(cancelled.status).toBe("cancelled");
 
     // Retry also rejected without executor
-    await expect(runtime.retryTask(task.id)).rejects.toThrow(/no production execution backend/i);
+    await expect(runtime.retryTask(task.id)).rejects.toThrow(/no execution backend/i);
     expect(store.getTask(task.id)?.status).toBe("cancelled");
   });
 
@@ -208,6 +402,9 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       const dataInitial = await resInitial.json();
       expect(dataInitial.runtime.status).toBe("NOT_CONNECTED");
       expect(dataInitial.runtime.canExecuteTasks).toBe(false);
+      expect(dataInitial.runtime.activeTaskIds).toEqual([]);
+      expect(dataInitial.runtime.readiness.capabilities.modelPlanning).toBe(false);
+      expect(dataInitial.runtime.readiness.blockers).toContain("No execution backend is connected.");
 
       // 2. Starting the shell does not claim execution without an actual backend.
       server.taskWorkerRuntime.start();
@@ -217,6 +414,15 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(dataUnavailable.runtime.status).toBe("NOT_CONNECTED");
       expect(dataUnavailable.runtime.canExecuteTasks).toBe(false);
       expect(dataUnavailable.runtime.workerCount).toBe(0);
+      expect(dataUnavailable.runtime.activeTaskIds).toEqual([]);
+      expect(dataUnavailable.runtime.explanation).toMatch(/no execution backend/i);
+
+      const pageRes = await fetch(`http://127.0.0.1:${testPort}/`);
+      const page = await pageRes.text();
+      expect(page).toContain("AgentForge Harness");
+      expect(page).not.toContain("32 GB GGUF");
+      expect(page).not.toContain("12ms P95");
+      expect(page).not.toContain("55 CONSOLIDATED");
 
       // 3. Create task and execute via REST controls
       const task = store.createTask({

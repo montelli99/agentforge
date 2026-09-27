@@ -3,7 +3,7 @@
  * Section 29: Activity / Audit Log
  */
 
-export type AuditOrigin = "web" | "telegram" | "discord" | "cli" | "agent" | "system" | "api";
+export type AuditOrigin = "web" | "telegram" | "discord" | "slack" | "cli" | "agent" | "system" | "api";
 
 export interface AuditEntry {
   id: string;
