@@ -21,7 +21,7 @@ export class WorktreeManager {
     if (!info.isIsolated || path.resolve(info.worktreePath) !== expected || info.baseSha !== baseSha) {
       throw new Error("Saved checkout does not match this task's approved repository and base commit.");
     }
-    if (fs.realpathSync(expected) !== expected) throw new Error("Task checkout was redirected.");
+    if (fs.lstatSync(expected).isSymbolicLink()) throw new Error("Task checkout was redirected.");
     const git = (args: string[], cwd: string) => execFileSync("git", args, { cwd, encoding: "utf-8", stdio: "pipe" }).trim();
     // Compare Git's own canonical paths instead of mixing them with Node's
     // path spelling. Windows runners may return an 8.3 short path from Git

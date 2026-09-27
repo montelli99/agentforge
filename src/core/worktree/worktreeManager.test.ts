@@ -47,10 +47,13 @@ describe("WorktreeManager", () => {
 
     expect(result.isIsolated).toBe(true);
     expect(fs.statSync(result.worktreePath).isDirectory()).toBe(true);
-    expect(execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    const gitTopLevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
       cwd: result.worktreePath,
       encoding: "utf-8",
-    }).trim()).toBe(fs.realpathSync(result.worktreePath).replaceAll("\\", "/"));
+    }).trim();
+    const gitTopStat = fs.statSync(gitTopLevel);
+    const worktreeStat = fs.statSync(result.worktreePath);
+    expect([gitTopStat.dev, gitTopStat.ino]).toEqual([worktreeStat.dev, worktreeStat.ino]);
 
     await manager.removeWorktree(result.worktreePath);
     expect(fs.existsSync(result.worktreePath)).toBe(false);
