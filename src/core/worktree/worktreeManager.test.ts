@@ -50,7 +50,7 @@ describe("WorktreeManager", () => {
     expect(execFileSync("git", ["rev-parse", "--show-toplevel"], {
       cwd: result.worktreePath,
       encoding: "utf-8",
-    }).trim()).toBe(path.resolve(result.worktreePath).replaceAll("\\", "/"));
+    }).trim()).toBe(fs.realpathSync(result.worktreePath).replaceAll("\\", "/"));
 
     await manager.removeWorktree(result.worktreePath);
     expect(fs.existsSync(result.worktreePath)).toBe(false);
