@@ -1553,7 +1553,16 @@ export class WorkspaceStore {
           if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
           try {
             const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
-            if (ageMs > 30_000) fs.unlinkSync(lockPath);
+            let ownerAlive = true;
+            try {
+              const lock = JSON.parse(fs.readFileSync(lockPath, "utf8")) as { pid?: unknown };
+              if (typeof lock.pid === "number" && lock.pid !== process.pid) {
+                try { process.kill(lock.pid, 0); } catch { ownerAlive = false; }
+              }
+            } catch {
+              // A partially written lock is safe to recover once it is old.
+            }
+            if (!ownerAlive || ageMs > 30_000) fs.unlinkSync(lockPath);
           } catch {
             // The competing writer may have released the lock between calls.
           }
