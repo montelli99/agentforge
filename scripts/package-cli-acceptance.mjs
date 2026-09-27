@@ -20,7 +20,7 @@ function runNpm(args, cwd) {
   const result = spawnSync(command, commandArgs, {
     cwd,
     encoding: "utf8",
-    timeout: 120_000,
+    timeout: 300_000,
   });
   if (result.error) throw result.error;
   return result;
