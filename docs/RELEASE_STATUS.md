@@ -169,3 +169,9 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
   stale test counts, speculative paid plans, uptime promises, and placeholder
   external links. It now uses system fonts with no external presentation
   fetches or unresolved parent-directory links.
+
+## Latest verification record
+
+- September 27, 2026: `pnpm release:audit` passed all ten local public-release gates. It reports `packageReady: true`, with no local privacy, license, manifest, package-surface, or CLI blockers.
+- September 27, 2026: focused native-channel verification passed 19 tests across Telegram BotFather, Telegram native-path selection, Telegram relay protection, Slack Socket Mode, and Discord Gateway transport.
+- The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
