@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AgentForge is the local-first operating system for governed AI workforces. Deploy persistent agents, enforce strict execution contracts, and govern every action with cryptographic evidence.">
+  <title>AgentForge — The Operating System for Governed AI Workforces</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DESIGN TOKENS & SYSTEM VARIABLES
+       ========================================================================== */
+    :root {
+      --bg: #07070a;
+      --bg-elevated: #0d0e15;
+      --bg-card: rgba(16, 17, 26, 0.75);
+      --bg-card-hover: rgba(22, 24, 38, 0.9);
+      --bg-input: #12131d;
+      
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.16);
+      --border-accent: rgba(110, 94, 255, 0.35);
+      --border-accent-strong: #6e5eff;
+
+      --text: #f3f4f8;
+      --text-muted: #9497a8;
+      --text-dim: #646777;
+
+      --accent: #6e5eff;
+      --accent-light: #9486ff;
+      --accent-glow: rgba(110, 94, 255, 0.25);
+      --gradient-accent: linear-gradient(135deg, #7b6dff 0%, #a855f7 50%, #ec4899 100%);
+      --gradient-cyan: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      --gradient-amber: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+
+      --mint: #3dd68c;
+      --mint-glow: rgba(61, 214, 140, 0.2);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.2);
+      --red: #f43f5e;
+      --cyan: #06b6d4;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      
+      --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 20px 60px -15px rgba(0, 0, 0, 0.7);
+      --shadow-glow: 0 0 50px -10px rgba(110, 94, 255, 0.3);
+    }
+
+    /* Reset & Base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; color-scheme: dark; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(110, 94, 255, 0.15), transparent 70%),
+        radial-gradient(ellipse 60% 40% at 85% 60%, rgba(168, 85, 247, 0.08), transparent 60%),
+        radial-gradient(ellipse 50% 30% at 15% 40%, rgba(6, 182, 212, 0.06), transparent 60%);
+      background-attachment: fixed;
+    }
+
+    /* Grid backdrop */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      pointer-events: none;
+      z-index: 0;
+      mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 { color: var(--text); font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
+    p { color: var(--text-muted); }
+    a { color: inherit; text-decoration: none; }
+    code, pre { font-family: var(--font-mono); }
+
+    .gradient-text {
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(8px);
+    }
+    .badge-accent {
+      background: rgba(110, 94, 255, 0.12);
+      border-color: rgba(110, 94, 255, 0.3);
+      color: var(--accent-light);
+    }
+    .badge-mint {
+      background: rgba(61, 214, 140, 0.12);
+      border-color: rgba(61, 214, 140, 0.3);
+      color: var(--mint);
+    }
+    .badge-amber {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--amber);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+      outline: none;
+    }
+    .btn-primary {
+      background: var(--gradient-accent);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(110, 94, 255, 0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(110, 94, 255, 0.5);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-bright);
+      color: var(--text);
+      backdrop-filter: blur(12px);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 13px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ==========================================================================
+       NAVBAR
+       ========================================================================== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 7, 10, 0.75);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -0.04em;
+    }
+    .logo-glyph {
+      width: 36px;
+      height: 36px;
+      background: var(--gradient-accent);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 16px rgba(110, 94, 255, 0.4);
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* ==========================================================================
+       HERO SECTION
+       ========================================================================== */
+    .hero {
+      padding: 90px 0 60px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      animation: fadeInDown 0.8s ease;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--mint);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--mint);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 76px);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      max-width: 980px;
+      margin: 0 auto 24px;
+      font-weight: 800;
+    }
+    .hero-sub {
+      font-size: clamp(17px, 2vw, 21px);
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+    .hero-cta {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .cli-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-full);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent-light);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cli-pill:hover {
+      border-color: var(--accent);
+      background: rgba(110, 94, 255, 0.1);
+    }
+    .cli-copy-icon {
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    /* Hero Showcase 3D View */
+    .hero-mockup-wrapper {
+      margin-top: 50px;
+      perspective: 1200px;
+      position: relative;
+    }
+    .hero-mockup {
+      border-radius: 20px;
+      background: #0f1019;
+      border: 1px solid var(--border-bright);
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9), 0 0 60px rgba(110, 94, 255, 0.2);
+      overflow: hidden;
+      transform: rotateX(8deg) translateY(0);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s;
+      position: relative;
+    }
+    .hero-mockup:hover {
+      transform: rotateX(2deg) translateY(-8px);
+      box-shadow: 0 50px 120px -20px rgba(0, 0, 0, 0.9), 0 0 80px rgba(110, 94, 255, 0.35);
+    }
+    .mockup-header {
+      background: rgba(18, 19, 30, 0.9);
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+    .window-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .dot-mac { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .mockup-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Live HUD Callouts on Mockup */
+    .hud-callout {
+      position: absolute;
+      padding: 10px 16px;
+      background: rgba(14, 15, 23, 0.85);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(16px);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+      animation: float 4s ease-in-out infinite alternate;
+      z-index: 10;
+    }
+    .hud-callout-1 { top: 22%; left: 4%; animation-delay: 0s; }
+    .hud-callout-2 { bottom: 18%; right: 4%; animation-delay: 1.5s; }
+    .hud-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+    }
+    .hud-icon.shield { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+    .hud-icon.check { background: rgba(61, 214, 140, 0.15); color: var(--mint); }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+    }
+
+    /* ==========================================================================
+       METRICS STRIP
+       ========================================================================== */
+    .metrics-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(14, 15, 23, 0.4);
+      padding: 40px 0;
+      margin: 60px 0;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+    .metric-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* ==========================================================================
+       SECTION: SYSTEMS (#systems) — REBUILT EPIC ARCHITECTURE SUITE
+       ========================================================================== */
+    .section-wrap {
+      padding: 90px 0;
+      position: relative;
+    }
+    .section-header {
+      text-align: center;
+      max-width: 780px;
+      margin: 0 auto 60px;
+    }
+    .section-header .badge { margin-bottom: 16px; }
+    .section-header h2 {
+      font-size: clamp(32px, 4.5vw, 52px);
+      margin-bottom: 18px;
+    }
+    .section-header p {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    /* Systems Interactive Showcase */
+    .systems-showcase {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(20px);
+    }
+    .systems-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .system-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .system-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+    }
+    .system-nav-btn.active {
+      background: rgba(110, 94, 255, 0.12);
+      border-color: rgba(110, 94, 255, 0.35);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(110, 94, 255, 0.15);
+    }
+    .system-nav-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.06);
+      transition: all 0.2s;
+    }
+    .system-nav-btn.active .system-nav-icon {
+      background: var(--gradient-accent);
+      color: white;
+    }
+    .system-nav-text strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    .system-nav-text span {
+      display: block;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* System Display Pane */
+    .system-display-pane {
+      background: #090a10;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 36px;
+      display: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .system-display-pane.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pane-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+    .pane-header h3 {
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+    .pane-header p {
+      font-size: 15px;
+      max-width: 580px;
+    }
+
+    /* Live Interactive Sub-Elements inside Systems */
+    .spec-points-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .spec-point {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .spec-point h4 {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--accent-light);
+    }
+    .spec-point p {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* Interactive Live Simulation inside #systems */
+    .interactive-terminal {
+      background: #060608;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .term-bar {
+      background: #11121b;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .term-body {
+      padding: 20px;
+      color: #d1d5db;
+      line-height: 1.8;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .term-line-accent { color: var(--accent-light); }
+    .term-line-mint { color: var(--mint); }
+    .term-line-amber { color: var(--amber); }
+
+    /* ==========================================================================
+       SECTION: GOVERNANCE SIMULATOR PLAYGROUND
+       ========================================================================== */
+    .sim-card {
+      background: linear-gradient(145deg, #11121d 0%, #0a0b12 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-glow);
+    }
+    .sim-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+    .sim-controls label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .sim-select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-bright);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+    .sim-select:focus { border-color: var(--accent); }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #2a2c3a; border-radius: 24px; transition: .3s;
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: .3s;
+    }
+    input:checked + .toggle-slider { background: var(--accent); }
+    input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    /* Live Output Box */
+    .sim-output-box {
+      background: #07070b;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sim-status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .sim-stage-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sim-stage-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+    .sim-stage-item.done { color: var(--text); }
+    .sim-stage-item.done .stage-dot { background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+    .sim-stage-item.halted { color: var(--amber); }
+    .sim-stage-item.halted .stage-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    .stage-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #333644;
+      flex-shrink: 0;
+    }
+    .approval-gate-banner {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+    .approval-gate-banner.show { display: block; animation: pulse 2s infinite; }
+
+    /* ==========================================================================
+       SECTION: BENTO GRID / CORE CAPABILITIES
+       ========================================================================== */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .bento-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .bento-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -15px rgba(110, 94, 255, 0.15);
+      background: var(--bg-card-hover);
+    }
+    .bento-card.span-2 { grid-column: span 2; }
+    .bento-card.span-3 { grid-column: span 3; }
+    
+    .bento-card-top .badge { margin-bottom: 14px; }
+    .bento-card h3 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .bento-card p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .bento-img-preview {
+      width: 100%;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-top: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .bento-img-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .bento-card:hover .bento-img-preview img {
+      transform: scale(1.02);
+    }
+
+    /* ==========================================================================
+       SECTION: PRODUCT GALLERY (TABBED SCREENSHOTS)
+       ========================================================================== */
+    .gallery-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .gallery-tab-btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .gallery-tab-btn:hover { color: var(--text); border-color: var(--border-bright); }
+    .gallery-tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(110, 94, 255, 0.3);
+    }
+    .gallery-display {
+      background: #090a12;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    .gallery-frame {
+      display: none;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .gallery-frame.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+    .gallery-frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* ==========================================================================
+       SECTION: COMPETITIVE COMPARISON MATRIX
+       ========================================================================== */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .compare-table th, .compare-table td {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .compare-table th {
+      background: #11121d;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .compare-table th.col-highlight,
+    .compare-table td.col-highlight {
+      background: rgba(110, 94, 255, 0.08);
+      border-left: 1px solid rgba(110, 94, 255, 0.2);
+      border-right: 1px solid rgba(110, 94, 255, 0.2);
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .feature-name strong { display: block; font-size: 15px; margin-bottom: 2px; }
+    .feature-name span { color: var(--text-dim); font-size: 12px; }
+    .check-yes { color: var(--mint); font-weight: 700; font-size: 16px; }
+    .check-no { color: var(--text-dim); font-size: 16px; }
+    .check-partial { color: var(--amber); font-weight: 600; font-size: 13px; }
+
+    /* ==========================================================================
+       SECTION: PRICING & DEPLOYMENT
+       ========================================================================== */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .pricing-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(22, 24, 40, 0.9) 0%, rgba(13, 14, 24, 0.9) 100%);
+      box-shadow: 0 0 50px rgba(110, 94, 255, 0.2);
+    }
+    .popular-tag {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient-accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .price-num {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 16px 0 6px;
+    }
+    .price-period {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+    .price-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 28px 0 36px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .price-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .price-features li span { color: var(--mint); font-weight: 700; }
+
+    /* ==========================================================================
+       CTA BANNER
+       ========================================================================== */
+    .cta-banner {
+      background: radial-gradient(ellipse at center, rgba(110, 94, 255, 0.25) 0%, rgba(14, 15, 23, 0.8) 70%);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 80px 40px;
+      text-align: center;
+      margin: 60px 0;
+      box-shadow: var(--shadow-glow);
+    }
+    .cta-banner h2 {
+      font-size: clamp(34px, 4vw, 54px);
+      margin-bottom: 18px;
+    }
+    .cta-banner p {
+      font-size: 18px;
+      max-width: 620px;
+      margin: 0 auto 36px;
+    }
+
+    /* ==========================================================================
+       FOOTER
+       ========================================================================== */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 40px;
+      background: #040407;
+      font-size: 14px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+    .footer-col h4 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-col a {
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--text); }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .systems-showcase { grid-template-columns: 1fr; }
+      .bento-grid { grid-template-columns: 1fr; }
+      .bento-card.span-2, .bento-card.span-3 { grid-column: span 1; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .sim-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <!-- =========================================================================
+       NAVBAR
+       ========================================================================= -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#" class="nav-brand">
+        <div class="logo-glyph">A</div>
+        AgentForge
+      </a>
+      <ul class="nav-links">
+        <li><a href="#systems">Systems</a></li>
+        <li><a href="#simulator">Live Simulator</a></li>
+        <li><a href="#gallery">Product Gallery</a></li>
+        <li><a href="#compare">Comparison</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#docs">Docs</a></li>
+      </ul>
+      <div class="nav-actions">
+        <span class="badge badge-mint"><span class="pulse-dot"></span> vNext Staging Verified</span>
+        <a href="#simulator" class="btn btn-primary btn-sm">Try Simulator →</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       HERO SECTION
+       ========================================================================= -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">
+        <span class="badge badge-accent">⚡ Complete 50-Section Autonomous Spec Implementation</span>
+      </div>
+      <h1>
+        The Operating System for<br>
+        <span class="gradient-text">Governed AI Workforces.</span>
+      </h1>
+      <p class="hero-sub">
+        Deploy persistent AI teammates that follow your business SOPs, execute in isolated Git worktrees, 
+        and cannot touch production without cryptographic human approval. Local-first. Multi-channel. Zero blind trust.
+      </p>
+
+      <div class="hero-cta">
+        <a href="#simulator" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Launch Governance Simulator
+        </a>
+        <a href="#systems" class="btn btn-secondary">
+          Explore the 5 Systems ↓
+        </a>
+        <div class="cli-pill" onclick="navigator.clipboard.writeText('git clone https://github.com/agentforge/agentforge && pnpm dev'); alert('Copied start command to clipboard!');">
+          <span>$ git clone agentforge &amp;&amp; pnpm dev</span>
+          <span class="cli-copy-icon">📋</span>
+        </div>
+      </div>
+
+      <!-- 3D Perspective Hero Showcase with Real UI Assets -->
+      <div class="hero-mockup-wrapper">
+        <div class="hero-mockup">
+          <div class="mockup-header">
+            <div class="window-dots">
+              <div class="dot-mac dot-red"></div>
+              <div class="dot-mac dot-yellow"></div>
+              <div class="dot-mac dot-green"></div>
+            </div>
+            <div>AgentForge Operations Command Center — 127.0.0.1:3000</div>
+            <div>HTTPS • FAIL_CLOSED</div>
+          </div>
+          <img src="hero-3d.jpg" alt="AgentForge 3D Dashboard Mockup" class="mockup-img" onerror="this.src='canonical-home.png'">
+        </div>
+
+        <!-- Floating HUD badges -->
+        <div class="hud-callout hud-callout-1">
+          <div class="hud-icon shield">🛡️</div>
+          <div>
+            <strong>Execution Contract Enforced</strong>
+            <div style="font-size: 11px; color: var(--text-dim);">No force-push • Zero prod write</div>
+          </div>
+        </div>
+
+        <div class="hud-callout hud-callout-2">
+          <div class="hud-icon check">✓</div>
+          <div>
+            <strong>Signed Evidence Seal</strong>
+            <div style="font-size: 11px; color: var(--text-dim);">SHA-256 tamper-evident pack</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       METRICS STRIP
+       ========================================================================= -->
+  <div class="metrics-bar">
+    <div class="container">
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-value gradient-text">50 / 50</div>
+          <div class="metric-label">Specification Sections Verified</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">304 / 306</div>
+          <div class="metric-label">Vitest Tests Passing (2 Live Opt-In)</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value" style="color: var(--mint);">0.00s</div>
+          <div class="metric-label">Production Write Bypass Tolerance</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">Local-First Privacy &amp; Data Sovereign</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION: THE 5 SYSTEMS (#systems) — EPIC REDESIGN
+       ========================================================================= -->
+  <section class="section-wrap" id="systems">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-accent">Architecture &amp; Subsystems</div>
+        <h2>Five Pillars of Absolute Control</h2>
+        <p>
+          Unlike naive agent frameworks that let LLMs write code in your root directory, 
+          AgentForge structures workforce execution across five air-gapped, verifiable systems.
+        </p>
+      </div>
+
+      <div class="systems-showcase">
+        <!-- Vertical Tab Selectors -->
+        <div class="systems-nav">
+          <button class="system-nav-btn active" onclick="switchSystem('workspace', this)">
+            <div class="system-nav-icon">🏢</div>
+            <div class="system-nav-text">
+              <strong>1. Canonical Workspace</strong>
+              <span>Durable identities, memory &amp; mirror</span>
+            </div>
+          </button>
+
+          <button class="system-nav-btn" onclick="switchSystem('contract', this)">
+            <div class="system-nav-icon">📜</div>
+            <div class="system-nav-text">
+              <strong>2. Execution Contract Engine</strong>
+              <span>SOP is never authority</span>
+            </div>
+          </button>
+
+          <button class="system-nav-btn" onclick="switchSystem('jev', this)">
+            <div class="system-nav-icon">🧠</div>
+            <div class="system-nav-text">
+              <strong>3. JEv Intent &amp; Empirical Routing</strong>
+              <span>Spend intelligence deliberately</span>
+            </div>
+          </button>
+
+          <button class="system-nav-btn" onclick="switchSystem('evidence', this)">
+            <div class="system-nav-icon">🔐</div>
+            <div class="system-nav-text">
+              <strong>4. Cryptographic Evidence Layer</strong>
+              <span>Deterministic SHA-256 seals</span>
+            </div>
+          </button>
+
+          <button class="system-nav-btn" onclick="switchSystem('voice', this)">
+            <div class="system-nav-icon">🎙️</div>
+            <div class="system-nav-text">
+              <strong>5. Voice Agent Telephony</strong>
+              <span>Normalized call lifecycle &amp; events</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- System 1: Canonical Workspace -->
+        <div class="system-display-pane active" id="pane-workspace">
+          <div class="pane-header">
+            <div>
+              <h3>Canonical Workspace &amp; Universal Mirror</h3>
+              <p>One unified source of truth across Web, Discord, and Telegram. Agents, channels, tasks, and state stay persistently synced without data leaks.</p>
+            </div>
+            <span class="badge badge-mint">Sections 6, 7, 8, 9, 10</span>
+          </div>
+
+          <div class="spec-points-grid">
+            <div class="spec-point">
+              <h4>🔄 Universal Mirror Router</h4>
+              <p>Loop-suppressed bidirectional event mirroring across Telegram bot, Discord server, and Web control plane.</p>
+            </div>
+            <div class="spec-point">
+              <h4>💾 Durable Event Ledger</h4>
+              <p>Append-only ledger with deduplication by eventId, replay filtering, and 500-event SSE reconnect buffer.</p>
+            </div>
+            <div class="spec-point">
+              <h4>👤 Persistent Teammate Roster</h4>
+              <p>Named agents (Alex, Sarah) preserve long-term operational memory, SOP assignments, and execution limits.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🔑 Multi-User Identity &amp; RBAC</h4>
+              <p>PBKDF2 salted credential hashing, role hierarchy (owner, admin, engineer, operator), wildcard permission checks.</p>
+            </div>
+          </div>
+
+          <div class="interactive-terminal">
+            <div class="term-bar">
+              <span>event_ledger_snapshot.json</span>
+              <span class="badge badge-mint">STATUS: SYNCED</span>
+            </div>
+            <div class="term-body">
+<span class="term-line-accent"># Outbound Store Event Broadcast</span>
+{
+  "eventId": "evt_01J8F9X...",
+  "origin": "telegram",
+  "actorId": "user_montelli",
+  "channelId": "chan_general_engineering",
+  "syncState": "active",
+  "bindings": ["web_mirror", "discord_bridge", "agentforge_store"],
+  "verifiedChainHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+            </div>
+          </div>
+        </div>
+
+        <!-- System 2: Execution Contract Engine -->
+        <div class="system-display-pane" id="pane-contract">
+          <div class="pane-header">
+            <div>
+              <h3>Execution Contract Engine (SOP ≠ Authority)</h3>
+              <p>Core Architectural Law: An SOP describes work, but never grants authority. All agent execution runs within isolated Git worktrees under strict contract boundaries.</p>
+            </div>
+            <span class="badge badge-amber">Sections 3, 4, 21, 22, 30, 31</span>
+          </div>
+
+          <div class="spec-points-grid">
+            <div class="spec-point">
+              <h4>🚫 Zero Production Write</h4>
+              <p>Workers cannot execute outside their temporary Git worktree branch (`git worktree add`). Symlinks escapes fail closed.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🛑 Privileged Operation Gates</h4>
+              <p>File deletion, outbound HTTP, force-pushes, and deploy commands instantly trip a Human Approval Request.</p>
+            </div>
+            <div class="spec-point">
+              <h4>📋 Process-to-Agent Governance</h4>
+              <p>Step-by-step SOP execution captures a typed `ProcessExecutionTrace` and validates every rule before proceeding.</p>
+            </div>
+            <div class="spec-point">
+              <h4>⚖️ Anti-Spoon-Feeding Law</h4>
+              <p>Model workers have 0 authority to mark tasks COMPLETE. Only the independent CompletionEngine can issue completion seals.</p>
+            </div>
+          </div>
+
+          <div class="interactive-terminal">
+            <div class="term-bar">
+              <span>ExecutionContract.ts — Contract Enforcer</span>
+              <span class="badge badge-amber">FAIL_CLOSED_GATED</span>
+            </div>
+            <div class="term-body">
+<span class="term-line-amber">// Active Contract Gate Inspection</span>
+if (attemptedOp.type === "deployment" && !contract.authority.deployment) {
+  task.status = "waiting_approval";
+  store.createApprovalRequest({
+    taskId: task.id,
+    risk: "high",
+    reason: "Step 2 requested deployment without contract grant."
+  });
+  <span class="term-line-mint">&gt;&gt; HALTED: Awaiting human decision via Web, Discord, or Telegram.</span>
+}
+            </div>
+          </div>
+        </div>
+
+        <!-- System 3: JEv Intent & Routing -->
+        <div class="system-display-pane" id="pane-jev">
+          <div class="pane-header">
+            <div>
+              <h3>JEv System-1 Intent &amp; Empirical Routing</h3>
+              <p>Spend model intelligence deliberately. Low-cost deterministic System-1 intent routing handles 80% of commands in under 15ms. Expensive LLMs are routed empirically by measured pass rates.</p>
+            </div>
+            <span class="badge badge-accent">Sections 5, 47, 48, 49</span>
+          </div>
+
+          <div class="spec-points-grid">
+            <div class="spec-point">
+              <h4>⏱️ 12ms Intent Classification</h4>
+              <p>Instant parsing of commands, status requests, memory lookups, and administrative routines without model overhead.</p>
+            </div>
+            <div class="spec-point">
+              <h4>📊 Empirical Routing Engine</h4>
+              <p>Models are chosen based on verified benchmark pass rates, not vendor marketing. Unmeasured models are labeled UNKNOWN.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🌐 Local Ollama + Cloud Hybrid</h4>
+              <p>Auto-detects local models ($0 compute) for code drafting; escalates to Xiaomi MiMo or OpenAI only for complex tasks.</p>
+            </div>
+            <div class="spec-point">
+              <h4>📉 Behavioral Drift Monitor</h4>
+              <p>Monitors frozen canary test cases to catch hidden model downgrades or harness degradation before production failure.</p>
+            </div>
+          </div>
+
+          <div class="interactive-terminal">
+            <div class="term-bar">
+              <span>EmpiricalRouter.ts — Decision Matrix</span>
+              <span class="badge badge-mint">OPTIMIZED: $0.0004 / run</span>
+            </div>
+            <div class="term-body">
+<span class="term-line-accent">[IntentRouter]</span> Query: "Run test suite and check memory context"
+&gt;&gt; Classification: SYSTEM_DIAGNOSTIC (Confidence: 0.994)
+&gt;&gt; Selected Target: Local Ollama / Qwen-2.5-Coder (Benchmark Pass Rate: 98.4%)
+&gt;&gt; Latency: 14ms | Cost: $0.0000 | Token Budget Saved: 4,120 tokens
+            </div>
+          </div>
+        </div>
+
+        <!-- System 4: Evidence Layer -->
+        <div class="system-display-pane" id="pane-evidence">
+          <div class="pane-header">
+            <div>
+              <h3>Cryptographic Evidence Layer</h3>
+              <p>Never take an agent's word for it. Every task run creates an immutable EvidencePack anchored by a SHA-256 tamper-evident cryptographic hash chain.</p>
+            </div>
+            <span class="badge badge-mint">Sections 32, 33, 34</span>
+          </div>
+
+          <div class="spec-points-grid">
+            <div class="spec-point">
+              <h4>⛓️ Genesis-Anchored Audit Chain</h4>
+              <p>Every audit entry contains a `previousHash` linked back to `GENESIS_AUDIT_HASH`. Any tampering is instantly flagged.</p>
+            </div>
+            <div class="spec-point">
+              <h4>📦 Signed Evidence Seal</h4>
+              <p>Collects test run logs, diff scope analysis, secret scans, and rollback plans into a deterministic `.sha256` pack.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🛡️ PII &amp; Secret Scanners</h4>
+              <p>Scans every git commit and artifact for API keys, bearer tokens, or personal identifiers before merge.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🔍 CompletionEngine Verification</h4>
+              <p>Independent verification verifies tests independently from the model before moving tasks to COMPLETE_VERIFIED.</p>
+            </div>
+          </div>
+
+          <div class="interactive-terminal">
+            <div class="term-bar">
+              <span>signed_evidence_seal.sha256</span>
+              <span class="badge badge-mint">CRYPTOGRAPHICALLY VERIFIED</span>
+            </div>
+            <div class="term-body">
+<span class="term-line-mint">[EvidencePack Sealed]</span>
+Task ID: TASK-API-FLOW-902
+Artifact Hash: a3f829c91b5c898b3c907a72d381014e7a83606990de8507e15bfca78c2e6488
+Audit Block #4928 Chained: OK
+Secret Leak Check: PASSED (0 findings)
+Test Suite Execution: 304 passed, 0 failed
+Seal Signed By: CompletionEngine (Version 2.0.1)
+            </div>
+          </div>
+        </div>
+
+        <!-- System 5: Voice Telephony -->
+        <div class="system-display-pane" id="pane-voice">
+          <div class="pane-header">
+            <div>
+              <h3>Voice Telephony &amp; Call Lifecycle Engine</h3>
+              <p>Inbound and outbound voice agents operating on normalized provider contracts (Retell, Twilio, Mock). Phone calls become first-class workspace events.</p>
+            </div>
+            <span class="badge badge-accent">Sections 25, 26, 27, 28, 29</span>
+          </div>
+
+          <div class="spec-points-grid">
+            <div class="spec-point">
+              <h4>📞 Canonical Call Domain</h4>
+              <p>Unified representation of call audio recordings, dual-track transcripts, participants, usage costs, and outcomes.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🔒 HMAC Webhook Verification</h4>
+              <p>Timing-safe SHA-256 signature verification rejects spoofed provider callbacks.</p>
+            </div>
+            <div class="spec-point">
+              <h4>📋 Post-Call Lifecycle Dispatch</h4>
+              <p>Automatically posts formatted call summaries to channels, registers follow-up tasks, and updates operational memory.</p>
+            </div>
+            <div class="spec-point">
+              <h4>🧪 Deterministic Voice Suite</h4>
+              <p>5-case benchmark suite verifies transcript normalization, authority gates, and lifecycle triggers in CI.</p>
+            </div>
+          </div>
+
+          <div class="interactive-terminal">
+            <div class="term-bar">
+              <span>call_lifecycle_event.log</span>
+              <span class="badge badge-mint">CALL COMPLETED</span>
+            </div>
+            <div class="term-body">
+<span class="term-line-accent">[CallLifecycleManager]</span> Call ID: call_retell_89201a
+Caller: +1 (555) 019-2834 | Duration: 142s | Outcome: "Appointment Scheduled"
+&gt;&gt; Synthesized Markdown Summary dispatched to #sales-leads
+&gt;&gt; Follow-up Task Created: "Send onboarding packet to client"
+&gt;&gt; Operational Memory Updated in namespace "client_relations"
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION: LIVE GOVERNANCE SIMULATOR PLAYGROUND
+       ========================================================================= -->
+  <section class="section-wrap" id="simulator">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-mint">Interactive Sandbox</div>
+        <h2>Test the Governance Engine Live</h2>
+        <p>
+          Configure a task, set execution constraints, and watch how AgentForge halts privileged operations, 
+          enforces isolated worktrees, and seals evidence.
+        </p>
+      </div>
+
+      <div class="sim-card">
+        <div class="sim-layout">
+          <!-- Left: Controls -->
+          <div class="sim-controls">
+            <label>1. Select Simulated Mission</label>
+            <select class="sim-select" id="sim-task-select" onchange="updateSimMission()">
+              <option value="deploy">Hotfix Deployment: Update Auth Token Schema</option>
+              <option value="refactor">Code Refactoring: Optimize DB Connection Pool</option>
+              <option value="migration">Legacy Migration: Ingest OpenClaw SOP</option>
+              <option value="voice">Outbound Call: Schedule Client Review Meeting</option>
+            </select>
+
+            <label>2. Execution Contract Authority</label>
+            <div class="toggle-row">
+              <span>Allow Direct Deployment</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auth-deploy" onchange="runSimPreview()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span>Allow Outbound Network</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auth-network" checked onchange="runSimPreview()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span>Require Cryptographic Evidence Seal</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auth-evidence" checked disabled>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; margin-top: 18px;" onclick="executeSimulation()">
+              ▶ Run Governed Task Execution
+            </button>
+          </div>
+
+          <!-- Right: Live Execution Trace -->
+          <div class="sim-output-box">
+            <div>
+              <div class="sim-status-header">
+                <strong>RUNTIME STATUS</strong>
+                <span class="badge badge-accent" id="sim-badge">READY TO EXECUTE</span>
+              </div>
+
+              <ul class="sim-stage-list" id="sim-stages">
+                <li class="sim-stage-item" id="stage-1">
+                  <span class="stage-dot"></span>
+                  <span>1. Contract Bounds Validation</span>
+                </li>
+                <li class="sim-stage-item" id="stage-2">
+                  <span class="stage-dot"></span>
+                  <span>2. Isolated Worktree Creation</span>
+                </li>
+                <li class="sim-stage-item" id="stage-3">
+                  <span class="stage-dot"></span>
+                  <span>3. Operational Memory Retrieval</span>
+                </li>
+                <li class="sim-stage-item" id="stage-4">
+                  <span class="stage-dot"></span>
+                  <span>4. Agent Step Execution</span>
+                </li>
+                <li class="sim-stage-item" id="stage-5">
+                  <span class="stage-dot"></span>
+                  <span>5. Human Approval Gate Check</span>
+                </li>
+                <li class="sim-stage-item" id="stage-6">
+                  <span class="stage-dot"></span>
+                  <span>6. Tamper-Proof Evidence Seal</span>
+                </li>
+              </ul>
+
+              <div class="approval-gate-banner" id="approval-banner">
+                <strong style="color: var(--amber);">✋ EXECUTION HALTED BY CONTRACT</strong>
+                <p style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
+                  The agent attempted to deploy to production, but `authority.deployment` is false.
+                </p>
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                  <button class="btn btn-primary btn-sm" onclick="approveSimGate()">Approve Deployment</button>
+                  <button class="btn btn-secondary btn-sm" onclick="rejectSimGate()">Reject &amp; Abort</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 20px;">
+              Session: <span id="sim-session-id">sess_idle_000</span> | Isolated Branch: <span id="sim-branch-id">worktree/task-preview</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION: PRODUCT GALLERY (ACTUAL CANONICAL SCREENSHOTS)
+       ========================================================================= -->
+  <section class="section-wrap" id="gallery">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-accent">Interactive Tour</div>
+        <h2>Inspect Every Staging Screen</h2>
+        <p>Explore real screenshots captured directly from our verified staging environment.</p>
+      </div>
+
+      <div class="gallery-tabs">
+        <button class="gallery-tab-btn active" onclick="switchGallery('home', this)">Command Room</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('agents', this)">Agent Roster</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('tasks', this)">Governed Tasks</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('approvals', this)">Approval Gates</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('processes', this)">SOP Playbooks</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('models', this)">Model Providers</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('benchmarks', this)">Empirical Benchmarks</button>
+        <button class="gallery-tab-btn" onclick="switchGallery('voice', this)">Voice Telephony</button>
+      </div>
+
+      <div class="gallery-display">
+        <div class="gallery-frame active" id="gal-home">
+          <img src="canonical-home.png" alt="Command Room Dashboard" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-agents">
+          <img src="canonical-agents.png" alt="Agent Roster" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-tasks">
+          <img src="canonical-tasks.png" alt="Governed Tasks" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-approvals">
+          <img src="canonical-approvals.png" alt="Approval Gates" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-processes">
+          <img src="canonical-processes.png" alt="SOP Playbooks" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-models">
+          <img src="canonical-models.png" alt="Model Providers" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-benchmarks">
+          <img src="canonical-benchmarks.png" alt="Empirical Benchmarks" loading="lazy">
+        </div>
+        <div class="gallery-frame" id="gal-voice">
+          <img src="canonical-voice.png" alt="Voice Telephony" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION: COMPETITIVE COMPARISON
+       ========================================================================= -->
+  <section class="section-wrap" id="compare">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-accent">Honest Evaluation</div>
+        <h2>Engineered Where Others Left Gaps</h2>
+        <p>
+          Compare AgentForge's contract-first architecture against popular agent frameworks and platforms.
+        </p>
+      </div>
+
+      <div class="table-card">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Architectural Guarantee</th>
+              <th class="col-highlight">AgentForge</th>
+              <th>CrewAI</th>
+              <th>LangGraph</th>
+              <th>AutoGen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feature-name">
+                <strong>Execution Contracts Below Model Layer</strong>
+                <span>Hard enforcement of filesystem, network, and command limits</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Hard Gate</td>
+              <td class="check-no">✗ Prompt-only</td>
+              <td class="check-no">✗ Application-level</td>
+              <td class="check-no">✗ None</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>SOP Is Never Authority</strong>
+                <span>Business procedures describe work, never grant permissions</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Core Law</td>
+              <td class="check-no">✗ SOP acts as code</td>
+              <td class="check-no">✗ Prompt instructions</td>
+              <td class="check-no">✗ None</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Isolated Git Worktree Sandboxes</strong>
+                <span>Zero write to user root directory or production branches</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Built-in Git Worktrees</td>
+              <td class="check-no">✗ Host process</td>
+              <td class="check-partial">~ External Docker</td>
+              <td class="check-no">✗ Host process</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Signed Cryptographic Evidence Packs</strong>
+                <span>Deterministic SHA-256 seal proves tests &amp; diffs passed</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Signed .sha256</td>
+              <td class="check-no">✗ Text logs</td>
+              <td class="check-no">✗ Unsigned traces</td>
+              <td class="check-no">✗ Console log</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Multi-Channel Mirror (Web + Telegram + Discord)</strong>
+                <span>Bidirectional control and approvals from chat apps</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Native Mirroring</td>
+              <td class="check-no">✗ Webhook only</td>
+              <td class="check-no">✗ Custom coding needed</td>
+              <td class="check-no">✗ None</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Empirical Model Routing</strong>
+                <span>Routes by measured benchmark pass rate, never marketing</span>
+              </td>
+              <td class="col-highlight check-yes">✓ Empirical Runner</td>
+              <td class="check-no">✗ Hardcoded model</td>
+              <td class="check-no">✗ Manual config</td>
+              <td class="check-no">✗ Manual config</td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Local-First &amp; Zero Cloud Dependency</strong>
+                <span>Runs entirely on loopback (127.0.0.1) with local Ollama</span>
+              </td>
+              <td class="col-highlight check-yes">✓ 100% Local-First</td>
+              <td class="check-partial">~ Cloud console focus</td>
+              <td class="check-yes">✓ Local python</td>
+              <td class="check-yes">✓ Local python</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION: PRICING
+       ========================================================================= -->
+  <section class="section-wrap" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-mint">Transparent Tiers</div>
+        <h2>Open Source Core. Enterprise Governance.</h2>
+        <p>Start free on your local workstation. Upgrade when deploying across enterprise teams.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Community -->
+        <div class="pricing-card">
+          <div>
+            <div class="badge">Open Source</div>
+            <div class="price-num">$0</div>
+            <div class="price-period">Forever free • Apache-2.0 License</div>
+            <p>Complete control plane running locally on your hardware with no tracking.</p>
+
+            <ul class="price-features">
+              <li><span>✓</span> Full 50-section specification</li>
+              <li><span>✓</span> Unlimited local agents &amp; tasks</li>
+              <li><span>✓</span> Execution contracts &amp; Git worktrees</li>
+              <li><span>✓</span> Web, Telegram, &amp; Discord mirroring</li>
+              <li><span>✓</span> Local Ollama auto-discovery</li>
+              <li><span>✓</span> Cryptographic EvidencePacks</li>
+            </ul>
+          </div>
+          <a href="https://github.com/agentforge/agentforge" class="btn btn-secondary">Get Open Source →</a>
+        </div>
+
+        <!-- Team Pro -->
+        <div class="pricing-card featured">
+          <div class="popular-tag">Most Popular</div>
+          <div>
+            <div class="badge badge-accent">Team Operations</div>
+            <div class="price-num">$49</div>
+            <div class="price-period">per seat / month</div>
+            <p>For engineering teams needing hosted coordination, remote bridges, and team RBAC.</p>
+
+            <ul class="price-features">
+              <li><span>✓</span> Everything in Open Source</li>
+              <li><span>✓</span> Multi-tenant identity &amp; team RBAC</li>
+              <li><span>✓</span> Automated continuous benchmark suites</li>
+              <li><span>✓</span> Telephony &amp; Retell Voice bridging</li>
+              <li><span>✓</span> Behavioral drift alerts &amp; regression hold</li>
+              <li><span>✓</span> Priority email &amp; Discord support</li>
+            </ul>
+          </div>
+          <a href="#simulator" class="btn btn-primary">Start 14-Day Free Trial →</a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="pricing-card">
+          <div>
+            <div class="badge">Enterprise Scale</div>
+            <div class="price-num">Custom</div>
+            <div class="price-period">Annual contract • Air-gapped options</div>
+            <p>For organizations with strict compliance, SOC2, HIPAA, or air-gapped enclave needs.</p>
+
+            <ul class="price-features">
+              <li><span>✓</span> Everything in Team Pro</li>
+              <li><span>✓</span> Air-gapped on-premise deployment</li>
+              <li><span>✓</span> SAML / Okta / Azure AD SSO integration</li>
+              <li><span>✓</span> Custom compliance evidence seals</li>
+              <li><span>✓</span> Dedicated solutions architect</li>
+              <li><span>✓</span> 99.99% uptime enterprise SLA</li>
+            </ul>
+          </div>
+          <a href="mailto:enterprise@agentforge.dev" class="btn btn-secondary">Contact Sales →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       CTA BANNER
+       ========================================================================= -->
+  <div class="container">
+    <div class="cta-banner">
+      <h2>Build an AI Workforce You Can Actually Trust.</h2>
+      <p>
+        Stop hoping models behave. Start governing them with execution contracts, 
+        isolated worktrees, and cryptographic evidence.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <a href="#simulator" class="btn btn-primary">Launch Interactive Sandbox →</a>
+        <a href="https://github.com/agentforge/agentforge" class="btn btn-secondary">View on GitHub (Apache-2.0)</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="footer" id="docs">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="nav-brand" style="margin-bottom: 16px;">
+            <div class="logo-glyph" style="width:30px; height:30px; font-size:15px;">A</div>
+            AgentForge
+          </div>
+          <p style="font-size: 13px; max-width: 300px; color: var(--text-muted); line-height: 1.6;">
+            The local-first operating system for governed AI workforces. Evidence-backed. Contract-gated. Zero blind execution.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Subsystems</h4>
+          <ul>
+            <li><a href="#systems">Canonical Workspace</a></li>
+            <li><a href="#systems">Contract Engine</a></li>
+            <li><a href="#systems">JEv Intent Router</a></li>
+            <li><a href="#systems">Evidence Packs</a></li>
+            <li><a href="#systems">Voice Telephony</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Developers</h4>
+          <ul>
+            <li><a href="#simulator">Simulator Sandbox</a></li>
+            <li><a href="https://github.com/agentforge/agentforge">GitHub Repository</a></li>
+            <li><a href="#compare">Competitive Matrix</a></li>
+            <li><a href="#">CLI Reference</a></li>
+            <li><a href="#">Traceability Index</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Governance</h4>
+          <ul>
+            <li><a href="#">SOP Authority Law</a></li>
+            <li><a href="#">Git Worktree Sandboxing</a></li>
+            <li><a href="#">Cryptographic Seals</a></li>
+            <li><a href="#">Local-First Privacy</a></li>
+            <li><a href="#">Apache-2.0 License</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 AgentForge Contributors. Apache-2.0 Open Source.</div>
+        <div style="font-family: var(--font-mono); font-size: 12px;">Node.js ≥22 • TypeScript • Vitest Verified</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       INTERACTIVE SCRIPTS
+       ========================================================================= -->
+  <script>
+    // System Switcher (#systems)
+    function switchSystem(systemKey, btnEl) {
+      document.querySelectorAll('.system-nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.system-display-pane').forEach(pane => pane.classList.remove('active'));
+      
+      btnEl.classList.add('active');
+      const targetPane = document.getElementById('pane-' + systemKey);
+      if (targetPane) targetPane.classList.add('active');
+    }
+
+    // Gallery Switcher
+    function switchGallery(frameKey, btnEl) {
+      document.querySelectorAll('.gallery-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.gallery-frame').forEach(frame => frame.classList.remove('active'));
+
+      btnEl.classList.add('active');
+      const targetFrame = document.getElementById('gal-' + frameKey);
+      if (targetFrame) targetFrame.classList.add('active');
+    }
+
+    // Simulator Interactive Logic
+    let simTimer = null;
+    function updateSimMission() {
+      const select = document.getElementById('sim-task-select').value;
+      const deployToggle = document.getElementById('auth-deploy');
+      if (select === 'deploy') {
+        deployToggle.checked = false; // default blocked for demonstration
+      }
+      resetSimStages();
+    }
+
+    function resetSimStages() {
+      clearTimeout(simTimer);
+      for (let i = 1; i <= 6; i++) {
+        const el = document.getElementById('stage-' + i);
+        el.className = 'sim-stage-item';
+      }
+      document.getElementById('sim-badge').innerText = 'READY TO EXECUTE';
+      document.getElementById('sim-badge').className = 'badge badge-accent';
+      document.getElementById('approval-banner').classList.remove('show');
+    }
+
+    function executeSimulation() {
+      resetSimStages();
+      const taskType = document.getElementById('sim-task-select').value;
+      const allowDeploy = document.getElementById('auth-deploy').checked;
+      const sessId = 'sess_' + Math.random().toString(36).substring(2, 9);
+      document.getElementById('sim-session-id').innerText = sessId;
+      document.getElementById('sim-branch-id').innerText = 'worktree/' + taskType + '-staging';
+
+      document.getElementById('sim-badge').innerText = 'RUNNING';
+      document.getElementById('sim-badge').className = 'badge badge-amber';
+
+      // Step 1: Contract Bounds
+      setStage(1, 'done');
+      
+      // Step 2: Worktree (300ms)
+      simTimer = setTimeout(() => {
+        setStage(2, 'done');
+
+        // Step 3: Memory (600ms)
+        simTimer = setTimeout(() => {
+          setStage(3, 'done');
+
+          // Step 4: Step execution (900ms)
+          simTimer = setTimeout(() => {
+            setStage(4, 'done');
+
+            // Step 5: Check deployment authority
+            simTimer = setTimeout(() => {
+              if (taskType === 'deploy' && !allowDeploy) {
+                // Trip Human Gate!
+                setStage(5, 'halted');
+                document.getElementById('sim-badge').innerText = 'WAITING APPROVAL';
+                document.getElementById('sim-badge').className = 'badge badge-amber';
+                document.getElementById('approval-banner').classList.add('show');
+              } else {
+                setStage(5, 'done');
+                // Step 6: Evidence Seal
+                simTimer = setTimeout(() => {
+                  setStage(6, 'done');
+                  document.getElementById('sim-badge').innerText = 'COMPLETE_VERIFIED';
+                  document.getElementById('sim-badge').className = 'badge badge-mint';
+                }, 400);
+              }
+            }, 400);
+          }, 400);
+        }, 350);
+      }, 300);
+    }
+
+    function setStage(index, status) {
+      const el = document.getElementById('stage-' + index);
+      if (el) el.className = 'sim-stage-item ' + status;
+    }
+
+    function approveSimGate() {
+      document.getElementById('approval-banner').classList.remove('show');
+      setStage(5, 'done');
+      setTimeout(() => {
+        setStage(6, 'done');
+        document.getElementById('sim-badge').innerText = 'COMPLETE_VERIFIED';
+        document.getElementById('sim-badge').className = 'badge badge-mint';
+      }, 350);
+    }
+
+    function rejectSimGate() {
+      document.getElementById('approval-banner').classList.remove('show');
+      document.getElementById('sim-badge').innerText = 'ABORTED_BY_HUMAN';
+      document.getElementById('sim-badge').className = 'badge badge-accent';
+    }
+
+    function runSimPreview() {
+      // preview update
+    }
+  </script>
+</body>
+</html>

@@ -1,8 +1,0 @@
-timestamp,requestId,model,source,channel,project,session,baselineTokens,optimizedTokens,tokensPrevented,reductionPercent,providerCalled,bypass,optimizationType,latencyMs,error
-"2026-06-14T23:44:13.312Z","f71af883","llama3.1:8b","openclaw","telegram","openclaw","smoke-test-1781480650272","9","9","0","0.00","true","false","fingerprint=fp_9f7f94f3e58209e9","304",""
-"2026-06-14T23:43:00.773Z","2e154029","llama3.1:8b","openclaw","telegram","openclaw","smoke-test-1781480260115","9","9","0","0.00","true","false","fingerprint=fp_9f7f94f3e58209e9","320500","Ollama response parse error: data: {""id"":""chatcmpl-806"",""object"":""chat.completion.chunk"",""created"":1781480579,""model"":""llama3.1:8b"",""system_fingerprint"":""fp_ollama"",""choices"":[{""index"":0,""delta"":{""role"":""assistant"",""content"":""AGE"
-"2026-06-14T23:42:59.797Z","9c317337","llama3.1:8b","openclaw","telegram","openclaw","smoke-test-1781480461917","9","9","0","0.00","true","false","fingerprint=fp_9f7f94f3e58209e9","117708",""
-"2026-06-14T23:42:58.614Z","f183a488","llama3.1:8b","unknown","unknown","unknown","unknown","2","2","0","0.00","true","false","fingerprint=fp_71d5b298ee9f050c","14923",""
-"2026-06-14T23:39:19.830Z","38f1750e","llama3.1:8b","openclaw","telegram","openclaw","direct-test","2","2","0","0.00","true","false","fingerprint=fp_71d5b298ee9f050c","726",""
-"2026-06-14T23:37:28.976Z","bc96bc45","llama3.1:8b","openclaw","telegram","openclaw","smoke-test-1781480245687","9","9","0","0.00","true","false","fingerprint=fp_9f7f94f3e58209e9","378",""
-"2026-06-14T23:03:53.952Z","67c95853","gemma4:e4b","openclaw","unknown","openclaw","88a9fda5-ed96-4091-bfa3-efca19e8ab9c","12175","11950","0","1.85","true","false","fingerprint=fp_f03f14e2333ad6bc","1393",""
