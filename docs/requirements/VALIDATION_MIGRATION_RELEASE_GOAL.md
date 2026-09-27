@@ -16,7 +16,7 @@ CURRENT REPORTED STATE:
 - 96 / 96 tests passing
 - Web Control Plane reported at localhost:3456
 - Production isolation maintained
-- OpenClaw/PPC/Hermes/Orion untouched
+- Unrelated production systems untouched
 
 THIS PHASE IS DIFFERENT.
 
@@ -46,7 +46,7 @@ DO NOT MODIFY:
 
 OpenClaw production
 
-prolificcapital-recovery / PPC
+unrelated production repository
 
 Hermes production
 
@@ -56,7 +56,7 @@ production Telegram
 
 production Discord
 
-JustCall
+external communications provider
 
 GHL
 
@@ -632,7 +632,7 @@ schedules/jobs
 
 relevant durable state patterns
 
-PPC safety configuration shape where necessary
+external workflow safety configuration shape where necessary
 
 Expected AgentForge translation should be deterministic.
 

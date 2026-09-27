@@ -45,9 +45,9 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
 
   beforeEach(() => {
     store = new WorkspaceStore();
-    store.getUser("user-montelli")!.externalIdentities.push({
+    store.getUser("user-owner")!.externalIdentities.push({
       provider: "telegram",
-      externalUserId: "user-montelli",
+      externalUserId: "user-owner",
       linkedAt: new Date().toISOString(),
     });
     contractEnforcer = new ContractEnforcer();
@@ -129,7 +129,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       await telegram.ingestInboundUpdate({
         updateId: 999,
         chatId: "-1001",
-        userId: "user-montelli",
+        userId: "user-owner",
         text: "/status",
       });
       expect(handledCount).toBe(1);
@@ -138,7 +138,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       await telegram.ingestInboundUpdate({
         updateId: 999, // Same update ID
         chatId: "-1001",
-        userId: "user-montelli",
+        userId: "user-owner",
         text: "/status",
       });
       // Handled count MUST remain 1 due to EventLedger idempotency deduplication
@@ -149,7 +149,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
       await telegram.ingestInboundUpdate({
         updateId: 1000,
         chatId: "-1001",
-        userId: "user-montelli",
+        userId: "user-owner",
         text: xssPayload,
       });
 

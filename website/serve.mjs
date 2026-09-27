@@ -49,7 +49,7 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-store, max-age=0',
     });
     res.end(data);
   });

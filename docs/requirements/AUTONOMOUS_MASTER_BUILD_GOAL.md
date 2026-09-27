@@ -55,7 +55,7 @@ THE FOLLOWING ARE PRODUCTION / EXTERNAL SYSTEMS AND ARE OFF LIMITS:
 
 OpenClaw production repository
 
-prolificcapital-recovery / PPC
+unrelated production repository
 
 Hermes
 
@@ -65,9 +65,9 @@ production Telegram
 
 production Discord
 
-JustCall
+external communications provider
 
-GoHighLevel
+external CRM
 
 production databases
 

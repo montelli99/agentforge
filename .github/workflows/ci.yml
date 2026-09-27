@@ -1,6 +1,7 @@
 name: AgentForge CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master, main, vnext ]
   pull_request:
@@ -10,6 +11,39 @@ permissions:
   contents: read
 
 jobs:
+  public-acceptance:
+    name: Public package and isolated execution acceptance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+
+      - name: Clean Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # This gate inspects the exact npm archive and exercises the approved
+      # execution path in a network-disabled Docker container.
+      - name: Verify public release boundary
+        run: pnpm verify:public
+        env:
+          NODE_ENV: test
+          CI: true
+          OPENAI_API_KEY: ""
+          TELEGRAM_BOT_TOKEN: ""
+          DISCORD_BOT_TOKEN: ""
+
   test:
     name: Build & Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
     runs-on: ${{ matrix.os }}

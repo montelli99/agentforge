@@ -12,8 +12,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type {
   CanonicalWorkspace,
+  WorkspaceExperience,
   CanonicalSpace,
   CanonicalChannel,
   CanonicalThread,
@@ -27,6 +29,8 @@ import type { ProcessAgentBinding, ProcessDefinition, ProcessDiff, ProcessRevisi
 import type { Call } from "../types/voice.js";
 import type { PackageManifest, PackageInstallation } from "../types/package.js";
 import type { BenchmarkResult } from "../types/benchmark.js";
+import type { QualityAnalysis, QualityBaseline } from "../types/quality.js";
+import type { CorrectionProposal } from "../quality/correctionRegistry.js";
 import type { AuditEntry, AuditOrigin } from "../types/audit.js";
 import { computeAuditHash, GENESIS_AUDIT_HASH } from "../types/audit.js";
 import type { AgentForgeUser, ExternalIdentity, UserRole, UserSummary } from "../types/identity.js";
@@ -42,8 +46,12 @@ import {
   hashApiKey,
 } from "../auth/authService.js";
 import { EventLedger } from "../ledger/eventLedger.js";
+import { redactRuntimeError } from "../secret/runtimeRedaction.js";
 
 export type RealtimeListener = (event: { type: string; entity: string; data: unknown }) => void;
+
+/** The version written by WorkspaceStore snapshots and consumed by acceptance gates. */
+export const WORKSPACE_SNAPSHOT_SCHEMA_VERSION = 7;
 
 const auditTargetTypes = new Set<AuditEntry["targetType"]>([
   "task", "agent", "contract", "approval", "message", "file", "model", "worktree", "channel",
@@ -63,9 +71,8 @@ export interface UnifiedInboxItem {
   actionUrl?: string;
   metadata?: Record<string, unknown>;
 }
-
 type PersistedWorkspaceSnapshot = {
-  schemaVersion: 1 | 2 | 3 | 4 | 5;
+  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   workspaces: CanonicalWorkspace[];
   spaces: CanonicalSpace[];
   channels: CanonicalChannel[];
@@ -83,6 +90,9 @@ type PersistedWorkspaceSnapshot = {
   packages: PackageManifest[];
   installations: PackageInstallation[];
   benchmarkResults: BenchmarkResult[];
+  qualityBaselines?: QualityBaseline[];
+  qualityAnalyses?: QualityAnalysis[];
+  qualityCorrections?: CorrectionProposal[];
   auditEntries: AuditEntry[];
   auditPrunedCheckpoint?: { prunedCount: number; lastPrunedHash: string; timestamp: string };
   operationalMemories: OperationalMemoryRecord[];
@@ -112,6 +122,9 @@ export class WorkspaceStore {
   private packages = new Map<string, PackageManifest>();
   private installations = new Map<string, PackageInstallation>();
   private benchmarkResults: BenchmarkResult[] = [];
+  private qualityBaselines: QualityBaseline[] = [];
+  private qualityAnalyses: QualityAnalysis[] = [];
+  private qualityCorrections: CorrectionProposal[] = [];
   private auditEntries: AuditEntry[] = [];
   private auditPrunedCheckpoint?: { prunedCount: number; lastPrunedHash: string; timestamp: string };
   private operationalMemories = new Map<string, OperationalMemoryRecord>();
@@ -127,7 +140,9 @@ export class WorkspaceStore {
 
   constructor(private readonly persistFilePath?: string) {
     this.eventLedger = new EventLedger(() => this.persistIfConfigured());
-    this.seedDefaultWorkspace();
+    // A durable installation starts with a workspace, not a pre-made project.
+    // In-memory stores retain the starter project/channel fixture used by isolated tests.
+    this.seedDefaultWorkspace(!persistFilePath);
     if (persistFilePath) {
       if (fs.existsSync(persistFilePath) || fs.existsSync(`${persistFilePath}.bak`)) {
         const source = this.loadFromFile(persistFilePath);
@@ -179,7 +194,7 @@ export class WorkspaceStore {
   }
 
   // --- Seed Initial Default Workspace ---
-  private seedDefaultWorkspace(): void {
+  private seedDefaultWorkspace(includeStarterProject = true): void {
     const defaultWs: CanonicalWorkspace = {
       id: "ws-default",
       name: "AgentForge Workspace",
@@ -189,7 +204,12 @@ export class WorkspaceStore {
     };
     this.workspaces.set(defaultWs.id, defaultWs);
 
-    // Native Space
+    if (!includeStarterProject) {
+      this.createDefaultOwnerUser();
+      return;
+    }
+
+    // Test-only starter space and channels for in-memory API coverage.
     const nativeSpace: CanonicalSpace = {
       id: "space-native",
       workspaceId: defaultWs.id,
@@ -218,6 +238,10 @@ export class WorkspaceStore {
       this.messages.set(chan.id, []);
     }
 
+    this.createDefaultOwnerUser();
+  }
+
+  private createDefaultOwnerUser(): void {
     // Default Owner User
     const ownerUser: AgentForgeUser = {
       id: "user-owner",
@@ -243,6 +267,15 @@ export class WorkspaceStore {
     return Array.from(this.workspaces.values());
   }
 
+  updateWorkspace(id: string, changes: Pick<Partial<CanonicalWorkspace>, "name" | "description" | "experience">): CanonicalWorkspace {
+    const existing = this.workspaces.get(id);
+    if (!existing) throw new Error("Workspace not found");
+    const workspace = { ...existing, ...changes, updatedAt: new Date().toISOString() };
+    this.workspaces.set(id, workspace);
+    this.emit("workspace_updated", "workspace", workspace);
+    return workspace;
+  }
+
   createWorkspace(params: Omit<CanonicalWorkspace, "id" | "createdAt" | "updatedAt">): CanonicalWorkspace {
     const id = `ws-${crypto.randomUUID().slice(0, 8)}`;
     const ws: CanonicalWorkspace = {
@@ -257,6 +290,12 @@ export class WorkspaceStore {
   }
 
   createSpace(params: Omit<CanonicalSpace, "id" | "createdAt" | "updatedAt">): CanonicalSpace {
+    if (params.parentSpaceId) {
+      const parent = this.spaces.get(params.parentSpaceId);
+      if (!parent || parent.workspaceId !== params.workspaceId) {
+        throw new Error("Parent space must exist in the same workspace");
+      }
+    }
     const id = `space-${crypto.randomUUID().slice(0, 8)}`;
     const space: CanonicalSpace = {
       ...params,
@@ -269,12 +308,31 @@ export class WorkspaceStore {
     return space;
   }
 
+  getSpace(id: string): CanonicalSpace | undefined { return this.spaces.get(id); }
+
+  updateSpace(id: string, changes: Pick<Partial<CanonicalSpace>, "name" | "description" | "instructions" | "repositoryPath" | "repositoryAccess" | "archived">): CanonicalSpace {
+    const existing = this.spaces.get(id);
+    if (!existing) throw new Error("Project not found");
+    const space = { ...existing, ...changes, updatedAt: new Date().toISOString() };
+    this.spaces.set(id, space);
+    this.emit("space_updated", "space", space);
+    return space;
+  }
+
   listSpaces(workspaceId = "ws-default"): CanonicalSpace[] {
     return Array.from(this.spaces.values()).filter(s => s.workspaceId === workspaceId);
   }
 
   // --- Channels & Mirroring ---
   createChannel(params: Omit<CanonicalChannel, "id" | "createdAt" | "updatedAt">): CanonicalChannel {
+    const space = this.spaces.get(params.spaceId);
+    if (!space || space.workspaceId !== params.workspaceId) {
+      throw new Error("Channel space must exist in the same workspace");
+    }
+    const externalProvider = params.provider === "telegram" || params.provider === "discord" || params.provider === "slack" ? params.provider : undefined;
+    if (params.externalId && externalProvider && this.findMirroredChannel(externalProvider, params.externalId)) {
+      throw new Error("External channel is already mirrored");
+    }
     const id = `chan-${crypto.randomUUID().slice(0, 8)}`;
     const channel: CanonicalChannel = {
       ...params,
@@ -297,13 +355,97 @@ export class WorkspaceStore {
     return spaceId ? all.filter(c => c.spaceId === spaceId) : all;
   }
 
-  findMirroredChannel(provider: "telegram" | "discord", externalId: string): CanonicalChannel | undefined {
+  findMirroredChannel(provider: "telegram" | "discord" | "slack", externalId: string): CanonicalChannel | undefined {
     return Array.from(this.channels.values()).find(
       c => c.provider === provider && c.externalId === externalId
     );
   }
 
   // --- Messages & Threads ---
+  createThread(channelId: string, title: string): CanonicalThread {
+    if (!this.channels.has(channelId)) throw new Error("Channel not found");
+    const now = new Date().toISOString();
+    const thread: CanonicalThread = { id: crypto.randomUUID(), channelId, title, archived: false, pinned: false, createdAt: now, updatedAt: now };
+    this.threads.set(thread.id, thread);
+    this.emit("thread_created", "thread", thread);
+    return thread;
+  }
+
+  getThread(id: string): CanonicalThread | undefined { return this.threads.get(id); }
+
+  listThreads(channelId?: string): CanonicalThread[] {
+    return Array.from(this.threads.values()).filter(t => !channelId || t.channelId === channelId)
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  updateThread(id: string, changes: Pick<Partial<CanonicalThread>, "title" | "pinned" | "archived">): CanonicalThread {
+    const existing = this.threads.get(id);
+    if (!existing) throw new Error("Conversation not found");
+    const thread = { ...existing, ...changes, updatedAt: new Date().toISOString() };
+    this.threads.set(id, thread);
+    this.emit("thread_updated", "thread", thread);
+    return thread;
+  }
+
+  listThreadMessages(id: string): CanonicalMessage[] {
+    const thread = this.threads.get(id);
+    return thread ? (this.messages.get(thread.channelId) || []).filter(message => message.threadId === id) : [];
+  }
+
+  moveThread(id: string, channelId: string): CanonicalThread {
+    const thread = this.threads.get(id);
+    const source = thread && this.channels.get(thread.channelId);
+    const target = this.channels.get(channelId);
+    const targetProject = target && this.spaces.get(target.spaceId);
+    if (!thread || !source || !target || thread.archived || target.archived
+      || target.visibility !== "private" || source.workspaceId !== target.workspaceId
+      || !["agentforge", "web"].includes(source.provider) || !["agentforge", "web"].includes(target.provider)
+      || !targetProject || targetProject.archived || targetProject.workspaceId !== source.workspaceId) throw new Error("Choose an active private project channel in this workspace.");
+    if (thread.channelId === channelId) return thread;
+    const previousChannelId = thread.channelId;
+    const sourceMessages = this.messages.get(previousChannelId) || [];
+    const moving = sourceMessages.filter(message => message.threadId === id);
+    this.messages.set(previousChannelId, sourceMessages.filter(message => message.threadId !== id));
+    this.messages.set(channelId, [...(this.messages.get(channelId) || []), ...moving.map(message => ({ ...message, channelId }))]);
+    const updated = { ...thread, channelId, updatedAt: new Date().toISOString() };
+    this.threads.set(id, updated);
+    this.emit("thread_moved", "thread", { ...updated, previousChannelId });
+    return updated;
+  }
+
+  editThreadMessage(threadId: string, messageId: string, authorId: string, content: string, expectedContent: string): CanonicalMessage {
+    const thread = this.threads.get(threadId);
+    const message = this.listThreadMessages(threadId).find(item => item.id === messageId);
+    if (!thread || thread.archived || !message || message.authorType !== "user" || message.authorId !== authorId) throw new Error("Message cannot be edited by this user.");
+    if (message.content !== expectedContent) throw new Error("Message changed since you opened it. Reload before editing.");
+    if (content.length > 40000 || (!content.trim() && !message.attachments?.length)) throw new Error("Enter message text.");
+    if (content === message.content) return message;
+    const now = new Date().toISOString();
+    message.revisions = [...(message.revisions || []), { content: message.content, editedAt: now, editedBy: authorId }];
+    message.content = content;
+    message.updatedAt = now;
+    thread.updatedAt = now;
+    this.emit("message_edited", "message", message);
+    return message;
+  }
+
+  branchThread(threadId: string, throughMessageId: string): CanonicalThread {
+    const source = this.threads.get(threadId);
+    const messages = this.listThreadMessages(threadId);
+    const cutoff = messages.findIndex(message => message.id === throughMessageId);
+    if (!source || cutoff < 0) throw new Error("Choose a message in this conversation.");
+    const now = new Date().toISOString();
+    const branch: CanonicalThread = { id: crypto.randomUUID(), channelId: source.channelId, title: (source.title || "Conversation").slice(0, 180) + " · branch", parentThreadId: source.id, parentMessageId: throughMessageId, createdAt: now, updatedAt: now };
+    const selected = messages.slice(0, cutoff + 1);
+    const ids = new Map(selected.map(message => [message.id, `msg-${crypto.randomUUID()}`]));
+    const copies = selected.map(message => ({ ...structuredClone(message), id: ids.get(message.id)!, threadId: branch.id, replyToMessageId: message.replyToMessageId ? ids.get(message.replyToMessageId) : undefined, generation: message.generation ? { ...message.generation, promptMessageId: ids.get(message.generation.promptMessageId) || message.generation.promptMessageId } : undefined, externalMessageId: undefined }));
+    // Persist the branch and its history together, never a partially copied conversation.
+    this.threads.set(branch.id, branch);
+    this.messages.set(source.channelId, [...(this.messages.get(source.channelId) || []), ...copies]);
+    this.emit("thread_branched", "thread", branch);
+    return branch;
+  }
+
   createMessage(params: Omit<CanonicalMessage, "id" | "createdAt" | "updatedAt">): CanonicalMessage {
     const id = `msg-${crypto.randomUUID().slice(0, 8)}`;
     const msg: CanonicalMessage = {
@@ -312,6 +454,11 @@ export class WorkspaceStore {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    if (params.threadId) {
+      const thread = this.threads.get(params.threadId);
+      if (!thread || thread.channelId !== params.channelId || thread.archived) throw new Error("Conversation is unavailable");
+      this.threads.set(thread.id, { ...thread, updatedAt: msg.createdAt });
+    }
     const list = this.messages.get(params.channelId) || [];
     list.push(msg);
     this.messages.set(params.channelId, list);
@@ -354,6 +501,46 @@ export class WorkspaceStore {
 
   listAgents(): AgentTeammate[] {
     return Array.from(this.agents.values());
+  }
+
+  /**
+   * Remove records produced only by the pre-release in-memory showcase.
+   *
+   * Early desktop builds accidentally persisted these reserved IDs in a few
+   * local workspaces.  They are not user-created records, and leaving them in
+   * place makes a new installation look as though agents and work are already
+   * running.  The allowlist is deliberately ID/name specific: ordinary user
+   * records are never selected by this migration.
+   */
+  removeLegacyFixtureRecords(): { agents: number; tasks: number; approvals: number; packages: number } {
+    const fixtureAgentIds = new Set(["agent-alex", "agent-reviewer"]);
+    const fixtureTaskIds = new Set(["AF-142"]);
+    const fixturePackageNames = new Set(["workspace-operations-pack", "analytics-reporting-pack"]);
+    let agents = 0;
+    let tasks = 0;
+    let approvals = 0;
+    let packages = 0;
+
+    for (const id of fixtureAgentIds) {
+      if (this.agents.delete(id)) agents += 1;
+    }
+    for (const id of fixtureTaskIds) {
+      if (this.tasks.delete(id)) tasks += 1;
+    }
+    for (const [id, approval] of this.approvals) {
+      if (fixtureTaskIds.has(approval.taskId) || /fixture|example approval/i.test(`${approval.action} ${approval.description || ""}`)) {
+        this.approvals.delete(id);
+        approvals += 1;
+      }
+    }
+    for (const name of fixturePackageNames) {
+      if (this.packages.delete(name)) packages += 1;
+    }
+
+    if (agents || tasks || approvals || packages) {
+      this.emit("legacy_fixture_records_removed", "workspace", { agents, tasks, approvals, packages });
+    }
+    return { agents, tasks, approvals, packages };
   }
 
   // --- Tasks ---
@@ -463,6 +650,7 @@ export class WorkspaceStore {
   }): ApprovalRequest {
     const appr = this.approvals.get(params.approvalId);
     if (!appr) throw new Error(`Approval ${params.approvalId} not found`);
+    if (appr.status !== "pending") throw new Error("Approval has already been resolved");
     appr.status = params.status;
     appr.approverUserId = params.approverUserId;
     appr.decisionOrigin = params.decisionOrigin;
@@ -472,8 +660,13 @@ export class WorkspaceStore {
       const task = this.tasks.get(appr.taskId);
       if (task && task.status === "waiting_approval") {
         if (params.status === "approved") {
-          task.status = "completed";
-          task.completedAt = new Date().toISOString();
+          // Process-step authorization is not proof of task completion.
+          if (task.evidencePack?.verifiedPassed && task.evidencePack.approvalId === appr.id) {
+            task.status = "completed";
+            task.completedAt = new Date().toISOString();
+            task.evidencePack.approvedBy = params.approverUserId;
+            task.evidencePack.approvalSource = params.decisionOrigin;
+          }
         } else if (params.status === "rejected") {
           task.status = "failed";
           task.error = `Human review rejected: ${params.decisionNotes || "Rejected by reviewer"}`;
@@ -721,6 +914,28 @@ export class WorkspaceStore {
       : [...this.benchmarkResults];
   }
 
+  // --- Quality evidence ---
+  // Baselines and comparison reports are stored separately from raw benchmark
+  // artifacts so the quality dashboard remains restart-safe and source-backed.
+  getQualityState(): { baselines: QualityBaseline[]; analyses: QualityAnalysis[] } {
+    return { baselines: structuredClone(this.qualityBaselines), analyses: structuredClone(this.qualityAnalyses) };
+  }
+
+  setQualityState(state: { baselines: QualityBaseline[]; analyses: QualityAnalysis[] }): void {
+    this.qualityBaselines = structuredClone(state.baselines);
+    this.qualityAnalyses = structuredClone(state.analyses);
+    this.persistIfConfigured();
+  }
+
+  /** Privacy-reviewed correction metadata only; raw evidence stays external. */
+  listQualityCorrections(): CorrectionProposal[] {
+    return structuredClone(this.qualityCorrections);
+  }
+
+  setQualityCorrections(corrections: CorrectionProposal[]): void {
+    this.qualityCorrections = structuredClone(corrections);
+    this.persistIfConfigured();
+  }
   // --- Audit ---
   private appendAuditEntry(entry: {
     id?: string;
@@ -736,6 +951,9 @@ export class WorkspaceStore {
     previousHash?: string;
     hash?: string;
   }): AuditEntry {
+    // Audit metadata is durable and may be displayed or exported later. Keep the
+    // ledger useful while preventing credentials from becoming permanent records.
+    const details = redactRuntimeValue(entry.details) as Record<string, unknown>;
     const id = entry.id || `audit-${crypto.randomUUID().slice(0, 8)}`;
     const timestamp = entry.timestamp || new Date().toISOString();
     const lastEntry = this.auditEntries[this.auditEntries.length - 1];
@@ -749,12 +967,13 @@ export class WorkspaceStore {
       action: entry.action,
       targetType: entry.targetType,
       targetId: entry.targetId,
-      details: entry.details,
+      details,
       ipAddress: entry.ipAddress,
       previousHash,
     });
     const fullEntry: AuditEntry = {
       ...entry,
+      details,
       id,
       timestamp,
       previousHash,
@@ -775,13 +994,14 @@ export class WorkspaceStore {
     return fullEntry;
   }
 
-  listAuditEntries(options: number | { limit?: number; origin?: AuditOrigin; actorId?: string; targetType?: string } = 100): AuditEntry[] {
+  listAuditEntries(options: number | { limit?: number; origin?: AuditOrigin; actorId?: string; targetType?: string; targetId?: string } = 100): AuditEntry[] {
     const limit = typeof options === "number" ? options : (options.limit ?? 100);
     let entries = this.auditEntries;
     if (typeof options === "object") {
       if (options.origin) entries = entries.filter(e => e.origin === options.origin);
       if (options.actorId) entries = entries.filter(e => e.actorId === options.actorId);
       if (options.targetType) entries = entries.filter(e => e.targetType === options.targetType);
+      if (options.targetId) entries = entries.filter(e => e.targetId === options.targetId);
     }
     return entries.slice(-limit);
   }
@@ -895,6 +1115,7 @@ export class WorkspaceStore {
       category: record.category,
       title: record.title,
     });
+    this.persistIfConfigured();
   }
 
   deleteOperationalMemory(namespace: string, id: string): boolean {
@@ -902,6 +1123,7 @@ export class WorkspaceStore {
     if (!record || record.namespace !== namespace) return false;
     this.operationalMemories.delete(id);
     this.emit("operational_memory_deleted", "memory", { id, namespace });
+    this.persistIfConfigured();
     return true;
   }
 
@@ -917,9 +1139,6 @@ export class WorkspaceStore {
 
   // --- Users & RBAC ---
   getUser(id: string): AgentForgeUser | undefined {
-    if (id === "user-montelli") {
-      return this.users.get("user-owner") || this.users.get("user-montelli");
-    }
     return this.users.get(id);
   }
 
@@ -1284,7 +1503,7 @@ export class WorkspaceStore {
 
   private writeSnapshot(filePath: string, rotateBackup: boolean): void {
     const data: PersistedWorkspaceSnapshot = {
-      schemaVersion: 5,
+      schemaVersion: WORKSPACE_SNAPSHOT_SCHEMA_VERSION,
       workspaces: Array.from(this.workspaces.values()),
       spaces: Array.from(this.spaces.values()),
       channels: Array.from(this.channels.values()),
@@ -1302,6 +1521,9 @@ export class WorkspaceStore {
       packages: Array.from(this.packages.values()),
       installations: Array.from(this.installations.values()),
       benchmarkResults: this.benchmarkResults,
+      qualityBaselines: this.qualityBaselines,
+      qualityAnalyses: this.qualityAnalyses,
+      qualityCorrections: this.qualityCorrections,
       auditEntries: this.auditEntries,
       auditPrunedCheckpoint: this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined,
       operationalMemories: Array.from(this.operationalMemories.values()),
@@ -1312,9 +1534,33 @@ export class WorkspaceStore {
     const json = JSON.stringify(data, null, 2);
     const tempPath = `${filePath}.tmp.${process.pid}.${crypto.randomUUID()}`;
     const backupPath = `${filePath}.bak`;
+    const lockPath = `${filePath}.lock`;
 
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    let lockFd: number | undefined;
     try {
+      // Serialize writers across launcher processes. The snapshot rename is
+      // atomic, but without this lock two valid snapshots could race and one
+      // writer could silently overwrite the other's state. A stale lock is
+      // recoverable after a bounded lease so a crashed writer cannot wedge the store.
+      const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        try {
+          lockFd = fs.openSync(lockPath, "wx");
+          fs.writeSync(lockFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+          break;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+          try {
+            const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
+            if (ageMs > 30_000) fs.unlinkSync(lockPath);
+          } catch {
+            // The competing writer may have released the lock between calls.
+          }
+          Atomics.wait(waitBuffer, 0, 0, 10);
+        }
+      }
+      if (lockFd === undefined) throw new Error("Timed out waiting for the workspace snapshot lock.");
       fs.writeFileSync(tempPath, json, { encoding: "utf-8", flag: "wx" });
       if (rotateBackup && fs.existsSync(filePath)) {
         fs.copyFileSync(filePath, backupPath);
@@ -1327,6 +1573,11 @@ export class WorkspaceStore {
         // Preserve the original write error.
       }
       throw error;
+    } finally {
+      if (lockFd !== undefined) {
+        try { fs.closeSync(lockFd); } catch { /* preserve the write result */ }
+        try { fs.unlinkSync(lockPath); } catch { /* another recovery path may have removed it */ }
+      }
     }
   }
 
@@ -1346,17 +1597,17 @@ export class WorkspaceStore {
         this.restoreSnapshot(parsed as Partial<PersistedWorkspaceSnapshot> & Record<string, unknown>);
         return candidate.source;
       } catch (error) {
-        errors.push(`${candidate.source}: ${error instanceof Error ? error.message : String(error)}`);
+        errors.push(`${candidate.source}: ${redactRuntimeError(error)}`);
       }
     }
     throw new Error(`Unable to load workspace snapshot. ${errors.join("; ") || "No snapshot or backup exists."}`);
   }
 
   private restoreSnapshot(data: Partial<PersistedWorkspaceSnapshot> & Record<string, unknown>): void {
-    if (data.schemaVersion !== undefined && data.schemaVersion !== 1 && data.schemaVersion !== 2 && data.schemaVersion !== 3 && data.schemaVersion !== 4 && data.schemaVersion !== 5) {
+    if (data.schemaVersion !== undefined && data.schemaVersion !== 1 && data.schemaVersion !== 2 && data.schemaVersion !== 3 && data.schemaVersion !== 4 && data.schemaVersion !== 5 && data.schemaVersion !== 6 && data.schemaVersion !== 7) {
       throw new Error(`Unsupported snapshot schema version '${String(data.schemaVersion)}'.`);
     }
-    if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5) {
+    if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5 || data.schemaVersion === 6 || data.schemaVersion === 7) {
       const requiredV1: Array<keyof PersistedWorkspaceSnapshot> = [
         "workspaces", "spaces", "channels", "threads", "messages", "users", "agents", "tasks",
         "approvals", "processes", "calls", "packages", "installations", "benchmarkResults",
@@ -1364,11 +1615,11 @@ export class WorkspaceStore {
       ];
       const required: Array<keyof PersistedWorkspaceSnapshot> = data.schemaVersion === 1
         ? requiredV1
-        : [...requiredV1, "operationalMemories", ...(data.schemaVersion >= 3 ? ["processRevisionHistory" as const] : []), ...(data.schemaVersion >= 4 ? ["processRevisionProposals" as const] : []), ...(data.schemaVersion >= 5 ? ["processAgentBindings" as const] : [])];
+        : [...requiredV1, "operationalMemories", ...(data.schemaVersion >= 3 ? ["processRevisionHistory" as const] : []), ...(data.schemaVersion >= 4 ? ["processRevisionProposals" as const] : []), ...(data.schemaVersion >= 5 ? ["processAgentBindings" as const] : []), ...(data.schemaVersion >= 6 ? ["qualityBaselines" as const, "qualityAnalyses" as const] : []), ...(data.schemaVersion >= 7 ? ["qualityCorrections" as const] : [])];
       const missing = required.filter(key => data[key] === undefined);
       if (missing.length) throw new Error(`Snapshot is missing required collections: ${missing.join(", ")}.`);
     }
-    this.loadedLegacySnapshot = data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4;
+    this.loadedLegacySnapshot = data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5 || data.schemaVersion === 6;
     const readArray = <T>(key: keyof PersistedWorkspaceSnapshot): T[] => {
       const value = data[key];
       if (value === undefined) return [];
@@ -1451,13 +1702,16 @@ export class WorkspaceStore {
     if (installations.some(item => !item || typeof item.packageId !== "string")) throw new Error("Snapshot contains an invalid installation record.");
     const benchmarkResults = readArray<BenchmarkResult>("benchmarkResults");
     const auditEntries = readArray<AuditEntry>("auditEntries");
+    const qualityBaselines = readArray<QualityBaseline>("qualityBaselines");
+    const qualityAnalyses = readArray<QualityAnalysis>("qualityAnalyses");
+    const qualityCorrections = readArray<CorrectionProposal>("qualityCorrections");
     const operationalMemories = readRecords<OperationalMemoryRecord>("operationalMemories");
     const eventEntries = readRecords<ReturnType<EventLedger["getAllEntries"]>[number]>("eventLedger");
     const bindings = readRecords<ReturnType<EventLedger["getAllBindings"]>[number]>("externalBindings");
 
     this.restoring = true;
     try {
-      if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5) {
+      if (data.schemaVersion === 1 || data.schemaVersion === 2 || data.schemaVersion === 3 || data.schemaVersion === 4 || data.schemaVersion === 5 || data.schemaVersion === 6 || data.schemaVersion === 7) {
         this.workspaces.clear();
         this.spaces.clear();
         this.channels.clear();
@@ -1496,6 +1750,9 @@ export class WorkspaceStore {
       for (const item of packages) this.packages.set(item.name, item);
       for (const item of installations) this.installations.set(item.packageId, item);
       this.benchmarkResults = benchmarkResults;
+      this.qualityBaselines = qualityBaselines;
+      this.qualityAnalyses = qualityAnalyses;
+      this.qualityCorrections = qualityCorrections;
       if (data.auditPrunedCheckpoint && typeof data.auditPrunedCheckpoint === "object") {
         this.auditPrunedCheckpoint = {
           prunedCount: Number(data.auditPrunedCheckpoint.prunedCount) || 0,

@@ -15,6 +15,7 @@ This section supersedes the earlier unverified product snapshots below for curre
 | [OpenHands Agent Canvas](https://www.openhands.dev/product/canvas) | Local visual workspace for parallel agents and automations. It can connect to existing agent harnesses, isolate work, and switch local/remote execution backends from the interface. | Make the execution provider portable and show the selected environment where it matters, without turning every page into system settings. |
 | [DeepSeek Harness](https://www.deepseek.com/harness/en/) | Developer-preview workspace with composable plugins and Standard, Code, Minimal, and Creator modes. Its trajectory view exposes a detailed event stream that can be inspected, searched, replayed, or forked. | Keep a deep technical run inspector available for debugging and proof, but do not make its dense trace the default experience for a business user. |
 | [Open Harness](https://open-harness.app/) | Early-access team builder organized around a lead agent and specialist roles, explicit boundaries, visual playbooks, human checkpoints, automations, and evidence from prior runs. The site labels examples as seeded. | A clear team hierarchy, visible permission boundaries, repeatable playbooks, and checkpoint decisions can make agent coordination understandable to non-developers. Treat the public examples as product demonstrations, not independent proof of shipped performance. |
+| [Hermes Desktop](https://hermes-agent.nousresearch.com/docs/user-guide/desktop) | Native chat-first desktop app sharing the same sessions, skills, memory, configuration, and providers as its CLI and gateway. It offers live tool summaries, previews, file browsing, voice, and multi-agent chats. | AgentForge must make the canonical workspace the source of truth across every surface, then exceed chat convenience with guided team assembly, nested departments, process-to-agent execution boundaries, evidence, drift correction, and cost-aware routing. |
 
 ### Name clarification
 
@@ -31,6 +32,52 @@ AgentForge should combine the persistent-team model from Grok Bot and Open Harne
 The product should present four plain-language areas first: **Team**, **Work**, **Playbooks**, and **Connections**. Advanced configuration—models, harness providers, tools, memory, compute, benchmarks, and migration—belongs under a clearly labeled management area. Show only live, sourced state. If no worker is connected, say so beside the action that connects one; never fill the home screen with invented counts, fake agents, or demo activity.
 
 AgentForge’s adoption wedge is the combination: persistent AI teammates, repeatable business playbooks, portable runtimes, and evidence-backed human checkpoints in one local-first workspace. Copying another dark metrics dashboard or another chat clone would leave that value hidden.
+
+### Hermes comparison: where AgentForge must win
+
+Hermes’s desktop application establishes the minimum bar for a polished local
+agent experience: a chat-first native window, shared state across its desktop,
+CLI, and gateway surfaces, streaming tool activity, a preview rail, file
+browser, voice, and fast first-run setup. AgentForge should not imitate the
+visual treatment or claim parity until it is independently tested. Its product
+edge must be that a user can describe an outcome and receive a working local
+workforce structure, including department hierarchy, repeatable playbooks,
+explicit authority, proof, and recovery—not a collection of separately
+configured chats and profiles.
+
+The implementation priorities are therefore:
+
+1. One conversation and project record that survives every AgentForge surface
+   and every connected channel.
+2. An embedded guide that creates a sandboxed team and identifies only the
+   configuration decisions that require the owner.
+3. A visible work thread where plans, tool activity, outputs, approvals,
+   evidence, corrections, and memory provenance stay together.
+4. A nontechnical default workspace, with run traces and provider details
+   available only when a user opens the technical inspector.
+5. Quality controls that measure regressions, preserve corrections, and keep
+   a model or tool from silently becoming less reliable over time.
+
+### Release acceptance bar for the Hermes comparison
+
+AgentForge is not ready to claim a competitive desktop experience until the
+following can be demonstrated from a clean public install:
+
+- A first-time user can describe an outcome and reach a prepared workspace
+  without manually creating agents, projects, providers, or memory records.
+- The same conversation, task state, and evidence remain visible after a
+  restart and when the user opens the corresponding browser or channel view.
+- A running task shows readable progress, the current agent, the next decision,
+  and the output. Technical traces are available through an inspector without
+  replacing the normal chat view.
+- A user can create a department and nested subgroup, assign a playbook, and
+  inspect each agent's authority and current work from one team view.
+- A correction can be recorded once, linked to the affected run, and reused by
+  later executions. The quality view must show the correction and its outcome.
+- Disconnected providers are reported as disconnected with a direct setup path;
+  seeded activity and private production records are never presented as live.
+- The product remains usable with keyboard, narrow desktop, and reduced-motion
+  settings, with no horizontal overflow or clipped primary actions.
 
 ### Current product references
 

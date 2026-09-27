@@ -15,9 +15,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
     store = new WorkspaceStore();
     telegram = new TelegramMirrorProvider();
     router = new UniversalMirrorRouter(store, telegram);
-    store.getUser("user-montelli")!.externalIdentities.push(
+    store.getUser("user-owner")!.externalIdentities.push(
       { provider: "telegram", externalUserId: "owner-1", linkedAt: new Date().toISOString() },
-      { provider: "telegram", externalUserId: "user-montelli", linkedAt: new Date().toISOString() },
+      { provider: "telegram", externalUserId: "user-owner", linkedAt: new Date().toISOString() },
     );
 
     // Register a viewer user to test RBAC rejection
@@ -371,7 +371,9 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       const compute = await computeRes.json();
       expect(compute.status).toBe("PARTIAL_NOT_CONFIGURED");
       expect(compute.memoryBudget.status).toBe("NOT_MEASURED");
-      expect(compute.sandboxes.docker).toBe("NOT_CONFIGURED");
+      expect(["NOT_CONFIGURED", "UNAVAILABLE", "AVAILABLE_NOT_CONNECTED"]).toContain(compute.sandboxes.docker);
+      expect(compute.executionReadiness).toBeDefined();
+      expect(compute.executionReadiness.capabilities).toBeDefined();
 
       // 4. POST /api/route
       const routeRes = await fetch(`http://localhost:${testPort}/api/route`, {
@@ -388,6 +390,7 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
       const decision = await routeRes.json();
       expect(decision.selectedTier).toBeDefined();
       expect(decision.decisionRule).toBeDefined();
+      expect(decision.controller).toMatchObject({ decision: { providerId: "jev" }, contextPacket: { sources: expect.any(Array) } });
 
       const invalidRouteRes = await fetch(`http://localhost:${testPort}/api/route`, {
         method: "POST",

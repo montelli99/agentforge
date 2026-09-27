@@ -1,657 +1,434 @@
 /**
- * AgentForge Task Worker Runtime
- * Connects Model Routing, Agent Policies, Task Queue, Contract Boundaries,
- * Git Worktrees, and Verification into a genuine end-to-end execution workflow.
+ * AgentForge task worker runtime.
+ *
+ * This module is deliberately a coordinator, not an executor. A worker can only
+ * run after a concrete backend declares every production boundary ready and
+ * returns evidence captured from work it actually performed.
  */
 
 import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
+import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type { Task, TaskStatus } from "../types/task.js";
-import type { EvidencePack, TestResultRecord, CommandAuditRecord, FileDiffRecord } from "../types/evidence.js";
+import type { ArtifactRecord, CommandAuditRecord, EvidencePack, FileDiffRecord, TestResultRecord } from "../types/evidence.js";
 import type { WorkspaceStore } from "../store/workspaceStore.js";
-import { ContractEnforcer } from "../contract/contractEnforcer.js";
 import { WorktreeManager } from "../worktree/worktreeManager.js";
-import type { ModelRouter } from "../../providers/models/modelRouter.js";
 import type { CompletionEngine } from "../completion/completionEngine.js";
 import { ProcessExecutionEngine, type ProcessExecutionTrace } from "../process/processExecutionEngine.js";
+import { buildContextPacket, type ContextPacket, type ContextSource } from "../../contextPacket.js";
+import type { MemoryProvider } from "../providers/memory.js";
+import type { ProcessStep } from "../types/process.js";
+import type { AgentTeammate } from "../types/agent.js";
+import type { ExecutionContract } from "../types/contract.js";
+
+export interface ExecutionReadiness {
+  ready: boolean;
+  /** Every missing boundary is user-facing so a connected label cannot hide risk. */
+  blockers: string[];
+  capabilities: {
+    modelPlanning: boolean;
+    isolatedCompute: boolean;
+    realVerification: boolean;
+    evidenceCollection: boolean;
+  };
+}
+
+export interface TaskExecutionOutput {
+  commandsExecuted: CommandAuditRecord[];
+  testResults: TestResultRecord[];
+  filesChanged: FileDiffRecord[];
+  artifacts: ArtifactRecord[];
+  /** The backend may supply a source revision it actually observed. */
+  finalSha?: string;
+}
+
+/**
+ * Implementations own model invocation, effect authorization, isolated command
+ * execution, and evidence collection. The runtime never fabricates any of them.
+ */
+export interface TaskExecutionBackend {
+  getReadiness(): ExecutionReadiness;
+  validateTask?(task: Task): Promise<void>;
+  /** False when all effects must come exclusively from the approved command plan. */
+  allowsGovernedProcesses?: boolean;
+  /** Optional provider hook for executing an already-authorized process step. */
+  executeProcessStep?(input: { step: ProcessStep; taskId: string; agent: AgentTeammate; contract: ExecutionContract; worktreePath: string }): Promise<{ output?: string }>;
+  execute(input: { task: Task; worktreePath: string; signal: AbortSignal; contextPacket?: ContextPacket }): Promise<TaskExecutionOutput>;
+}
+
+/** Backends throw this only after execution and resource cleanup have settled. */
+export class TaskExecutionCancelledError extends Error {
+  constructor() { super("Task execution was cancelled."); this.name = "TaskExecutionCancelledError"; }
+}
+
+interface ActiveTaskExecution {
+  abortController: AbortController;
+  startedAt: number;
+  settled: Promise<void>;
+  stopRequested?: "pause" | "cancel" | "shutdown";
+  stopFailure?: string;
+}
 
 export interface TaskWorkerOptions {
   repoRoot?: string;
   concurrency?: number;
   pollIntervalMs?: number;
   autoStart?: boolean;
-  /**
-   * When true, bypasses the production backend guard so tests can exercise
-   * the full runtime path (contract enforcement, worktree, evidence, process engine)
-   * without a live model/tool executor.  Must never be set in production code.
-   */
-  simulationMode?: boolean;
+  automaticDispatch?: boolean;
+  /** Optional scoped operational memory used to build bounded worker context. */
+  memoryProvider?: MemoryProvider;
+  memoryNamespace?: string;
 }
+
+const NO_EXECUTION_BACKEND: ExecutionReadiness = {
+  ready: false,
+  blockers: [
+    "No execution backend is connected.",
+    "Model planning, isolated compute, real verification, and evidence collection must all be configured before tasks can run.",
+  ],
+  capabilities: { modelPlanning: false, isolatedCompute: false, realVerification: false, evidenceCollection: false },
+};
 
 export class TaskWorkerRuntime {
   private activeWorkers = 0;
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
-  private contractEnforcer = new ContractEnforcer();
-  private worktreeManager: WorktreeManager;
-  private activeTaskExecutions = new Map<string, { abortController: AbortController; startedAt: number }>();
+  private readonly worktreeManager: WorktreeManager;
+  private activeTaskExecutions = new Map<string, ActiveTaskExecution>();
   public readonly processExecutionEngine: ProcessExecutionEngine;
 
   constructor(
     private readonly store: WorkspaceStore,
-    private readonly modelRouter?: ModelRouter,
+    private executionBackend?: TaskExecutionBackend,
     private readonly options: TaskWorkerOptions = {},
     public readonly completionEngine?: CompletionEngine,
   ) {
-    const repoRoot = options.repoRoot || process.cwd();
-    this.worktreeManager = new WorktreeManager(repoRoot);
-    this.processExecutionEngine = new ProcessExecutionEngine(this.store);
-    if (options.autoStart) {
-      this.start();
-    }
+    this.worktreeManager = new WorktreeManager(options.repoRoot || process.cwd());
+    this.processExecutionEngine = new ProcessExecutionEngine(store);
+    if (options.autoStart) this.start();
   }
 
-  /**
-   * The current runtime has no contract-gated model/tool executor or real verifier.
-   * Keep this explicit so a polling loop cannot turn a placeholder into completed work.
-   * Returns undefined ONLY when simulationMode is explicitly enabled for tests.
-   */
+  /** Attach a real backend after provider setup without reconstructing the workspace runtime. */
+  configureBackend(backend: TaskExecutionBackend): ExecutionReadiness {
+    if (this.running) this.stop();
+    this.executionBackend = backend;
+    const readiness = backend.getReadiness();
+    this.store.recordAudit({
+      origin: "system", actorId: "system", actorType: "system", action: "TASK_WORKER_BACKEND_CONFIGURED",
+      targetType: "system", targetId: "worker-pool", details: { readiness },
+    });
+    return readiness;
+  }
+
+  getExecutionReadiness(): ExecutionReadiness {
+    return this.executionBackend?.getReadiness() ?? NO_EXECUTION_BACKEND;
+  }
+
   getExecutionBlockReason(): string | undefined {
-    if (this.options.simulationMode) return undefined;
-    return "No production execution backend is connected. Model-to-tool execution, isolated effects, and real verification must be wired before tasks can run.";
+    const readiness = this.getExecutionReadiness();
+    return readiness.ready ? undefined : readiness.blockers.join(" ");
   }
 
-  canExecuteTasks(): boolean {
-    return this.getExecutionBlockReason() === undefined;
-  }
-
+  canExecuteTasks(): boolean { return this.getExecutionReadiness().ready; }
+  getActiveTaskIds(): string[] { return [...this.activeTaskExecutions.keys()]; }
 
   start(): void {
     if (this.running) return;
     const blockReason = this.getExecutionBlockReason();
     if (blockReason) {
-      this.running = false;
-      this.activeWorkers = 0;
       this.store.recordAudit({
-        origin: "system",
-        actorId: "system",
-        actorType: "system",
-        action: "TASK_WORKER_START_BLOCKED",
-        targetType: "system",
-        targetId: "worker-pool",
-        details: { reason: blockReason },
+        origin: "system", actorId: "system", actorType: "system", action: "TASK_WORKER_START_BLOCKED",
+        targetType: "system", targetId: "worker-pool", details: { reason: blockReason, readiness: this.getExecutionReadiness() },
       });
       return;
     }
     this.running = true;
-    this.activeWorkers = this.options.concurrency || 2;
-    const interval = this.options.pollIntervalMs || 2500;
-    this.pollTimer = setInterval(() => {
-      this.tick().catch(err => {
-        console.error("[TaskWorkerRuntime] Error in worker tick:", err);
-      });
+    this.activeWorkers = this.options.concurrency ?? 2;
+    const interval = this.options.pollIntervalMs ?? 2500;
+    if (this.options.automaticDispatch !== false) this.pollTimer = setInterval(() => {
+      void this.tick().catch(error => console.error("[TaskWorkerRuntime] worker tick failed", error));
     }, interval);
     this.store.recordAudit({
-      origin: "system",
-      actorId: "system",
-      actorType: "system",
-      action: "TASK_WORKER_STARTED",
-      targetType: "system",
-      targetId: "worker-pool",
-      details: { activeWorkers: this.activeWorkers, intervalMs: interval },
+      origin: "system", actorId: "system", actorType: "system", action: "TASK_WORKER_STARTED",
+      targetType: "system", targetId: "worker-pool", details: { activeWorkers: this.activeWorkers, intervalMs: interval },
     });
   }
 
   stop(): void {
     this.running = false;
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = null;
+    for (const execution of this.activeTaskExecutions.values()) {
+      execution.stopRequested ??= "shutdown";
+      execution.abortController.abort();
     }
-    for (const [taskId, exec] of this.activeTaskExecutions) {
-      exec.abortController.abort();
-    }
-    this.activeTaskExecutions.clear();
     this.activeWorkers = 0;
   }
 
-  isRunning(): boolean {
-    return this.running;
-  }
+  isRunning(): boolean { return this.running; }
+  getActiveWorkerCount(): number { return this.running && this.canExecuteTasks() ? this.activeWorkers : 0; }
+  getActiveTasksCount(): number { return this.activeTaskExecutions.size; }
 
-  getActiveWorkerCount(): number {
-    return this.running && this.canExecuteTasks() ? this.activeWorkers : 0;
-  }
-
-  getActiveTasksCount(): number {
-    return this.activeTaskExecutions.size;
-  }
-
-  /**
-   * Worker tick: polls for tasks ready to be processed
-   */
   async tick(): Promise<void> {
+    if (this.options.automaticDispatch === false) return;
     if (!this.running || !this.canExecuteTasks()) return;
-    const availableSlots = this.activeWorkers - this.activeTaskExecutions.size;
-    if (availableSlots <= 0) return;
-
-    const readyTasks = this.store.listTasks().filter(t => t.status === "ready");
-    for (const task of readyTasks.slice(0, availableSlots)) {
-      if (this.activeTaskExecutions.has(task.id)) continue;
-      this.executeTask(task.id).catch(err => {
-        console.error(`[TaskWorkerRuntime] Failed executing task ${task.id}:`, err);
-      });
+    const slots = this.activeWorkers - this.activeTaskExecutions.size;
+    if (slots <= 0) return;
+    const ready = this.store.listTasks().filter(task => task.status === "ready").slice(0, slots);
+    for (const task of ready) {
+      if (!this.activeTaskExecutions.has(task.id)) {
+        void this.executeTask(task.id).catch(error => console.error(`[TaskWorkerRuntime] task ${task.id} failed`, error));
+      }
     }
   }
 
-  /**
-   * Executes a task through contract boundary validation, worktree isolation,
-   * model inference, verification checks, and evidence generation.
-   */
   async executeTask(taskId: string): Promise<Task> {
-    const task = this.store.getTask(taskId);
-    if (!task) {
-      throw new Error(`Task ${taskId} not found`);
-    }
-
+    const task = this.requireTask(taskId);
     const blockReason = this.getExecutionBlockReason();
-    if (blockReason) {
-      throw new Error(blockReason);
-    }
-
-    if (task.status === "completed" || task.status === "cancelled") {
-      return task;
-    }
+    if (blockReason) throw new Error(blockReason);
+    if (!this.executionBackend) throw new Error("Task execution backend is unavailable.");
+    if (task.status === "completed" || task.status === "cancelled") return task;
+    if (this.activeTaskExecutions.has(taskId)) throw new Error(`Task ${taskId} is already executing`);
 
     const abortController = new AbortController();
-    this.activeTaskExecutions.set(taskId, {
-      abortController,
-      startedAt: Date.now(),
-    });
-
-    const now = new Date().toISOString();
-    this.store.updateTask(taskId, {
-      status: "in_progress",
-      startedAt: task.startedAt || now,
-    });
-
+    let settle!: () => void;
+    const execution: ActiveTaskExecution = { abortController, startedAt: Date.now(), settled: new Promise<void>(resolve => { settle = resolve; }) };
+    this.activeTaskExecutions.set(taskId, execution);
+    this.store.updateTask(taskId, { status: "in_progress", startedAt: task.startedAt || new Date().toISOString() });
     this.store.recordAudit({
-      origin: "system",
-      actorId: "system",
-      actorType: "system",
-      action: "TASK_EXECUTION_STARTED",
-      targetType: "task",
-      targetId: taskId,
-      details: { title: task.title, agentId: task.assignedAgentId },
+      origin: "system", actorId: "system", actorType: "system", action: "TASK_EXECUTION_STARTED",
+      targetType: "task", targetId: taskId, details: { title: task.title, readiness: this.getExecutionReadiness() },
     });
-
-    const commandsExecuted: CommandAuditRecord[] = [];
-    const testResults: TestResultRecord[] = [];
-    const filesChanged: FileDiffRecord[] = [];
-    let verifiedPassed = true;
 
     try {
-      // 1. Assign agent if none assigned
-      let agent = task.assignedAgentId ? this.store.getAgent(task.assignedAgentId) : undefined;
-      if (!agent) {
-        const availableAgents = this.store.listAgents();
-        agent = availableAgents[0];
-        if (agent) {
-          this.store.updateTask(taskId, { assignedAgentId: agent.id });
-        }
-      }
-
-      // 2. Setup Worktree Isolation if requested or default
-      let worktreeInfo = task.worktree;
-      if (task.contract?.workspace?.requireIsolatedWorktree && !worktreeInfo) {
-        try {
-          worktreeInfo = await this.worktreeManager.createWorktree({
-            taskId: task.id,
-            branchName: `worktree/${task.id}`,
-            baseBranch: task.contract.repository?.baseBranch || "HEAD",
-          });
-          this.store.updateTask(taskId, { worktree: worktreeInfo });
-        } catch (worktreeErr) {
-          // Record isolation attempt and note fallback if git worktree already exists or fails
-          console.warn(`[TaskWorkerRuntime] Worktree creation note for ${taskId}:`, (worktreeErr as Error).message);
-        }
-      }
-
-      // 1b. Operational Memory Ingestion (Section 35)
-      const relevantMemories = this.store.searchOperationalMemory(task.title);
-      if (relevantMemories.length > 0) {
-        commandsExecuted.push({
-          command: `memory:retrieve-context (${relevantMemories.length} records matching "${task.title.slice(0, 30)}")`,
-          cwd: worktreeInfo?.worktreePath || process.cwd(),
-          timestamp: new Date().toISOString(),
-          exitCode: 0,
-          durationMs: 6,
+      await this.executionBackend.validateTask?.(this.requireTask(taskId));
+      if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
+      const assignedTask = this.assignFirstAvailableAgent(this.requireTask(taskId));
+      const worktreePath = await this.resolveWorktree(assignedTask);
+      if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
+      const processTrace = this.executionBackend.allowsGovernedProcesses === false
+        ? undefined : await this.runGovernedProcess(this.requireTask(taskId), worktreePath);
+      if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
+      if (processTrace) {
+        this.store.recordAudit({
+          origin: "system", actorId: "process-execution-engine", actorType: "system",
+          action: "PROCESS_EXECUTION_TRACE",
+          targetType: "task", targetId: taskId,
+          details: { processId: processTrace.processId, status: processTrace.status, executionMode: processTrace.executionMode, stepResults: redactRuntimeValue(processTrace.stepResults) },
         });
       }
-
-      // 1c. CompletionEngine Anti-Spoon-Feeding Session Sync
-      let completionSession = this.completionEngine?.getSession(taskId);
-      if (!completionSession && this.completionEngine && task.title) {
-        try {
-          completionSession = this.completionEngine.initializeSession(taskId, `${task.title}\n${task.description || ""}`);
-        } catch {
-          completionSession = this.completionEngine.getSession(taskId);
-        }
+      if (processTrace?.status === "waiting_for_approval") {
+        return this.store.updateTask(taskId, { status: "waiting_approval" });
       }
-      if (this.completionEngine && completionSession && completionSession.state === "PLANNING" && completionSession.criticReview.critiquePassed) {
-        try {
-          completionSession = this.completionEngine.startExecution(taskId);
-        } catch {
-          // Keep current state
-        }
+      if (processTrace?.status === "failed") {
+        return this.store.updateTask(taskId, { status: "failed", error: "A governed process step failed.", completedAt: new Date().toISOString() });
       }
 
-      // 1d. Governed Process-to-Agent Execution (Sections 21-24: SOP Is Not Authority)
-      let processExecutionTrace: ProcessExecutionTrace | undefined;
-      const processId = task.processId || (agent ? this.store.listProcessAgentBindings({ agentId: agent.id })[0]?.processId : undefined);
-      if (processId) {
-        const processDef = this.store.getProcess(processId);
-        if (processDef && agent) {
-          processExecutionTrace = await this.processExecutionEngine.executeGovernedProcess({
-            process: processDef,
-            agent,
-            contract: task.contract,
-            taskId: task.id,
-            worktreePath: worktreeInfo?.worktreePath || process.cwd(),
-          });
-
-          // Write process execution trace to artifacts
-          const cwd = worktreeInfo?.worktreePath || process.cwd();
-          const artifactsDir = path.join(cwd, "artifacts", taskId);
-          try {
-            if (!fs.existsSync(artifactsDir)) {
-              fs.mkdirSync(artifactsDir, { recursive: true });
-            }
-            fs.writeFileSync(path.join(artifactsDir, "process_execution_trace.json"), JSON.stringify(processExecutionTrace, null, 2));
-          } catch (err) {
-            console.warn(`[TaskWorkerRuntime] Failed writing process execution trace:`, (err as Error).message);
-          }
-
-          if (processExecutionTrace.status === "waiting_for_approval") {
-            const updated = this.store.updateTask(taskId, {
-              status: "waiting_approval",
-            });
-            this.store.recordAudit({
-              origin: "system",
-              actorId: "process_execution_engine",
-              actorType: "system",
-              action: "PROCESS_EXECUTION_WAITING_APPROVAL",
-              targetType: "task",
-              targetId: taskId,
-              details: {
-                processId,
-                blockedStepCount: processExecutionTrace.stepResults.filter(s => s.status === "blocked_on_approval").length,
-              },
-            });
-            return updated;
-          }
-        }
-      }
-
-      // 3. Contract Boundary Pre-Check
-      if (task.contract) {
-        const filesToCheck = task.contract.scope?.allowedPaths || [];
-        if (filesToCheck.length > 0) {
-          const modCheck = this.contractEnforcer.validateFileModifications(task.contract, filesToCheck);
-          if (!modCheck.allowed) {
-            throw new Error(`Contract boundary validation failed: ${modCheck.violations.map(v => v.description).join("; ")}`);
-          }
-        }
-      }
-
-      // 4. Model Routing & Execution
-      let modelExecutionOutput = "";
-      if (this.modelRouter) {
-        try {
-          const route = await this.modelRouter.selectTarget({
-            taskComplexity: task.priority === "critical" || task.priority === "high" ? "complex" : "moderate",
-            requiresToolCalling: false,
-            requiresStructuredOutput: true,
-          });
-          modelExecutionOutput = `Task processed via ${route.providerId} (${route.model}) [Tier ${route.tier}]`;
-        } catch (routeErr) {
-          modelExecutionOutput = `Task processed via deterministic execution policy: ${(routeErr as Error).message}`;
-        }
-      } else {
-        modelExecutionOutput = "Task processed via deterministic execution kernel.";
-      }
-
-      commandsExecuted.push({
-        command: "contract:validate-boundaries",
-        cwd: worktreeInfo?.worktreePath || process.cwd(),
-        timestamp: new Date().toISOString(),
-        exitCode: 0,
-        durationMs: 12,
-      });
-
-      // 5. Verification Running State
       this.store.updateTask(taskId, { status: "verification_running" });
-
-      // Run Required Checks from Contract
-      const checks = task.contract?.requiredChecks || [
-        { type: "unit_tests", command: "npm test -- --run", required: true },
-        { type: "diff_scope", required: true },
-      ];
-
-      for (const check of checks) {
-        const checkStart = Date.now();
-        const passed = true; // In controlled environment verified pass
-        testResults.push({
-          checkName: check.type,
-          command: check.command || `check:${check.type}`,
-          passed,
-          exitCode: passed ? 0 : 1,
-          stdout: `Check [${check.type}] passed within contract parameters.`,
-          stderr: "",
-          durationMs: Date.now() - checkStart,
-        });
-
-        if (!passed && check.required) {
-          verifiedPassed = false;
-        }
-      }
-
-      // Record dummy file diff record representing validated work
-      filesChanged.push({
-        filePath: "src/task_output.txt",
-        status: "modified",
-        linesAdded: 14,
-        linesDeleted: 2,
-        patch: `@@ -1,2 +1,14 @@\n+ // Verified execution for ${task.title}`,
+      const currentTask = this.requireTask(taskId);
+      const contextPacket = await this.buildWorkerContext(currentTask);
+      this.store.recordAudit({
+        origin: "system", actorId: "system", actorType: "system", action: "TASK_CONTEXT_PACKED",
+        targetType: "task", targetId: taskId,
+        details: { packetId: contextPacket.id, sourceCount: contextPacket.sources.length, originalTokens: contextPacket.originalTokens, packedTokens: contextPacket.packedTokens },
       });
+      const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket });
+      if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
+      const evidence = this.createEvidencePack(currentTask, output, processTrace);
+      const verifiedPassed = requiredChecksPassedByEvidence(currentTask, output.testResults)
+        && output.testResults.every(result => result.passed);
+      const finalStatus: TaskStatus = verifiedPassed
+        ? (currentTask.contract.completion.requireHumanApproval ? "waiting_approval" : "completed")
+        : "failed";
 
-      // Write evidence files to workspace artifacts directory for CompletionEngine validation
-      const cwd = worktreeInfo?.worktreePath || process.cwd();
-      const artifactsDir = path.join(cwd, "artifacts", taskId);
-      try {
-        if (!fs.existsSync(artifactsDir)) {
-          fs.mkdirSync(artifactsDir, { recursive: true });
-        }
-        const evidenceFilePath = path.join(artifactsDir, "test_results.json");
-        fs.writeFileSync(evidenceFilePath, JSON.stringify({
-          taskId,
-          timestamp: new Date().toISOString(),
-          testResults,
-          verifiedPassed,
-        }, null, 2));
-      } catch (err) {
-        console.warn(`[TaskWorkerRuntime] Artifacts directory note for ${taskId}:`, (err as Error).message);
-      }
-
-      // If CompletionEngine session is in EXECUTING state, advance via adversarial audit
-      if (this.completionEngine && completionSession && completionSession.state === "EXECUTING") {
-        try {
-          const mkEvidenceArtifact = (filename: string, content: Record<string, unknown>) => {
-            const fpath = path.join(artifactsDir, filename);
-            fs.writeFileSync(fpath, JSON.stringify(content, null, 2));
-            return {
-              status: "PASS" as const,
-              passRate: 100,
-              evidencePath: path.relative(cwd, fpath).replace(/\\/g, "/"),
-              completedAt: new Date().toISOString(),
-            };
-          };
-
-          const verificationEvidence = {
-            tests: mkEvidenceArtifact("test_results.json", { taskId, timestamp: new Date().toISOString(), testResults, verifiedPassed }),
-            build: mkEvidenceArtifact("build_evidence.json", { taskId, build: "clean", exitCode: 0 }),
-            typecheck: mkEvidenceArtifact("typecheck_evidence.json", { taskId, diagnostics: 0, exitCode: 0 }),
-            integrationTests: mkEvidenceArtifact("integration_evidence.json", { taskId, suites: 26, passed: true }),
-            secretScan: mkEvidenceArtifact("secret_scan_evidence.json", { taskId, leakedSecrets: 0, passed: true }),
-            piiScan: mkEvidenceArtifact("pii_scan_evidence.json", { taskId, unredactedPii: 0, passed: true }),
-            documentation: mkEvidenceArtifact("docs_evidence.json", { taskId, specTraceability: "complete", passed: true }),
-            rollbackPlan: mkEvidenceArtifact("rollback_plan.json", { taskId, worktreeReversible: true, passed: true }),
-            evidenceLevel: "L3_INTEGRATION_TESTED" as const,
-            simulationDisclosures: ["MOCK", "SIMULATED"] as ("MOCK" | "SIMULATED")[],
-          };
-
-          const auditorContext = {
-            implementedRequirementIds: completionSession.prd.requirements.map(r => r.id),
-            testedRequirementIds: completionSession.prd.requirements.map(r => r.id),
-            codeArtifactPaths: filesChanged.map(f => f.filePath),
-            testFilePaths: ["src/masterBuild.test.ts"],
-            evidencePacks: completionSession.prd.requirements.map(r => ({
-              requirementId: r.id,
-              claim: `Automated test verification for ${r.title.replace(/production/gi, "staging system")}`,
-              level: "L3_INTEGRATION_TESTED" as const,
-              simulationType: "MEASURED" as const,
-            })),
-            uiTestedRealBrowser: false,
-            errorPathsCovered: true,
-            documentationVerified: true,
-            workspaceDir: cwd,
-          };
-
-          completionSession = await this.completionEngine.handleWorkerFinished(taskId, auditorContext, verificationEvidence);
-          if (completionSession.state === "FAILED" || completionSession.state === "BLOCKED_EXTERNAL") {
-            verifiedPassed = false;
-          }
-        } catch (engineErr) {
-          console.warn(`[TaskWorkerRuntime] CompletionEngine review note for ${taskId}:`, (engineErr as Error).message);
-        }
-      }
-
-      // 6. Compile Cryptographically Signed EvidencePack
-      const evidencePackId = `ev-${crypto.randomUUID()}`;
-      const finalSha = worktreeInfo?.headSha || crypto.createHash("sha256").update(taskId + now).digest("hex").slice(0, 12);
-      const sealHash = crypto.createHash("sha256")
-        .update(JSON.stringify({ taskId, baseSha: worktreeInfo?.baseSha, finalSha, filesChanged, testResults, commandsExecuted, now }))
-        .digest("hex");
-
-      const evidencePack: EvidencePack = {
-        id: evidencePackId,
-        taskId: task.id,
-        agentId: agent?.id || "agent-forge-orchestrator",
-        objective: task.title,
-        contractId: task.contract?.id || "contract-default",
-        baseSha: worktreeInfo?.baseSha || "HEAD~1",
-        finalSha,
-        filesChanged,
-        diffStat: {
-          filesCount: filesChanged.length,
-          insertions: 14,
-          deletions: 2,
-        },
-        commandsExecuted,
-        testResults,
-        artifacts: [
-          {
-            name: "execution_evidence.json",
-            path: `artifacts/${taskId}/execution_evidence.json`,
-            sha256: crypto.createHash("sha256").update(taskId).digest("hex"),
-            sizeBytes: 1024,
-            mimeType: "application/json",
-          },
-          {
-            name: "signed_evidence_seal.sha256",
-            path: `artifacts/${taskId}/signed_evidence_seal.sha256`,
-            sha256: sealHash,
-            sizeBytes: 64,
-            mimeType: "text/plain",
-          },
-          ...(processExecutionTrace ? [{
-            name: "process_execution_trace.json",
-            path: `artifacts/${taskId}/process_execution_trace.json`,
-            sha256: crypto.createHash("sha256").update(JSON.stringify(processExecutionTrace)).digest("hex"),
-            sizeBytes: Buffer.byteLength(JSON.stringify(processExecutionTrace)),
-            mimeType: "application/json",
-          }] : []),
-        ],
-        generatedAt: new Date().toISOString(),
-        verifiedPassed,
-      };
-
-      // 7. Decide Next State based on Human Approval Requirement
-      const requireApproval = task.contract?.completion?.requireHumanApproval === true;
-      let finalStatus: TaskStatus = verifiedPassed ? (requireApproval ? "waiting_approval" : "completed") : "failed";
-
-      if (requireApproval && verifiedPassed) {
-        // Automatically create approval request
-        this.store.createApproval({
-          taskId: task.id,
-          requesterAgentId: agent?.id || "orchestrator",
-          action: `Approve completed task: ${task.title}`,
-          description: `Task ${task.id} execution and tests completed with evidence pack ${evidencePackId}. Human review required before merging.`,
-          risk: task.priority === "critical" ? "critical" : task.priority === "high" ? "high" : "medium",
+      if (currentTask.contract.completion.requireHumanApproval && verifiedPassed) {
+        const approval = this.store.createApproval({
+          taskId, requesterAgentId: currentTask.assignedAgentId || "agentforge-orchestrator",
+          action: `Approve completed task: ${currentTask.title}`,
+          description: `Execution completed with evidence pack ${evidence.id}. Human review is required before merge.`,
+          risk: currentTask.priority === "critical" ? "critical" : currentTask.priority === "high" ? "high" : "medium",
         });
+        evidence.approvalId = approval.id;
       }
 
       const updated = this.store.updateTask(taskId, {
-        status: finalStatus,
-        evidencePack,
+        status: finalStatus, evidencePack: { ...evidence, verifiedPassed },
         completedAt: finalStatus === "completed" ? new Date().toISOString() : undefined,
-        error: verifiedPassed ? undefined : "One or more required verification checks failed.",
+        error: verifiedPassed ? undefined : "A required verification check failed or was not returned by the executor.",
       });
-
       this.store.recordAudit({
-        origin: "system",
-        actorId: "system",
-        actorType: "system",
-        action: `TASK_EXECUTION_${finalStatus.toUpperCase()}`,
-        targetType: "task",
-        targetId: taskId,
-        details: { finalStatus, evidencePackId, verifiedPassed },
+        origin: "system", actorId: "system", actorType: "system", action: `TASK_EXECUTION_${finalStatus.toUpperCase()}`,
+        targetType: "task", targetId: taskId, details: { verifiedPassed, evidencePackId: evidence.id },
       });
-
       return updated;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      const failed = this.store.updateTask(taskId, {
-        status: "failed",
-        error: errorMsg,
-        completedAt: new Date().toISOString(),
-      });
+    } catch (error) {
+      if (abortController.signal.aborted && error instanceof TaskExecutionCancelledError) {
+        // Control requests own their final state after this execution settles.
+        if (execution.stopRequested === "shutdown") {
+          return this.store.updateTask(taskId, { status: "paused" });
+        }
+        return this.requireTask(taskId);
+      }
+      // Backend failures are just as untrusted as their evidence output. A
+      // provider or command can put a credential in an error message, and both
+      // the task record and audit ledger are durable surfaces.
+      const message = redactRuntimeError(error);
+      if (abortController.signal.aborted) execution.stopFailure = message;
+      const failed = this.store.updateTask(taskId, { status: "failed", error: message, completedAt: new Date().toISOString() });
       this.store.recordAudit({
-        origin: "system",
-        actorId: "system",
-        actorType: "system",
-        action: "TASK_EXECUTION_FAILED",
-        targetType: "task",
-        targetId: taskId,
-        details: { error: errorMsg },
+        origin: "system", actorId: "system", actorType: "system", action: "TASK_EXECUTION_FAILED",
+        targetType: "task", targetId: taskId, details: { error: message },
       });
       return failed;
     } finally {
       this.activeTaskExecutions.delete(taskId);
+      settle();
     }
   }
 
-  /**
-   * Pauses an active or in-progress task
-   */
-  pauseTask(taskId: string): Task {
-    const task = this.store.getTask(taskId);
-    if (!task) throw new Error(`Task ${taskId} not found`);
+  private async buildWorkerContext(task: Task): Promise<ContextPacket> {
+    const sources: ContextSource[] = [{ id: task.id, kind: "goal", text: `${task.title}\n${task.description}` }];
+    const memory = this.options.memoryProvider;
+    if (!memory) return buildContextPacket(sources);
+    const queryText = `${task.title} ${task.description}`.slice(0, 2_000);
+    let records = await memory.query({
+      namespace: this.options.memoryNamespace || "workspace",
+      queryText,
+      projectId: task.projectId,
+      limit: 12,
+    });
+    if (!records.length) records = await memory.query({
+      namespace: this.options.memoryNamespace || "workspace",
+      categories: ["do_not_repeat", "project_constraint", "test_failure"],
+      projectId: task.projectId,
+      limit: 8,
+    });
+    for (const { record } of records) sources.push({
+      id: record.id,
+      kind: record.category === "approval" ? "decision" as const : record.category === "artifact" ? "evidence" as const : "memory" as const,
+      updatedAt: record.updatedAt || record.createdAt,
+      text: `${record.title}\n${record.content}`,
+    });
+    return buildContextPacket(sources);
+  }
 
-    const exec = this.activeTaskExecutions.get(taskId);
-    if (exec) {
-      exec.abortController.abort();
-      this.activeTaskExecutions.delete(taskId);
-    }
-
+  async pauseTask(taskId: string): Promise<Task> {
+    const task = this.requireTask(taskId);
+    if (["completed", "cancelled"].includes(task.status)) throw new Error("Finished tasks cannot be paused.");
+    await this.settleControl(taskId, "pause");
     const updated = this.store.updateTask(taskId, { status: "paused" });
-    this.store.recordAudit({
-      origin: "web",
-      actorId: "operator",
-      actorType: "user",
-      action: "TASK_PAUSED",
-      targetType: "task",
-      targetId: taskId,
-      details: { previousStatus: task.status },
-    });
+    this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_PAUSED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return updated;
   }
 
-  /**
-   * Resumes a paused or queued task
-   */
   async resumeTask(taskId: string): Promise<Task> {
-    const task = this.store.getTask(taskId);
-    if (!task) throw new Error(`Task ${taskId} not found`);
-
-    const blockReason = this.getExecutionBlockReason();
-    if (blockReason) throw new Error(blockReason);
-
+    const task = this.requireTask(taskId);
+    if (this.activeTaskExecutions.has(taskId)) throw new Error("Task execution has not stopped yet.");
+    if (task.status !== "paused") throw new Error("Only paused tasks can be resumed.");
+    const reason = this.getExecutionBlockReason();
+    if (reason) throw new Error(reason);
     this.store.updateTask(taskId, { status: "ready" });
-    this.store.recordAudit({
-      origin: "web",
-      actorId: "operator",
-      actorType: "user",
-      action: "TASK_RESUMED",
-      targetType: "task",
-      targetId: taskId,
-      details: { previousStatus: task.status },
-    });
+    this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_RESUMED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return this.executeTask(taskId);
   }
 
-  /**
-   * Cancels a task and cleans up worktree if safe
-   */
   async cancelTask(taskId: string): Promise<Task> {
-    const task = this.store.getTask(taskId);
-    if (!task) throw new Error(`Task ${taskId} not found`);
-
-    const exec = this.activeTaskExecutions.get(taskId);
-    if (exec) {
-      exec.abortController.abort();
-      this.activeTaskExecutions.delete(taskId);
-    }
-
-    if (task.worktree?.worktreePath) {
-      try {
-        await this.worktreeManager.removeWorktree(task.worktree.worktreePath, true);
-      } catch (err) {
-        console.warn(`[TaskWorkerRuntime] Worktree cleanup note for ${taskId}:`, (err as Error).message);
-      }
-    }
-
-    const updated = this.store.updateTask(taskId, {
-      status: "cancelled",
-      completedAt: new Date().toISOString(),
-    });
-    this.store.recordAudit({
-      origin: "web",
-      actorId: "operator",
-      actorType: "user",
-      action: "TASK_CANCELLED",
-      targetType: "task",
-      targetId: taskId,
-      details: { previousStatus: task.status },
-    });
+    const task = this.requireTask(taskId);
+    if (task.status === "completed") throw new Error("Completed tasks cannot be cancelled.");
+    await this.settleControl(taskId, "cancel");
+    // Preserve partial work for review. Cancellation is not permission to delete it.
+    const updated = this.store.updateTask(taskId, { status: "cancelled", completedAt: new Date().toISOString() });
+    this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_CANCELLED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return updated;
   }
 
-  /**
-   * Retries a failed or cancelled task
-   */
   async retryTask(taskId: string): Promise<Task> {
-    const task = this.store.getTask(taskId);
-    if (!task) throw new Error(`Task ${taskId} not found`);
-
-    const blockReason = this.getExecutionBlockReason();
-    if (blockReason) throw new Error(blockReason);
-
-    this.store.updateTask(taskId, {
-      status: "ready",
-      error: undefined,
-      evidencePack: undefined,
-    });
-    this.store.recordAudit({
-      origin: "web",
-      actorId: "operator",
-      actorType: "user",
-      action: "TASK_RETRY_QUEUED",
-      targetType: "task",
-      targetId: taskId,
-      details: { previousStatus: task.status },
-    });
+    const task = this.requireTask(taskId);
+    if (this.activeTaskExecutions.has(taskId)) throw new Error("Task execution has not stopped yet.");
+    if (!["failed", "cancelled"].includes(task.status)) throw new Error("Only failed or cancelled tasks can be retried.");
+    const reason = this.getExecutionBlockReason();
+    if (reason) throw new Error(reason);
+    this.store.updateTask(taskId, { status: "ready", error: undefined, evidencePack: undefined, completedAt: undefined });
+    this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_RETRIED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return this.executeTask(taskId);
   }
+
+  private async settleControl(taskId: string, request: "pause" | "cancel"): Promise<void> {
+    const execution = this.activeTaskExecutions.get(taskId);
+    if (!execution) return;
+    if (execution.stopRequested && execution.stopRequested !== request) throw new Error("Another stop request is still being completed.");
+    execution.stopRequested = request;
+    execution.abortController.abort();
+    await execution.settled;
+    if (execution.stopFailure) throw new Error(`Execution did not stop cleanly: ${execution.stopFailure}`);
+  }
+
+  private requireTask(taskId: string): Task {
+    const task = this.store.getTask(taskId);
+    if (!task) throw new Error(`Task ${taskId} not found`);
+    return task;
+  }
+
+  private assignFirstAvailableAgent(task: Task): Task {
+    if (task.assignedAgentId) return task;
+    const agent = this.store.listAgents()[0];
+    return agent ? this.store.updateTask(task.id, { assignedAgentId: agent.id }) : task;
+  }
+
+  private async resolveWorktree(task: Task): Promise<string> {
+    if (!task.contract.workspace.requireIsolatedWorktree) return this.options.repoRoot || process.cwd();
+    if (task.worktree?.worktreePath) {
+      return this.worktreeManager.validateWorktree(task.worktree, task.id, task.contract.repository.baseSha);
+    }
+    if (!/^[a-f0-9]{40,64}$/i.test(task.contract.repository.baseSha)) {
+      throw new Error("An isolated task requires a full immutable base commit before execution.");
+    }
+    const worktree = await this.worktreeManager.createWorktree({
+      taskId: task.id, branchName: `worktree/${task.id}`,
+      baseBranch: task.contract.repository.baseSha,
+    });
+    this.store.updateTask(task.id, { worktree });
+    return worktree.worktreePath;
+  }
+
+  private async runGovernedProcess(task: Task, worktreePath: string): Promise<ProcessExecutionTrace | undefined> {
+    const agent = task.assignedAgentId ? this.store.getAgent(task.assignedAgentId) : undefined;
+    const processId = task.processId || (agent ? this.store.listProcessAgentBindings({ agentId: agent.id })[0]?.processId : undefined);
+    const process = processId ? this.store.getProcess(processId) : undefined;
+    if (!process || !agent) return undefined;
+    const executeStep = this.executionBackend?.executeProcessStep;
+    return this.processExecutionEngine.executeGovernedProcess({
+      process, agent, contract: task.contract, taskId: task.id, worktreePath,
+      stepExecutor: executeStep ? input => executeStep.call(this.executionBackend, input) : undefined,
+    });
+  }
+
+  private createEvidencePack(task: Task, output: TaskExecutionOutput, processTrace?: ProcessExecutionTrace): EvidencePack {
+    return {
+      id: `ev-${crypto.randomUUID()}`, taskId: task.id,
+      agentId: task.assignedAgentId || "agentforge-orchestrator", objective: task.title,
+      contractId: task.contract.id, baseSha: task.worktree?.baseSha || task.contract.repository?.baseSha || "UNKNOWN",
+      finalSha: output.finalSha || task.worktree?.headSha, filesChanged: output.filesChanged.map(file => ({ ...file, patch: file.patch ? redactRuntimeText(file.patch) : undefined })),
+      diffStat: {
+        filesCount: output.filesChanged.length,
+        insertions: output.filesChanged.reduce((total, file) => total + file.linesAdded, 0),
+        deletions: output.filesChanged.reduce((total, file) => total + file.linesDeleted, 0),
+      },
+      commandsExecuted: output.commandsExecuted.map(command => ({ ...command, command: redactRuntimeText(command.command), cwd: redactRuntimeText(command.cwd) })),
+      testResults: output.testResults.map(result => ({ ...result, command: redactRuntimeText(result.command), stdout: redactRuntimeText(result.stdout), stderr: redactRuntimeText(result.stderr) })), artifacts: output.artifacts,
+      processExecution: processTrace ? {
+        processId: processTrace.processId,
+        status: processTrace.status,
+        executionMode: processTrace.executionMode,
+        stepResults: processTrace.stepResults.map(step => ({ stepId: step.stepId, status: step.status, output: step.output ? redactRuntimeText(step.output) : undefined, error: step.error ? redactRuntimeText(step.error) : undefined })),
+      } : undefined,
+      generatedAt: new Date().toISOString(), verifiedPassed: false,
+    };
+  }
+}
+
+function requiredChecksPassedByEvidence(task: Task, testResults: TestResultRecord[]): boolean {
+  return task.contract.requiredChecks
+    .filter(check => check.required)
+    .every(check => testResults.some(result => result.checkName === check.type && result.passed
+      && (!check.command || result.command === check.command)));
 }

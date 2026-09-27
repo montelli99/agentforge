@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "files": ["src/server/start.ts", "src/cli/bin.ts"],
+  "files": ["src/server/start.ts", "src/cli/bin.ts", "src/index.ts"],
   "include": []
 }

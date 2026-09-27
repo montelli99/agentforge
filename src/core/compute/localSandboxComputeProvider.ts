@@ -43,7 +43,10 @@ export class LocalSandboxComputeProvider implements SandboxProvider {
   readonly id = "local_sandbox";
   readonly name = "AgentForge Local Sandbox Compute Provider";
   readonly kind = "local" as const;
-  readonly isStrictlyIsolated = true;
+  // A managed worktree is a write-scope boundary, not an OS/container
+  // sandbox. Keep this false so readiness cannot mistake local execution for
+  // strict isolation.
+  readonly isStrictlyIsolated = false;
 
   private environments = new Map<string, SandboxEnvironment & {
     allowedHosts?: string[];

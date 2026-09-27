@@ -3,6 +3,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { AgentTeammate } from "../types/agent.js";
 import { getDefaultWorkspaceFilePath, WorkspaceStore } from "./workspaceStore.js";
 import { AgentForgeWebServer } from "../../server/webServer.js";
 
@@ -12,6 +13,11 @@ function createSnapshotPath(): string {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-store-"));
   temporaryDirectories.push(directory);
   return path.join(directory, "workspace.json");
+}
+
+function createProjectChannel(store: WorkspaceStore): string {
+  const project = store.createSpace({ workspaceId: "ws-default", name: "Persistence project", provider: "agentforge" });
+  return store.createChannel({ workspaceId: "ws-default", spaceId: project.id, name: "General", visibility: "private", provider: "agentforge", archived: false }).id;
 }
 
 async function findAvailablePort(): Promise<number> {
@@ -29,15 +35,111 @@ async function findAvailablePort(): Promise<number> {
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
 });
-
 describe("WorkspaceStore file persistence", () => {
+  it("starts a durable workspace without a pre-made project or channel", () => {
+    const store = new WorkspaceStore(createSnapshotPath());
+    expect(store.listWorkspaces()).toHaveLength(1);
+    expect(store.listSpaces()).toEqual([]);
+    expect(store.listChannels()).toEqual([]);
+  });
+
+  it("redacts credentials before audit metadata becomes durable", () => {
+    const snapshotPath = createSnapshotPath();
+    const store = new WorkspaceStore(snapshotPath);
+    const audit = store.recordAudit({
+      origin: "system",
+      actorId: "system",
+      actorType: "system",
+      action: "privacy_test",
+      targetType: "system",
+      targetId: "redaction",
+      details: {
+        authorization: "short",
+        providerError: "Bearer sk-auditfixture123456789",
+      },
+    });
+
+    expect(audit.details).toEqual({
+      authorization: "[REDACTED_SECRET]",
+      providerError: "Bearer [REDACTED_SECRET]",
+    });
+    expect(fs.readFileSync(snapshotPath, "utf8")).not.toContain("sk-auditfixture123456789");
+  });
+
+  it("removes only reserved legacy showcase records from a durable workspace", () => {
+    const store = new WorkspaceStore(createSnapshotPath());
+    const fixtureAgent: Omit<AgentTeammate, "createdAt" | "updatedAt"> = {
+      id: "agent-alex",
+      name: "Fixture planner",
+      role: "Test-only teammate profile",
+      description: "legacy fixture",
+      status: "idle" as const,
+      harnessPolicy: { preferredHarnessId: "native", autoResume: false },
+      modelPolicy: { preferredTier: 1 as const, preferredModel: "fixture", preferredProvider: "fixture", allowCloudFallback: false },
+      decisionPolicy: { useSystem1Router: false },
+      computePolicy: { environment: "none" },
+      memoryNamespace: "fixture",
+      tools: [],
+      permissions: [],
+      assignedChannelIds: [],
+    };
+    store.createAgent(fixtureAgent);
+    store.createAgent({ ...fixtureAgent, id: "agent-real", name: "Real teammate", description: "real profile" });
+    store.createTask({ id: "AF-142", title: "Fixture work record", priority: "high", status: "ready", assignedAgentId: "agent-alex" });
+    store.createApproval({ taskId: "AF-142", requesterAgentId: "agent-alex", action: "Fixture approval request", risk: "low" });
+
+    expect(store.removeLegacyFixtureRecords()).toMatchObject({ agents: 1, tasks: 1, approvals: 1 });
+    expect(store.getAgent("agent-alex")).toBeUndefined();
+    expect(store.getAgent("agent-real")?.name).toBe("Real teammate");
+    expect(store.getTask("AF-142")).toBeUndefined();
+    expect(store.listApprovals()).toEqual([]);
+  });
+
+  it("keeps channels inside an existing space in their own workspace", () => {
+    const store = new WorkspaceStore(createSnapshotPath());
+    const defaultSpace = store.createSpace({ workspaceId: "ws-default", name: "Operations", provider: "agentforge" });
+    const otherWorkspace = store.createWorkspace({ name: "Separate workspace" });
+
+    expect(() => store.createChannel({
+      workspaceId: "ws-default", spaceId: "missing-space", name: "Missing", visibility: "private", provider: "agentforge", archived: false,
+    })).toThrow("Channel space must exist in the same workspace");
+    expect(() => store.createChannel({
+      workspaceId: otherWorkspace.id, spaceId: defaultSpace.id, name: "Cross-workspace", visibility: "private", provider: "agentforge", archived: false,
+    })).toThrow("Channel space must exist in the same workspace");
+  });
+
+  it("prevents two canonical channels from claiming one external channel", () => {
+    const store = new WorkspaceStore(createSnapshotPath());
+    const space = store.createSpace({ workspaceId: "ws-default", name: "Operations", provider: "agentforge" });
+    store.createChannel({
+      workspaceId: "ws-default", spaceId: space.id, name: "Telegram intake", visibility: "private", provider: "telegram", externalId: "topic-14", archived: false,
+    });
+    expect(() => store.createChannel({
+      workspaceId: "ws-default", spaceId: space.id, name: "Duplicate topic", visibility: "private", provider: "telegram", externalId: "topic-14", archived: false,
+    })).toThrow("External channel is already mirrored");
+  });
+
+  it("recovers a stale writer lock without corrupting the snapshot", () => {
+    const snapshotPath = createSnapshotPath();
+    const store = new WorkspaceStore(snapshotPath);
+    const lockPath = `${snapshotPath}.lock`;
+    fs.writeFileSync(lockPath, JSON.stringify({ pid: 1, createdAt: "old" }), "utf8");
+    const stale = new Date(Date.now() - 60_000);
+    fs.utimesSync(lockPath, stale, stale);
+    store.createWorkspace({ name: "Recovered writer", description: "stale lock acceptance" });
+    expect(fs.existsSync(lockPath)).toBe(false);
+    expect(() => JSON.parse(fs.readFileSync(snapshotPath, "utf8"))).not.toThrow();
+    expect(new WorkspaceStore(snapshotPath).listWorkspaces().some(workspace => workspace.name === "Recovered writer")).toBe(true);
+  });
+
   it("persists workspace records, messages, and inbound-event idempotency across a restart", async () => {
     const snapshotPath = createSnapshotPath();
     const firstRun = new WorkspaceStore(snapshotPath);
     const workspace = firstRun.createWorkspace({ name: "Persistence acceptance", description: "restart test" });
+    const channelId = createProjectChannel(firstRun);
     firstRun.createMessage({
-      channelId: "chan-general",
-      authorId: "user-montelli",
+      channelId,
+      authorId: "user-owner",
       authorType: "user",
       content: "Persist this message",
     });
@@ -51,7 +153,7 @@ describe("WorkspaceStore file persistence", () => {
       provider: "telegram",
       externalChannelId: "restart-test-channel",
       agentforgeWorkspaceId: workspace.id,
-      agentforgeChannelId: "chan-general",
+      agentforgeChannelId: channelId,
       syncDirection: "inbound_only",
       syncState: "active",
     });
@@ -59,7 +161,7 @@ describe("WorkspaceStore file persistence", () => {
     const secondRun = new WorkspaceStore(snapshotPath);
     expect(secondRun.getWorkspace(workspace.id)?.name).toBe("Persistence acceptance");
     expect(secondRun.listAuditEntries().some(entry => entry.action === "workspace_created" && entry.targetId === workspace.id)).toBe(true);
-    expect(secondRun.listMessages("chan-general").map(message => message.content)).toContain("Persist this message");
+    expect(secondRun.listMessages(channelId).map(message => message.content)).toContain("Persist this message");
     expect(secondRun.eventLedger.replayEvents()).toContainEqual(expect.objectContaining({ eventId: inbound.entry.eventId }));
     expect(secondRun.eventLedger.findBinding("telegram", "restart-test-channel")?.id).toBe(binding.id);
     await expect(secondRun.eventLedger.recordInboundEvent({
@@ -78,21 +180,26 @@ describe("WorkspaceStore file persistence", () => {
     const port = await findAvailablePort();
     let server: AgentForgeWebServer | undefined;
     try {
-      server = new AgentForgeWebServer(new WorkspaceStore(getDefaultWorkspaceFilePath()), port);
+      const firstStore = new WorkspaceStore(getDefaultWorkspaceFilePath());
+      server = new AgentForgeWebServer(firstStore, port);
       await server.start();
       const status = await fetch(`http://127.0.0.1:${port}/api/status`, { headers: { Connection: "close" } });
-      expect(await status.json()).toMatchObject({ storageMode: "local_json" });
+      // Startup diagnostics are system records, not user-created workspace data.
+      expect(await status.json()).toMatchObject({ storageMode: "local_json", dataMode: "EMPTY" });
+      const channelId = createProjectChannel(firstStore);
       const post = await fetch(`http://127.0.0.1:${port}/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Connection: "close" },
-        body: JSON.stringify({ channelId: "chan-general", content: "Persist across HTTP server restart" }),
+        body: JSON.stringify({ channelId, content: "Persist across HTTP server restart" }),
       });
       expect(post.status).toBe(201);
+      const populatedStatus = await fetch(`http://127.0.0.1:${port}/api/status`, { headers: { Connection: "close" } });
+      expect(await populatedStatus.json()).toMatchObject({ dataMode: "USER_DATA", channels: 1 });
       await server.stop();
 
       server = new AgentForgeWebServer(new WorkspaceStore(getDefaultWorkspaceFilePath()), port);
       await server.start();
-      const read = await fetch(`http://127.0.0.1:${port}/api/messages?channelId=chan-general`, { headers: { Connection: "close" } });
+      const read = await fetch(`http://127.0.0.1:${port}/api/messages?channelId=${encodeURIComponent(channelId)}`, { headers: { Connection: "close" } });
       expect(read.status).toBe(200);
       expect(await read.json()).toEqual(expect.arrayContaining([
         expect.objectContaining({ content: "Persist across HTTP server restart" }),
@@ -140,7 +247,7 @@ describe("WorkspaceStore file persistence", () => {
       description: "Round-trip fixture", license: "UNLICENSED", agentforgeVersion: "*", capabilities: [], permissions: {},
     });
     firstRun.recordInstallation({
-      id: "install-persisted", packageId: "test-package", version: "1.0.0", source: "LOCAL", installedByUserId: "user-montelli",
+      id: "install-persisted", packageId: "test-package", version: "1.0.0", source: "LOCAL", installedByUserId: "user-owner",
       workspaceId: "ws-default", status: "active", approvedPermissions: {}, installedAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     });
     firstRun.recordBenchmarkResult({
@@ -231,7 +338,7 @@ describe("WorkspaceStore file persistence", () => {
     const migrated = new WorkspaceStore(snapshotPath);
     expect(migrated.getWorkspace(workspace.id)?.name).toBe("Version one");
     expect(migrated.listOperationalMemories("test")).toEqual([]);
-    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(5);
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(7);
   });
 
   it("migrates version-two snapshots and initializes empty process history", () => {
@@ -245,7 +352,7 @@ describe("WorkspaceStore file persistence", () => {
 
     const migrated = new WorkspaceStore(snapshotPath);
     expect(migrated.getWorkspace(workspace.id)?.name).toBe("Version two");
-    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(5);
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(7);
   });
 
   it("migrates version-three process history and initializes revision proposals", () => {
@@ -266,7 +373,7 @@ describe("WorkspaceStore file persistence", () => {
     expect(migrated.getProcess(process.id)).toMatchObject({ version: 2, title: "Version three current" });
     expect(migrated.listProcessRevisions(process.id)).toMatchObject([{ version: 1 }]);
     expect(migrated.listProcessRevisionProposals(process.id)).toEqual([]);
-    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(5);
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(7);
   });
 
   it("migrates version-four snapshots and initializes empty process-agent bindings", () => {
@@ -281,7 +388,55 @@ describe("WorkspaceStore file persistence", () => {
     const migrated = new WorkspaceStore(snapshotPath);
     expect(migrated.getWorkspace(workspace.id)?.name).toBe("Version four");
     expect(migrated.listProcessAgentBindings()).toEqual([]);
-    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(5);
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8")).schemaVersion).toBe(7);
+  });
+
+  it("migrates version-five snapshots and initializes quality collections", () => {
+    const snapshotPath = createSnapshotPath();
+    const original = new WorkspaceStore(snapshotPath);
+    const workspace = original.createWorkspace({ name: "Version five", description: "legacy snapshot" });
+    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf-8")) as Record<string, unknown>;
+    snapshot.schemaVersion = 5;
+    delete snapshot.qualityBaselines;
+    delete snapshot.qualityAnalyses;
+    fs.writeFileSync(snapshotPath, JSON.stringify(snapshot), "utf-8");
+
+    const migrated = new WorkspaceStore(snapshotPath);
+    expect(migrated.getWorkspace(workspace.id)?.name).toBe("Version five");
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8"))).toMatchObject({
+      schemaVersion: 7,
+      qualityBaselines: [],
+      qualityAnalyses: [],
+      qualityCorrections: [],
+    });
+  });
+
+  it("migrates version-six snapshots and initializes empty correction metadata", () => {
+    const snapshotPath = createSnapshotPath();
+    const original = new WorkspaceStore(snapshotPath);
+    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf-8")) as Record<string, unknown>;
+    snapshot.schemaVersion = 6;
+    delete snapshot.qualityCorrections;
+    fs.writeFileSync(snapshotPath, JSON.stringify(snapshot), "utf-8");
+
+    const migrated = new WorkspaceStore(snapshotPath);
+    expect(migrated.listQualityCorrections()).toEqual([]);
+    expect(JSON.parse(fs.readFileSync(snapshotPath, "utf-8"))).toMatchObject({
+      schemaVersion: 7,
+      qualityCorrections: [],
+    });
+  });
+
+  it("redacts credential-shaped snapshot recovery diagnostics", () => {
+    const snapshotPath = createSnapshotPath();
+    const malformed = JSON.stringify({ schemaVersion: "Bearer sk-snapshotfixture123456789" });
+    fs.writeFileSync(snapshotPath, malformed, "utf-8");
+    fs.writeFileSync(`${snapshotPath}.bak`, malformed, "utf-8");
+
+    expect(() => new WorkspaceStore(snapshotPath)).toThrow(/REDACTED_SECRET/);
+    try { new WorkspaceStore(snapshotPath); } catch (error) {
+      expect(String(error)).not.toContain("sk-snapshotfixture123456789");
+    }
   });
 
   it("recovers from a corrupt primary, repairs it, and keeps the known-good backup", () => {

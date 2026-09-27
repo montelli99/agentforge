@@ -248,6 +248,8 @@ describe("Section 11: Identity, Authentication & Multi-User RBAC", () => {
       });
       const postLogoutBody = await postLogoutMe.json();
       expect(postLogoutBody.user?.username).not.toBe("test_engineer");
+      expect(postLogoutBody.authenticated).toBe(false);
+      expect(postLogoutBody.accessMode).toBe("local_unlocked");
     });
 
     it("should enforce RBAC gates: forbid viewers from mutating tasks, approvals, or settings", async () => {

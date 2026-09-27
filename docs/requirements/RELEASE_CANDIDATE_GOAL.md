@@ -50,11 +50,11 @@ STOP ONLY FOR:
 DO NOT MODIFY OR CONNECT TO:
 
 production OpenClaw
-PPC / prolificcapital-recovery
+unrelated production repository
 production Telegram bot
 production Telegram groups/topics
 production Discord
-JustCall
+external communications provider
 GHL
 Hermes production
 Orion

@@ -10,8 +10,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import {
+  redactRuntimeError,
+  redactRuntimeText,
+  redactRuntimeValue,
+} from "./core/secret/runtimeRedaction.js";
 
-const BASE_URL = process.env.AGENTFORGE_URL || "http://localhost:3000";
+const BASE_URL = process.env.AGENTFORGE_URL || "http://localhost:3460";
 const TODAY = new Date().toISOString().slice(0, 10);
 const REPORTS_DIR = path.join(process.cwd(), "reports");
 
@@ -66,12 +71,6 @@ async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`);
   return await res.json() as T;
-}
-
-async function fetchText(path: string): Promise<string> {
-  const res = await fetch(`${BASE_URL}${path}`);
-  if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`);
-  return res.text();
 }
 
 function buildCsv(requests: MetricRequest[]): string {
@@ -200,44 +199,48 @@ function buildSummaryMd(dashboard: DashboardMetrics, daily: DailyMetrics): strin
 async function main() {
   ensureDir(REPORTS_DIR);
 
-  console.log(`[export:metrics] Fetching from ${BASE_URL}...`);
+  console.log(`[export:metrics] Fetching from ${redactRuntimeText(BASE_URL)}...`);
 
-  const [dashboard, daily, csvText] = await Promise.all([
+  const [dashboard, daily] = await Promise.all([
     fetchJson<DashboardMetrics>("/dashboard.json"),
     fetchJson<DailyMetrics>("/summary/daily"),
-    fetchText("/metrics.csv"),
   ]);
+  const safeDashboard = redactRuntimeValue(dashboard) as DashboardMetrics;
+  const safeDaily = redactRuntimeValue(daily) as DailyMetrics;
 
   const jsonPath = path.join(REPORTS_DIR, `metrics-${TODAY}.json`);
   const csvPath = path.join(REPORTS_DIR, `metrics-${TODAY}.csv`);
   const mdPath = path.join(REPORTS_DIR, `summary-${TODAY}.md`);
 
-  fs.writeFileSync(jsonPath, JSON.stringify({ dashboard, daily, generated: new Date().toISOString() }, null, 2));
-  fs.writeFileSync(csvPath, buildCsv(dashboard.latestRequests || []));
-  fs.writeFileSync(mdPath, buildSummaryMd(dashboard, daily));
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify({ dashboard: safeDashboard, daily: safeDaily, generated: new Date().toISOString() }, null, 2),
+  );
+  fs.writeFileSync(csvPath, buildCsv(safeDashboard.latestRequests || []));
+  fs.writeFileSync(mdPath, buildSummaryMd(safeDashboard, safeDaily));
 
   console.log(`[export:metrics] Wrote:`);
   console.log(`  ${jsonPath}`);
   console.log(`  ${csvPath}`);
   console.log(`  ${mdPath}`);
 
-  const openclawReqs = (dashboard.latestRequests || []).filter(
+  const openclawReqs = (safeDashboard.latestRequests || []).filter(
     (r) => r.source === "openclaw",
   ).length;
-  const telegramReqs = (dashboard.latestRequests || []).filter(
+  const telegramReqs = (safeDashboard.latestRequests || []).filter(
     (r) => r.channel === "telegram",
   ).length;
 
   console.log(`\n[export:metrics] Summary:`);
-  console.log(`  Total requests:      ${dashboard.requests}`);
+  console.log(`  Total requests:      ${safeDashboard.requests}`);
   console.log(`  OpenClaw requests:   ${openclawReqs}`);
   console.log(`  Telegram requests:   ${telegramReqs}`);
-  console.log(`  Tokens prevented:    ${dashboard.tokensPrevented}`);
-  console.log(`  Provider calls avoided: ${dashboard.providerCallsAvoided}`);
-  console.log(`  Avg reduction:       ${(dashboard.averageReductionPercent ?? 0).toFixed(2)}%`);
+  console.log(`  Tokens prevented:    ${safeDashboard.tokensPrevented}`);
+  console.log(`  Provider calls avoided: ${safeDashboard.providerCallsAvoided}`);
+  console.log(`  Avg reduction:       ${(safeDashboard.averageReductionPercent ?? 0).toFixed(2)}%`);
 }
 
 main().catch((err) => {
-  console.error("[export:metrics] Error:", err.message);
+  console.error("[export:metrics] Error:", redactRuntimeError(err));
   process.exit(1);
 });

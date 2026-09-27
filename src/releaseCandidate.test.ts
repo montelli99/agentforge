@@ -64,6 +64,16 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
       expect(jev?.productionReady).toBe(false);
       expect(jev?.notes).toContain("Does NOT touch production Vercel");
     });
+
+    it("should expose external channel adapters as non-production until transport is configured", () => {
+      for (const providerId of ["channel-telegram", "channel-discord", "channel-slack"]) {
+        const provider = PROVIDER_READINESS_REGISTRY.find(p => p.providerId === providerId);
+        expect(provider).toBeDefined();
+        expect(provider?.category).toBe("channel");
+        expect(provider?.productionReady).toBe(false);
+        expect(["TEST_IMPLEMENTATION", "PARTIAL_INTEGRATION"]).toContain(provider?.readiness);
+      }
+    });
   });
 
   describe("Section 3: Pi Harness Target Capabilities", () => {

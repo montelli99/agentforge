@@ -58,7 +58,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
         instruction: "Validate output contract",
       });
       expect(result.status).toBe("success");
-      expect(result.output).toContain("Pydantic AI Harness");
+      expect(result.output).toContain("Pydantic AI Execution Engine");
 
       await pydantic.shutdown();
     });
@@ -198,21 +198,21 @@ describe("AgentForge vNext Foundation Architecture", () => {
         updateId: 1001,
         chatId: "-100123",
         topicId: 42,
-        userId: "user-montelli",
-        username: "montelli",
+        userId: "user-owner",
+        username: "owner",
         text: "Fix login regression in auth module",
       });
 
       expect(receivedEvents).toHaveLength(1);
       expect(receivedEvents[0].eventType).toBe("message");
-      expect(receivedEvents[0].externalUserId).toBe("user-montelli");
+      expect(receivedEvents[0].externalUserId).toBe("user-owner");
 
       // Remote control button callback (Approve task AF-142)
       await tg.ingestInboundUpdate({
         updateId: 1002,
         chatId: "-100123",
         topicId: 42,
-        userId: "user-montelli",
+        userId: "user-owner",
         callbackData: "approve:AF-142",
       });
 
@@ -239,7 +239,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
         guildId: "guild-1",
         channelId: "chan-1",
         userId: "user-discord",
-        username: "montelli-disc",
+        username: "owner-discord",
         customId: "reject:AF-142",
       });
 
@@ -269,7 +269,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
       },
       scope: {
         allowedPaths: ["modules/system1/**", "src/core/**"],
-        protectedPaths: ["modules/ppc-safety-validator.cjs", "package.json", ".env"],
+        protectedPaths: ["modules/safety-validator.cjs", "package.json", ".env"],
         maxFilesChanged: 5,
       },
       authority: {
@@ -305,7 +305,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
     it("strictly blocks modifications to protected files", () => {
       const res = enforcer.validateFileModifications(testContract, [
         "modules/system1/router.ts",
-        "modules/ppc-safety-validator.cjs", // Protected!
+        "modules/safety-validator.cjs", // Protected!
       ]);
       expect(res.allowed).toBe(false);
       expect(res.violations.some((v) => v.rule === "scope_protected")).toBe(true);
@@ -408,14 +408,14 @@ describe("AgentForge vNext Foundation Architecture", () => {
       const resolved = approvals.resolveApproval({
         approvalId: req.id,
         status: "approved",
-        approverUserId: "user-montelli",
+        approverUserId: "user-owner",
         decisionOrigin: "telegram",
         decisionNotes: "Diff verified on mobile",
       });
 
       expect(resolved.status).toBe("approved");
       expect(resolved.decisionOrigin).toBe("telegram");
-      expect(updatedStatus).toBe("approved by user-montelli via telegram");
+      expect(updatedStatus).toBe("approved by user-owner via telegram");
       expect(approvals.listPending()).toHaveLength(0);
     });
   });
@@ -427,7 +427,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
         namespace: "proj-agentforge",
         category: "do_not_repeat",
         title: "Never modify OpenClaw production directly",
-        content: "OpenClaw and PPC production repositories are strictly read-only for this workstream.",
+        content: "External production repositories are strictly read-only for this workstream.",
         tags: ["boundary", "safety"],
       });
 
@@ -471,7 +471,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
 
       const pack = builder.build("9f8e7d6", {
         approvalId: "appr-101",
-        approvedBy: "montelli",
+        approvedBy: "owner",
         source: "telegram",
       });
 
@@ -479,7 +479,7 @@ describe("AgentForge vNext Foundation Architecture", () => {
       expect(pack.diffStat.filesCount).toBe(1);
       expect(pack.diffStat.insertions).toBe(15);
       expect(pack.approvalSource).toBe("telegram");
-      expect(pack.approvedBy).toBe("montelli");
+      expect(pack.approvedBy).toBe("owner");
     });
   });
 });

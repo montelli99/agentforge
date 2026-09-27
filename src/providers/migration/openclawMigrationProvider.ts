@@ -134,7 +134,7 @@ export class OpenClawMigrationProvider implements MigrationProvider {
           canonicalPayload: {
             id: `agent-migrated-${agent.id}`,
             name: agent.name,
-            role: agent.id.includes("dev") ? "Senior Developer" : "Lead Intake Specialist",
+            role: agent.id.includes("dev") ? "Senior Developer" : "Operations Specialist",
             description: agent.systemPrompt,
             status: "idle",
             modelPolicy: {
@@ -300,7 +300,7 @@ export class OpenClawMigrationProvider implements MigrationProvider {
 
     targetStore.recordAudit({
       origin: "api",
-      actorId: "user-montelli",
+      actorId: "user-owner",
       actorType: "user",
       action: `migration.import.${this.source.toLowerCase()}`,
       targetType: "agent",

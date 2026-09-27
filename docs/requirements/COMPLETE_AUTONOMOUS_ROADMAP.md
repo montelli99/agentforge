@@ -44,7 +44,7 @@ CURRENT BASELINE
 
 WORKSPACE:
 
-C:\Users\mscott\AI_Workspace\AgentForge-Staging
+this repository checkout
 
 BRANCH:
 
@@ -170,15 +170,15 @@ DO NOT MODIFY:
 
 production OpenClaw
 
-prolificcapital-recovery / PPC
+unrelated production repository
 
 production Telegram bot
 
 production Discord
 
-JustCall
+external communications provider
 
-GoHighLevel
+external CRM
 
 Hermes production
 

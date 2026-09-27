@@ -1,6 +1,6 @@
 # Contributing to AgentForge
 
-Thank you for your interest in contributing to **AgentForge**, an early-stage project intended to become a self-hostable AI team workspace and execution control plane. No distribution license has been selected; please do not assume redistribution permissions until the owner approves a license.
+Thank you for your interest in contributing to **AgentForge**, an early-stage self-hostable AI team workspace and execution control plane. Contributions are made under the repository's [Apache-2.0 license](LICENSE).
 
 ---
 
@@ -18,7 +18,7 @@ Before writing code, review the core safety contracts:
    - Separate capability levels (e.g. file parsing vs live API sync).
    - Local models (Ollama) have $0 external API cost.
 4. **Secret Storage Separation**:
-   - Do not commit secrets or include them in fixtures/reports. The repository includes legacy configuration code that can write `.env`; end-to-end secret isolation and export/log redaction are not yet verified.
+   - Do not commit secrets or include them in fixtures, reports, screenshots, or documentation. Keep sample data synthetic. End-to-end secret isolation and export/log redaction remain release gates.
 
 ---
 
@@ -33,7 +33,7 @@ AgentForge has zero native C/C++ build dependencies, running on pure TypeScript 
 
 ### Installation
 ```bash
-git clone https://github.com/montelli99/AgentForge.git
+git clone https://github.com/your-org/agentforge.git
 cd AgentForge
 pnpm install
 ```
@@ -49,7 +49,7 @@ pnpm exec vitest
 
 ### Launching the Control Plane
 ```bash
-# Launch the local web control plane (defaults to http://127.0.0.1:3000)
+# Launch the local web control plane (defaults to http://127.0.0.1:3460)
 npm run vnext
 ```
 

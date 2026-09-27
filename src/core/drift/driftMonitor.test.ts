@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { DriftMonitor } from "./driftMonitor.js";
 import { WorkspaceStore } from "../store/workspaceStore.js";
 
@@ -9,6 +12,10 @@ describe("DriftMonitor", () => {
   beforeEach(() => {
     store = new WorkspaceStore();
     monitor = new DriftMonitor(store);
+  });
+
+  afterEach(() => {
+    // Keep the existing suite entirely in memory unless a test creates its own file.
   });
 
   it("establishes baseline on first evaluation run if none exists", () => {
@@ -23,13 +30,34 @@ describe("DriftMonitor", () => {
       executedAt: new Date().toISOString(),
     });
 
-    expect(analysis.action).toBe("HEALTHY");
+    expect(analysis).toMatchObject({ action: "HEALTHY", runId: "run-1" });
     expect(analysis.passRateDriftPct).toBe(0);
     expect(analysis.regressions).toHaveLength(0);
 
     const baseline = monitor.getBaseline("model", "model-unseen-target");
     expect(baseline).toBeDefined();
     expect(baseline?.passRatePct).toBe(96.0);
+  });
+
+  it("refuses to establish a baseline from an initial hallucinated or unsafe run", () => {
+    const analysis = monitor.evaluate({
+      runId: "unsafe-first-run",
+      targetId: "untrusted-first-model",
+      targetType: "model",
+      targetVersion: "1.0.0",
+      passRatePct: 98.0,
+      avgLatencyMs: 120,
+      hallucinatedClaimsCount: 1,
+      testCaseResults: { "evidence-claim": false },
+      executedAt: new Date().toISOString(),
+    });
+
+    expect(analysis).toMatchObject({ action: "QUARANTINE", runId: "unsafe-first-run", hallucinationDetected: true });
+    expect(analysis.explanation).toContain("prevent this run from establishing");
+    expect(monitor.getBaseline("model", "untrusted-first-model")).toBeUndefined();
+    expect(store.listAuditEntries(10)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ action: "DRIFT_EVALUATION_QUARANTINE", targetId: "untrusted-first-model", details: expect.objectContaining({ runId: "unsafe-first-run" }) }),
+    ]));
   });
 
   it("detects minor degradation and flags WARN_CONTAINMENT", () => {
@@ -49,8 +77,8 @@ describe("DriftMonitor", () => {
       targetId: "harness-pi",
       targetType: "harness",
       targetVersion: "1.0.1",
-      passRatePct: 91.0, // -4% drift
-      avgLatencyMs: 270, // +35% latency
+      passRatePct: 91.0,
+      avgLatencyMs: 270,
       testCaseResults: { "c1": true, "c2": true, "c3": true, "c4": false },
       executedAt: new Date().toISOString(),
     });
@@ -106,7 +134,7 @@ describe("DriftMonitor", () => {
       targetId: "ollama-deepseek",
       targetType: "model",
       targetVersion: "v1.3-quant",
-      passRatePct: 70.0, // -22% drift
+      passRatePct: 70.0,
       avgLatencyMs: 320,
       testCaseResults: { "r1": false, "r2": false, "r3": false, "r4": true, "r5": true },
       executedAt: new Date().toISOString(),
@@ -116,9 +144,42 @@ describe("DriftMonitor", () => {
     expect(analysis.regressions).toHaveLength(3);
     expect(analysis.passRateDriftPct).toBe(-22.0);
     expect(analysis.explanation).toContain("Automatic rollback recommended");
+    expect(store.listAuditEntries(10).some(log => log.action === "DRIFT_EVALUATION_ROLLBACK")).toBe(true);
+  });
 
-    // Confirms audit record was created in store
-    const auditLogs = store.listAuditEntries(10);
-    expect(auditLogs.some(log => log.action === "DRIFT_EVALUATION_ROLLBACK")).toBe(true);
+  it("restores quality evidence after a local workspace restart", () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-drift-"));
+    const snapshot = path.join(folder, "workspace.json");
+    try {
+      const firstStore = new WorkspaceStore(snapshot);
+      const firstMonitor = new DriftMonitor(firstStore);
+      firstMonitor.registerBaseline({
+        id: "baseline-local",
+        targetId: "generic-harness",
+        targetType: "harness",
+        targetVersion: "1.0.0",
+        passRatePct: 95,
+        avgLatencyMs: 210,
+        createdAt: "2026-09-24T00:00:00.000Z",
+        testCaseResults: { "tool-result-use": true, "policy-boundary": true },
+      });
+      firstMonitor.evaluate({
+        runId: "run-local",
+        targetId: "generic-harness",
+        targetType: "harness",
+        targetVersion: "1.0.1",
+        passRatePct: 90,
+        avgLatencyMs: 290,
+        testCaseResults: { "tool-result-use": false, "policy-boundary": true },
+        executedAt: "2026-09-24T01:00:00.000Z",
+      });
+
+      const restarted = new DriftMonitor(new WorkspaceStore(snapshot));
+      expect(restarted.getBaseline("harness", "generic-harness")?.targetVersion).toBe("1.0.0");
+      expect(restarted.listAnalyses()).toHaveLength(1);
+      expect(restarted.listAnalyses()[0]).toMatchObject({ candidateVersion: "1.0.1", regressions: ["tool-result-use"] });
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
   });
 });

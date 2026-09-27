@@ -5,9 +5,13 @@
  * Shared across Web, Telegram, Discord, CLI, and API.
  */
 
+export type WorkspaceExperience = "command" | "workspace" | "studio";
+
 export interface CanonicalWorkspace {
   id: string;
   name: string;
+  /** Reversible presentation path; it never changes projects, people, or work. */
+  experience?: WorkspaceExperience;
   description?: string;
   avatarUrl?: string;
   createdAt: string;
@@ -15,11 +19,17 @@ export interface CanonicalWorkspace {
 }
 
 export interface CanonicalSpace {
+  instructions?: string;
+  repositoryPath?: string;
+  repositoryAccess?: { rootPath: string; mode: "read"; grantedBy: string; grantedAt: string; device: number; inode: number };
+  archived?: boolean;
   id: string;
   workspaceId: string;
+  /** Optional parent department/space, enabling nested business areas. */
+  parentSpaceId?: string;
   name: string;
   description?: string;
-  provider: "agentforge" | "telegram" | "discord" | "web" | "cli" | "api";
+  provider: "agentforge" | "telegram" | "discord" | "slack" | "web" | "cli" | "api";
   externalId?: string;
   createdAt: string;
   updatedAt: string;
@@ -35,7 +45,7 @@ export interface CanonicalChannel {
   topic?: string;
   visibility: ChannelVisibility;
   archived: boolean;
-  provider: "agentforge" | "telegram" | "discord" | "web" | "cli" | "api";
+  provider: "agentforge" | "telegram" | "discord" | "slack" | "web" | "cli" | "api";
   externalId?: string;
   createdAt: string;
   updatedAt: string;
@@ -45,7 +55,11 @@ export interface CanonicalThread {
   id: string;
   channelId: string;
   title?: string;
+  archived?: boolean;
+  pinned?: boolean;
   starterMessageId?: string;
+  parentThreadId?: string;
+  parentMessageId?: string;
   externalThreadId?: string;
   createdAt: string;
   updatedAt: string;
@@ -69,8 +83,10 @@ export interface CanonicalMessage {
   content: string;
   attachments?: MessageAttachment[];
   replyToMessageId?: string;
+  revisions?: Array<{ content: string; editedAt: string; editedBy: string }>;
+  generation?: { model: string; provider: string; status: "complete" | "stopped" | "failed"; promptMessageId: string; contextMemories?: Array<{ id: string; title: string; version: number }> };
   externalMessageId?: string;
-  externalProvider?: "telegram" | "discord" | "web" | "api" | "cli";
+  externalProvider?: "telegram" | "discord" | "slack" | "web" | "api" | "cli";
   createdAt: string;
   updatedAt: string;
 }

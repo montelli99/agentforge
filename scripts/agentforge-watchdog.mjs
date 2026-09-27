@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PORT = Number.parseInt(process.env.PORT ?? "3000", 10);
+const PORT = Number.parseInt(process.env.PORT ?? "3460", 10);
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const AGENTFORGE_DIR = path.resolve(process.env.AGENTFORGE_DIR ?? path.join(SCRIPT_DIRECTORY, ".."));
 const ENTRY_POINT = path.join(AGENTFORGE_DIR, "src", "server", "start.ts");

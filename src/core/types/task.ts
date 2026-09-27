@@ -4,6 +4,8 @@
 
 import type { ExecutionContract } from "./contract.js";
 import type { EvidencePack } from "./evidence.js";
+import type { ApprovedPlanRecord } from "../runtime/approvedPlanProvider.js";
+import type { ApprovedExecutionPlan } from "../runtime/contractedDockerExecutionBackend.js";
 
 export type TaskStatus =
   | "backlog"
@@ -44,6 +46,9 @@ export interface Task {
   processId?: string;
   worktree?: TaskWorktreeInfo;
   evidencePack?: EvidencePack;
+  approvedExecutionPlan?: ApprovedPlanRecord;
+  /** Last model-generated draft; never treated as approval or executable authority. */
+  executionPlanDraft?: ApprovedExecutionPlan;
 
   error?: string;
   startedAt?: string;

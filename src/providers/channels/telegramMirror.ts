@@ -11,8 +11,12 @@ import type {
   InboundChannelEvent,
   OutboundChannelMessage,
   OutboundTopicUpdate,
+  ChannelProviderReadiness,
 } from "../../core/providers/channel.js";
 import type { ApprovalRequest } from "../../core/types/approval.js";
+import { TelegramGatewayRelay, type TelegramGatewayBridge } from "./telegramGatewayRelay.js";
+import type { TelegramLiveTransport } from "./telegramLiveTransport.js";
+import type { TelegramUserSessionTransport } from "./telegramUserSessionTransport.js";
 
 export interface TelegramTopicBinding {
   chatId: string;
@@ -52,18 +56,63 @@ export class TelegramMirrorProvider implements ChannelProvider {
   readonly id = "telegram_mirror";
   readonly type: ChannelProviderType = "telegram";
 
+  readiness(): ChannelProviderReadiness {
+    const botHealthy = this.liveTransport
+      ? (this.liveTransport.isHealthy?.() ?? this.liveTransport.isRunning())
+      : false;
+    const live = Boolean(botHealthy || this.userSessionTransport?.isRunning() || this.gatewayRelay?.status() === "connected");
+    return {
+      status: live ? "live" : "sandbox",
+        summary: live
+        ? "Telegram is connected through an AgentForge-owned transport and routed through the canonical AgentForge mirror."
+        : "Telegram mirror contracts are wired; configure an AgentForge-owned BotFather bot, an advanced MTProto user session, or an optional migration relay to go live.",
+      capabilities: ["topic binding", "inbound event normalization", "remote-control policy handling", "outbound message contract", "BotFather Bot API transport", "native MTProto user-session transport", "optional migration relay"],
+      missing: live ? [] : ["AgentForge BotFather token, MTProto session, or migration relay", "live provider acceptance"],
+    };
+  }
+
+  /** Attach to an existing gateway owner without creating a Telegram poller. */
+  createGatewayRelay(bridge: TelegramGatewayBridge): TelegramGatewayRelay {
+    this.gatewayRelay = new TelegramGatewayRelay(this, bridge);
+    return this.gatewayRelay;
+  }
+
   private eventHandlers: Array<(event: InboundChannelEvent) => Promise<void>> = [];
   private topicBindings = new Map<string, TelegramTopicBinding>(); // key: `${chatId}:${topicId}`
   private channelToTopic = new Map<string, TelegramTopicBinding>(); // key: canonicalChannelId
   private sentMessages: Array<{ messageId: string; targetChannel: string; text: string }> = [];
   private cutoverPhase: TelegramCutoverPhase = "SOURCE_AUTHORITATIVE";
   private simulatedWebhookInfo: TelegramWebhookInfo | null = null;
+  private liveTransport?: TelegramLiveTransport;
+  private userSessionTransport?: TelegramUserSessionTransport;
+  private gatewayRelay?: TelegramGatewayRelay;
+
+  /** Attach a transport only at an explicit migration boundary. */
+  attachLiveTransport(transport: TelegramLiveTransport): void {
+    this.liveTransport = transport;
+  }
+
+  /** Attach an AgentForge-owned authenticated user session (MTProto adapter). */
+  attachUserSessionTransport(transport: TelegramUserSessionTransport): void {
+    this.userSessionTransport = transport;
+    transport.bind(async update => this.ingestInboundUpdate(update));
+  }
+
+  attachGatewayRelay(relay: TelegramGatewayRelay): void { this.gatewayRelay = relay; }
 
   async initialize(): Promise<void> {
-    // Initialized ready to receive webhook updates or polling
+    if (this.liveTransport) await this.liveTransport.start();
+    if (this.userSessionTransport) await this.userSessionTransport.start();
+    // A relay may be attached before its upstream gateway completes its
+    // handshake. Leave that startup to the gateway owner in that case rather
+    // than turning the whole channel runtime into an error.
+    if (this.gatewayRelay && this.gatewayRelay.status() !== "disconnected") this.gatewayRelay.start();
   }
 
   async shutdown(): Promise<void> {
+    this.liveTransport?.stop();
+    if (this.userSessionTransport) await this.userSessionTransport.stop();
+    this.gatewayRelay?.stop();
     this.eventHandlers = [];
   }
 
@@ -164,6 +213,18 @@ export class TelegramMirrorProvider implements ChannelProvider {
   // Outbound: AgentForge Web -> Telegram Topic
   async sendMessage(message: OutboundChannelMessage): Promise<{ externalMessageId: string }> {
     const binding = this.channelToTopic.get(message.canonicalChannelId);
+    if (this.gatewayRelay && binding) {
+      const messageId = await this.gatewayRelay.sendMessage(binding.chatId, message.text, binding.topicId);
+      return { externalMessageId: String(messageId) };
+    }
+    if (this.liveTransport && binding) {
+      const messageId = await this.liveTransport.sendMessage(binding.chatId, message.text, binding.topicId);
+      return { externalMessageId: String(messageId) };
+    }
+    if (this.userSessionTransport && binding) {
+      const messageId = await this.userSessionTransport.sendMessage(binding.chatId, message.text, binding.topicId);
+      return { externalMessageId: String(messageId) };
+    }
     const externalMessageId = `tg-msg-${crypto.randomUUID().slice(0, 8)}`;
 
     this.sentMessages.push({
@@ -221,6 +282,38 @@ export class TelegramMirrorProvider implements ChannelProvider {
   async inspectWebhookState(token?: string): Promise<TelegramWebhookInfo> {
     if (this.simulatedWebhookInfo) {
       return this.simulatedWebhookInfo;
+    }
+    if (token) {
+      if (!/^[0-9]{6,}:[A-Za-z0-9_-]{20,}$/.test(token)) {
+        throw new Error("Telegram bot token format is invalid.");
+      }
+      const response = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`, {
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) throw new Error(`Telegram getWebhookInfo failed with HTTP ${response.status}.`);
+      const payload = await response.json() as {
+        ok?: boolean;
+        result?: {
+          url?: string;
+          has_custom_certificate?: boolean;
+          pending_update_count?: number;
+          last_error_date?: number;
+          last_error_message?: string;
+          max_connections?: number;
+          ip_address?: string;
+        };
+        description?: string;
+      };
+      if (!payload.ok || !payload.result) throw new Error(payload.description || "Telegram returned no webhook state.");
+      return {
+        url: payload.result.url || "",
+        hasCustomCertificate: Boolean(payload.result.has_custom_certificate),
+        pendingUpdateCount: payload.result.pending_update_count || 0,
+        ...(payload.result.last_error_date ? { lastErrorDate: payload.result.last_error_date } : {}),
+        ...(payload.result.last_error_message ? { lastErrorMessage: payload.result.last_error_message } : {}),
+        ...(payload.result.max_connections ? { maxConnections: payload.result.max_connections } : {}),
+        ...(payload.result.ip_address ? { ipAddress: payload.result.ip_address } : {}),
+      };
     }
     return {
       url: "",

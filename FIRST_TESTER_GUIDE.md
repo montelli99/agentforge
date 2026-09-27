@@ -16,13 +16,13 @@ pnpm check
 pnpm dev
 ```
 
-The vNext server normally listens at `http://127.0.0.1:3000`. Check the startup output for the actual address. The launcher writes local versioned JSON workspace snapshots under the current user's `.agentforge` data directory; set `AGENTFORGE_DATA_DIR` to use a separate test directory. This is staging persistence, not production-grade or encrypted storage.
+The vNext server normally listens at `http://127.0.0.1:3460`. Port 3000 is deliberately reserved for unrelated local applications. Check the startup output for the actual address. The launcher writes local versioned JSON workspace snapshots under the current user's `.agentforge` data directory; set `AGENTFORGE_DATA_DIR` to use a separate test directory. This is staging persistence, not production-grade or encrypted storage.
 
 ## What to test
 
 Try the workspace navigation and the workflows currently exposed in the UI: messages, tasks, agents, processes, approvals, models, harnesses, memory, voice simulation, tools, compute, marketplace, activity, and settings. Record the exact steps, expected result, actual result, and any visible error.
 
-Use synthetic information only. Do not connect a production Telegram or Discord bot, CRM, dialer, email account, or production credential. Provider entries marked mock, test, skeleton, not configured, or unimplemented are not live integrations. A local mock result is useful UI/test evidence but is not proof that its real service works.
+Use synthetic information only. Do not connect a production provider account, channel, email account, customer system, or credential. Provider entries marked mock, test, skeleton, not configured, or unimplemented are not live integrations. A local mock result is useful UI/test evidence but is not proof that its real service works.
 
 ## Report your findings
 

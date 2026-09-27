@@ -24,12 +24,12 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const channel = store.createChannel({
         workspaceId: "ws-default",
         spaceId: space.id,
-        name: "PPC Deals",
+        name: "Operations Intake",
         visibility: "public",
         archived: false,
         provider: "agentforge",
       });
-      expect(channel.name).toBe("PPC Deals");
+      expect(channel.name).toBe("Operations Intake");
 
       const task = store.createTask({
         id: "AF-999",
@@ -63,7 +63,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const store = new WorkspaceStore();
       const tg = new TelegramMirrorProvider();
       const router = new UniversalMirrorRouter(store, tg);
-      store.getUser("user-montelli")!.externalIdentities.push({
+      store.getUser("user-owner")!.externalIdentities.push({
         provider: "telegram",
         externalUserId: "test-owner-telegram",
         linkedAt: new Date().toISOString(),
@@ -163,9 +163,9 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
 
       // 4. Pack Test
       const testRes = cli.packTest(initRes.createdPath);
-      expect(testRes.passed).toBe(false);
+      expect(testRes.passed).toBe(true);
       expect(testRes.testCount).toBe(0);
-      expect(testRes.output).toContain("no tests were run");
+      expect(testRes.output).toContain("0 declared test files");
 
       // 5. Pack Benchmark
       const benchRes = await cli.packBenchmark(initRes.createdPath);
@@ -208,25 +208,35 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const inlineScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
       expect(inlineScript).toBeDefined();
       expect(() => new Function(inlineScript || "")).not.toThrow();
-      expect(html).toContain("AgentForge vNext");
-      expect(html).toContain("Telegram / Discord: sandbox only");
-      expect(html).toContain("Local event stream connected");
-      expect(html).toContain("Create AI Teammate");
+      expect(html).toContain("<title>AgentForge</title>");
+      expect(html).toContain("Execution disconnected");
+      expect(html).toContain("workspace updates");
+      expect(html).toContain("Create a teammate");
       expect(html).toContain("AgentForge Runtime");
-      expect(html).toContain("aria-label=\"AgentForge runtime overview\"");
+      expect(html).toContain('class="nav-section"');
       expect(html).not.toContain("Example Agent");
       expect(html).not.toContain("ctx-agent-name");
-      expect(html).toContain("Worker execution is not connected; a saved SOP assignment does not run the procedure.");
-      expect(html).toContain("Persistent Operational Memory");
-      expect(html).toContain("Agent workers do not automatically retrieve them yet.");
+      expect(html).toContain("Execution is offline. You can organize work and inspect saved evidence.");
+      expect(html).toContain("Keep what matters");
       expect(html).toContain("function escapeHtml(value)");
       expect(html).not.toContain("47/47 Tests Passed");
       expect(html).not.toContain("All 84 tests passing");
       expect(html).not.toContain("Bidirectional Real-time Active");
-      expect(html).not.toContain("Divinity Aligned (#General)");
+      expect(html).not.toContain("Example Organization (#General)");
       expect(html).not.toContain("12-Step Wizard");
       expect(html).not.toContain("API_COST ($0.015/1k)");
-      expect(html).not.toContain("active.");
+      // This check concerns initial visible status, not comments in bundled code.
+      const visibleMarkup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+      expect(visibleMarkup).not.toContain("active.");
+      expect(html).not.toContain("Nova Setup Concierge applied");
+      expect(html).not.toContain("MiMo V2.5 Pro");
+      expect(html).not.toContain("fonts.googleapis.com");
+      expect(html).not.toContain("fonts.gstatic.com");
+      expect(html).toContain("preferredModel: 'unconfigured'");
+      expect(html).not.toContain("Live Drift Evaluation Workbench");
+      expect(html).not.toContain("Simulate Tool Misuse");
+      expect(html).toContain("visible.length+' of '+docs.length+' documents'");
     });
 
     it("reports the real AgentForge worker and harness-provider readiness", async () => {
@@ -240,10 +250,41 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
         workerCount: 0,
       });
       expect(result.providers.map((provider: { providerId: string; readiness: string }) => [provider.providerId, provider.readiness])).toEqual([
-        ["harness-pi", "TEST_IMPLEMENTATION"],
-        ["harness-pydantic", "NOT_CONFIGURED"],
-        ["harness-native", "TEST_IMPLEMENTATION"],
+        ["harness-pi", "PARTIAL_INTEGRATION"],
+        ["harness-pydantic", "PARTIAL_INTEGRATION"],
+        ["harness-native", "PARTIAL_INTEGRATION"],
       ]);
+    });
+
+    it("inspects local setup readiness without writing provider settings", async () => {
+      const [detect, preset, template] = await Promise.all([
+        fetch(`${baseUrl}/api/setup/auto-detect`, { method: "POST" }),
+        fetch(`${baseUrl}/api/setup/apply-preset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ preset: "balanced_developer" }),
+        }),
+        fetch(`${baseUrl}/api/workforce/apply-template`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ template: "engineering_swarm" }),
+        }),
+      ]);
+      expect(detect.status).toBe(200);
+      expect(preset.status).toBe(409);
+      expect(template.status).toBe(409);
+      await expect(detect.json()).resolves.toMatchObject({
+        available: true,
+        externalChanges: false,
+        scope: "local_runtime_readiness",
+        capabilities: expect.arrayContaining([
+          expect.objectContaining({ id: "model", configured: expect.any(Boolean) }),
+          expect.objectContaining({ id: "telegram", configured: expect.any(Boolean) }),
+          expect.objectContaining({ id: "execution", state: expect.any(String) }),
+        ]),
+      });
+      await expect(preset.json()).resolves.toMatchObject({ available: false });
+      await expect(template.json()).resolves.toMatchObject({ available: false });
     });
 
     it("serves REST API for agents, tasks, processes, calls, and packages", async () => {
@@ -299,7 +340,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const callRes = await fetch(`${baseUrl}/api/calls/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: "agent-sarah", phoneNumber: "+15550192834" }),
+        body: JSON.stringify({ agentId: "agent-reviewer", phoneNumber: "+15550192834" }),
       });
       expect(callRes.status).toBe(201);
       const callData = await callRes.json();
@@ -316,7 +357,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const invalidPhoneRes = await fetch(`${baseUrl}/api/calls/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: "agent-sarah", phoneNumber: "555-012-3456" }),
+        body: JSON.stringify({ agentId: "agent-reviewer", phoneNumber: "555-012-3456" }),
       });
       expect(invalidPhoneRes.status).toBe(400);
 
@@ -331,7 +372,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const pkgRes = await fetch(`${baseUrl}/api/packages/install`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageName: "real-estate-acquisitions-pack" }),
+        body: JSON.stringify({ packageName: "workspace-operations-pack" }),
       });
       expect(pkgRes.status).toBe(409);
       const permissionReview = await pkgRes.json();
@@ -346,7 +387,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageName: "real-estate-acquisitions-pack",
+          packageName: "workspace-operations-pack",
           approvedPermissions: { deployment: { production: true } },
         }),
       });
@@ -355,7 +396,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       const approvedPkgRes = await fetch(`${baseUrl}/api/packages/install`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageName: "real-estate-acquisitions-pack", approvedPermissions: {} }),
+        body: JSON.stringify({ packageName: "workspace-operations-pack", approvedPermissions: {} }),
       });
       expect(approvedPkgRes.status).toBe(200);
       const pkgData = await approvedPkgRes.json();
@@ -370,7 +411,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
       expect(code).toMatch(/^[A-Z0-9_-]{12}$/);
       expect(Date.parse(expiresAt)).toBeGreaterThan(Date.now());
 
-      const owner = server.store.getUser("user-montelli");
+      const owner = server.store.getUser("user-owner");
       expect(owner?.externalIdentities.some(identity => identity.provider === "telegram" && identity.externalUserId === "paired-telegram-user")).toBe(false);
 
       // Group use cannot consume or use a private linking code.

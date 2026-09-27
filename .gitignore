@@ -13,6 +13,9 @@ coverage/
 .env.*.local
 *.pem
 *.key
+# Local AgentForge connection settings can contain provider credentials.
+agentforge-settings.json
+.agentforge/
 
 # Logs
 *.log
@@ -38,3 +41,14 @@ temp/
 Thumbs.db
 .vscode/
 .idea/
+
+.preview-ui/
+
+# Generated private-reference consolidation is not product source.
+all_markdown_files/
+
+# Local research captures, historic operational outputs, and discarded UI
+# explorations are intentionally never part of the public product repository.
+.playwright-mcp/
+reports/
+design/prototypes/

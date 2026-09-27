@@ -179,6 +179,36 @@ describe("Section 12: Durable Event Ledger — Idempotency & Concurrency", () =>
     // All bindings
     expect(ledger.getAllBindings()).toHaveLength(1);
   });
+
+  it("makes external binding registration idempotent across provider retries", () => {
+    const input = {
+      provider: "telegram",
+      externalWorkspaceId: "tg-workspace-1",
+      externalChannelId: "tg-topic-7",
+      agentforgeWorkspaceId: "ws-1",
+      agentforgeChannelId: "ch-1",
+      syncDirection: "bidirectional" as const,
+      syncState: "active" as const,
+    };
+    const first = ledger.registerBinding(input);
+    const retry = ledger.registerBinding(input);
+
+    expect(retry.id).toBe(first.id);
+    expect(ledger.getAllBindings()).toHaveLength(1);
+  });
+
+  it("rejects duplicate event ids during restore instead of reviving an ambiguous idempotency index", async () => {
+    const { entry } = await ledger.recordInboundEvent({
+      eventId: "evt-restore-unique",
+      origin: "api",
+      eventType: "message",
+      payload: {},
+    });
+
+    expect(() => new EventLedger().restore([entry, { ...entry, id: "ledg-duplicate" }], [])).toThrow(
+      "duplicate eventId"
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -280,6 +310,44 @@ describe("Section 13: Real-Time Web — SSE Event IDs & Last-Event-ID Reconnect"
     // The replayed event should appear before the connection joins live set
     expect(responseBody).toContain("agent_updated");
   }, 10000);
+
+  it("tells a reconnecting client to resync when its cursor predates the retained history", async () => {
+    for (let i = 0; i < 510; i++) {
+      store.emit("task_created", "task", { id: `t-resync-${i}` });
+    }
+    await new Promise(r => setImmediate(r));
+
+    const responseBody = await new Promise<string>((resolve, reject) => {
+      const chunks: string[] = [];
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/api/realtime",
+          method: "GET",
+          headers: { "last-event-id": "0" },
+        },
+        res => {
+          res.on("data", (chunk: Buffer) => {
+            chunks.push(chunk.toString());
+            if (chunks.join("").includes("resync_required")) res.destroy();
+          });
+          res.on("close", () => resolve(chunks.join("")));
+          res.on("error", () => resolve(chunks.join("")));
+        }
+      );
+      req.on("error", reject);
+      req.end();
+      setTimeout(() => req.destroy(), 3000);
+    });
+
+    expect(responseBody).toContain('"type":"realtime_resync_required"');
+    expect(responseBody).toContain("resume_cursor_unavailable");
+  }, 10000);
+
+  it("marks a cursor from a newer server instance as unavailable", () => {
+    expect(server.isSseReplayComplete(server.getSseEventsAfter(0).at(-1)!.id + 1)).toBe(false);
+  });
 
   it("ring-buffer caps at SSE_RING_BUFFER_SIZE (500) — oldest events evicted", () => {
     // Fill the buffer beyond capacity

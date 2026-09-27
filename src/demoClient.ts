@@ -1,6 +1,6 @@
 import http from "node:http";
 
-const BASE = process.env.AGENTFORGE_URL || "http://localhost:3000";
+const BASE = process.env.AGENTFORGE_URL || "http://localhost:3460";
 
 function post(path: string, body: Record<string, unknown>): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {

@@ -1,6 +1,6 @@
 import http from "node:http";
 
-const BASE = process.env.AGENTFORGE_URL || "http://localhost:3000";
+const BASE = process.env.AGENTFORGE_URL || "http://localhost:3460";
 
 function getErrorCode(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
@@ -163,7 +163,7 @@ async function runSmoke(): Promise<void> {
       const req = http.request(
         {
           hostname: new URL(BASE).hostname,
-          port: new URL(BASE).port || 3000,
+          port: new URL(BASE).port || 3460,
           path: "/v1/chat/completions",
           method: "POST",
           headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) },
@@ -216,7 +216,7 @@ async function runSmoke(): Promise<void> {
       const req = http.request(
         {
           hostname: new URL(BASE).hostname,
-          port: new URL(BASE).port || 3000,
+          port: new URL(BASE).port || 3460,
           path: "/v1/chat/completions",
           method: "POST",
           headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) },

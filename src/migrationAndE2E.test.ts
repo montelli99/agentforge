@@ -25,9 +25,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
   beforeAll(async () => {
     store = new WorkspaceStore();
-    store.getUser("user-montelli")!.externalIdentities.push({
+    store.getUser("user-owner")!.externalIdentities.push({
       provider: "telegram",
-      externalUserId: "user-montelli",
+      externalUserId: "user-owner",
       linkedAt: new Date().toISOString(),
     });
     server = new AgentForgeWebServer(store, testPort);
@@ -43,12 +43,12 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const res = await fetch(`http://localhost:${testPort}/`);
       expect(res.status).toBe(200);
       const html = await res.text();
-      expect(html).toContain("AgentForge vNext");
-      expect(html).toContain("forge-grid");
+      expect(html).toContain("<title>AgentForge</title>");
+      expect(html).toContain("command-room");
       expect(html).toContain("Command room");
-      expect(html).toContain("Example records are present in this workspace");
       expect(html).toContain("Execution disconnected");
-      expect(html).toContain("Migration Center");
+      expect(html).toContain("Execution disconnected");
+      expect(html).toContain("Migration");
       expect(html).toContain("Prepare and review a new SOP version");
       expect(html).toContain("showProcessHistory");
       expect(html).toContain("Restore as new version");
@@ -310,7 +310,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       await telegram.ingestInboundUpdate({
         updateId: 777,
         chatId: "-1001928374",
-        userId: "user-montelli",
+        userId: "user-owner",
         text: "Please start the intake task",
       });
       expect(store.listMessages("chan-general").some(m => m.content.includes("intake task"))).toBe(true);
@@ -390,7 +390,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const installRes = await fetch(`http://localhost:${testPort}/api/packages/install`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageName: "real-estate-acquisitions-pack" }),
+        body: JSON.stringify({ packageName: "workspace-operations-pack" }),
       });
       expect(installRes.status).toBe(409);
       const permissionReview = await installRes.json();
@@ -398,11 +398,34 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const approvedInstallRes = await fetch(`http://localhost:${testPort}/api/packages/install`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageName: "real-estate-acquisitions-pack", approvedPermissions: {} }),
+        body: JSON.stringify({ packageName: "workspace-operations-pack", approvedPermissions: {} }),
       });
       expect(approvedInstallRes.status).toBe(200);
       const installData = await approvedInstallRes.json();
       expect(installData.status).toBe("active");
+
+      // A second install must not silently replace the reviewed publisher/version.
+      const duplicateInstallRes = await fetch(`http://localhost:${testPort}/api/packages/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageName: "workspace-operations-pack", approvedPermissions: {} }),
+      });
+      expect(duplicateInstallRes.status).toBe(409);
+      expect((await duplicateInstallRes.json()).error).toContain("Uninstall it before installing a replacement");
+
+      const uninstallRes = await fetch(`http://localhost:${testPort}/api/packages/uninstall`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageName: "workspace-operations-pack" }),
+      });
+      expect(uninstallRes.status).toBe(200);
+
+      const reinstalledRes = await fetch(`http://localhost:${testPort}/api/packages/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageName: "workspace-operations-pack", approvedPermissions: {} }),
+      });
+      expect(reinstalledRes.status).toBe(200);
     });
   });
 
@@ -456,7 +479,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       await telegram.ingestInboundUpdate({
         updateId: 888,
         chatId: "-1001",
-        userId: "user-montelli",
+        userId: "user-owner",
         text: "Hello from Telegram",
       });
 
@@ -469,7 +492,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         interactionId: "dc-interaction-1",
         guildId: "guild-1",
         channelId: "thread-1",
-        userId: "user-montelli",
+        userId: "user-owner",
         command: "status",
       });
       expect(store.listAuditEntries(5).some(a => a.origin === "discord")).toBe(true);
@@ -613,7 +636,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(PROVIDER_READINESS_REGISTRY.length).toBeGreaterThanOrEqual(9);
 
       const pi = PROVIDER_READINESS_REGISTRY.find(p => p.providerId === "harness-pi");
-      expect(pi?.readiness).toBe("TEST_IMPLEMENTATION");
+      expect(pi?.readiness).toBe("PARTIAL_INTEGRATION");
       expect(pi?.productionReady).toBe(false);
 
       const retell = PROVIDER_READINESS_REGISTRY.find(p => p.providerId === "voice-retell");
@@ -621,9 +644,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(retell?.productionReady).toBe(false);
 
       const native = PROVIDER_READINESS_REGISTRY.find(p => p.providerId === "harness-native");
-      expect(native?.readiness).toBe("TEST_IMPLEMENTATION");
+      expect(native?.readiness).toBe("PARTIAL_INTEGRATION");
       expect(native?.productionReady).toBe(false);
-      expect(native?.notes).toContain("does not provide an OS sandbox");
+      expect(native?.notes).toContain("Full contract-to-command mediation");
     });
   });
 

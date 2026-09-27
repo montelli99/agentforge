@@ -14,6 +14,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 export type MiMoCapability =
   | "text"
@@ -127,7 +128,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`MiMo error ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`MiMo error ${res.status}: ${redactRuntimeText(text.slice(0, 300))}`);
     }
 
     const json = await res.json() as {

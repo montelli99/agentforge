@@ -9,6 +9,23 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const cliPath = path.join(repositoryRoot, "dist", "cli", "bin.js");
 const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-package-cli-"));
 
+function runNpm(args, cwd) {
+  // npm.cmd is a shell shim on Windows. Calling npm's JavaScript CLI keeps this
+  // installed-package acceptance test portable across the CI matrix.
+  const npmCli = process.platform === "win32"
+    ? path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js")
+    : "npm";
+  const command = process.platform === "win32" ? process.execPath : npmCli;
+  const commandArgs = process.platform === "win32" ? [npmCli, ...args] : args;
+  const result = spawnSync(command, commandArgs, {
+    cwd,
+    encoding: "utf8",
+    timeout: 30_000,
+  });
+  if (result.error) throw result.error;
+  return result;
+}
+
 function runCli(args) {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     cwd: tempDirectory,
@@ -66,6 +83,9 @@ function storedZip(fileNames) {
 try {
   assert.ok(fs.existsSync(cliPath), "build the CLI before running package acceptance");
 
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"));
+  assert.equal(packageJson.bin?.agentforge, "./dist/cli/bin.js", "published package must expose the agentforge CLI");
+
   const initialized = runCli(["pack", "init", "acceptance-starter"]);
   assert.equal(initialized.status, 0, initialized.stderr);
   const packageDirectory = path.join(tempDirectory, "acceptance-starter");
@@ -95,13 +115,44 @@ try {
 
   const packageTest = runCli(["pack", "test", packageDirectory]);
   assert.equal(packageTest.status, 0, packageTest.stderr);
-  assert.match(packageTest.stdout, /not implemented yet; no tests were run/i);
+  assert.match(packageTest.stdout, /package checks passed/i);
 
   const traversal = runCli(["pack", "init", "..\\outside-package"]);
   assert.notEqual(traversal.status, 0, "unsafe package names must fail");
   assert.equal(fs.existsSync(path.resolve(tempDirectory, "..", "outside-package")), false);
 
-  console.log("PASS: CLI initializes a least-privilege unlicensed package, validates manifests and ZIP archives, rejects archive traversal, reports package tests honestly, and rejects unsafe package names.");
+  const packedDirectory = path.join(tempDirectory, "packed");
+  const consumerDirectory = path.join(tempDirectory, "consumer");
+  fs.mkdirSync(packedDirectory);
+  fs.mkdirSync(consumerDirectory);
+  const packed = runNpm(["pack", "--json", "--pack-destination", packedDirectory], repositoryRoot);
+  assert.equal(packed.status, 0, packed.stderr);
+  const [{ filename }] = JSON.parse(packed.stdout);
+  const archive = path.join(packedDirectory, filename);
+  assert.ok(fs.existsSync(archive), "npm pack must produce the package archive");
+
+  fs.writeFileSync(path.join(consumerDirectory, "package.json"), '{"private":true}\n', "utf8");
+  const installed = runNpm(["install", "--ignore-scripts", "--no-audit", "--no-fund", archive], consumerDirectory);
+  assert.equal(installed.status, 0, installed.stderr);
+  const executable = path.join(
+    consumerDirectory,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "agentforge.cmd" : "agentforge",
+  );
+  assert.ok(fs.existsSync(executable), "installed npm package must create the agentforge command");
+  const installedCli = path.join(consumerDirectory, "node_modules", "agentforge", "dist", "cli", "bin.js");
+  assert.ok(fs.existsSync(installedCli), "installed package must contain the CLI entrypoint named by bin");
+  const installedStatus = spawnSync(process.execPath, [installedCli, "status"], {
+    cwd: consumerDirectory,
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+  if (installedStatus.error) throw installedStatus.error;
+  assert.equal(installedStatus.status, 0, installedStatus.stderr);
+  assert.match(installedStatus.stdout, /staging_not_release_ready/);
+
+  console.log("PASS: published CLI installs as agentforge, initializes a least-privilege unlicensed package, validates manifests and ZIP archives, rejects archive traversal, performs package checks, and rejects unsafe package names.");
 } finally {
   fs.rmSync(tempDirectory, { recursive: true, force: true });
 }

@@ -2,10 +2,10 @@
   "processId": "proc-deploy",
   "processTitle": "Production Deployment SOP",
   "processVersion": 1,
-  "agentId": "agent-d9e38f0b",
+  "agentId": "agent-4be6d2fe",
   "agentName": "ProcessWorker",
   "taskId": "task-deploy-e2e",
-  "startedAt": "2026-09-23T18:47:29.608Z",
+  "startedAt": "2026-09-23T18:53:36.333Z",
   "status": "waiting_for_approval",
   "stepResults": [
     {
@@ -15,7 +15,7 @@
       "instruction": "Build package",
       "status": "completed",
       "output": "Governed execution passed under contract authority. Step 1 executed cleanly.",
-      "timestamp": "2026-09-23T18:47:29.608Z"
+      "timestamp": "2026-09-23T18:53:36.333Z"
     },
     {
       "stepId": "step-2",
@@ -23,9 +23,9 @@
       "title": "Deploy to prod",
       "instruction": "Deploy release to prod servers",
       "status": "blocked_on_approval",
-      "approvalRequestId": "appr-62ca6b67",
-      "output": "Paused execution at step 2. Human approval required (Approval ID: appr-62ca6b67).",
-      "timestamp": "2026-09-23T18:47:29.608Z"
+      "approvalRequestId": "appr-556dfe91",
+      "output": "Paused execution at step 2. Human approval required (Approval ID: appr-556dfe91).",
+      "timestamp": "2026-09-23T18:53:36.334Z"
     }
   ],
   "unresolvedBlockers": []

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 7,
+  "workspaces": [
+    {
+      "id": "ws-default",
+      "name": "AgentForge Workspace",
+      "description": "Canonical AI Workforce Platform Control Plane",
+      "createdAt": "2026-09-27T20:08:39.181Z",
+      "updatedAt": "2026-09-27T20:09:40.357Z",
+      "experience": "command"
+    }
+  ],
+  "spaces": [],
+  "channels": [],
+  "threads": [],
+  "messages": [],
+  "users": [
+    {
+      "id": "user-owner",
+      "username": "owner",
+      "displayName": "Workspace Owner",
+      "role": "owner",
+      "permissions": [
+        "*"
+      ],
+      "status": "active",
+      "externalIdentities": [],
+      "createdAt": "2026-09-27T20:08:39.181Z",
+      "updatedAt": "2026-09-27T20:08:39.181Z"
+    }
+  ],
+  "agents": [],
+  "tasks": [],
+  "approvals": [],
+  "processes": [],
+  "processRevisionHistory": [],
+  "processRevisionProposals": [],
+  "processAgentBindings": [],
+  "calls": [],
+  "packages": [],
+  "installations": [],
+  "benchmarkResults": [],
+  "qualityBaselines": [],
+  "qualityAnalyses": [],
+  "qualityCorrections": [],
+  "auditEntries": [
+    {
+      "origin": "system",
+      "actorId": "system",
+      "actorType": "system",
+      "action": "TASK_WORKER_START_BLOCKED",
+      "targetType": "system",
+      "targetId": "worker-pool",
+      "details": {
+        "reason": "No execution backend is connected. Model planning, isolated compute, real verification, and evidence collection must all be configured before tasks can run.",
+        "readiness": {
+          "ready": false,
+          "blockers": [
+            "No execution backend is connected.",
+            "Model planning, isolated compute, real verification, and evidence collection must all be configured before tasks can run."
+          ],
+          "capabilities": {
+            "modelPlanning": false,
+            "isolatedCompute": false,
+            "realVerification": false,
+            "evidenceCollection": false
+          }
+        }
+      },
+      "id": "audit-20b35426",
+      "timestamp": "2026-09-27T20:08:39.187Z",
+      "previousHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "68ee82f3a3c6239053978cba920405f6d0e7ea3cfa80608f5246a253ef9d93ae"
+    },
+    {
+      "origin": "system",
+      "actorId": "workspace-store",
+      "actorType": "system",
+      "action": "workspace_updated",
+      "targetType": "workspace",
+      "targetId": "ws-default",
+      "details": {
+        "eventType": "workspace_updated",
+        "entity": "workspace"
+      },
+      "id": "audit-97c0caf4",
+      "timestamp": "2026-09-27T20:09:40.357Z",
+      "previousHash": "68ee82f3a3c6239053978cba920405f6d0e7ea3cfa80608f5246a253ef9d93ae",
+      "hash": "126f6b5c58ae133b27fb94aa0491c11abbb4c654d554393c3c36114f332adc3b"
+    },
+    {
+      "origin": "system",
+      "actorId": "system",
+      "actorType": "system",
+      "action": "TASK_WORKER_START_BLOCKED",
+      "targetType": "system",
+      "targetId": "worker-pool",
+      "details": {
+        "reason": "No execution backend is connected. Model planning, isolated compute, real verification, and evidence collection must all be configured before tasks can run.",
+        "readiness": {
+          "ready": false,
+          "blockers": [
+            "No execution backend is connected.",
+            "Model planning, isolated compute, real verification, and evidence collection must all be configured before tasks can run."
+          ],
+          "capabilities": {
+            "modelPlanning": false,
+            "isolatedCompute": false,
+            "realVerification": false,
+            "evidenceCollection": false
+          }
+        }
+      },
+      "id": "audit-8d8efb05",
+      "timestamp": "2026-09-27T20:11:46.974Z",
+      "previousHash": "126f6b5c58ae133b27fb94aa0491c11abbb4c654d554393c3c36114f332adc3b",
+      "hash": "1025037e140ef647e2462e7bed6729a2c3b90c31eeb72fe48aff4fc125a065f4"
+    }
+  ],
+  "operationalMemories": [],
+  "apiKeys": [],
+  "eventLedger": [],
+  "externalBindings": []
+}

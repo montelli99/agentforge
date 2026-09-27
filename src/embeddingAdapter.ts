@@ -1,4 +1,5 @@
 import type { EmbeddingProvider, Embedding } from "./semanticMemory.js";
+import { redactRuntimeError } from "./core/secret/runtimeRedaction.js";
 
 export type RealEmbeddingProviderConfig = {
   provider: "openai" | "voyage" | "gemini" | "local" | "ollama" | "auto" | "none";
@@ -150,7 +151,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
           }
         }
       } catch (err) {
-        console.log(`[AgentForge] OpenAI embedding probe failed: ${err}`);
+        console.log(`[AgentForge] OpenAI embedding probe failed: ${redactRuntimeError(err)}`);
       }
     }
     // Clean fallback to hash embeddings without external dependencies
@@ -181,8 +182,8 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
       this.dimension = this.status.dimension;
       console.log(`[AgentForge] Real embedding provider active: ollama/${model} (dim=${this.status.dimension})`);
     } catch (error) {
-      this.status.error = String(error);
-      console.log(`[AgentForge] Ollama embedding init failed: ${error}`);
+      this.status.error = redactRuntimeError(error);
+      console.log(`[AgentForge] Ollama embedding init failed: ${this.status.error}`);
     }
   }
 
@@ -192,7 +193,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
         const results = await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, text);
         return results[0];
       } catch (error) {
-        console.warn(`[AgentForge] Ollama embedding failed, falling back to hash: ${error}`);
+        console.warn(`[AgentForge] Ollama embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
       }
     }
     if (this.provider) {
@@ -200,7 +201,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
         const embedding = await this.provider.embedQuery(text);
         return embedding;
       } catch (error) {
-        console.warn(`[AgentForge] Real embedding failed, falling back to hash: ${error}`);
+        console.warn(`[AgentForge] Real embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
       }
     }
 
@@ -216,7 +217,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
       try {
         return await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, texts);
       } catch (error) {
-        console.warn(`[AgentForge] Ollama batch embedding failed, falling back to hash: ${error}`);
+        console.warn(`[AgentForge] Ollama batch embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
       }
     }
     if (this.provider) {
@@ -224,7 +225,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
         const embeddings = await this.provider.embedBatch(texts);
         return embeddings;
       } catch (error) {
-        console.warn(`[AgentForge] Real batch embedding failed, falling back to hash: ${error}`);
+        console.warn(`[AgentForge] Real batch embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
       }
     }
 

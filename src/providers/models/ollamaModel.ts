@@ -10,6 +10,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 export class OllamaModelProvider implements GenerativeModelProvider {
   readonly id = "ollama";
@@ -62,7 +63,7 @@ export class OllamaModelProvider implements GenerativeModelProvider {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Ollama generate error ${res.status}: ${text.slice(0, 200)}`);
+      throw new Error(`Ollama generate error ${res.status}: ${redactRuntimeText(text.slice(0, 200))}`);
     }
 
     const json = await res.json() as {

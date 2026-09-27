@@ -64,9 +64,17 @@ export interface EvidencePack {
   testResults: TestResultRecord[];
   artifacts: ArtifactRecord[];
 
+  /** Serialized governed-process result, when the task was process-bound. */
+  processExecution?: {
+    processId: string;
+    status: "completed" | "waiting_for_approval" | "failed";
+    executionMode: "validated_only";
+    stepResults: Array<{ stepId: string; status: string; output?: string; error?: string }>;
+  };
+
   approvalId?: string;
   approvedBy?: string;
-  approvalSource?: "web" | "telegram" | "discord" | "api";
+  approvalSource?: "web" | "telegram" | "discord" | "slack" | "api";
 
   generatedAt: string;
   verifiedPassed: boolean;

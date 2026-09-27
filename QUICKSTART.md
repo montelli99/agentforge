@@ -1,6 +1,6 @@
 # AgentForge Quickstart
 
-Run the current AgentForge control plane locally. This quickstart uses the built-in mock/local state and does not connect to a live CRM, messaging, or telephony account.
+Run the current AgentForge control plane locally. A new workspace begins empty and does not connect to messaging, telephony, model, or other external accounts.
 
 ## Requirements
 
@@ -20,13 +20,24 @@ pnpm build
 pnpm start
 ```
 
-The server listens on `http://localhost:3000` by default. Set `PORT` to use another port.
+The vNext server listens on `http://localhost:3460` by default. Set `PORT` to use another port.
+
+For the local data location, backup and restore procedure, upgrades, and the
+execution boundary, use the [local operations runbook](docs/LOCAL_OPERATIONS.md).
+
+## First workspace
+
+Open `http://localhost:3460`, choose a workspace surface, and describe the
+outcome you want. The Setup Guide prepares a local project, private channel,
+guide conversation, requirement plan, and proposed roles. It asks only for
+decisions that change capabilities or authority. No connection or task run is
+enabled until its boundary is explicitly reviewed.
 
 ## Check readiness
 
 ```bash
-curl -i http://localhost:3000/api/status
-curl -i http://localhost:3000/api/readiness
+curl -i http://localhost:3460/api/status
+curl -i http://localhost:3460/api/readiness
 ```
 
 The control plane also exposes `GET /api/agents`, `GET /api/tasks`, and `GET /api/compute`. These endpoints report the current local staging state; they do not imply that external providers are connected.
@@ -49,11 +60,11 @@ Provider-backed live tests are opt-in. They require both a provider credential a
 pnpm dev
 ```
 
-This runs the same vNext server directly from TypeScript. `pnpm legacy` starts the older experimental server for compatibility checks.
+This runs the same AgentForge server directly from TypeScript.
 
 ## Consolidate Markdown references
 
-Regenerate the flat review copy and its index from Markdown files in this repository:
+Review the canonical public Markdown inventory from this repository:
 
 ```bash
 pnpm docs:collect
@@ -65,7 +76,7 @@ To include a Markdown artifact stored outside the repository, pass it explicitly
 pnpm docs:collect -- --extra "path/to/artifact.md"
 ```
 
-The script rejects filename collisions rather than silently overwriting a document. The indexed source files remain canonical; the consolidated folder is a review copy.
+The script lists the canonical public documents and accepts explicitly supplied external artifacts; it does not copy or publish private workspace files.
 
 ## Current scope
 

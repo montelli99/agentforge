@@ -5,7 +5,7 @@
 import { getRealEmbeddingProvider } from "../../agentforge/src/embeddingAdapter.js";
 import { getSemanticMemory, resetSemanticMemory } from "../../agentforge/src/semanticMemory.js";
 
-const BASE_URL = process.env.AGENTFORGE_URL || "http://localhost:3000";
+const BASE_URL = process.env.AGENTFORGE_URL || "http://localhost:3460";
 
 async function checkHealth() {
   const res = await fetch(`${BASE_URL}/health`);

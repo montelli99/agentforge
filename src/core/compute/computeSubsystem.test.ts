@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { LocalSandboxComputeProvider } from "./localSandboxComputeProvider.js";
-import { DockerComputeProvider } from "./dockerComputeProvider.js";
+import { buildDockerRunArguments, DockerComputeProvider } from "./dockerComputeProvider.js";
 
 describe("Compute Subsystem & Sandboxing (Section 36)", () => {
   let tempDir: string;
@@ -92,13 +92,28 @@ describe("Compute Subsystem & Sandboxing (Section 36)", () => {
   });
 
   describe("DockerComputeProvider", () => {
-    it("reports honest availability status for local Docker daemon", async () => {
+    it("builds a network-disabled, capability-restricted container command", () => {
+      const args = buildDockerRunArguments("node:22-alpine", "C:/isolated/task", "pnpm test", {
+        maxMemoryBytes: 512 * 1024 * 1024,
+        cpuQuota: 1,
+      });
+      expect(args).toContain("--network");
+      expect(args[args.indexOf("--network") + 1]).toBe("none");
+      expect(args).toContain("--read-only");
+      expect(args).toContain("--cap-drop");
+      expect(args).toContain("--security-opt");
+      expect(args).toContain("no-new-privileges");
+      expect(args).toContain("C:/isolated/task:/workspace:rw");
+      expect(args).not.toContain("sh -c pnpm test");
+    });
+
+    it("reports honest availability status for a reachable local Docker daemon", async () => {
       const docker = new DockerComputeProvider();
       const status = await docker.isAvailable();
 
       expect(typeof status.available).toBe("boolean");
       if (!status.available) {
-        expect(status.error).toBeDefined();
+        expect(status.error).toMatch(/daemon/i);
       } else {
         expect(status.version).toBeDefined();
       }

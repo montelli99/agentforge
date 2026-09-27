@@ -1,10 +1,24 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { WorkspaceStore } from "../store/workspaceStore.js";
 import { ProcessExecutionEngine } from "./processExecutionEngine.js";
-import { TaskWorkerRuntime } from "../runtime/taskWorkerRuntime.js";
+import { TaskWorkerRuntime, type TaskExecutionBackend } from "../runtime/taskWorkerRuntime.js";
 import type { ProcessDefinition } from "../types/process.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { ExecutionContract } from "../types/contract.js";
+
+const testExecutionBackend: TaskExecutionBackend = {
+  getReadiness: () => ({
+    ready: true, blockers: [],
+    capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+  }),
+  execute: async ({ task }) => ({
+    commandsExecuted: [],
+    testResults: task.contract.requiredChecks.map(check => ({
+      checkName: check.type, command: check.command || `check:${check.type}`, passed: true, exitCode: 0, stdout: "test executor", stderr: "", durationMs: 1,
+    })),
+    filesChanged: [], artifacts: [], finalSha: "test-sha",
+  }),
+};
 
 describe("ProcessExecutionEngine (Sections 21-24: Governed Process & SOP Is Not Authority)", () => {
   let store: WorkspaceStore;
@@ -111,6 +125,28 @@ describe("ProcessExecutionEngine (Sections 21-24: Governed Process & SOP Is Not 
     expect(trace.stepResults[0].status).toBe("completed");
     expect(trace.stepResults[1].status).toBe("completed");
     expect(trace.completedAt).toBeDefined();
+  });
+
+  it("runs approved steps through an injected provider and stops on provider failure", async () => {
+    const executed: string[] = [];
+    const providerEngine = new ProcessExecutionEngine(store, async ({ step }) => {
+      executed.push(step.id);
+      if (step.id === "step-2") throw new Error("provider rejected step");
+      return { output: "provider evidence" };
+    });
+    const processDefinition: ProcessDefinition = {
+      id: "proc-provider", title: "Provider process", description: "", sourceType: "manual", version: 1,
+      steps: [
+        { id: "step-1", sequence: 1, title: "Run", instruction: "Inspect files" },
+        { id: "step-2", sequence: 2, title: "Fail", instruction: "Inspect tests" },
+        { id: "step-3", sequence: 3, title: "Skip", instruction: "Report" },
+      ], inputs: [], outputs: [], unresolvedRules: [], lastSynchronizedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    };
+    const trace = await providerEngine.executeGovernedProcess({ process: processDefinition, agent: sampleAgent, contract: sampleContract, taskId: "task-provider", worktreePath: process.cwd() });
+    expect(executed).toEqual(["step-1", "step-2"]);
+    expect(trace.status).toBe("failed");
+    expect(trace.stepResults.map(step => step.status)).toEqual(["completed", "failed"]);
+    expect(trace.stepResults[0].output).toBe("provider evidence");
   });
 
   it("enforces 'SOP Is Not Authority': halts and requests human approval for privileged file deletion", async () => {
@@ -284,7 +320,7 @@ describe("ProcessExecutionEngine (Sections 21-24: Governed Process & SOP Is Not 
   });
 
   it("integrates end-to-end with TaskWorkerRuntime", async () => {
-    const runtime = new TaskWorkerRuntime(store, undefined, { simulationMode: true });
+    const runtime = new TaskWorkerRuntime(store, testExecutionBackend);
 
 
     const procDef: ProcessDefinition = {

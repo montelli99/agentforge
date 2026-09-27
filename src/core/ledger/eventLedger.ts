@@ -22,9 +22,15 @@ export class EventLedger {
     eventType: string;
     payload: Record<string, unknown>;
   }): Promise<{ entry: EventLedgerEntry; isDuplicate: boolean }> {
+    if (!params.eventId.trim()) {
+      throw new Error("Inbound eventId must be a non-empty string.");
+    }
     if (this.seenEventIds.has(params.eventId)) {
       const existing = this.ledger.find(e => e.eventId === params.eventId);
-      return { entry: existing!, isDuplicate: true };
+      // Keep the two idempotency indexes self-healing if a caller restored a
+      // malformed legacy snapshot. Normal restore validation prevents this.
+      if (existing) return { entry: existing, isDuplicate: true };
+      this.seenEventIds.delete(params.eventId);
     }
 
     const entry: EventLedgerEntry = {
@@ -70,6 +76,13 @@ export class EventLedger {
 
   // External Binding Registration
   registerBinding(binding: Omit<ExternalBinding, "id" | "createdAt" | "updatedAt">): ExternalBinding {
+    const existing = Array.from(this.bindings.values()).find(candidate =>
+      this.bindingKey(candidate) === this.bindingKey(binding)
+    );
+    // Provider retries must not create a second canonical route for the same
+    // external target. Returning the established binding makes registration
+    // idempotent across reconnects and process restarts.
+    if (existing) return existing;
     const id = `bind-${crypto.randomUUID().slice(0, 8)}`;
     const fullBinding: ExternalBinding = {
       ...binding,
@@ -97,8 +110,33 @@ export class EventLedger {
   }
 
   restore(entries: EventLedgerEntry[], bindings: ExternalBinding[]): void {
+    const eventIds = new Set<string>();
+    for (const entry of entries) {
+      if (!entry.eventId?.trim()) throw new Error("Event ledger contains an empty eventId.");
+      if (eventIds.has(entry.eventId)) throw new Error(`Event ledger contains duplicate eventId '${entry.eventId}'.`);
+      eventIds.add(entry.eventId);
+    }
+    const bindingKeys = new Set<string>();
+    for (const binding of bindings) {
+      const key = this.bindingKey(binding);
+      if (bindingKeys.has(key)) throw new Error("External bindings contain duplicate provider targets.");
+      bindingKeys.add(key);
+    }
     this.ledger = [...entries];
     this.seenEventIds = new Set(entries.map(entry => entry.eventId));
     this.bindings = new Map(bindings.map(binding => [binding.id, binding]));
+  }
+
+  private bindingKey(binding: Pick<ExternalBinding,
+    "provider" | "externalWorkspaceId" | "externalSpaceId" | "externalChannelId" | "externalThreadId" | "externalMessageId"
+  >): string {
+    return [
+      binding.provider,
+      binding.externalWorkspaceId ?? "",
+      binding.externalSpaceId ?? "",
+      binding.externalChannelId ?? "",
+      binding.externalThreadId ?? "",
+      binding.externalMessageId ?? "",
+    ].join("\u001f");
   }
 }

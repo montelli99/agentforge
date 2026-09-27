@@ -63,7 +63,7 @@ function writeEnvFile(settings: Record<string, string>): void {
   lines.push(`AGENTFORGE_MODEL=${settings.AGENTFORGE_MODEL || "gpt-4o-mini"}`);
   lines.push("");
   lines.push("# Server port");
-  lines.push(`AGENTFORGE_PORT=${settings.AGENTFORGE_PORT || "3000"}`);
+  lines.push(`AGENTFORGE_PORT=${settings.AGENTFORGE_PORT || "3460"}`);
   lines.push("");
   lines.push("# Optimization (true/false)");
   lines.push(`AGENTFORGE_OPTIMIZATION=${settings.AGENTFORGE_OPTIMIZATION || "true"}`);
@@ -80,7 +80,7 @@ for (const [key, value] of Object.entries(envFromDisk)) {
   if (!process.env[key]) process.env[key] = value;
 }
 
-const PORT = parseInt(process.env.AGENTFORGE_PORT || "3000", 10);
+const PORT = parseInt(process.env.AGENTFORGE_PORT || "3460", 10);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const PROVIDER = process.env.AGENTFORGE_PROVIDER || "openai";
@@ -957,16 +957,10 @@ function handleDashboardJson(_req: http.IncomingMessage, res: http.ServerRespons
 }
 
 function handleApp(_req: http.IncomingMessage, res: http.ServerResponse): void {
-  const appHtmlPath = path.join(__dirname, "app.html");
-  if (fs.existsSync(appHtmlPath)) {
-    const html = fs.readFileSync(appHtmlPath, "utf-8");
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(html);
-  } else {
-    // Fallback: serve inline if file not found
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end("<html><body><h1>AgentForge</h1><p>App loading... <a href='/dashboard'>Legacy Dashboard</a></p></body></html>");
-  }
+  // The vNext workspace is the only supported AgentForge product surface.
+  // Keep this historical runtime from exposing a competing, stale UI.
+  res.writeHead(307, { Location: "http://127.0.0.1:3460/" });
+  res.end();
 }
 
 function handleDashboard(_req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -1657,7 +1651,7 @@ function handleGetSettings(_req: http.IncomingMessage, res: http.ServerResponse)
     ollamaBaseUrl: settings.OLLAMA_BASE_URL || "http://localhost:11434",
     ollamaApiKey: settings.OLLAMA_API_KEY || "",
     model: settings.AGENTFORGE_MODEL || "gpt-4o-mini",
-    port: settings.AGENTFORGE_PORT || "3000",
+    port: settings.AGENTFORGE_PORT || "3460",
     optimization: settings.AGENTFORGE_OPTIMIZATION !== "false",
     metadata: settings.AGENTFORGE_METADATA !== "false",
   }));
@@ -1686,7 +1680,7 @@ async function handleSaveSettings(req: http.IncomingMessage, res: http.ServerRes
     MIMO_API_KEY: body.mimoApiKey !== undefined ? body.mimoApiKey : currentSettings.MIMO_API_KEY || "",
     MIMO_BASE_URL: body.mimoBaseUrl || currentSettings.MIMO_BASE_URL || "https://token-plan-sgp.xiaomimimo.com/v1",
     AGENTFORGE_MODEL: body.model || currentSettings.AGENTFORGE_MODEL || "gpt-4o-mini",
-    AGENTFORGE_PORT: body.port || currentSettings.AGENTFORGE_PORT || "3000",
+    AGENTFORGE_PORT: body.port || currentSettings.AGENTFORGE_PORT || "3460",
     AGENTFORGE_OPTIMIZATION: body.optimization !== undefined ? String(body.optimization) : currentSettings.AGENTFORGE_OPTIMIZATION || "true",
     AGENTFORGE_METADATA: body.metadata !== undefined ? String(body.metadata) : currentSettings.AGENTFORGE_METADATA || "true",
   };
@@ -1930,7 +1924,7 @@ function handleSettingsPage(_req: http.IncomingMessage, res: http.ServerResponse
           </div>
           <div class="form-group">
             <label class="form-label">Port</label>
-            <input class="form-input" type="text" id="port" placeholder="3000">
+            <input class="form-input" type="text" id="port" placeholder="3460">
             <div class="form-hint">AgentForge server port</div>
           </div>
         </div>
@@ -2045,7 +2039,7 @@ function seedDemoData(): void {
     globalStore.createAgent({
       id: "agent-alex", name: "Alex", avatarUrl: "🤖", role: "Full-Stack Engineer",
       description: "TypeScript, Python, testing, and Git worktree isolation.",
-      status: "working", currentTaskId: "AF-142",
+      status: "idle",
       harnessPolicy: { preferredHarnessId: "pi", autoResume: true },
       modelPolicy: { preferredTier: 4, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
       decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "local_workspace" },
@@ -2053,14 +2047,14 @@ function seedDemoData(): void {
       permissions: ["repo:read", "repo:branch", "test:run"], assignedChannelIds: ["chan-development"],
     });
     globalStore.createAgent({
-      id: "agent-sarah", name: "Sarah", avatarUrl: "💼", role: "Acquisitions Specialist",
-      description: "Seller intake, lead qualification, and photo inspection.",
+      id: "agent-reviewer", name: "Sarah", avatarUrl: "💼", role: "Operations Reviewer",
+      description: "Reviews incoming workspace requests and routes evidence for approval.",
       status: "idle",
       harnessPolicy: { preferredHarnessId: "pydantic", autoResume: true },
       modelPolicy: { preferredTier: 3, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
       decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "none" },
-      memoryNamespace: "acquisitions", tools: ["crm_client", "voice_caller", "property_records"],
-      permissions: ["crm:read", "crm:write", "voice:outbound"], assignedChannelIds: ["chan-general", "chan-calls"],
+      memoryNamespace: "operations", tools: ["records_client", "conversation_client", "knowledge_base"],
+      permissions: ["records:read", "records:write", "voice:outbound"], assignedChannelIds: ["chan-general", "chan-calls"],
     });
   }
   // Tasks
@@ -2096,23 +2090,23 @@ function seedDemoData(): void {
   // Processes
   if (globalStore.listProcesses().length === 0) {
     globalStore.createProcess({
-      id: "proc-seller-qual",
-      title: "Seller Qualification",
+      id: "proc-request-review",
+      title: "Request Review",
       version: 4,
       sourceType: "manual",
-      description: "Sample seller intake workflow with a photo request branch.",
+      description: "Sample request-review workflow for a generic workspace.",
       steps: [
-        { id: "s1", sequence: 1, title: "Receive lead", instruction: "Record the seller and property details." },
-        { id: "s2", sequence: 2, title: "Call seller", instruction: "Speak with the seller and confirm motivation and timeline." },
-        { id: "s3", sequence: 3, title: "Request photos", instruction: "Request current property photos before qualification." },
+        { id: "s1", sequence: 1, title: "Receive request", instruction: "Record the request details and source." },
+        { id: "s2", sequence: 2, title: "Review request", instruction: "Confirm scope, priority, and any missing evidence." },
+        { id: "s3", sequence: 3, title: "Collect evidence", instruction: "Collect the supporting files required before review." },
       ],
       inputs: [],
       outputs: [],
       unresolvedRules: [{
-        id: "rule-seller-escalation",
-        processId: "proc-seller-qual",
+        id: "rule-request-escalation",
+        processId: "proc-request-review",
         stepId: "s2",
-        question: "When should a seller intake be escalated?",
+        question: "When should a request be escalated?",
         description: "The escalation threshold has not been defined.",
         severity: "warning",
         resolved: false,
@@ -2126,7 +2120,7 @@ function seedDemoData(): void {
   const generalMessages = globalStore.listMessages("chan-general", 10);
   if (generalMessages.length === 0) {
     globalStore.createMessage({ channelId: "chan-general", authorId: "agent-alex", authorType: "agent", content: "Local demo workspace initialized. Provider connections are not configured." });
-    globalStore.createMessage({ channelId: "chan-general", authorId: "user-montelli", authorType: "user", content: "Run the local test suite and report status." });
+    globalStore.createMessage({ channelId: "chan-general", authorId: "user-owner", authorType: "user", content: "Run the local test suite and report status." });
     globalStore.createMessage({ channelId: "chan-general", authorId: "agent-alex", authorType: "agent", content: "This workspace contains sample data only; no external provider was contacted." });
   }
 }
@@ -2170,7 +2164,7 @@ function handleApiRoute(req: http.IncomingMessage, res: http.ServerResponse, url
           const result = globalStore.resolveApproval({
             approvalId: parsed.id,
             status: parsed.action === "approve" ? "approved" : "rejected",
-            approverUserId: "user-montelli",
+            approverUserId: "user-owner",
             decisionOrigin: "web",
           });
           res.writeHead(200);
@@ -2197,7 +2191,7 @@ function handleApiRoute(req: http.IncomingMessage, res: http.ServerResponse, url
       req.on("end", () => {
         try {
           const parsed = JSON.parse(body);
-          const msg = globalStore.createMessage({ channelId: parsed.channelId || "chan-general", authorId: "user-montelli", authorType: "user", content: parsed.content });
+          const msg = globalStore.createMessage({ channelId: parsed.channelId || "chan-general", authorId: "user-owner", authorType: "user", content: parsed.content });
           res.writeHead(201);
           res.end(JSON.stringify(msg));
         } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: String(e) })); }

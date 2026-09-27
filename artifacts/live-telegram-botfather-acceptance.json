@@ -1,0 +1,10 @@
+{
+  "provider": "telegram",
+  "transport": "AgentForge-owned BotFather Bot API",
+  "status": "ready",
+  "readiness": "live",
+  "externalChanges": false,
+  "tokenStored": "external runtime file only",
+  "verifiedAt": "2026-09-27T13:07:05.4229172Z",
+  "runtime": "dist/server/start.js"
+}

@@ -1,10 +1,11 @@
 /**
- * Pi Harness Provider
+ * Optional Pi Execution Engine
  * Section 5: Planned harness target #1.
  * Contract behavior is available only as an explicit test simulation; the Pi SDK is not integrated.
  */
 
 import crypto from "node:crypto";
+import { redactRuntimeError } from "../../core/secret/runtimeRedaction.js";
 import type {
   HarnessProvider,
   HarnessCapabilities,
@@ -16,18 +17,29 @@ import type {
   HarnessState,
 } from "../../core/providers/harness.js";
 
+/** Deployment-owned seam for a real Pi-compatible runtime. */
+export interface PiHarnessExecutor {
+  createSession?(input: { session: HarnessSession; systemPrompt: string; worktreeDir?: string }): Promise<void>;
+  executeTask(input: { session: HarnessSession; task: HarnessTaskPayload }): Promise<{ output: string; tokensUsed?: { prompt: number; completion: number; total: number }; filesModified?: string[] }>;
+  invokeTool?(input: { session: HarnessSession; toolName: string; args: Record<string, unknown> }): Promise<unknown>;
+}
+
 export class PiHarnessProvider implements HarnessProvider {
   readonly id = "pi";
-  readonly capabilities: HarnessCapabilities = {
-    supportsStreaming: false,
-    supportsTools: false,
+  readonly capabilities: HarnessCapabilities;
+  private readonly executor?: PiHarnessExecutor;
+
+  constructor(private readonly simulationEnabled = false, executor?: PiHarnessExecutor) {
+    this.executor = executor;
+    this.capabilities = {
+    supportsStreaming: Boolean(executor),
+    supportsTools: Boolean(executor?.invokeTool),
     supportsMCP: false,
     supportsPauseResume: false,
     supportsContextCompaction: false,
     supportedRuntimes: [],
-  };
-
-  constructor(private readonly simulationEnabled = false) {}
+    };
+  }
 
   private sessions = new Map<string, HarnessSession>();
   private sessionStates = new Map<string, HarnessState>();
@@ -62,6 +74,10 @@ export class PiHarnessProvider implements HarnessProvider {
       },
     ]);
 
+    if (this.executor?.createSession) {
+      await this.executor.createSession({ session, systemPrompt: config.systemPrompt, worktreeDir: config.worktreeDir });
+    }
+
     return session;
   }
 
@@ -85,6 +101,17 @@ export class PiHarnessProvider implements HarnessProvider {
       throw new Error(`Pi session ${sessionId} not found`);
     }
 
+    if (this.executor) {
+      const startTime = Date.now();
+      try {
+        const result = await this.executor.executeTask({ session, task });
+        const state = this.sessionStates.get(sessionId);
+        if (state) { state.messageCount += 1; state.totalTokens += result.tokensUsed?.total ?? 0; state.lastActive = new Date().toISOString(); }
+        return { taskId: task.taskId, sessionId, status: "success", output: result.output, tokensUsed: result.tokensUsed, filesModified: result.filesModified, durationMs: Date.now() - startTime };
+      } catch (error) {
+        return { taskId: task.taskId, sessionId, status: "failure", output: "", error: redactRuntimeError(error), durationMs: Date.now() - startTime };
+      }
+    }
     if (!this.simulationEnabled) {
       return {
         taskId: task.taskId,
@@ -137,7 +164,7 @@ export class PiHarnessProvider implements HarnessProvider {
       taskId: task.taskId,
       sessionId,
       status: "success",
-      output: `[Pi Harness] Successfully executed instruction: ${task.instruction.slice(0, 100)}`,
+      output: `[Pi Execution Engine] Successfully executed instruction: ${task.instruction.slice(0, 100)}`,
       tokensUsed: { prompt: 100, completion: 50, total: 150 },
       durationMs: Date.now() - startTime,
     };
@@ -149,6 +176,9 @@ export class PiHarnessProvider implements HarnessProvider {
       throw new Error(`Pi session ${sessionId} not found`);
     }
 
+    if (this.executor?.invokeTool) {
+      return { result: await this.executor.invokeTool({ session, toolName, args }) };
+    }
     if (!this.simulationEnabled) {
       throw new Error("Pi tool execution is unavailable: the official Pi harness integration is not installed.");
     }
@@ -174,9 +204,9 @@ export class PiHarnessProvider implements HarnessProvider {
 
   getReadinessDetails(): { readiness: string; blocker: string; candidateTier: string } {
     return {
-      readiness: "TEST_IMPLEMENTATION",
-      candidateTier: "Planned harness target (not implemented)",
-      blocker: "The official Pi integration is not implemented; only an explicitly enabled contract simulation is available.",
+      readiness: this.executor ? "PARTIAL_INTEGRATION" : "TEST_IMPLEMENTATION",
+      candidateTier: this.executor ? "Injected Pi-compatible execution boundary" : "Contract simulation",
+      blocker: this.executor ? "Live Pi runtime acceptance and OS isolation still require deployment verification." : "The official Pi integration is not implemented; no Pi-compatible executor is configured and only an explicitly enabled contract simulation is available.",
     };
   }
 

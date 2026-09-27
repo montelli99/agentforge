@@ -1,28 +1,50 @@
 {
   "name": "agentforge",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "bin": {
+    "agentforge": "./dist/cli/bin.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
   "packageManager": "pnpm@10.30.1",
   "scripts": {
     "start": "node dist/server/start.js",
     "dev": "node --import tsx src/server/start.ts",
-    "legacy": "node --import tsx src/server.ts",
     "lab": "node --import tsx src/main.ts",
     "demo": "node --import tsx src/demoClient.ts",
     "benchmark": "node --import tsx src/benchmark-quick.ts",
     "smoke": "node --import tsx src/smoke.ts",
     "export:metrics": "node --import tsx src/export-metrics.ts",
     "docs:collect": "node scripts/consolidate_markdown.cjs",
+    "preview:website": "node scripts/serve-public-site.mjs",
     "vnext": "node --import tsx src/server/start.ts",
     "cli": "node --import tsx src/cli/bin.ts",
-    "build": "tsc -p tsconfig.vnext.json --noEmit false --rootDir src --outDir dist",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.vnext.json --noEmit false --rootDir src --outDir dist",
     "test": "vitest run src --maxWorkers=1",
     "test:persistence:launcher": "node scripts/persistence-acceptance.mjs",
+    "test:persistence:crash": "node scripts/persistence-crash-recovery.mjs",
     "test:package:cli": "node scripts/package-cli-acceptance.mjs",
+    "test:package:surface": "node scripts/public-package-acceptance.mjs",
+    "test:repository-privacy": "node scripts/public-repository-privacy-acceptance.mjs",
+    "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
+    "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
+    "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
+    "release:audit": "node scripts/public-release-readiness.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.vnext.json",
     "typecheck:all": "tsc --noEmit -p tsconfig.json",
-    "check": "pnpm typecheck:all && pnpm test && pnpm build",
-    "test:lab": "node --import tsx src/main.ts"
+    "check": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test && pnpm build && pnpm test:package:surface",
+    "test:lab": "node --import tsx src/main.ts",
+    "test:product-isolation": "node scripts/product-isolation-acceptance.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -34,6 +56,8 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.87.1"
-  }
+    "@earendil-works/pi-coding-agent": "0.87.1",
+    "teleproto": "1.229.0"
+  },
+  "license": "Apache-2.0"
 }

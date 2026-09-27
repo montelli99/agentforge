@@ -5,7 +5,7 @@
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired" | "cancelled";
-export type InteractionInterface = "web" | "telegram" | "discord" | "api";
+export type InteractionInterface = "web" | "telegram" | "discord" | "slack" | "api";
 
 export interface ApprovalRequest {
   id: string;

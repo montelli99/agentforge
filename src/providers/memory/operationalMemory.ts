@@ -47,6 +47,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
     const results: MemorySearchResult[] = [];
 
     for (const rec of records) {
+      if (rec.archived && !query.includeArchived) continue;
       if (query.categories && !query.categories.includes(rec.category)) {
         continue;
       }
@@ -57,13 +58,22 @@ export class OperationalMemoryProvider implements MemoryProvider {
         if (!hasTag) continue;
       }
 
-      let score = 1.0;
+      let score = categoryPriority(rec.category);
       if (query.queryText) {
-        const q = query.queryText.toLowerCase();
-        const contentMatch = rec.content.toLowerCase().includes(q);
-        const titleMatch = rec.title.toLowerCase().includes(q);
-        if (!contentMatch && !titleMatch) continue;
-        score = titleMatch ? 1.0 : 0.8;
+        const queryTerms = tokenize(query.queryText);
+        const titleTerms = tokenize(rec.title);
+        const contentTerms = tokenize(rec.content);
+        const titleOverlap = overlap(queryTerms, titleTerms);
+        const contentOverlap = overlap(queryTerms, contentTerms);
+        if (titleOverlap === 0 && contentOverlap === 0) continue;
+        score += titleOverlap * 2 + contentOverlap;
+      }
+
+      // Recent operational records are more useful when several records match;
+      // the bounded boost never outweighs a strong title/content match.
+      if (query.queryText) {
+        const ageDays = Math.max(0, (Date.now() - Date.parse(rec.updatedAt || rec.createdAt)) / 86_400_000);
+        score += 1 / (1 + ageDays / 30);
       }
 
       results.push({ record: rec, score });
@@ -82,6 +92,27 @@ export class OperationalMemoryProvider implements MemoryProvider {
     return true;
   }
 
+  update(namespace: string, id: string, expectedVersion: number, actorId: string,
+    patch: Partial<Pick<OperationalMemoryRecord, "title" | "content" | "category" | "tags" | "archived">>): OperationalMemoryRecord {
+    const existing = this.list(namespace).find(record => record.id === id);
+    if (!existing) throw new Error("Memory was not found in this collection.");
+    if ((existing.version || 1) !== expectedVersion) throw new Error("This memory changed elsewhere. Reload it before saving.");
+    const record: OperationalMemoryRecord = {
+      ...existing, ...patch, version: expectedVersion + 1, updatedAt: new Date().toISOString(), updatedBy: actorId,
+      revisions: [...(existing.revisions || []), {
+        version: expectedVersion, title: existing.title, content: existing.content, category: existing.category,
+        tags: [...existing.tags], archived: Boolean(existing.archived), savedAt: existing.updatedAt || existing.createdAt,
+        actorId: existing.updatedBy,
+      }],
+    };
+    if (this.repository) this.repository.saveOperationalMemory(record);
+    else {
+      const records = this.store.get(namespace) || [];
+      records[records.findIndex(item => item.id === id)] = record;
+    }
+    return record;
+  }
+
   private list(namespace: string): OperationalMemoryRecord[] {
     return this.repository
       ? this.repository.listOperationalMemories(namespace)
@@ -96,4 +127,18 @@ export class OperationalMemoryProvider implements MemoryProvider {
     });
     return res.map(r => r.record);
   }
+}
+
+function tokenize(value: string): Set<string> {
+  return new Set(value.toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length >= 3));
+}
+
+function overlap(query: Set<string>, candidate: Set<string>): number {
+  let matches = 0;
+  for (const term of query) if (candidate.has(term)) matches += 1;
+  return matches;
+}
+
+function categoryPriority(category: OperationalMemoryRecord["category"]): number {
+  return category === "do_not_repeat" || category === "project_constraint" ? 1.5 : category === "test_failure" ? 1.2 : 1;
 }

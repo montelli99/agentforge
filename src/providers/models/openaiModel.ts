@@ -10,6 +10,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 function toChatCompletionBody(options: ModelRequestOptions, stream: boolean): Record<string, unknown> {
   return {
@@ -71,12 +72,12 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(toChatCompletionBody(options, false)),
-      signal: AbortSignal.timeout(60_000),
+      signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`OpenAI error ${res.status}: ${text.slice(0, 200)}`);
+      throw new Error(`OpenAI error ${res.status}: ${redactRuntimeText(text.slice(0, 200))}`);
     }
 
     const json = await res.json() as {
@@ -123,7 +124,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(toChatCompletionBody(options, true)),
-      signal: AbortSignal.timeout(60_000),
+      signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
 
     if (!res.ok || !res.body) {
@@ -135,7 +136,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
     let buffer = "";
     const toolIdsByIndex = new Map<number, string>();
 
-    while (true) {
+    try { while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -177,6 +178,6 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
           }
         }
       }
-    }
+    } } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
   }
 }

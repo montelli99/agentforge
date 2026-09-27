@@ -98,6 +98,19 @@ export class ModelRouter {
       };
     }
 
+    // If the caller registered only a local provider, preserve that explicit
+    // deployment choice even when discovery is temporarily unavailable. The
+    // runtime will surface the availability error instead of silently routing
+    // to an unregistered cloud provider.
+    if (ollama && !hasOpenAI && !hasMiMo) {
+      return {
+        tier: 2,
+        providerId: "ollama",
+        model: "qwen2.5:3b",
+        reason: "Only the local provider is registered; preserve the explicit local route for runtime diagnostics",
+      };
+    }
+
     // Default target
     return {
       tier: 4,

@@ -75,14 +75,14 @@ describe("AgentForge vNext Extension Architecture", () => {
         agentSpec,
         moveLeadRule!.id,
         "Lead must have verified equity > 25% and confirmed seller willingness to receive cash offer.",
-        "user-montelli",
+        "user-owner",
       );
 
       const updatedRule = resolvedSpec.unresolvedRules.find(
         (r) => r.id === moveLeadRule!.id,
       );
       expect(updatedRule?.resolved).toBe(true);
-      expect(updatedRule?.resolvedByUserId).toBe("user-montelli");
+      expect(updatedRule?.resolvedByUserId).toBe("user-owner");
       expect(resolvedSpec.systemPrompt).toContain("Lead must have verified equity > 25%");
     });
   });
@@ -109,12 +109,12 @@ describe("AgentForge vNext Extension Architecture", () => {
         agentId: "agent-caller",
         recipientPhoneNumber: "+15550192834",
         recipientName: "John Doe",
-        canonicalChannelId: "chan-ppc-calls",
+        canonicalChannelId: "chan-operations-calls",
       });
 
       expect(call.id).toBeDefined();
       expect(call.status).toBe("IN_PROGRESS");
-      expect(call.canonicalChannelId).toBe("chan-ppc-calls");
+      expect(call.canonicalChannelId).toBe("chan-operations-calls");
 
       // Inspect transcript
       const transcript = await voice.getTranscript(call.id);
@@ -172,7 +172,7 @@ describe("AgentForge vNext Extension Architecture", () => {
     it("validates a compliant package manifest structure", () => {
       const validManifest: PackageManifest = {
         schemaVersion: "1.0.0",
-        name: "real-estate-acquisitions-pack",
+        name: "workspace-operations-pack",
         version: "1.2.0",
         publisher: { id: "pub-forge", name: "AgentForge Community", verified: true },
         description: "Automated seller intake and evaluation workflows",
@@ -268,7 +268,7 @@ describe("AgentForge vNext Extension Architecture", () => {
 
       const inst = packageProvider.installPackage({
         manifest,
-        installedByUserId: "user-montelli",
+        installedByUserId: "user-owner",
         workspaceId: "ws-healthcare",
         approvedPermissions: manifest.permissions,
       });
@@ -288,7 +288,7 @@ describe("AgentForge vNext Extension Architecture", () => {
       };
       expect(() => packageProvider.installPackage({
         manifest,
-        installedByUserId: "user-montelli",
+        installedByUserId: "user-owner",
         workspaceId: "ws-test",
         approvedPermissions: { filesystem: { workspace: { read: true, write: true } } },
       })).toThrow("subset of the permissions requested");

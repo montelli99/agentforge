@@ -12,6 +12,28 @@ import type { TaskWorktreeInfo } from "../types/task.js";
 export class WorktreeManager {
   constructor(private readonly repoRoot: string) {}
 
+  /** Revalidate persisted checkout identity before resuming any execution. */
+  validateWorktree(info: TaskWorktreeInfo, taskId: string, baseSha: string): string {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(taskId) || !/^[a-f0-9]{40,64}$/i.test(baseSha)) {
+      throw new Error("Invalid task checkout identity.");
+    }
+    const expected = path.resolve(this.repoRoot, ".worktrees", `task-${taskId}`);
+    if (!info.isIsolated || path.resolve(info.worktreePath) !== expected || info.baseSha !== baseSha) {
+      throw new Error("Saved checkout does not match this task's approved repository and base commit.");
+    }
+    if (fs.realpathSync(expected) !== expected) throw new Error("Task checkout was redirected.");
+    const git = (args: string[], cwd: string) => execFileSync("git", args, { cwd, encoding: "utf-8", stdio: "pipe" }).trim();
+    const common = (cwd: string) => fs.realpathSync(path.resolve(cwd, git(["rev-parse", "--git-common-dir"], cwd)));
+    if (common(expected) !== common(this.repoRoot) || path.resolve(git(["rev-parse", "--show-toplevel"], expected)) !== expected) {
+      throw new Error("Task checkout belongs to a different repository.");
+    }
+    if (git(["symbolic-ref", "--short", "HEAD"], expected) !== info.branchName) {
+      throw new Error("Task checkout branch changed since it was created.");
+    }
+    git(["merge-base", "--is-ancestor", baseSha, "HEAD"], expected);
+    return expected;
+  }
+
   /** Create a real Git worktree or fail; a directory is never presented as isolation. */
   async createWorktree(params: {
     taskId: string;

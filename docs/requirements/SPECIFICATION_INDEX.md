@@ -15,11 +15,15 @@ This index keeps separately issued specification families distinct. Their sectio
 | [`IMPLEMENTATION_TRACEABILITY.md`](IMPLEMENTATION_TRACEABILITY.md) | Current code/test/evidence mapping for master sections 0–49 | Sections 0–49 |
 | [`MARKDOWN_REVIEW_REGISTER.md`](MARKDOWN_REVIEW_REGISTER.md) | Inventory and factual review log for repository and recovered Markdown | Review register |
 
-The canonical files above are available in this checkout. A consolidated reference set containing 54 Markdown documents plus `INDEX.md` is also present at both `C:\Users\mscott\AI_Workspace\all_markdown_files\` and `AgentForge-Staging\all_markdown_files\`; a SHA-256 comparison confirmed that the two copies matched at the start of this review. Canonical corrections made in this checkout may make the outer convenience copy stale. The consolidated set contains repo docs, Antigravity artifacts, workspace operating notes, and unrelated project records. It is a flat convenience mirror, not an additional 54 AgentForge specifications.
+The operator-facing phase map that joins these sources to current evidence is
+[`../GOAL_EXECUTION_MAP.md`](../GOAL_EXECUTION_MAP.md). It summarizes scope and
+status without replacing the numbered requirement documents.
+
+The canonical files above are available in this checkout under `docs/requirements/`. A former flattened convenience bundle was removed from this repository because it mixed public product material with private workspace notes and unrelated project records. It is not an AgentForge source of truth.
 
 ## Numbered source files and consolidated references
 
-The consolidated 54-document set described above is present and is the set to inspect when the user refers to the saved Markdown bundle. It includes 54 source Markdown files plus a generated index; names and paths show that these are not 48 separately numbered Markdown files. The specific individually numbered originals are not present under `requirements/source/` or `docs/requirements/source/`, so do not invent or claim review of absent originals. A follow-up inventory found 52 Markdown files across the Antigravity brain directory, but only `implementation_plan.md` and `walkthrough.md` belong to the AgentForge vNext kickoff task; the others belong to separate OpenClaw, Paperclip, Agent Zero, hardware, and CRM tasks. The flat archive may overwrite duplicate basenames during consolidation; SHA-256 equality between the two current mirror folders proves they match each other, not that they preserve every source path or are byte-for-byte originals.
+The named requirement files above are the set to inspect when an owner refers to the saved product requirements. The specific individually numbered originals are not present under `requirements/source/` or `docs/requirements/source/`, so do not invent or claim review of absent originals. Do not reintroduce flattened copies from external workspaces: duplicate basenames can overwrite one another and private context does not belong in the public product repository.
 
 ## Authority and status rules
 

@@ -37,14 +37,14 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
 
   it("Section 1: OriginalGoal immutability — frozen payload & stable hash", () => {
     const engine = new CompletionEngine();
-    const session = engine.initializeSession("task-AF-100", sampleGoalText, "user-montelli");
+    const session = engine.initializeSession("task-AF-100", sampleGoalText, "user-owner");
 
     expect(session.originalGoal.rawText).toBe(sampleGoalText);
     expect(session.originalGoal.immutableHash).toHaveLength(64);
     expect(Object.isFrozen(session.originalGoal)).toBe(true);
     expect(Reflect.set(session.originalGoal, "rawText", "tampered goal")).toBe(false);
     expect(session.originalGoal.rawText).toBe(sampleGoalText);
-    expect(session.originalGoal.submittedBy).toBe("user-montelli");
+    expect(session.originalGoal.submittedBy).toBe("user-owner");
     expect(session.state).toBe("PLANNING");
     expect(session.verifiedByEngine).toBe(false);
     expect(Reflect.set(session, "state", "COMPLETE_VERIFIED")).toBe(false);
@@ -56,7 +56,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     const sessionPath = path.join(directory, "sessions.json");
     try {
       const firstRun = new CompletionEngine(undefined, new JsonCompletionSessionStore(sessionPath));
-      const created = firstRun.initializeSession("task-AF-RESTORE", sampleGoalText, "user-montelli");
+      const created = firstRun.initializeSession("task-AF-RESTORE", sampleGoalText, "user-owner");
       firstRun.startExecution(created.taskId);
 
       const restarted = new CompletionEngine(undefined, new JsonCompletionSessionStore(sessionPath));
@@ -117,7 +117,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     const goal: OriginalGoal = {
       id: "goal-123",
       rawText: sampleGoalText,
-      submittedBy: "user-montelli",
+      submittedBy: "user-owner",
       submittedAt: new Date().toISOString(),
       immutableHash: "dummy-hash",
     };
@@ -138,7 +138,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     const goal: OriginalGoal = {
       id: "goal-123",
       rawText: sampleGoalText,
-      submittedBy: "user-montelli",
+      submittedBy: "user-owner",
       submittedAt: new Date().toISOString(),
       immutableHash: "dummy-hash",
     };
@@ -181,7 +181,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     expect(keywordGap.critiquePassed).toBe(false);
   });
 
-  it("keeps a substantial task blocked when the PRD critic detects uncovered requirements", () => {
+  it("preserves every source requirement in a substantial task without truncating the tail", () => {
     const engine = new CompletionEngine();
     const session = engine.initializeSession(
       "task-AF-CRITIC-BLOCK",
@@ -189,10 +189,45 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
         `- Add capabilityfeature${index} subsystemunit${index} integrationflow${index}`
       ).join("\n")}`,
     );
-    expect(session.criticReview.critiquePassed).toBe(false);
-    expect(session.state).toBe("BLOCKED_OWNER");
-    expect(() => engine.startExecution(session.taskId)).toThrow("PRD critic found uncovered goal or safety requirements");
-    expect(engine.getSession(session.taskId)?.state).toBe("BLOCKED_OWNER");
+    expect(session.prd.requirements).toHaveLength(24);
+    expect(session.prd.requirements.some(item => item.description === "Build a federated platform")).toBe(true);
+    for (let index = 0; index < 22; index++) {
+      expect(session.prd.requirements.some(item => item.description === `Add capabilityfeature${index} subsystemunit${index} integrationflow${index}`)).toBe(true);
+    }
+    expect(session.criticReview.omissionsFromGoal).toEqual([]);
+  });
+
+  it("derives observable acceptance checks from UI, integration, and regression intent", () => {
+    const goal: OriginalGoal = {
+      id: "goal-semantic-plan",
+      rawText: "- Fix the broken mobile dashboard\n- Connect the Telegram webhook\n- Document the operator runbook",
+      submittedBy: "owner", submittedAt: new Date().toISOString(), immutableHash: "semantic-plan-hash",
+    };
+    const requirements = new PRDEngine().generatePRD(goal).requirements;
+    const dashboard = requirements.find(item => item.description === "Fix the broken mobile dashboard")!;
+    const integration = requirements.find(item => item.description === "Connect the Telegram webhook")!;
+    const documentation = requirements.find(item => item.description === "Document the operator runbook")!;
+    expect(dashboard.acceptanceCriteria.join(" ")).toContain("narrow-screen");
+    expect(dashboard.testStrategy).toContain("regression");
+    expect(integration.acceptanceCriteria.join(" ")).toContain("mock receipt");
+    expect(integration.riskLevel).toBe("high");
+    expect(documentation.category).toBe("documentation");
+    expect(documentation.rollbackRequirement).toBeDefined();
+  });
+
+  it("keeps a compound outcome intact while exposing its deliverables for review", () => {
+    const goal: OriginalGoal = {
+      id: "goal-compound-plan",
+      rawText: "Create a project workspace. Add a responsive work board. Verify the browser flow.",
+      submittedBy: "owner", submittedAt: new Date().toISOString(), immutableHash: "compound-plan-hash",
+    };
+    const requirements = new PRDEngine().generatePRD(goal).requirements;
+    expect(requirements.some(item => item.description === goal.rawText)).toBe(true);
+    expect(requirements.some(item => item.description === "Create a project workspace")).toBe(true);
+    expect(requirements.some(item => item.description === "Add a responsive work board")).toBe(true);
+    expect(requirements.some(item => item.description === "Verify the browser flow")).toBe(true);
+    const browserRequirement = requirements.find(item => item.description === "Verify the browser flow");
+    expect(browserRequirement?.acceptanceCriteria.join(" ")).toContain("focused automated check");
   });
 
   it("Section 4: Requirement Traceability Matrix — links goal to audit result with orphan detection", () => {
@@ -213,6 +248,28 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
 
     expect(matrix.isArtifactClassified("src/auth/isolation.ts")).toBe(true);
     expect(matrix.isArtifactClassified("src/untracked/orphan.ts")).toBe(false);
+  });
+
+  it("records bounded traceability without granting a worker completion authority", () => {
+    const engine = new CompletionEngine();
+    const session = engine.initializeSession("task-AF-TRACE", "Build a reviewable task workflow");
+    const requirementId = session.prd.requirements[1]!.id;
+
+    const recorded = engine.recordRequirementTraceability(session.taskId, requirementId, {
+      codeArtifacts: ["src/workflow.ts", "src/workflow.ts"],
+      testNames: ["src/workflow.test.ts"],
+      evidencePackIds: ["evidence/workflow-check.json"],
+    });
+    const trace = recorded.traceability.find(record => record.requirementId === requirementId)!;
+
+    expect(trace.taskIds).toEqual([session.taskId]);
+    expect(trace.codeArtifacts).toEqual(["src/workflow.ts"]);
+    expect(trace.testNames).toEqual(["src/workflow.test.ts"]);
+    expect(trace.evidencePackIds).toEqual(["evidence/workflow-check.json"]);
+    expect(recorded.state).toBe("PLANNING");
+    expect(recorded.verifiedByEngine).toBe(false);
+    expect(() => engine.recordRequirementTraceability(session.taskId, "AF-REQ-999", {}))
+      .toThrow("does not belong");
   });
 
   it("Section 5: Execution DAG — isolated subtree blocking while independent work continues", () => {
@@ -461,7 +518,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     const goal: OriginalGoal = {
       id: "goal-1",
       rawText: "Deliver reliable agent system",
-      submittedBy: "user-montelli",
+      submittedBy: "user-owner",
       submittedAt: new Date().toISOString(),
       immutableHash: "hash-1",
     };
@@ -571,7 +628,7 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
 
   it("Section 10: Completion Authority & Full Lifecycle — Worker cannot self-complete; only Engine verifies", async () => {
     const engine = new CompletionEngine();
-    const session = engine.initializeSession("task-AF-FLOW", sampleGoalText, "user-montelli");
+    const session = engine.initializeSession("task-AF-FLOW", sampleGoalText, "user-owner");
     const evidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-completion-evidence-"));
     const evidencePaths = [
       "artifacts/tests.json",
@@ -590,6 +647,13 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     }
 
     expect(session.state).toBe("PLANNING");
+    for (const requirementId of session.prd.requirements.map(requirement => requirement.id)) {
+      engine.recordRequirementTraceability(session.taskId, requirementId, {
+        codeArtifacts: ["src/core/index.ts"],
+        testNames: ["src/masterBuild.test.ts"],
+        evidencePackIds: ["artifacts/tests.json"],
+      });
+    }
     engine.startExecution("task-AF-FLOW");
     expect(session.state).toBe("PLANNING");
     expect(engine.getSession("task-AF-FLOW")?.state).toBe("EXECUTING");

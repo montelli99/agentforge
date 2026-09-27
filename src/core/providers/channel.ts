@@ -7,7 +7,7 @@
 import type { CanonicalMessage, CanonicalChannel, CanonicalSpace } from "../types/workspace.js";
 import type { ApprovalRequest } from "../types/approval.js";
 
-export type ChannelProviderType = "web" | "telegram" | "discord" | "cli" | "api";
+export type ChannelProviderType = "web" | "telegram" | "discord" | "slack" | "cli" | "api";
 
 export interface InboundChannelEvent {
   id: string; // provider event id for deduplication
@@ -56,9 +56,21 @@ export interface OutboundTopicUpdate {
   title?: string;
 }
 
+export type ChannelProviderReadinessStatus = "local" | "sandbox" | "live" | "unconfigured";
+
+export interface ChannelProviderReadiness {
+  status: ChannelProviderReadinessStatus;
+  summary: string;
+  capabilities: string[];
+  missing: string[];
+}
+
 export interface ChannelProvider {
   readonly id: string;
   readonly type: ChannelProviderType;
+
+  /** Honest capability boundary; adapters must not imply that fixtures are live integrations. */
+  readiness?(): ChannelProviderReadiness;
 
   // Lifecycle
   initialize(): Promise<void>;

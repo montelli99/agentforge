@@ -1,14 +1,12 @@
 # AgentForge Markdown Review Register
 
 **Review started:** 2026-09-22  
-**Scope:** Markdown present in AgentForge-Staging and the two recovered Antigravity artifacts.  
-**Method:** Compare each document to current source, tests, and runnable acceptance evidence. `all_markdown_files/` is a generated convenience copy, not an independent source set.
+**Scope:** Public Markdown present in AgentForge-Staging.
+**Method:** Compare each document to current source, tests, and runnable acceptance evidence. The repository documentation tree is the only product source set.
 
 ## Source-set finding
 
-The user-provided consolidated set is present at both `C:\Users\mscott\AI_Workspace\all_markdown_files\` and `AgentForge-Staging\all_markdown_files\`. A read-only SHA-256 comparison on 2026-09-23 confirmed that both folders contained the same 55 Markdown files: 54 source documents plus the generated `INDEX.md`. The set combines AgentForge specifications and repository docs with workspace operating notes and unrelated-project references; only AgentForge requirements and evidence are authoritative for this product. The original numbered requirements are still absent from `requirements/source/`, so the flattened bundle cannot replace that source-to-requirement mapping. A recursive scan of the Antigravity brain directory finds 52 Markdown files, but only `implementation_plan.md` and `walkthrough.md` belong to the AgentForge kickoff task; the rest belong to other tasks. The master build specification contains sections 0–49 (50 sections), while other specification families overlap in numbering and must remain distinct. The earlier statement that the saved bundle was missing was wrong: it described only the repo-local canonical docs and did not inspect the consolidated folders. The index is a convenience mirror, not proof that each source document was reviewed.
-
-The consolidated set has now been inventoried by filename, size, title, and scope. On 2026-09-23, every one of its 54 source Markdown files plus the generated `INDEX.md` was matched to a review row or explicit out-of-scope classification; filename reconciliation returned zero unregistered documents. AgentForge specifications and implementation/evidence docs are compared to current code and tests below. Workspace operating/persona documents are classified separately because they do not add AgentForge acceptance criteria; unrelated deal, trading, and production-operation documents remain outside this implementation scope. Presence or classification of a file is not proof that its product requirements are implemented.
+On 2026-09-24 the flattened convenience bundle was removed from this repository because it mixed public product material with private operating notes and unrelated-project references. The public documentation tree now contains the authoritative AgentForge requirements, research, and evidence only. The master build specification contains sections 0–49 (50 sections), while other specification families overlap in numbering and must remain distinct. Presence of a file is not proof that its product requirements are implemented.
 
 ## Document-by-document review
 
@@ -40,8 +38,6 @@ The consolidated set has now been inventoried by filename, size, title, and scop
 | `docs/requirements/SPECIFICATION_INDEX.md` | Reviewed | Correctly distinguishes families and records missing original bundle. |
 | `docs/requirements/VALIDATION_MIGRATION_RELEASE_GOAL.md` | Reviewed | Validation plan; status must be backed by real workflow evidence. |
 | `docs/research/UNIFIED_AI_MEMORY_RD.md` | Reviewed as R&D | Future-memory research only; not a vNext completion requirement. |
-| `all_markdown_files/INDEX.md` | Generated | Regenerate after canonical edits; index does not prove its content was reviewed. |
-| `all_markdown_files/*` mirrors | Generated copies | Rebuild and compare after source corrections. |
 | `.artifacts/agentforge/report.md` | Corrected | Historical report now explicitly says scenario passes are not live-provider/production evidence; formatter has regression coverage. |
 | Antigravity `implementation_plan.md` | Reviewed as historical | Claims parent-repository boundary and old prototype state; current `vnext` checkout is separate. Do not use its paths/counts as current facts. |
 | Antigravity `walkthrough.md` | Reviewed as historical | Completion-engine and 100% isolation claims are not release evidence; archive count is stale. |
@@ -66,7 +62,7 @@ These files were inventoried separately because they are workspace context, unre
 | `Fairfax_Assumable_Scan_2026-07-04.md` | Excluded as unrelated deal research | Real-estate property scan; not AgentForge product scope. |
 | `HEARTBEAT.md` | Classified as workspace context | OpenClaw heartbeat configuration note; not AgentForge behavior. |
 | `IDENTITY.md` | Classified as workspace context | OpenClaw assistant identity note; not AgentForge behavior. |
-| `KAYLA_DEMO_REFERENCE.md` | Excluded as unrelated workflow reference | PPC coaching/demo notes; not AgentForge acceptance criteria. |
+| Unrelated coaching reference | Excluded as unrelated workflow reference | Not AgentForge acceptance criteria. |
 | `MEMORY.md` | Classified as workspace context | Mixed cross-project memory and dated statuses; preserve as context, not current AgentForge evidence. |
 | `MISSION_CONTROL_BIBLE.md` | Classified as workspace context | OpenClaw/Mission Control operating procedure; not AgentForge product behavior. |
 | `MISSION_CONTROL_OPERATOR_PROMPT.md` | Classified as workspace context | Operator resume prompt; not AgentForge product requirements. |

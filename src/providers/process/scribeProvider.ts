@@ -7,10 +7,24 @@
 import crypto from "node:crypto";
 import type { ProcessKnowledgeProvider, ProcessIngestOptions } from "../../core/providers/process.js";
 import type { ProcessDefinition, ProcessStep, ProcessDiff, UnresolvedBusinessRule } from "../../core/types/process.js";
+import type { McpJsonRpcClient } from "../mcp/mcpJsonRpcClient.js";
 
 export class ScribeProcessProvider implements ProcessKnowledgeProvider {
   readonly id = "scribe";
   readonly name = "Scribe Process Knowledge Provider";
+
+  /** Ingest an SOP exposed as an MCP resource without persisting MCP credentials. */
+  async ingestFromMcp(client: McpJsonRpcClient, uri: string): Promise<ProcessDefinition> {
+    const resource = await client.readResource(uri);
+    const contents = resource.contents;
+    if (!Array.isArray(contents)) throw new Error("MCP resource did not contain contents.");
+    const text = contents
+      .filter(item => item && typeof item === "object" && typeof (item as { text?: unknown }).text === "string")
+      .map(item => (item as { text: string }).text)
+      .join("\n");
+    if (!text.trim()) throw new Error("MCP resource contained no text to ingest.");
+    return this.ingest({ sourceType: "manual", sourceUri: uri, rawContent: text });
+  }
 
   async ingest(options: ProcessIngestOptions): Promise<ProcessDefinition> {
     const raw = options.rawContent || "";
@@ -51,8 +65,8 @@ export class ScribeProcessProvider implements ProcessKnowledgeProvider {
         };
 
         if (lower.includes("crm") || lower.includes("database")) {
-          step.toolRequirements?.push("crm_client");
-          step.permissionsRequired?.push("crm:write");
+          step.toolRequirements?.push("records_client");
+          step.permissionsRequired?.push("records:write");
         }
 
         if (isDecision) {

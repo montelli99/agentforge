@@ -28,7 +28,7 @@ export const GROKBOT_FIXTURE = {
   exportedPrompts: [
     {
       title: "Market Analysis Bot",
-      prompt: "Analyze financial and macroeconomic indicators for real estate valuation.",
+      prompt: "Analyze public economic and operational indicators for a generic planning review.",
       model: "grok-2",
     },
   ],

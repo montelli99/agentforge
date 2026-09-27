@@ -10,26 +10,16 @@
 
 import crypto from "node:crypto";
 import type { WorkspaceStore } from "../store/workspaceStore.js";
+import type { QualityAnalysis, QualityBaseline, QualityContainmentAction, QualityTargetType } from "../types/quality.js";
 
-export type ContainmentAction = "HEALTHY" | "WARN_CONTAINMENT" | "QUARANTINE" | "ROLLBACK";
+export type ContainmentAction = QualityContainmentAction;
 
-export interface DriftBaseline {
-  id: string;
-  targetId: string;
-  targetType: "model" | "harness" | "agent";
-  targetVersion: string;
-  passRatePct: number;
-  avgLatencyMs: number;
-  avgTokensPerTask?: number;
-  toolAccuracyPct?: number;
-  createdAt: string;
-  testCaseResults: Record<string, boolean>; // caseId -> passed
-}
+export interface DriftBaseline extends QualityBaseline {}
 
 export interface DriftCandidateRun {
   runId: string;
   targetId: string;
-  targetType: "model" | "harness" | "agent";
+  targetType: QualityTargetType;
   targetVersion: string;
   passRatePct: number;
   avgLatencyMs: number;
@@ -41,39 +31,37 @@ export interface DriftCandidateRun {
   testCaseResults: Record<string, boolean>; // caseId -> passed
 }
 
-export interface DriftAnalysis {
-  analysisId: string;
-  targetId: string;
-  targetType: "model" | "harness" | "agent";
-  baselineVersion: string;
-  candidateVersion: string;
-  latencyDriftMs: number;
-  latencyDriftPct: number;
-  passRateDriftPct: number;
-  regressions: string[];
-  corrections: string[];
-  hallucinationDetected: boolean;
-  toolMisuseDetected: boolean;
-  action: ContainmentAction;
-  explanation: string;
-  analyzedAt: string;
-}
+export interface DriftAnalysis extends QualityAnalysis {}
 
 export class DriftMonitor {
   private baselines = new Map<string, DriftBaseline>();
   private analyses: DriftAnalysis[] = [];
 
-  constructor(private readonly store?: WorkspaceStore) {
-    this.seedDefaultBaselines();
+  constructor(
+    private readonly store?: WorkspaceStore,
+    options: { includeFixtureBaselines?: boolean } = {},
+  ) {
+    // A durable workspace starts with only saved evidence. Fixture baselines belong
+    // only to ephemeral test stores and never appear in a real workspace.
+    const saved = this.store?.getQualityState();
+    for (const baseline of saved?.baselines || []) this.baselines.set(`${baseline.targetType}:${baseline.targetId}`, baseline);
+    this.analyses = [...(saved?.analyses || [])];
+    const includeFixtureBaselines = options.includeFixtureBaselines
+      ?? this.store?.persistenceMode !== "local_json";
+    if (includeFixtureBaselines && !saved?.baselines.length) this.seedFixtureBaselines();
   }
 
-  private seedDefaultBaselines(): void {
-    const defaultBaselines: DriftBaseline[] = [
+  private persistQualityState(): void {
+    this.store?.setQualityState({ baselines: this.listBaselines(), analyses: this.listAnalyses() });
+  }
+
+  private seedFixtureBaselines(): void {
+    const fixtureBaselines: DriftBaseline[] = [
       {
-        id: "base-mimo-v2.5",
-        targetId: "mimo-v2.5",
+        id: "fixture-model-a",
+        targetId: "fixture-model-a",
         targetType: "model",
-        targetVersion: "2.5.0",
+        targetVersion: "fixture-v1",
         passRatePct: 96.5,
         avgLatencyMs: 380,
         avgTokensPerTask: 1240,
@@ -82,10 +70,10 @@ export class DriftMonitor {
         testCaseResults: { "bench-code-1": true, "bench-sop-1": true, "bench-tool-1": true },
       },
       {
-        id: "base-ollama-deepseek",
-        targetId: "ollama-deepseek",
+        id: "fixture-model-b",
+        targetId: "fixture-model-b",
         targetType: "model",
-        targetVersion: "r1-8b",
+        targetVersion: "fixture-v1",
         passRatePct: 94.0,
         avgLatencyMs: 195,
         avgTokensPerTask: 1800,
@@ -94,10 +82,10 @@ export class DriftMonitor {
         testCaseResults: { "bench-code-1": true, "bench-sop-1": true, "bench-tool-1": true },
       },
       {
-        id: "base-harness-pi",
-        targetId: "harness-pi",
+        id: "fixture-harness-a",
+        targetId: "fixture-harness-a",
         targetType: "harness",
-        targetVersion: "1.0.0",
+        targetVersion: "fixture-v1",
         passRatePct: 98.0,
         avgLatencyMs: 45,
         toolAccuracyPct: 99.0,
@@ -106,7 +94,7 @@ export class DriftMonitor {
       },
     ];
 
-    for (const b of defaultBaselines) {
+    for (const b of fixtureBaselines) {
       this.baselines.set(`${b.targetType}:${b.targetId}`, b);
     }
   }
@@ -126,6 +114,7 @@ export class DriftMonitor {
         targetId: baseline.targetId,
         details: { version: baseline.targetVersion, passRatePct: baseline.passRatePct, avgLatencyMs: baseline.avgLatencyMs },
       });
+      this.persistQualityState();
     }
   }
 
@@ -150,11 +139,17 @@ export class DriftMonitor {
 
     const analysisId = `drift-${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
+    const hallucinationDetected = (candidate.hallucinatedClaimsCount || 0) > 0;
+    const toolMisuseDetected = (candidate.toolMisuseCount || 0) > 0;
 
     if (!baseline) {
-      // First run establishes self as baseline if none exists
+      // A first run can establish a baseline only when it is clean. Otherwise
+      // the system would normalize a hallucination or tool violation and make
+      // future degraded behavior look healthy by comparison.
+      const action: ContainmentAction = toolMisuseDetected || hallucinationDetected ? "QUARANTINE" : "HEALTHY";
       const initialAnalysis: DriftAnalysis = {
         analysisId,
+        runId: candidate.runId,
         targetId: candidate.targetId,
         targetType: candidate.targetType,
         baselineVersion: candidate.targetVersion,
@@ -164,25 +159,49 @@ export class DriftMonitor {
         passRateDriftPct: 0,
         regressions: [],
         corrections: [],
-        hallucinationDetected: (candidate.hallucinatedClaimsCount || 0) > 0,
-        toolMisuseDetected: (candidate.toolMisuseCount || 0) > 0,
-        action: (candidate.toolMisuseCount || 0) > 0 ? "QUARANTINE" : "HEALTHY",
-        explanation: "No prior baseline registered. Baseline established from this run.",
+        hallucinationDetected,
+        toolMisuseDetected,
+        action,
+        explanation: action === "HEALTHY"
+          ? "No prior baseline registered. Baseline established from this clean run."
+          : toolMisuseDetected
+            ? "No prior baseline registered. Tool misuse prevents this run from establishing a trusted baseline."
+            : "No prior baseline registered. Unsupported/hallucinated claims prevent this run from establishing a trusted baseline.",
         analyzedAt: now,
       };
-      this.registerBaseline({
-        id: `base-${candidate.targetId}-${candidate.targetVersion}`,
-        targetId: candidate.targetId,
-        targetType: candidate.targetType,
-        targetVersion: candidate.targetVersion,
-        passRatePct: candidate.passRatePct,
-        avgLatencyMs: candidate.avgLatencyMs,
-        avgTokensPerTask: candidate.avgTokensPerTask,
-        toolAccuracyPct: candidate.toolAccuracyPct,
-        createdAt: now,
-        testCaseResults: candidate.testCaseResults,
-      });
+      if (action === "HEALTHY") {
+        this.registerBaseline({
+          id: `base-${candidate.targetId}-${candidate.targetVersion}`,
+          targetId: candidate.targetId,
+          targetType: candidate.targetType,
+          targetVersion: candidate.targetVersion,
+          passRatePct: candidate.passRatePct,
+          avgLatencyMs: candidate.avgLatencyMs,
+          avgTokensPerTask: candidate.avgTokensPerTask,
+          toolAccuracyPct: candidate.toolAccuracyPct,
+          createdAt: now,
+          testCaseResults: candidate.testCaseResults,
+        });
+      } else if (this.store) {
+        this.store.recordAudit({
+          origin: "system",
+          actorId: "system",
+          actorType: "system",
+          action: `DRIFT_EVALUATION_${action}`,
+          targetType: candidate.targetType,
+          targetId: candidate.targetId,
+          details: {
+            candidateVersion: candidate.targetVersion,
+            runId: candidate.runId,
+            action,
+            hallucinationDetected,
+            toolMisuseDetected,
+            explanation: initialAnalysis.explanation,
+          },
+        });
+      }
       this.analyses.push(initialAnalysis);
+      this.persistQualityState();
       return initialAnalysis;
     }
 
@@ -203,30 +222,28 @@ export class DriftMonitor {
       }
     }
 
-    const hallucinationDetected = (candidate.hallucinatedClaimsCount || 0) > 0;
-    const toolMisuseDetected = (candidate.toolMisuseCount || 0) > 0;
-
     // Containment policy determination
     let action: ContainmentAction = "HEALTHY";
     let explanation = "Target performance is within baseline variance tolerance.";
 
     if (passRateDriftPct < -15 || regressions.length >= 3) {
       action = "ROLLBACK";
-      explanation = `Severe quality regression: pass rate dropped by ${Math.abs(passRateDriftPct).toFixed(1)}% with ${regressions.length} regressions. Automatic rollback recommended.`;
+      explanation = `Severe quality regression: pass rate dropped by ${Math.abs(passRateDriftPct).toFixed(1)} percentage points with ${regressions.length} regressions. Automatic rollback recommended.`;
     } else if (toolMisuseDetected || hallucinationDetected || passRateDriftPct < -7) {
       action = "QUARANTINE";
       explanation = toolMisuseDetected
         ? "Tool misuse detected during evaluation. Target quarantined to prevent execution breaches."
         : hallucinationDetected
         ? "Unsupported/hallucinated claims detected. Target quarantined pending prompt containment."
-        : `Moderate pass rate regression of ${Math.abs(passRateDriftPct).toFixed(1)}%. Target quarantined.`;
+        : `Moderate pass rate regression of ${Math.abs(passRateDriftPct).toFixed(1)} percentage points. Quarantine recommended.`;
     } else if (passRateDriftPct < -2 || latencyDriftPct > 25) {
       action = "WARN_CONTAINMENT";
-      explanation = `Slight performance degradation observed (latency ${latencyDriftPct > 0 ? "+" : ""}${latencyDriftPct.toFixed(1)}%, pass rate ${passRateDriftPct.toFixed(1)}%). Monitored.`;
+      explanation = `Slight performance degradation observed (latency ${latencyDriftPct > 0 ? "+" : ""}${latencyDriftPct.toFixed(1)}%, pass rate ${passRateDriftPct.toFixed(1)} percentage points). Monitoring recommended.`;
     }
 
     const analysis: DriftAnalysis = {
       analysisId,
+      runId: candidate.runId,
       targetId: candidate.targetId,
       targetType: candidate.targetType,
       baselineVersion: baseline.targetVersion,
@@ -255,6 +272,7 @@ export class DriftMonitor {
         targetId: candidate.targetId,
         details: {
           candidateVersion: candidate.targetVersion,
+          runId: candidate.runId,
           baselineVersion: baseline.targetVersion,
           action,
           passRateDriftPct: analysis.passRateDriftPct,
@@ -265,6 +283,9 @@ export class DriftMonitor {
       });
     }
 
+    this.persistQualityState();
     return analysis;
   }
 }
+
+

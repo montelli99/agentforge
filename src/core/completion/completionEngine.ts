@@ -89,6 +89,17 @@ interface MutableTaskSession {
 
 export type RepairExecutor = (task: RepairTask) => Promise<boolean>;
 
+export interface RequirementTraceabilityUpdate {
+  /** References to the bounded work items that implement this requirement. */
+  taskIds?: readonly string[];
+  /** Repository-relative source or artifact paths. */
+  codeArtifacts?: readonly string[];
+  /** Named focused checks or repository-relative test paths. */
+  testNames?: readonly string[];
+  /** Durable evidence-pack identifiers or repository-relative evidence paths. */
+  evidencePackIds?: readonly string[];
+}
+
 function freezeRecursively<T>(value: T): T {
   if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) freezeRecursively(child);
@@ -117,7 +128,7 @@ export class CompletionEngine {
   /**
    * Initializes a substantial task session with an immutable OriginalGoal
    */
-  initializeSession(taskId: string, rawGoalText: string, submittedBy = "user-montelli"): SubstantialTaskSession {
+  initializeSession(taskId: string, rawGoalText: string, submittedBy = "user-owner"): SubstantialTaskSession {
     if (this.sessions.has(taskId)) throw new Error(`Completion session already exists for task ${taskId}`);
     const immutableHash = crypto.createHash("sha256").update(rawGoalText).digest("hex");
     const originalGoal = Object.freeze<OriginalGoal>({
@@ -139,6 +150,9 @@ export class CompletionEngine {
     const traceability = new TraceabilityMatrix();
     for (const req of lockedPrd.requirements) {
       traceability.registerRequirement(req.id, originalGoal.id);
+      // This links the requirement to its parent task only. It is deliberately
+      // not implementation proof; code, test, and evidence still remain required.
+      traceability.linkTask(req.id, taskId);
     }
 
     // 4. Dependency Graph / Execution DAG
@@ -181,6 +195,36 @@ export class CompletionEngine {
     return [...this.sessions.values()]
       .map(session => this.snapshot(session))
       .sort((left, right) => right.startedAt.localeCompare(left.startedAt));
+  }
+
+  /**
+   * Records explicit requirement evidence supplied by the host or an approved
+   * execution adapter. This cannot change execution state or completion status.
+   */
+  recordRequirementTraceability(
+    taskId: string,
+    requirementId: string,
+    update: RequirementTraceabilityUpdate,
+  ): SubstantialTaskSession {
+    const session = this.mustGetSession(taskId);
+    if (!session.prd.requirements.some(requirement => requirement.id === requirementId)) {
+      throw new Error(`Requirement ${requirementId} does not belong to completion session ${taskId}`);
+    }
+
+    for (const taskRef of this.normalizeTraceabilityReferences(update.taskIds, "task reference")) {
+      session.traceability.linkTask(requirementId, taskRef);
+    }
+    for (const artifact of this.normalizeTraceabilityReferences(update.codeArtifacts, "code artifact")) {
+      session.traceability.linkCodeArtifact(requirementId, artifact);
+    }
+    for (const testName of this.normalizeTraceabilityReferences(update.testNames, "test reference")) {
+      session.traceability.linkTest(requirementId, testName);
+    }
+    for (const evidence of this.normalizeTraceabilityReferences(update.evidencePackIds, "evidence reference")) {
+      session.traceability.linkEvidence(requirementId, evidence);
+    }
+
+    return this.persistAndSnapshot(session);
   }
 
   /**
@@ -230,12 +274,15 @@ export class CompletionEngine {
     let auditResult = await this.auditor.audit(fullContext);
     session.auditResult = auditResult;
 
-    // Update traceability status
+    // Update traceability status. A successful audit alone is not enough: the
+    // record must still identify work, code, a check, and evidence.
     for (const req of session.prd.requirements) {
       if (auditResult.unmetRequirements.includes(req.id)) {
         session.traceability.updateAuditStatus(req.id, "FAILED", "Unmet requirement");
-      } else {
+      } else if (this.isTraceabilityComplete(session.traceability.getRecord(req.id))) {
         session.traceability.updateAuditStatus(req.id, "PASSED");
+      } else {
+        session.traceability.updateAuditStatus(req.id, "PENDING", "Awaiting explicit code, test, and evidence references.");
       }
     }
     this.persistAndSnapshot(session);
@@ -312,9 +359,12 @@ export class CompletionEngine {
       evidenceLevel: verificationEvidence?.evidenceLevel ?? "L0_CLAIMED",
       simulationDisclosures: verificationEvidence?.simulationDisclosures ?? [],
     });
-    session.contractDeficits = contractResult.deficits;
+    const traceabilityDeficits = session.traceability.findOrphanRequirements().map(orphan =>
+      `Requirement ${orphan.requirementId} is missing traceability: ${orphan.missing.join(", ")}.`,
+    );
+    session.contractDeficits = [...contractResult.deficits, ...traceabilityDeficits];
 
-    if (session.auditResult.passed && contractResult.passed) {
+    if (session.auditResult.passed && contractResult.passed && traceabilityDeficits.length === 0) {
       // ONLY CompletionEngine may set COMPLETE_VERIFIED
       session.state = "COMPLETE_VERIFIED";
       session.verifiedByEngine = true;
@@ -427,5 +477,23 @@ ${session.contractDeficits?.length ? `**Contract Deficits:**\n${session.contract
     const session = this.sessions.get(taskId);
     if (!session) throw new Error(`Completion session not found for task ${taskId}`);
     return session;
+  }
+
+  private normalizeTraceabilityReferences(
+    values: readonly string[] | undefined,
+    label: string,
+  ): string[] {
+    if (!values) return [];
+    if (values.length > 100) throw new Error(`Too many ${label}s supplied.`);
+    const normalized = values.map(value => {
+      if (typeof value !== "string" || !value.trim()) throw new Error(`Invalid ${label}.`);
+      return value.trim();
+    });
+    return [...new Set(normalized)];
+  }
+
+  private isTraceabilityComplete(record: RequirementTraceabilityRecord | undefined): boolean {
+    return Boolean(record && record.taskIds.length && record.codeArtifacts.length &&
+      record.testNames.length && record.evidencePackIds.length);
   }
 }
