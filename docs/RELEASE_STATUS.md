@@ -93,7 +93,9 @@ The owner approval boundary and execution sequence are recorded in
 ## Not yet proven
 
 - Hosted CI provenance is not recorded because this staging checkout currently
-  has no Git remote configured. No push or publication was attempted.
+  has the public `montelli99/agentforge` remote configured. The initial push is
+  pending the GitHub `workflow` OAuth scope because the repository includes its
+  CI workflow. No package publication was attempted.
 
 - Live Telegram gateway relay acceptance against an authenticated gateway.
 - Live Discord Gateway acceptance against an authorized sandbox bot.
