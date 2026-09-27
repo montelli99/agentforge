@@ -75,7 +75,7 @@ after explicit owner approval.
 archive report, and registry provenance.
 
 **Current state:** local package-ready audit passes. This checkout has no Git
-remote configured for `montelli99/agentforge`; hosted CI is pending because the
+remote configured for the public repository; hosted CI is pending because the
 current GitHub token lacks the `workflow` scope. Publication remains a separate
 operator-approved release action.
 

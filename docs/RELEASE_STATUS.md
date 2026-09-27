@@ -93,7 +93,7 @@ The owner approval boundary and execution sequence are recorded in
 ## Not yet proven
 
 - Hosted CI provenance is not recorded because this staging checkout currently
-  has the public `montelli99/agentforge` remote configured. The initial push is
+  has a public repository remote configured. The initial push is
   pending the GitHub `workflow` OAuth scope because the repository includes its
   CI workflow. No package publication was attempted.
 
