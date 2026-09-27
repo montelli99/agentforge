@@ -16,7 +16,9 @@ credentials, owner data, or production-only records.
 **Evidence:** `pnpm verify:public`, `pnpm release:audit`, the package privacy
 acceptance, and the public repository privacy acceptance.
 
-**Current state:** locally verified. Hosted provenance is still external.
+**Current state:** locally verified, with hosted CI passing on the public
+repository across Ubuntu, macOS, and Windows on Node 22 and 24. Registry
+publication remains a separate owner-approved action.
 
 ## Phase 2 — Canonical workspace and durable memory
 
@@ -74,12 +76,11 @@ after explicit owner approval.
 **Evidence:** `RELEASE_RUNBOOK.md`, hosted CI URL and commit SHA, package digest,
 archive report, and registry provenance.
 
-**Current state:** local package-ready audit passes and the public repository
-remote is configured. Hosted CI is pending because the current GitHub token
-lacks the `workflow` scope. After authorization, run
-`scripts/public-release-resume.ps1` to push the release branch and wait for the
-matching hosted run. Publication remains a separate operator-approved release
-action.
+**Current state:** local package-ready audit passes and hosted CI is recorded
+for the public repository. The passing run is
+[36359613619](https://github.com/montelli99/agentforge/actions/runs/36359613619)
+on commit `a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32`. Registry publication and
+provenance verification remain separate operator-approved release actions.
 
 ## Governing documents
 

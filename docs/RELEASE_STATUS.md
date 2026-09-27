@@ -95,15 +95,11 @@ The requirement-by-requirement evidence index is maintained in
 
 ## Not yet proven
 
-- Hosted CI provenance is not recorded. This staging checkout has a public
-  repository remote configured, but the initial push is pending the GitHub
-  `workflow` OAuth scope because the repository includes its CI workflow. No
-  package publication was attempted.
-
 - Live Telegram gateway relay acceptance against an authenticated gateway.
 - Live Discord Gateway acceptance against an authorized sandbox bot.
 - Live Slack Socket Mode acceptance against an authorized sandbox app.
-- Hosted CI results and a public package publish.
+- Registry publication and provenance verification. No package publication was
+  attempted.
 
 ## Owner release decisions
 
@@ -175,6 +171,7 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 
 ## Latest verification record
 
+- September 27, 2026: hosted CI run [36359613619](https://github.com/montelli99/agentforge/actions/runs/36359613619) passed on commit `a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32` across Ubuntu, macOS, and Windows on Node 22 and 24, including public-package, Docker-isolation, persistence-recovery, migration, and CLI acceptance.
 - September 27, 2026: `pnpm release:audit` passed all ten local public-release gates. It reports `packageReady: true`, with no local privacy, license, manifest, package-surface, or CLI blockers.
 - September 27, 2026: focused native-channel verification passed 19 tests across Telegram BotFather, Telegram native-path selection, Telegram relay protection, Slack Socket Mode, and Discord Gateway transport.
 - The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
