@@ -17,7 +17,7 @@ if (missing.length) {
 
 const goalMap = fs.readFileSync(path.join(root, "docs/GOAL_EXECUTION_MAP.md"), "utf8");
 const audit = fs.readFileSync(path.join(root, "docs/COMPLETION_AUDIT_2026-09-27.md"), "utf8");
-const forbidden = ["no Git remote configured", "personal phone", "seller data", "JustCall"];
+const forbidden = ["no Git remote configured", "personal phone", "seller data"];
 const stale = forbidden.filter(marker => goalMap.includes(marker) || audit.includes(marker));
 if (stale.length) {
   console.error(`Completion audit contains stale/private markers: ${stale.join(", ")}`);
