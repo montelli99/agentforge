@@ -38,7 +38,7 @@
     "test:repository-privacy": "node scripts/public-repository-privacy-acceptance.mjs",
     "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
-    "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
+      "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
     "release:audit": "node scripts/public-release-readiness.mjs",
     "audit:completion": "node scripts/completion-audit-check.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.vnext.json",

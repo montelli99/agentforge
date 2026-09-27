@@ -23,8 +23,25 @@ export class WorktreeManager {
     }
     if (fs.realpathSync(expected) !== expected) throw new Error("Task checkout was redirected.");
     const git = (args: string[], cwd: string) => execFileSync("git", args, { cwd, encoding: "utf-8", stdio: "pipe" }).trim();
-    const common = (cwd: string) => fs.realpathSync(path.resolve(cwd, git(["rev-parse", "--git-common-dir"], cwd)));
-    if (common(expected) !== common(this.repoRoot) || path.resolve(git(["rev-parse", "--show-toplevel"], expected)) !== expected) {
+    // Compare Git's own canonical paths instead of mixing them with Node's
+    // path spelling. Windows runners may return an 8.3 short path from Git
+    // (`RUNNER~1`) while `path.resolve` retains the long spelling.
+    const sameFilesystemPath = (left: string, right: string) => {
+      const leftPath = path.resolve(left);
+      const rightPath = path.resolve(right);
+      try {
+        const leftStat = fs.statSync(leftPath);
+        const rightStat = fs.statSync(rightPath);
+        return leftStat.dev === rightStat.dev && leftStat.ino === rightStat.ino;
+      } catch {
+        return process.platform === "win32"
+          ? leftPath.toLowerCase() === rightPath.toLowerCase()
+          : leftPath === rightPath;
+      }
+    };
+    const common = (cwd: string) => path.resolve(cwd, git(["rev-parse", "--git-common-dir"], cwd));
+    const topLevel = (cwd: string) => git(["rev-parse", "--show-toplevel"], cwd);
+    if (!sameFilesystemPath(common(expected), common(this.repoRoot)) || !sameFilesystemPath(topLevel(expected), expected)) {
       throw new Error("Task checkout belongs to a different repository.");
     }
     if (git(["symbolic-ref", "--short", "HEAD"], expected) !== info.branchName) {
