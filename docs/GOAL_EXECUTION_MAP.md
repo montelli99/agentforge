@@ -74,10 +74,12 @@ after explicit owner approval.
 **Evidence:** `RELEASE_RUNBOOK.md`, hosted CI URL and commit SHA, package digest,
 archive report, and registry provenance.
 
-**Current state:** local package-ready audit passes. This checkout has no Git
-remote configured for the public repository; hosted CI is pending because the
-current GitHub token lacks the `workflow` scope. Publication remains a separate
-operator-approved release action.
+**Current state:** local package-ready audit passes and the public repository
+remote is configured. Hosted CI is pending because the current GitHub token
+lacks the `workflow` scope. After authorization, run
+`scripts/public-release-resume.ps1` to push the release branch and wait for the
+matching hosted run. Publication remains a separate operator-approved release
+action.
 
 ## Governing documents
 
