@@ -15,6 +15,9 @@ has occurred.
 The owner approval boundary and execution sequence are recorded in
 [APPROVAL_EXECUTION_MAP.md](APPROVAL_EXECUTION_MAP.md).
 
+The requirement-by-requirement evidence index is maintained in
+[COMPLETION_AUDIT_2026-09-27.md](COMPLETION_AUDIT_2026-09-27.md).
+
 ## Verified in the current checkout
 
 - TypeScript typecheck passes.
