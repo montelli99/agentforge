@@ -9,17 +9,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Three.js for Interactive 3D WebGL -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
     /* ==========================================================================
        DESIGN TOKENS & SYSTEM VARIABLES
        ========================================================================== */
     :root {
-      --bg: #07070a;
-      --bg-elevated: #0d0e15;
-      --bg-card: rgba(16, 17, 26, 0.75);
+      --bg: #060609;
+      --bg-elevated: #0c0d14;
+      --bg-card: rgba(14, 15, 24, 0.75);
       --bg-card-hover: rgba(22, 24, 38, 0.9);
-      --bg-input: #12131d;
+      --bg-input: #10111a;
       
       --border: rgba(255, 255, 255, 0.08);
       --border-bright: rgba(255, 255, 255, 0.16);
@@ -32,15 +35,15 @@
 
       --accent: #6e5eff;
       --accent-light: #9486ff;
-      --accent-glow: rgba(110, 94, 255, 0.25);
+      --accent-glow: rgba(110, 94, 255, 0.3);
       --gradient-accent: linear-gradient(135deg, #7b6dff 0%, #a855f7 50%, #ec4899 100%);
       --gradient-cyan: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
       --gradient-amber: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
 
       --mint: #3dd68c;
-      --mint-glow: rgba(61, 214, 140, 0.2);
+      --mint-glow: rgba(61, 214, 140, 0.25);
       --amber: #f59e0b;
-      --amber-glow: rgba(245, 158, 11, 0.2);
+      --amber-glow: rgba(245, 158, 11, 0.25);
       --red: #f43f5e;
       --cyan: #06b6d4;
 
@@ -54,7 +57,7 @@
       
       --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.4);
       --shadow-lg: 0 20px 60px -15px rgba(0, 0, 0, 0.7);
-      --shadow-glow: 0 0 50px -10px rgba(110, 94, 255, 0.3);
+      --shadow-glow: 0 0 50px -10px rgba(110, 94, 255, 0.35);
     }
 
     /* Reset & Base */
@@ -68,7 +71,7 @@
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       background-image: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(110, 94, 255, 0.15), transparent 70%),
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(110, 94, 255, 0.16), transparent 70%),
         radial-gradient(ellipse 60% 40% at 85% 60%, rgba(168, 85, 247, 0.08), transparent 60%),
         radial-gradient(ellipse 50% 30% at 15% 40%, rgba(6, 182, 212, 0.06), transparent 60%);
       background-attachment: fixed;
@@ -78,14 +81,14 @@
     .bg-grid {
       position: fixed;
       inset: 0;
-      background-size: 40px 40px;
+      background-size: 44px 44px;
       background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
       pointer-events: none;
       z-index: 0;
-      mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+      mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
+      -webkit-mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
     }
 
     .container {
@@ -190,7 +193,7 @@
       z-index: 100;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      background: rgba(7, 7, 10, 0.75);
+      background: rgba(6, 6, 9, 0.75);
       border-bottom: 1px solid var(--border);
     }
     .nav-inner {
@@ -240,11 +243,12 @@
     }
 
     /* ==========================================================================
-       HERO SECTION
+       HERO SECTION WITH 3D CANVAS & PERSPECTIVE
        ========================================================================== */
     .hero {
-      padding: 90px 0 60px;
+      padding: 80px 0 50px;
       text-align: center;
+      position: relative;
     }
     .hero-eyebrow {
       display: inline-flex;
@@ -287,6 +291,8 @@
       gap: 16px;
       flex-wrap: wrap;
       margin-bottom: 32px;
+      position: relative;
+      z-index: 10;
     }
     .cli-pill {
       display: inline-flex;
@@ -311,9 +317,86 @@
       font-size: 12px;
     }
 
-    /* Hero Showcase 3D View */
+    /* 3D Viewport Controls & Toggle */
+    .hero-3d-toggle-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      margin-bottom: 24px;
+    }
+    .view-mode-pill {
+      display: inline-flex;
+      padding: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+    }
+    .view-btn {
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .view-btn.active {
+      background: var(--gradient-accent);
+      color: white;
+      box-shadow: 0 2px 10px rgba(110, 94, 255, 0.3);
+    }
+
+    /* Interactive 3D WebGL Canvas Container */
+    #hero-webgl-canvas-container {
+      width: 100%;
+      height: 540px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-bright);
+      background: radial-gradient(circle at center, #0f101c 0%, #060609 85%);
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-glow), 0 30px 80px rgba(0, 0, 0, 0.8);
+      cursor: grab;
+    }
+    #hero-webgl-canvas-container:active {
+      cursor: grabbing;
+    }
+    #hero-webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .canvas-hud-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 24px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+      display: flex;
+      gap: 16px;
+    }
+    .canvas-hint {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--accent-light);
+      background: rgba(110, 94, 255, 0.15);
+      border: 1px solid rgba(110, 94, 255, 0.3);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      pointer-events: none;
+    }
+
+    /* CSS 3D Layered Perspective Mockup */
     .hero-mockup-wrapper {
-      margin-top: 50px;
       perspective: 1200px;
       position: relative;
     }
@@ -321,15 +404,11 @@
       border-radius: 20px;
       background: #0f1019;
       border: 1px solid var(--border-bright);
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9), 0 0 60px rgba(110, 94, 255, 0.2);
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9), 0 0 60px rgba(110, 94, 255, 0.25);
       overflow: hidden;
-      transform: rotateX(8deg) translateY(0);
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s;
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
       position: relative;
-    }
-    .hero-mockup:hover {
-      transform: rotateX(2deg) translateY(-8px);
-      box-shadow: 0 50px 120px -20px rgba(0, 0, 0, 0.9), 0 0 80px rgba(110, 94, 255, 0.35);
     }
     .mockup-header {
       background: rgba(18, 19, 30, 0.9);
@@ -362,7 +441,7 @@
     .hud-callout {
       position: absolute;
       padding: 10px 16px;
-      background: rgba(14, 15, 23, 0.85);
+      background: rgba(14, 15, 23, 0.88);
       border: 1px solid var(--border-accent);
       border-radius: var(--radius-md);
       backdrop-filter: blur(16px);
@@ -373,6 +452,7 @@
       box-shadow: var(--shadow-sm);
       animation: float 4s ease-in-out infinite alternate;
       z-index: 10;
+      transform: translateZ(50px);
     }
     .hud-callout-1 { top: 22%; left: 4%; animation-delay: 0s; }
     .hud-callout-2 { bottom: 18%; right: 4%; animation-delay: 1.5s; }
@@ -387,8 +467,8 @@
     .hud-icon.shield { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
     .hud-icon.check { background: rgba(61, 214, 140, 0.15); color: var(--mint); }
     @keyframes float {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-8px); }
+      0% { transform: translateY(0) translateZ(40px); }
+      100% { transform: translateY(-8px) translateZ(55px); }
     }
 
     /* ==========================================================================
@@ -420,7 +500,7 @@
     }
 
     /* ==========================================================================
-       SECTION: SYSTEMS (#systems) — REBUILT EPIC ARCHITECTURE SUITE
+       SECTION: SYSTEMS (#systems) — 3D TOPOLOGY & INTERACTIVE PILLARS
        ========================================================================== */
     .section-wrap {
       padding: 90px 0;
@@ -429,7 +509,7 @@
     .section-header {
       text-align: center;
       max-width: 780px;
-      margin: 0 auto 60px;
+      margin: 0 auto 50px;
     }
     .section-header .badge { margin-bottom: 16px; }
     .section-header h2 {
@@ -440,6 +520,41 @@
       font-size: 18px;
       line-height: 1.6;
     }
+
+    /* 3D System Topology Canvas */
+    .topology-3d-box {
+      width: 100%;
+      height: 380px;
+      background: radial-gradient(circle at center, #101222 0%, #08090f 85%);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    #topology-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .topology-legend {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      background: rgba(10, 11, 18, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
     /* Systems Interactive Showcase */
     .systems-showcase {
@@ -722,7 +837,7 @@
     .approval-gate-banner.show { display: block; animation: pulse 2s infinite; }
 
     /* ==========================================================================
-       SECTION: BENTO GRID / CORE CAPABILITIES
+       SECTION: 3D CARD TILT & BENTO GRID
        ========================================================================== */
     .bento-grid {
       display: grid;
@@ -737,19 +852,22 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       overflow: hidden;
+      transform-style: preserve-3d;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
     .bento-card:hover {
       border-color: var(--border-accent);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px -15px rgba(110, 94, 255, 0.15);
-      background: var(--bg-card-hover);
+      box-shadow: 0 20px 40px -15px rgba(110, 94, 255, 0.2);
     }
     .bento-card.span-2 { grid-column: span 2; }
     .bento-card.span-3 { grid-column: span 3; }
     
+    .card-3d-content {
+      transform: translateZ(25px);
+      transform-style: preserve-3d;
+    }
     .bento-card-top .badge { margin-bottom: 14px; }
     .bento-card h3 {
       font-size: 22px;
@@ -767,6 +885,7 @@
       overflow: hidden;
       margin-top: 16px;
       box-shadow: var(--shadow-sm);
+      transform: translateZ(15px);
     }
     .bento-img-preview img {
       width: 100%;
@@ -887,10 +1006,10 @@
       justify-content: space-between;
       position: relative;
       transition: all 0.3s ease;
+      transform-style: preserve-3d;
     }
     .pricing-card:hover {
       border-color: var(--border-accent);
-      transform: translateY(-4px);
     }
     .pricing-card.featured {
       border-color: var(--accent);
@@ -901,7 +1020,7 @@
       position: absolute;
       top: -12px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateZ(30px);
       background: var(--gradient-accent);
       color: white;
       font-size: 11px;
@@ -1016,6 +1135,7 @@
       .nav-links { display: none; }
       .footer-grid { grid-template-columns: 1fr; }
       .metrics-grid { grid-template-columns: 1fr; }
+      #hero-webgl-canvas-container { height: 380px; }
     }
   </style>
 </head>
@@ -1033,12 +1153,12 @@
         AgentForge
       </a>
       <ul class="nav-links">
+        <li><a href="#hero-3d">3D Core</a></li>
         <li><a href="#systems">Systems</a></li>
         <li><a href="#simulator">Live Simulator</a></li>
         <li><a href="#gallery">Product Gallery</a></li>
         <li><a href="#compare">Comparison</a></li>
         <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#docs">Docs</a></li>
       </ul>
       <div class="nav-actions">
         <span class="badge badge-mint"><span class="pulse-dot"></span> vNext Staging Verified</span>
@@ -1048,7 +1168,7 @@
   </header>
 
   <!-- =========================================================================
-       HERO SECTION
+       HERO SECTION WITH 3D WEBGL KERNEL & PERSPECTIVE
        ========================================================================= -->
   <section class="hero">
     <div class="container">
@@ -1078,9 +1198,29 @@
         </div>
       </div>
 
-      <!-- 3D Perspective Hero Showcase with Real UI Assets -->
-      <div class="hero-mockup-wrapper">
-        <div class="hero-mockup">
+      <!-- View Switcher: Interactive 3D WebGL vs 3D Perspective Render -->
+      <div class="hero-3d-toggle-bar" id="hero-3d">
+        <div class="view-mode-pill">
+          <button class="view-btn active" id="btn-view-3d" onclick="toggleHeroView('3d')">🌐 Interactive 3D WebGL</button>
+          <button class="view-btn" id="btn-view-mockup" onclick="toggleHeroView('mockup')">🖥️ Command Center UI</button>
+        </div>
+      </div>
+
+      <!-- 1. Interactive 3D WebGL Core Canvas -->
+      <div id="hero-webgl-canvas-container">
+        <canvas id="hero-webgl-canvas"></canvas>
+        <div class="canvas-hint">Drag to rotate in 3D • Scroll to zoom</div>
+        <div class="canvas-hud-overlay">
+          <span>KERNEL: RUNNING</span>
+          <span>ORBITAL NODES: 5</span>
+          <span>FPS: 60</span>
+          <span>CAMERA: INTERACTIVE</span>
+        </div>
+      </div>
+
+      <!-- 2. Layered 3D Perspective Mockup View -->
+      <div class="hero-mockup-wrapper" id="hero-mockup-wrapper" style="display: none; margin-top: 20px;">
+        <div class="hero-mockup" id="hero-mockup-card">
           <div class="mockup-header">
             <div class="window-dots">
               <div class="dot-mac dot-red"></div>
@@ -1093,7 +1233,7 @@
           <img src="hero-3d.jpg" alt="AgentForge 3D Dashboard Mockup" class="mockup-img" onerror="this.src='canonical-home.png'">
         </div>
 
-        <!-- Floating HUD badges -->
+        <!-- Floating HUD badges in 3D Z-Space -->
         <div class="hud-callout hud-callout-1">
           <div class="hud-icon shield">🛡️</div>
           <div>
@@ -1124,8 +1264,8 @@
           <div class="metric-label">Specification Sections Verified</div>
         </div>
         <div class="metric-item">
-          <div class="metric-value">304 / 306</div>
-          <div class="metric-label">Vitest Tests Passing (2 Live Opt-In)</div>
+          <div class="metric-value">454 / 456</div>
+          <div class="metric-label">Vitest Tests Passing (80 Suites)</div>
         </div>
         <div class="metric-item">
           <div class="metric-value" style="color: var(--mint);">0.00s</div>
@@ -1140,17 +1280,29 @@
   </div>
 
   <!-- =========================================================================
-       SECTION: THE 5 SYSTEMS (#systems) — EPIC REDESIGN
+       SECTION: THE 5 SYSTEMS (#systems) — 3D TOPOLOGY & INTERACTIVE PILLARS
        ========================================================================= -->
   <section class="section-wrap" id="systems">
     <div class="container">
       <div class="section-header">
-        <div class="badge badge-accent">Architecture &amp; Subsystems</div>
+        <div class="badge badge-accent">3D Architecture &amp; Subsystems</div>
         <h2>Five Pillars of Absolute Control</h2>
         <p>
-          Unlike naive agent frameworks that let LLMs write code in your root directory, 
-          AgentForge structures workforce execution across five air-gapped, verifiable systems.
+          Interact with the live 3D cluster topology below. Click any node to orbit the 3D camera 
+          and inspect its contract guarantees, state models, and live telemetry.
         </p>
+      </div>
+
+      <!-- Live 3D Spatial Topology Visualizer -->
+      <div class="topology-3d-box">
+        <canvas id="topology-canvas"></canvas>
+        <div class="topology-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#7b6dff;"></span> Workspace</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Contract</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span> JEv Router</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3dd68c;"></span> Evidence</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ec4899;"></span> Voice</div>
+        </div>
       </div>
 
       <div class="systems-showcase">
@@ -1378,7 +1530,7 @@ Task ID: TASK-API-FLOW-902
 Artifact Hash: a3f829c91b5c898b3c907a72d381014e7a83606990de8507e15bfca78c2e6488
 Audit Block #4928 Chained: OK
 Secret Leak Check: PASSED (0 findings)
-Test Suite Execution: 304 passed, 0 failed
+Test Suite Execution: 454 passed, 0 failed
 Seal Signed By: CompletionEngine (Version 2.0.1)
             </div>
           </div>
@@ -1716,7 +1868,7 @@ Caller: +1 (555) 019-2834 | Duration: 142s | Outcome: "Appointment Scheduled"
       <div class="pricing-grid">
         <!-- Community -->
         <div class="pricing-card">
-          <div>
+          <div class="card-3d-content">
             <div class="badge">Open Source</div>
             <div class="price-num">$0</div>
             <div class="price-period">Forever free • Apache-2.0 License</div>
@@ -1737,7 +1889,7 @@ Caller: +1 (555) 019-2834 | Duration: 142s | Outcome: "Appointment Scheduled"
         <!-- Team Pro -->
         <div class="pricing-card featured">
           <div class="popular-tag">Most Popular</div>
-          <div>
+          <div class="card-3d-content">
             <div class="badge badge-accent">Team Operations</div>
             <div class="price-num">$49</div>
             <div class="price-period">per seat / month</div>
@@ -1757,7 +1909,7 @@ Caller: +1 (555) 019-2834 | Duration: 142s | Outcome: "Appointment Scheduled"
 
         <!-- Enterprise -->
         <div class="pricing-card">
-          <div>
+          <div class="card-3d-content">
             <div class="badge">Enterprise Scale</div>
             <div class="price-num">Custom</div>
             <div class="price-period">Annual contract • Air-gapped options</div>
@@ -1853,9 +2005,326 @@ Caller: +1 (555) 019-2834 | Duration: 142s | Outcome: "Appointment Scheduled"
   </footer>
 
   <!-- =========================================================================
-       INTERACTIVE SCRIPTS
+       INTERACTIVE THREE.JS & 3D SPATIAL SCRIPTS
        ========================================================================= -->
   <script>
+    // =========================================================================
+    // 1. HERO THREE.JS WEBGL KERNEL ENGINE
+    // =========================================================================
+    (function initHero3D() {
+      const container = document.getElementById('hero-webgl-canvas-container');
+      const canvas = document.getElementById('hero-webgl-canvas');
+      if (!container || !canvas || typeof THREE === 'undefined') return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, 0, 18);
+
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Central Core: Glowing Icosahedron Kernel
+      const coreGroup = new THREE.Group();
+      scene.add(coreGroup);
+
+      // Inner wireframe sphere
+      const innerGeom = new THREE.IcosahedronGeometry(2.4, 2);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x7b6dff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.85
+      });
+      const innerCore = new THREE.Mesh(innerGeom, innerMat);
+      coreGroup.add(innerCore);
+
+      // Inner glowing point sphere
+      const solidGeom = new THREE.SphereGeometry(1.6, 24, 24);
+      const solidMat = new THREE.MeshBasicMaterial({
+        color: 0x06b6d4,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: false
+      });
+      const solidSphere = new THREE.Mesh(solidGeom, solidMat);
+      coreGroup.add(solidSphere);
+
+      // Orbital Contract Rings (Gimbal rings)
+      const ring1Geom = new THREE.TorusGeometry(4.2, 0.03, 16, 100);
+      const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x7b6dff, transparent: true, opacity: 0.6 });
+      const ring1 = new THREE.Mesh(ring1Geom, ring1Mat);
+      ring1.rotation.x = Math.PI / 3;
+      coreGroup.add(ring1);
+
+      const ring2Geom = new THREE.TorusGeometry(5.2, 0.025, 16, 100);
+      const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x3dd68c, transparent: true, opacity: 0.5 });
+      const ring2 = new THREE.Mesh(ring2Geom, ring2Mat);
+      ring2.rotation.y = Math.PI / 4;
+      coreGroup.add(ring2);
+
+      const ring3Geom = new THREE.TorusGeometry(6.4, 0.02, 16, 100);
+      const ring3Mat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.4 });
+      const ring3 = new THREE.Mesh(ring3Geom, ring3Mat);
+      ring3.rotation.z = Math.PI / 6;
+      coreGroup.add(ring3);
+
+      // 5 Orbiting Satellite Agent Nodes
+      const satelliteGroup = new THREE.Group();
+      scene.add(satelliteGroup);
+
+      const agentColors = [0x7b6dff, 0x3dd68c, 0xf59e0b, 0x06b6d4, 0xec4899];
+      const satellites = [];
+      for (let i = 0; i < 5; i++) {
+        const satGeom = new THREE.OctahedronGeometry(0.42, 0);
+        const satMat = new THREE.MeshBasicMaterial({ color: agentColors[i], wireframe: true });
+        const satMesh = new THREE.Mesh(satGeom, satMat);
+        
+        const orbitRadius = 7.5 + (i * 0.8);
+        satellites.push({
+          mesh: satMesh,
+          radius: orbitRadius,
+          speed: 0.008 + (i * 0.003),
+          angle: (i / 5) * Math.PI * 2,
+          tilt: (i - 2) * 0.3
+        });
+        satelliteGroup.add(satMesh);
+      }
+
+      // Starfield Particle Galaxy
+      const particleCount = 700;
+      const particleGeom = new THREE.BufferGeometry();
+      const particlePositions = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        particlePositions[i] = (Math.random() - 0.5) * 60;
+        particlePositions[i + 1] = (Math.random() - 0.5) * 40;
+        particlePositions[i + 2] = (Math.random() - 0.5) * 40;
+      }
+      particleGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      const particleMat = new THREE.PointsMaterial({ color: 0x9486ff, size: 0.12, transparent: true, opacity: 0.6 });
+      const particleField = new THREE.Points(particleGeom, particleMat);
+      scene.add(particleField);
+
+      // Mouse & Pointer Interaction
+      let isDragging = false;
+      let prevMousePos = { x: 0, y: 0 };
+      let mouseX = 0, mouseY = 0;
+      let targetRotX = 0, targetRotY = 0;
+
+      container.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        prevMousePos = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('mouseup', () => { isDragging = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+          const deltaX = e.clientX - prevMousePos.x;
+          const deltaY = e.clientY - prevMousePos.y;
+          targetRotY += deltaX * 0.005;
+          targetRotX += deltaY * 0.005;
+          prevMousePos = { x: e.clientX, y: e.clientY };
+        }
+        const rect = container.getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+      });
+
+      // Zoom via scroll
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z = Math.max(8, Math.min(28, camera.position.z + e.deltaY * 0.015));
+      }, { passive: false });
+
+      // Resize observer
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+
+      // Render Loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Core continuous rotation
+        coreGroup.rotation.y += 0.004;
+        coreGroup.rotation.x += 0.002;
+        ring1.rotation.z += 0.005;
+        ring2.rotation.x += 0.006;
+        ring3.rotation.y += 0.003;
+
+        // Smooth damping on mouse drag
+        coreGroup.rotation.y += (targetRotY - coreGroup.rotation.y) * 0.05;
+        coreGroup.rotation.x += (targetRotX - coreGroup.rotation.x) * 0.05;
+
+        // Subtle camera track
+        camera.position.x += (mouseX * 2 - camera.position.x) * 0.03;
+        camera.position.y += (mouseY * 1.5 - camera.position.y) * 0.03;
+        camera.lookAt(0, 0, 0);
+
+        // Orbit satellites
+        satellites.forEach(sat => {
+          sat.angle += sat.speed;
+          sat.mesh.position.x = Math.cos(sat.angle) * sat.radius;
+          sat.mesh.position.z = Math.sin(sat.angle) * sat.radius;
+          sat.mesh.position.y = Math.sin(sat.angle * 2) * (sat.radius * 0.3) + sat.tilt;
+          sat.mesh.rotation.x += 0.02;
+          sat.mesh.rotation.y += 0.02;
+        });
+
+        particleField.rotation.y -= 0.0005;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+    // =========================================================================
+    // 2. 3D TOPOLOGY CANVAS IN #systems
+    // =========================================================================
+    (function initTopology3D() {
+      const canvas = document.getElementById('topology-canvas');
+      if (!canvas || typeof THREE === 'undefined') return;
+
+      const parent = canvas.parentElement;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, parent.clientWidth / parent.clientHeight, 0.1, 1000);
+      camera.position.set(0, 5, 14);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(parent.clientWidth, parent.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // 5 Subsystem 3D Nodes in Spatial Pentagon Layout
+      const systemNodes = [
+        { key: 'workspace', name: 'Workspace', color: 0x7b6dff, geom: new THREE.BoxGeometry(1.2, 1.2, 1.2) },
+        { key: 'contract', name: 'Contract Engine', color: 0xf59e0b, geom: new THREE.TorusGeometry(0.8, 0.25, 12, 24) },
+        { key: 'jev', name: 'JEv Intent', color: 0x06b6d4, geom: new THREE.OctahedronGeometry(1.0, 0) },
+        { key: 'evidence', name: 'Evidence Vault', color: 0x3dd68c, geom: new THREE.DodecahedronGeometry(1.0, 0) },
+        { key: 'voice', name: 'Voice Telephony', color: 0xec4899, geom: new THREE.IcosahedronGeometry(0.9, 0) }
+      ];
+
+      const nodeMeshes = [];
+      const nodeRadius = 5.2;
+      const angleStep = (Math.PI * 2) / 5;
+
+      systemNodes.forEach((node, i) => {
+        const mat = new THREE.MeshBasicMaterial({ color: node.color, wireframe: true });
+        const mesh = new THREE.Mesh(node.geom, mat);
+        const angle = i * angleStep - Math.PI / 2;
+        mesh.position.set(Math.cos(angle) * nodeRadius, Math.sin(i * 0.8) * 0.6, Math.sin(angle) * nodeRadius);
+        mesh.userData = { key: node.key, name: node.name, originalColor: node.color };
+        scene.add(mesh);
+        nodeMeshes.push(mesh);
+      });
+
+      // Animated 3D Laser Connectors between nodes
+      const lineGroup = new THREE.Group();
+      scene.add(lineGroup);
+
+      for (let i = 0; i < nodeMeshes.length; i++) {
+        for (let j = i + 1; j < nodeMeshes.length; j++) {
+          const points = [nodeMeshes[i].position, nodeMeshes[j].position];
+          const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
+          const lineMat = new THREE.LineBasicMaterial({ color: 0x7b6dff, transparent: true, opacity: 0.25 });
+          const line = new THREE.Line(lineGeom, lineMat);
+          lineGroup.add(line);
+        }
+      }
+
+      // Raycasting & Interaction
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(nodeMeshes);
+
+        if (intersects.length > 0) {
+          const key = intersects[0].object.userData.key;
+          const targetBtn = document.querySelector(`.system-nav-btn[onclick*="${key}"]`);
+          if (targetBtn) {
+            targetBtn.click();
+          }
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        const w = parent.clientWidth;
+        const h = parent.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        nodeMeshes.forEach((mesh, idx) => {
+          mesh.rotation.x += 0.01;
+          mesh.rotation.y += 0.012;
+          mesh.position.y += Math.sin(Date.now() * 0.002 + idx) * 0.003;
+        });
+        scene.rotation.y += 0.002;
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+    // =========================================================================
+    // 3. CSS 3D TILT PHYSICS & DYNAMIC SPECULAR GLARE
+    // =========================================================================
+    (function init3DCardTilt() {
+      const cards = document.querySelectorAll('.bento-card, .pricing-card, .hero-mockup');
+
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          const rotateX = ((y - centerY) / centerY) * -12;
+          const rotateY = ((x - centerX) / centerX) * 12;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        });
+      });
+    })();
+
+    // Toggle Hero 3D View vs Command Center UI
+    function toggleHeroView(mode) {
+      const container3D = document.getElementById('hero-webgl-canvas-container');
+      const mockup = document.getElementById('hero-mockup-wrapper');
+      const btn3D = document.getElementById('btn-view-3d');
+      const btnMockup = document.getElementById('btn-view-mockup');
+
+      if (mode === '3d') {
+        container3D.style.display = 'block';
+        mockup.style.display = 'none';
+        btn3D.classList.add('active');
+        btnMockup.classList.remove('active');
+      } else {
+        container3D.style.display = 'none';
+        mockup.style.display = 'block';
+        btnMockup.classList.add('active');
+        btn3D.classList.remove('active');
+      }
+    }
+
     // System Switcher (#systems)
     function switchSystem(systemKey, btnEl) {
       document.querySelectorAll('.system-nav-btn').forEach(btn => btn.classList.remove('active'));
