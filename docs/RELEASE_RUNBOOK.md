@@ -33,6 +33,14 @@ git push -u origin <release-branch>
 gh run list --limit 5
 ```
 
+After authorization, the repository includes a repeatable PowerShell resume
+script that pushes the selected release branch and waits for the matching CI
+run without publishing a package:
+
+```powershell
+pwsh -File scripts/public-release-resume.ps1 -Branch vnext
+```
+
 The authorization command prints a one-time device code and the device-login
 URL. Complete that authorization in the operator's browser; no token value is
 written into the repository or release artifacts.
