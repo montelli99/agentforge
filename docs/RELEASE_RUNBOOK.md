@@ -24,6 +24,19 @@ It can also be started manually with GitHub Actions `workflow_dispatch`.
 The workflow supplies empty provider credentials and runs deterministic tests;
 it must never receive production tokens.
 
+If the repository is being pushed with the GitHub CLI and the token does not
+include the `workflow` scope, authorize it before pushing the branch:
+
+```text
+gh auth refresh -h github.com -s workflow
+git push -u origin <release-branch>
+gh run list --limit 5
+```
+
+The authorization command prints a one-time device code and the device-login
+URL. Complete that authorization in the operator's browser; no token value is
+written into the repository or release artifacts.
+
 Record the hosted run URL and commit SHA in the release record after the run
 finishes successfully.
 
