@@ -8,7 +8,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DockerComputeProvider } from "../src/core/compute/dockerComputeProvider.js";
@@ -33,6 +33,9 @@ async function main(): Promise<void> {
     const taskId = "approved-docker-e2e";
     const manager = new WorktreeManager(root);
     const worktree = await manager.createWorktree({ taskId, branchName: `worktree/${taskId}`, baseBranch: baseSha });
+    // The portable node image runs as an unprivileged user. Make the disposable
+    // fixture writable without changing the production Docker sandbox policy.
+    await chmod(worktree.worktreePath, 0o777);
     const now = Date.now();
     const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
     const task: Task = {

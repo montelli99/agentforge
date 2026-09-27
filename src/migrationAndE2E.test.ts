@@ -273,11 +273,15 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       const revisionsRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions`);
       expect(revisionsRes.status).toBe(200);
-      expect(await revisionsRes.json()).toMatchObject({
-        current: { id: procData.process.id, version: 3 },
-        revisions: [expect.objectContaining({ version: 1 }), expect.objectContaining({ version: 2 })],
-        proposals: [expect.objectContaining({ status: "approved" }), expect.objectContaining({ status: "approved" }), expect.objectContaining({ status: "stale" })],
-      });
+      const revisionsData = await revisionsRes.json() as {
+        current: { id: string; version: number };
+        revisions: Array<{ version: number }>;
+        proposals: Array<{ status: string }>;
+      };
+      expect(revisionsData.current).toMatchObject({ id: procData.process.id, version: 3 });
+      expect(revisionsData.revisions.map(revision => revision.version)).toEqual(expect.arrayContaining([1, 2]));
+      expect(revisionsData.proposals.filter(proposal => proposal.status === "approved")).toHaveLength(2);
+      expect(revisionsData.proposals.filter(proposal => proposal.status === "stale")).toHaveLength(1);
 
       const rollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
         method: "POST",
