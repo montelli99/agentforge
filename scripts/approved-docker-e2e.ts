@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     // fixture writable without changing the production Docker sandbox policy.
     await chmod(worktree.worktreePath, 0o777);
     const now = Date.now();
-    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e');require('node:fs').chmodSync('artifacts/verified.txt',0o666)\"";
+    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e');require('node:fs').chmodSync('artifacts',0o777)\"";
     const task: Task = {
       id: taskId,
       projectId: "local-acceptance",
