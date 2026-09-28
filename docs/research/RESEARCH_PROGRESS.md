@@ -190,3 +190,8 @@ At planning time README.md and package.json were already modified; installation/
 - Confirmed the evidence-pack commit is `d9bd29f` and the working tree contains only pre-existing unrelated user files outside the scoped research changes.
 - Static-site privacy and mobile acceptance checks passed again.
 
+## 2026-09-28 regression verification
+
+- Repository regression suite passed: 86 test files, 480 tests passed, 2 skipped.
+- This rerun followed the package/privacy gate repairs and did not modify any test or protocol files.
+
