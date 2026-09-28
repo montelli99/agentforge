@@ -1,6 +1,7 @@
 <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-  <!-- Outer A Structure & Right Wing -->
-  <path d="M50 8 L15 85 L32 85 L50 45 L68 85 L85 85 Z" />
-  <!-- Crossbar forming the F -->
-  <path d="M42 62 L75 62 L69 76 L35 76 Z" />
+  <!-- The 'F' Core (Left Leg + Peak + Middle Crossbar) -->
+  <polygon points="50,10 18,90 34,90 46,60 70,60 64,45 52,45 58,30" />
+  
+  <!-- The Bottom Right Leg of the 'A' -->
+  <polygon points="58.8,72 74.8,72 82,90 66,90" />
 </svg>
