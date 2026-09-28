@@ -72,3 +72,9 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Hosted workflow run: `36454108855`
 - Result: passed
 - All seven jobs passed after adding the website mobile acceptance check and updating the launch map.
+
+## Revision 40409df
+
+- Hosted workflow run: `36454629818`
+- Result: passed
+- All seven jobs passed after recording the mobile acceptance verification evidence.
