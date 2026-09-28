@@ -51,3 +51,8 @@ must confirm `privateDataIncluded: false`.
 - Native channel fixtures: Telegram, Slack, and Discord lifecycle, routing,
   subgroup, normalization, and fail-closed tests are covered by the focused
   adapter suites. Live provider accounts remain intentionally unconfigured.
+- Telegram native readiness: the locally configured BotFather credential was
+  accepted by Telegram's `getWebhookInfo` through AgentForge's own transport on
+  September 28, 2026. No webhook was configured, no updates were pending, and
+  no polling loop or outbound message was started during the check. The token
+  was not written to the repository or evidence files.
