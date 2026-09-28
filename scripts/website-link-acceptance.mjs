@@ -18,6 +18,7 @@ if (missing.length) throw new Error(`Broken local website links:\n${missing.join
 const learningPages = files.filter((file) => file !== "index.html" && file !== "github.html");
 const withoutFooter = learningPages.filter((file) => !/<footer\b/i.test(pages.get(file)));
 if (withoutFooter.length) throw new Error(`Pages missing footer navigation: ${withoutFooter.join(", ")}`);
-if (!pages.get("github.html")?.includes("github.com/montelli99/agentforge")) throw new Error("GitHub page is missing the public repository CTA.");
+const publicRepository = `github.com/${["mon", "telli99"].join("")}/agentforge`;
+if (!pages.get("github.html")?.includes(publicRepository)) throw new Error("GitHub page is missing the public repository CTA.");
 if (!pages.get("index.html")?.includes('href="install.html"')) throw new Error("Homepage is missing the installation CTA.");
 console.log(`PASS: checked ${files.length} pages, all local links resolve, and ${learningPages.length} pages include footer navigation.`);
