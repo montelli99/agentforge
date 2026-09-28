@@ -23,6 +23,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added a venue-specific submission checklist with evidence, privacy, licensing, author approval and publication-state gates.
 - Full local mechanics sweep passed: all five research slices plus pilot-config validation and TypeScript typecheck.
 - Protocol status advanced to `0.1-mechanics-validated`; model IDs, pricing, sample size and provider configuration remain intentionally unfrozen.
+- Added a related-work register and comparison matrix with source-quality rules and explicit verification placeholders.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
