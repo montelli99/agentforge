@@ -73,6 +73,8 @@ Create incrementally; these paths are planned, not claims they already exist:
 
 The current phase-by-phase state is maintained in [`STATUS_MATRIX.md`](STATUS_MATRIX.md).
 
+The exact inputs needed before model-backed execution are listed in [`NEXT_RUN_INPUTS.md`](NEXT_RUN_INPUTS.md).
+
 
 Keep raw execution logs outside tracked/public files until screened. Add precise ignore rules before creating logs. Record raw-log hashes and sanitization decisions without publishing sensitive content.
 
