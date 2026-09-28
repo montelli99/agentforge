@@ -149,3 +149,8 @@ At planning time README.md and package.json were already modified; installation/
 - Expected documentation terms such as Telegram, CRM and token accounting were reviewed as context, not treated as secret exposure.
 - No benchmark or testing configuration was changed.
 
+## 2026-09-28 status matrix privacy update
+
+- Updated the status matrix to link the passing public-artifact privacy scan.
+- The final human/public-release review remains required; no claim of release approval was added.
+

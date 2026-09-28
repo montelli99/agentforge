@@ -6,7 +6,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 
 | Phase | Status | Evidence | Remaining gate |
 | --- | --- | --- | --- |
-| Scope, privacy and publication boundaries | Complete for local preparation | `WHITE_PAPER_EXECUTION_PLAN.md`, `SUBMISSION_CHECKLIST.md` | Final human/public-release review |
+| Scope, privacy and publication boundaries | Complete for local preparation; public-artifact scan passed | `WHITE_PAPER_EXECUTION_PLAN.md`, `SUBMISSION_CHECKLIST.md`, `RESEARCH_PROGRESS.md` | Final human/public-release review |
 | Source reconnaissance and capability register | In progress; execution-entry inventory complete | `CAPABILITY_EVIDENCE.md`, `SOURCE_RUNTIME_TRACE.md` | Finish remaining source-to-runtime rows and resolve behavioral evidence gaps |
 | Frozen protocol and comparison design | Mechanics validated | `PROTOCOL.md`, `validateProtocol.ts` | Freeze hashes before held-out runs |
 | Synthetic fixtures and deterministic scoring | Initial fixture validated | `research/tasks/offline-intent-v1.json`, `offlineSlice.ts` | Add remaining protocol task families |
