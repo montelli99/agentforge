@@ -35,6 +35,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Integrated sweep, website link acceptance, and static-site verification all pass at the current checkpoint.
 - Focused browser-policy and native-gateway checks passed: 2 files, 10 tests.
 - Focused correction-registry and completion-engine checks passed: 2 files, 27 tests.
+- Extended the source-to-runtime trace for operational memory and JEv; both remain explicitly bounded by their current persistence and calibration limitations.
 - Focused memory, context-optimizer and benchmark checks passed: 3 files, 12 tests.
 - Focused contract-enforcement check passed: 1 file, 1 test; no dedicated workflow-engine test file is present in this checkout.
 
