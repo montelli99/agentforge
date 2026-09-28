@@ -80,6 +80,11 @@ The requirement-by-requirement evidence index is maintained in
   container. Re-run `pnpm test:docker:acceptance` on the release host after
   Docker is available; availability is an environment condition, not a claim
   made by the package.
+- Hosted CI run `36365902052` passed the full Ubuntu, macOS, and Windows matrix
+  on Node 22 and 24, including public-package and isolated-execution
+  acceptance.
+- The public Render site is live from the current `vnext` source. Local
+  completion audit, repository-privacy, and product-isolation gates pass.
 
 ## Implemented but dependent on the deployment environment
 
