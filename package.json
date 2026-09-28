@@ -27,6 +27,7 @@
     "export:metrics": "node --import tsx src/export-metrics.ts",
     "docs:collect": "node scripts/consolidate_markdown.cjs",
     "preview:website": "node scripts/serve-public-site.mjs",
+      "test:website": "node scripts/website-link-acceptance.mjs",
     "vnext": "node --import tsx src/server/start.ts",
     "cli": "node --import tsx src/cli/bin.ts",
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.vnext.json --noEmit false --rootDir src --outDir dist",
