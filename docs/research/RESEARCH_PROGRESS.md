@@ -16,6 +16,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added an optional `SemanticMemoryPersistence` boundary; the default remains in-memory. Durable completion/correction metadata uses separate stores and must not be conflated with semantic memory.
 - Added a temporary JSON adapter slice proving hydration and retrieval across separate OS processes; deployment privacy review remains outstanding.
 - Added a protocol draft that freezes comparison conditions, task families, scoring definitions, run rules and explicit unmeasured outcomes.
+- Added a completion-session handoff slice for persisted goal, requirements, DAG and execution-state continuity.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
@@ -24,7 +25,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 
 ## Next actions
 1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
-2. Run deployment-specific semantic-memory acceptance with a privacy-reviewed adapter, then validate model handoff and correction recurrence.
+2. Run deployment-specific semantic-memory acceptance with a privacy-reviewed adapter, then validate the handoff slice and correction recurrence against model-backed tasks.
 3. Validate the protocol against the local scorers and freeze its version after the negative controls pass.
 4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
 

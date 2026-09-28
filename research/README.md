@@ -36,6 +36,14 @@ node --import tsx research/runner/durableMemorySlice.ts
 
 This uses a temporary JSON adapter and separate writer/reader OS processes. It verifies hydration and retrieval across a restart without network calls. Production deployments still need to supply a privacy-reviewed, tenant-safe persistence adapter.
 
+Run the model-handoff continuity slice:
+
+```powershell
+node --import tsx research/runner/handoffSlice.ts
+```
+
+This creates a synthetic completion session, starts it, constructs a replacement `CompletionEngine`, and verifies that the immutable goal, requirements, DAG, and execution state survive the handoff. It does not measure whether a model resumes the right task actions.
+
 ## Research rules
 
 - Freeze task fixtures and scoring before charged model runs.
