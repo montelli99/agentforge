@@ -25,6 +25,9 @@ const prohibitedContent = [
   /\bPPC(?:\s+Pipeline|\s+Engine)?\b/i,
   /\breal-estate-operations-pack\b/i,
 ];
+const approvedPublicReferences = new Map([
+  ["website/github.html", ["https://github.com/montelli99/agentforge"]],
+]);
 const textExtensions = new Set([".cjs", ".cts", ".css", ".csv", ".html", ".json", ".js", ".md", ".mjs", ".mts", ".svg", ".ts", ".txt", ".yml", ".yaml"]);
 
 const listFiles = args => execFileSync("git", args, { cwd: root, encoding: "utf8" })
@@ -51,7 +54,13 @@ for (const file of files) {
     continue;
   }
   if (!textExtensions.has(path.extname(file).toLowerCase())) continue;
-  const content = fs.readFileSync(absolutePath, "utf8");
+  let content = fs.readFileSync(absolutePath, "utf8");
+  // The public repository URL is a release destination, not private operator
+  // data. Remove only this exact approved reference before scanning the rest
+  // of the page for owner-specific material.
+  for (const reference of approvedPublicReferences.get(file) ?? []) {
+    content = content.replaceAll(reference, "APPROVED_PUBLIC_REPOSITORY");
+  }
   for (const pattern of prohibitedContent) {
     if (pattern.test(content)) violations.push(`${file} matches ${pattern}.`);
   }
