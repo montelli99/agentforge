@@ -20,6 +20,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Consolidated the verified mechanics outputs into `research/results/mechanics-2026-09-28.json` with explicit limitations.
 - Added and validated a zero-spend pilot configuration with concurrency, retry, timeout, billing and unknown-cost stop caps.
 - Added a manuscript scaffold with evidence-linked sections and explicit NOT MEASURED result placeholders.
+- Added a venue-specific submission checklist with evidence, privacy, licensing, author approval and publication-state gates.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
