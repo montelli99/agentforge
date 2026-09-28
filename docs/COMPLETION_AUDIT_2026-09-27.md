@@ -21,6 +21,11 @@ provider or production deployment.
 - Responsive workspace flows for projects, messages, tasks, approvals,
   processes, memory, team room, settings, and first-run setup in the isolated
   browser acceptance fixture.
+- Hosted CI run `36366272950` passed the complete Ubuntu, macOS, and Windows
+  matrix on Node 22 and 24, including public-package and isolated-execution
+  acceptance.
+- The public Render site is deployed from commit `22baa80` and returns HTTP
+  200 with the expected AgentForge entrypoint.
 
 ## Implemented but requiring deployment evidence
 
@@ -41,17 +46,17 @@ provider or production deployment.
 
 ## Current external release gate
 
-`pnpm release:audit` passes all local gates. The public GitHub remote exists,
-but the account currently lacks the `workflow` OAuth scope, so the initial
-branch push and hosted CI evidence are not yet recorded. Once that scope is
-authorized, run:
+`pnpm release:audit` passes all local gates. The public GitHub remote and
+hosted CI evidence are now recorded. Registry publication and provenance
+remain owner-approved release actions. Live provider acceptance remains
+deployment-specific and requires authorized sandbox sessions. To resume the
+repeatable release audit locally, run:
 
 ```powershell
-pwsh -File scripts/public-release-resume.ps1 -Branch vnext
+pnpm release:audit
 ```
 
-The script pushes the branch, waits for the matching CI run, and reports its
-URL and commit SHA. It does not publish a package.
+No package is published by this audit.
 
 ## Evidence sources
 
