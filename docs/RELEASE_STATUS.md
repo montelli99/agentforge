@@ -171,6 +171,13 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 
 ## Latest verification record
 
+- September 28, 2026: the public Render website deployment for commit
+  `47a0b914860dd1172469bdb759914b5b99827991` is live at
+  `https://agentforge-site.onrender.com`. The live response returned HTTP 200,
+  the expected public-site markers, and `Cache-Control: no-store`.
+- September 28, 2026: hosted CI run `36365122230` passed on commit
+  `47a0b914860dd1172469bdb759914b5b99827991` across Ubuntu, macOS, and
+  Windows on Node 22 and 24.
 - September 27, 2026: hosted CI run `36359613619` passed on commit
   `a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32` across Ubuntu, macOS, and
   Windows on Node 22 and 24, including public-package, Docker-isolation,
