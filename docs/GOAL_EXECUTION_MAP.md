@@ -77,9 +77,11 @@ after explicit owner approval.
 archive report, and registry provenance.
 
 **Current state:** local package-ready audit passes and hosted CI is recorded
-for the public repository. Passing run `36359613619` verified commit
-`a17b42bdddcf7ce93ac39ff401db1c58a3f7fa32`. Registry publication and
-provenance verification remain separate operator-approved release actions.
+for the public repository. Passing run `36367238758` verified commit
+`62a5030b23754424cc693567522181890b8ae24e` across Ubuntu, macOS, and Windows
+on Node 22 and 24, including public-package and isolated-execution acceptance.
+Registry publication and provenance verification remain separate
+operator-approved release actions.
 
 ## Governing documents
 
