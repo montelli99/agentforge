@@ -44,7 +44,7 @@ The source audit found these production-facing execution entry points:
 - `src/providers/harness/nativeHarness.ts` is a separate harness provider boundary and also owns a `ContractEnforcer` instance.
 - `src/speculativeExecution.ts` is an explicit speculative path; it selects candidates and invokes the supplied executor, so its caller must provide the same contract/evidence wrapper when used for side effects.
 
-This inventory narrows the remaining integration-coverage requirement: verify that every side-effecting caller (worker, Docker backend, native harness and any speculative executor supplied by a controller) reaches the same contract and completion evidence gates. It does not claim that coverage is complete.
+This inventory narrows the remaining integration-coverage requirement: verify that every side-effecting caller (worker, Docker backend, native harness and any speculative executor supplied by a controller) reaches the same contract and completion evidence gates. The native harness now applies its file-scope contract before both simulation and attached-executor paths; controller-wide completion-evidence coverage remains open.
 
 ## Existing boundary-test inventory
 

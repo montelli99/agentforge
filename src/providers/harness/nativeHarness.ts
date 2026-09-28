@@ -87,30 +87,10 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
       throw new Error(`AgentForge native session ${sessionId} not found`);
     }
 
-    if (this.executor) {
-      const startTime = Date.now();
-      try {
-        const result = await this.executor.executeTask({ session, task });
-        return { taskId: task.taskId, sessionId, status: "success", output: result.output, filesModified: result.filesModified, durationMs: Date.now() - startTime };
-      } catch (error) {
-        return { taskId: task.taskId, sessionId, status: "failure", output: "", error: redactRuntimeError(error), durationMs: Date.now() - startTime };
-      }
-    }
-    if (!this.simulationEnabled) {
-      return {
-        taskId: task.taskId,
-        sessionId,
-        status: "failure",
-        output: "",
-        error: "AgentForge Harness has no execution backend configured. No task was executed.",
-        durationMs: 0,
-      };
-    }
-
     const events = this.activeStreams.get(sessionId) || [];
     const startTime = Date.now();
 
-    // Enforce ExecutionContract below model layer (Section 5)
+    // Enforce the contract before either simulation or a real executor can run.
     if (task.contract && task.inputFiles && task.inputFiles.length > 0) {
       const validation = this.contractEnforcer.validateFileModifications(task.contract, task.inputFiles);
       if (!validation.allowed) {
@@ -131,6 +111,25 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
           durationMs: Date.now() - startTime,
         };
       }
+    }
+
+    if (this.executor) {
+      try {
+        const result = await this.executor.executeTask({ session, task });
+        return { taskId: task.taskId, sessionId, status: "success", output: result.output, filesModified: result.filesModified, durationMs: Date.now() - startTime };
+      } catch (error) {
+        return { taskId: task.taskId, sessionId, status: "failure", output: "", error: redactRuntimeError(error), durationMs: Date.now() - startTime };
+      }
+    }
+    if (!this.simulationEnabled) {
+      return {
+        taskId: task.taskId,
+        sessionId,
+        status: "failure",
+        output: "",
+        error: "AgentForge Harness has no execution backend configured. No task was executed.",
+        durationMs: 0,
+      };
     }
 
     // Enforce timeouts
