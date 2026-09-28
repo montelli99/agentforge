@@ -18,7 +18,7 @@ Status: local preparation only. This file is not a publication approval or a reg
 
 ```text
 pnpm typecheck
-pnpm test --reporter=dot  # 87 files, 482 passed, 2 skipped on 2026-09-28
+pnpm test --reporter=dot  # 87 files, 483 passed, 2 skipped on 2026-09-28
 node --import tsx research/runner/mechanicsSweep.ts
 node scripts/website-link-acceptance.mjs
 node scripts/website-mobile-acceptance.mjs
