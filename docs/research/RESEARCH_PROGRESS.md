@@ -10,6 +10,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Detailed phased plan saved, including data boundaries, micro steps, measurement definitions, budget gates, publication steps and acceptance criteria.
 - Capability evidence register created, separating source/test evidence from claims that still require end-to-end measurement.
 - Targeted checks passed: 4 test files, 13 tests covering operational memory, benchmark execution/routing, corrections and contract enforcement.
+- Added a no-network synthetic runner with a deliberate negative control; this is mechanics evidence only.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
@@ -17,9 +18,9 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Research publication, submission or acceptance.
 
 ## Next actions
-1. Complete the source-to-runtime trace for the capability rows in CAPABILITY_EVIDENCE.md.
-2. Freeze preliminary questions and implement synthetic fixtures/scorers plus no-network runner.
-3. Validate fresh-process memory, model handoff, completion evidence and correction recurrence locally.
+1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
+2. Validate the offline runner and add fresh-process memory, model handoff, completion evidence and correction-recurrence fixtures.
+3. Freeze preliminary questions and protocol after the local scorers pass negative controls.
 4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
 
 ## Dependencies to resolve in parallel
