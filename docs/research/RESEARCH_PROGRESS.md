@@ -185,3 +185,8 @@ At planning time README.md and package.json were already modified; installation/
 - Added `docs/research/RELEASE_EVIDENCE.md` with the local revision, frozen protocol/input hashes and exact non-paid verification commands.
 - The evidence pack explicitly excludes hosted CI, model-backed measurements, registry publication and provenance verification from the completed state.
 
+## 2026-09-28 evidence-pack integrity check
+
+- Confirmed the evidence-pack commit is `d9bd29f` and the working tree contains only pre-existing unrelated user files outside the scoped research changes.
+- Static-site privacy and mobile acceptance checks passed again.
+
