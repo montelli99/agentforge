@@ -15,7 +15,7 @@ Teach someone unfamiliar with agents what they receive, how each capability work
 - website/verify-static.mjs checks only index.html. It does not prove feature-page links, content, accessibility, mobile rendering or deployment. It wrongly treats external navigation/canonical URLs like downloaded assets.
 - Homepage metadata is incomplete; canonical is relative, social artwork is relative, and no full-site crawl acceptance was demonstrated. Keyword metadata does not substitute for useful content.
 - README quickstart assumes an existing checkout and pnpm. It lacks a beginner path from installing prerequisites to first verified outcome per OS.
-- Latest three hosted checks report failure. No GitHub release was returned by gh release list. Existing dated acceptance evidence must not be presented as current whole-product readiness.
+- Hosted CI run `36443768970` is green across Ubuntu, macOS and Windows on Node 22 and Node 24, including public-package acceptance. No GitHub release was returned by `gh release list`; this verified branch is still not a published release artifact.
 - RELEASE_STATUS records prior local Telegram acceptance, but that is not verification of a currently functioning live channel session. Discord and Slack require separate provider acceptance.
 - workspaceApp.ts explicitly says local JSON persistence is not encrypted production storage. The cryptography page must not imply blanket memory encryption. Compression/context-packet implementation exists; actual savings require measured representative tasks.
 
@@ -77,4 +77,4 @@ Outreach research record: creator name, public channel/profile, recent relevant 
 
 Work in small coherent changes. Do not push when verification has failed. Do not replace a failed browser check with a static grep and call it verified. Save rendered evidence and exact revision. Keep private workspace data out of public docs and demos. Update this checklist with implemented/verified/pending states, not vague percentages. Documentation existence, local tests, live provider checks and release availability are four different claims.
 
-Current state: audit and execution plan prepared; website rebuild, per-platform clean installs, current live provider acceptance, marketing workspace installation and video render remain outstanding.
+Current state: website content, installation guidance, link/footers acceptance, sitemap/robots files, privacy gates and hosted matrix verification are complete. Per-platform clean installs, current live provider acceptance, marketing workspace installation and video render remain outstanding.
