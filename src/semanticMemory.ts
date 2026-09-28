@@ -37,6 +37,13 @@ export interface EmbeddingProvider {
   dimension: number;
 }
 
+/** Optional durable boundary for semantic entries. Implementations must apply
+ * their own privacy, encryption and tenant-retention policy. */
+export interface SemanticMemoryPersistence {
+  load(): Promise<SemanticEntry[]> | SemanticEntry[];
+  save(entries: SemanticEntry[]): Promise<void> | void;
+}
+
 function cosineSimilarity(a: Embedding, b: Embedding): number {
   if (a.length !== b.length) return 0;
 
@@ -66,11 +73,13 @@ export class SemanticMemory {
   private maxEntries: number;
   private defaultThreshold: number;
   private providerStatus: EmbeddingProviderStatus | null = null;
+  private loaded = false;
 
   constructor(
     embeddingProvider: EmbeddingProvider,
     maxEntries: number = 10000,
     defaultThreshold: number = 0.85,
+    private readonly persistence?: SemanticMemoryPersistence,
   ) {
     this.embeddingProvider = embeddingProvider;
     this.maxEntries = maxEntries;
@@ -97,6 +106,7 @@ export class SemanticMemory {
     tokenCount: number;
     metadata?: Record<string, unknown>;
   }): Promise<SemanticEntry> {
+    await this.ensureLoaded();
     const embedding = await this.embeddingProvider.embed(params.prompt);
 
     const entry: SemanticEntry = {
@@ -115,11 +125,13 @@ export class SemanticMemory {
 
     this.entries.set(entry.id, entry);
     this.evictIfNeeded();
+    await this.persistEntries();
 
     return entry;
   }
 
   async query(query: SemanticQuery): Promise<SemanticResult> {
+    await this.ensureLoaded();
     const queryEmbedding = await this.embeddingProvider.embed(query.prompt);
     const threshold = query.threshold || this.defaultThreshold;
     const topK = query.topK || 5;
@@ -151,6 +163,7 @@ export class SemanticMemory {
       semanticMatchCounter++;
       bestMatch.entry.lastAccessed = Date.now();
       bestMatch.entry.accessCount++;
+      await this.persistEntries();
 
       return {
         hit: true,
@@ -181,6 +194,28 @@ export class SemanticMemory {
 
   clear(): void {
     this.entries.clear();
+    void this.persistEntries();
+  }
+
+  async initialize(): Promise<void> {
+    await this.ensureLoaded();
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) return;
+    this.loaded = true;
+    if (!this.persistence) return;
+    const persisted = await this.persistence.load();
+    for (const entry of persisted) {
+      if (entry && typeof entry.id === "string" && Array.isArray(entry.embedding)) {
+        this.entries.set(entry.id, entry);
+      }
+    }
+    this.evictIfNeeded();
+  }
+
+  private async persistEntries(): Promise<void> {
+    if (this.persistence) await this.persistence.save(Array.from(this.entries.values()));
   }
 
   getEntryCount(): number {

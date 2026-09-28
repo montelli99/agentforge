@@ -13,7 +13,8 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added a no-network synthetic runner with a deliberate negative control; this is mechanics evidence only.
 - Added a no-network slice invoking the real SemanticMemory and CompletionAuditor classes, including a cross-tenant negative case.
 - Added a no-network correction-governance slice covering pending approval, replay-case creation, and automatic-mutation denial.
-- Source audit found a material boundary: `SemanticMemory` currently keeps entries in a private in-process `Map`; semantic cross-process durability is not yet implemented or proven. Durable completion/correction metadata uses separate stores and must not be conflated with semantic memory.
+- Added an optional `SemanticMemoryPersistence` boundary; the default remains in-memory. Durable completion/correction metadata uses separate stores and must not be conflated with semantic memory.
+- Added a temporary JSON adapter slice proving hydration across separate SemanticMemory instances; separate-process acceptance and deployment privacy review remain outstanding.
 - Added a protocol draft that freezes comparison conditions, task families, scoring definitions, run rules and explicit unmeasured outcomes.
 
 ## Not completed / no claim made
@@ -23,7 +24,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 
 ## Next actions
 1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
-2. Decide and implement the durable semantic-memory path (or explicitly narrow the product/paper claim), then validate it with a fresh-process fixture. The current memory slice is in-process only.
+2. Run a separate-process semantic-memory acceptance test with a privacy-reviewed adapter, then validate model handoff and correction recurrence.
 3. Validate the protocol against the local scorers and freeze its version after the negative controls pass.
 4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
 

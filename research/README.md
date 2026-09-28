@@ -28,6 +28,14 @@ node --import tsx research/runner/correctionSlice.ts
 
 This invokes the real `CorrectionRegistry`, verifies that an unapproved correction cannot become a replay case, and verifies that automatic mutation remains denied until human approval. It does not measure whether a model stops repeating an error.
 
+Run the durable semantic-memory adapter slice:
+
+```powershell
+node --import tsx research/runner/durableMemorySlice.ts
+```
+
+This uses a temporary JSON adapter and two separate `SemanticMemory` instances. It verifies hydration and retrieval across instances without network calls. Production deployments still need to supply a privacy-reviewed, tenant-safe persistence adapter and a separate-process acceptance test.
+
 ## Research rules
 
 - Freeze task fixtures and scoring before charged model runs.
