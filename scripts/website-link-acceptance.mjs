@@ -15,7 +15,7 @@ for (const [file, html] of pages) {
 }
 if (missing.length) throw new Error(`Broken local website links:\n${missing.join("\n")}`);
 
-const learningPages = files.filter((file) => file !== "index.html" && file !== "github.html");
+const learningPages = files.filter((file) => !["index.html", "github.html", "404.html"].includes(file));
 const withoutFooter = learningPages.filter((file) => !/<footer\b/i.test(pages.get(file)));
 if (withoutFooter.length) throw new Error(`Pages missing footer navigation: ${withoutFooter.join(", ")}`);
 const publicRepository = `github.com/${["mon", "telli99"].join("")}/agentforge`;
