@@ -1,0 +1,33 @@
+# AgentForge research progress
+
+Updated: 2026-09-28
+Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
+
+## Completed
+- Owner requested a detailed plan for Luna to execute.
+- Publication routes researched using official arXiv, Zenodo, TMLR and JOSS sources.
+- Initial code reconnaissance identified existing benchmark/memory/JEv/completion entry points.
+- Detailed phased plan saved, including data boundaries, micro steps, measurement definitions, budget gates, publication steps and acceptance criteria.
+- Capability evidence register created, separating source/test evidence from claims that still require end-to-end measurement.
+
+## Not completed / no claim made
+- Full capability audit, benchmark implementation and real-model evaluation.
+- Statistical findings, manuscript results or novelty verification.
+- Research publication, submission or acceptance.
+
+## Next actions
+1. Complete the source-to-runtime trace for the capability rows in CAPABILITY_EVIDENCE.md.
+2. Freeze preliminary questions and implement synthetic fixtures/scorers plus no-network runner.
+3. Validate fresh-process memory, model handoff, completion evidence and correction recurrence locally.
+4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
+
+## Dependencies to resolve in parallel
+- Exact paid model routes and owner-approved experimental spend ceiling.
+- Human scientific review and final author/publication approval.
+- arXiv author account/endorsement, only when approaching submission; this does not block local work.
+
+## Experiment register
+No experimental runs have been performed for this study. Add run IDs, code/config hashes, outcomes, costs and artifact paths here as work proceeds.
+
+## Existing worktree note
+At planning time README.md and package.json were already modified; installation/deployment docs, branding and scratch files were also present. Preserve unrelated work. Do not stage the whole repository.
