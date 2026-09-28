@@ -86,3 +86,10 @@ At planning time README.md and package.json were already modified; installation/
 - Verified the static-site privacy guard: the interactive preview is self-contained and privacy-safe.
 - These checks do not alter or substitute for the approved research protocol.
 
+## 2026-09-28 citation link verification
+
+- Re-opened the official OpenClaw integrations, getting-started and Telegram documentation URLs.
+- Re-opened the official Hermes quickstart and persistent-memory documentation URLs.
+- Re-opened the official OpenMuse repository and roadmap URLs.
+- All seven references resolved during this check. This verifies link availability only; it does not turn source descriptions into performance evidence.
+
