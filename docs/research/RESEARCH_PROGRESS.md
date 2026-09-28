@@ -195,3 +195,8 @@ At planning time README.md and package.json were already modified; installation/
 - Repository regression suite passed: 86 test files, 480 tests passed, 2 skipped.
 - This rerun followed the package/privacy gate repairs and did not modify any test or protocol files.
 
+## 2026-09-28 latest readiness recheck
+
+- Public release readiness still reports `packageReady: true`, `publishReady: false`, with no local blockers.
+- The only reported gaps remain hosted CI evidence and registry/provenance verification.
+
