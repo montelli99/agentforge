@@ -93,3 +93,9 @@ At planning time README.md and package.json were already modified; installation/
 - Re-opened the official OpenMuse repository and roadmap URLs.
 - All seven references resolved during this check. This verifies link availability only; it does not turn source descriptions into performance evidence.
 
+## 2026-09-28 primary literature register
+
+- Added primary references for virtualized memory, long-term interactive memory evaluation and trajectory-aware tool-use evaluation.
+- Mapped each paper to the study questions without importing its results into AgentForge claims.
+- The approved protocol and testing configuration remain unchanged.
+

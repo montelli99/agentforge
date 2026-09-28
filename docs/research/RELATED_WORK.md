@@ -34,6 +34,14 @@ Before comparative testing, pin each project to a commit or release, record the 
 - Long-running and handoff evaluation: identify restart, worker replacement, correction and recovery tests.
 - Open-source agent runtimes: compare installation, channels, permissions, plugins, observability and reproducibility.
 
+## Primary research references
+
+These papers frame the evaluation questions; they are not outcome evidence for AgentForge:
+
+- Packer et al., “MemGPT: Towards LLMs as Operating Systems” (2023): https://arxiv.org/abs/2310.08560
+- Wu et al., “LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory” (2024): https://arxiv.org/abs/2410.10813
+- “TRAJECT-Bench: A Trajectory-Aware Benchmark for Evaluating Agentic Tool Use” (2025): https://arxiv.org/abs/2510.04550
+
 ## Source quality rules
 
 - Prefer original papers, official repositories, official documentation and standards.
