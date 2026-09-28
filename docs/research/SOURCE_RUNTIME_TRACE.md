@@ -45,3 +45,12 @@ The source audit found these production-facing execution entry points:
 - `src/speculativeExecution.ts` is an explicit speculative path; it selects candidates and invokes the supplied executor, so its caller must provide the same contract/evidence wrapper when used for side effects.
 
 This inventory narrows the remaining integration-coverage requirement: verify that every side-effecting caller (worker, Docker backend, native harness and any speculative executor supplied by a controller) reaches the same contract and completion evidence gates. It does not claim that coverage is complete.
+
+## Existing boundary-test inventory
+
+- `src/core/runtime/taskWorkerRuntime.test.ts` covers fail-closed startup, explicit backend execution, retry/resume behavior and readiness reporting.
+- `src/core/runtime/contractedDockerExecutionBackend.test.ts` covers the contracted Docker backend boundary.
+- `src/providers/harness/harnessExecutors.test.ts` covers the native harness executor boundary.
+- `src/broker.test.ts` covers speculative executor selection and execution behavior.
+
+These tests establish component behavior independently. A single controller-path test proving that all side-effecting callers share one completion/evidence gate remains intentionally open.
