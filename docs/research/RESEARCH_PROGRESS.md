@@ -168,3 +168,10 @@ At planning time README.md and package.json were already modified; installation/
 - External proof remains correctly open: hosted CI evidence and registry/provenance publication have not been performed.
 - The approved research protocol and benchmark tests were not changed.
 
+## 2026-09-28 package acceptance repair
+
+- Public package surface and archive privacy acceptance passed.
+- CLI acceptance initially found a package metadata mismatch: the `agentforge` bin path lacked the required explicit `./` prefix.
+- Corrected only that package metadata field; CLI acceptance now passes and public release readiness reports no local blockers.
+- External hosted-CI and registry/provenance evidence remain open. The approved research protocol and benchmark tests were not changed.
+
