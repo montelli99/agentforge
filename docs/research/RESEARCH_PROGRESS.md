@@ -119,3 +119,9 @@ At planning time README.md and package.json were already modified; installation/
 - Left normal end-to-end model/tool tracing, context-fact preservation, workflow anti-self-report coverage, correction recurrence, version pinning and citation-claim audits open.
 - No testing or protocol definitions were changed.
 
+## 2026-09-28 literature metadata audit
+
+- Added author lists and publication years from the primary arXiv records for MemGPT, LongMemEval and TRAJECT-Bench.
+- Confirmed the register describes what each paper evaluates rather than importing its results into AgentForge claims.
+- This closes the metadata portion of the literature-register task; version pinning and claim-by-claim citation audit remain open.
+

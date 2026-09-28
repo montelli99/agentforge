@@ -38,9 +38,9 @@ Before comparative testing, pin each project to a commit or release, record the 
 
 These papers frame the evaluation questions; they are not outcome evidence for AgentForge:
 
-- Packer et al., “MemGPT: Towards LLMs as Operating Systems” (2023): https://arxiv.org/abs/2310.08560
-- Wu et al., “LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory” (2024): https://arxiv.org/abs/2410.10813
-- “TRAJECT-Bench: A Trajectory-Aware Benchmark for Evaluating Agentic Tool Use” (2025): https://arxiv.org/abs/2510.04550
+- Packer, Wooders, Lin, Fang, Patil, Stoica and Gonzalez, “MemGPT: Towards LLMs as Operating Systems” (2023): https://arxiv.org/abs/2310.08560
+- Wu, Wang, Yu, Zhang, Chang and Yu, “LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory” (2024): https://arxiv.org/abs/2410.10813
+- He, Dai, He, Liu, Tang, Lu, Li, Ding, Mukherjee, Wang, Xing, Tang and Dumoulin, “TRAJECT-Bench: A Trajectory-Aware Benchmark for Evaluating Agentic Tool Use” (2025): https://arxiv.org/abs/2510.04550
 
 ## Source quality rules
 
