@@ -52,3 +52,10 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Installed it into a clean temporary npm project with no workspace dependencies.
 - Verified the published CLI starts and returns its help/usage output through `npm exec agentforge --help`.
 - Verified package metadata reports `agentforge` version `0.1.0`.
+
+## Revision 45cde1c
+
+- Hosted workflow run: `36450788557`
+- Result: passed
+- All seven jobs passed after correcting the public repository privacy allowlist for canonical package metadata.
+- Release audit: `packageReady: true`, with no local blockers.
