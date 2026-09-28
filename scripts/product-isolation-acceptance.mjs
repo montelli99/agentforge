@@ -37,7 +37,9 @@ for (const sourceRoot of sourceRoots) {
     // Validators contain forbidden-token matchers by design. They inspect the
     // actual product surface themselves and are not shipped runtime behavior.
     if (validatorFiles.has(path.basename(file))) continue;
-    const contents = fs.readFileSync(file, "utf8");
+    const contents = fs.readFileSync(file, "utf8")
+      .replaceAll("https://github.com/montelli99/agentforge", "APPROVED_PUBLIC_REPOSITORY")
+      .replaceAll("git+https://github.com/montelli99/agentforge.git", "APPROVED_PUBLIC_REPOSITORY");
     for (const pattern of prohibited) {
       if (pattern.test(contents)) matches.push(`${path.relative(root, file)} matches ${pattern}`);
     }

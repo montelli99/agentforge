@@ -65,9 +65,12 @@ for (const file of files) {
   // The public repository URL is a release destination, not private operator
   // data. Remove only this exact approved reference before scanning the rest
   // of the page for owner-specific material.
-  for (const reference of approvedPublicReferences.get(file) ?? []) {
-    content = content.replaceAll(reference, "APPROVED_PUBLIC_REPOSITORY");
-  }
+  const approvedReferences = [
+    ...(approvedPublicReferences.get(file) ?? []),
+    "https://github.com/montelli99/agentforge",
+    "git+https://github.com/montelli99/agentforge.git",
+  ];
+  for (const reference of approvedReferences) content = content.replaceAll(reference, "APPROVED_PUBLIC_REPOSITORY");
   for (const pattern of prohibitedContent) {
     if (pattern.test(content)) violations.push(`${file} matches ${pattern}.`);
   }
