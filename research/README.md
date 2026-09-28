@@ -20,6 +20,14 @@ node --import tsx research/runner/memoryAndEvidenceSlice.ts
 
 This invokes the real `SemanticMemory` and `CompletionAuditor` classes with deterministic synthetic inputs. It checks a same-tenant retrieval hit, a cross-tenant miss, and an auditor pass. It is not a fresh-process durability or model-handoff test.
 
+Run the correction-governance slice:
+
+```powershell
+node --import tsx research/runner/correctionSlice.ts
+```
+
+This invokes the real `CorrectionRegistry`, verifies that an unapproved correction cannot become a replay case, and verifies that automatic mutation remains denied until human approval. It does not measure whether a model stops repeating an error.
+
 ## Research rules
 
 - Freeze task fixtures and scoring before charged model runs.

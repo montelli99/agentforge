@@ -12,6 +12,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Targeted checks passed: 4 test files, 13 tests covering operational memory, benchmark execution/routing, corrections and contract enforcement.
 - Added a no-network synthetic runner with a deliberate negative control; this is mechanics evidence only.
 - Added a no-network slice invoking the real SemanticMemory and CompletionAuditor classes, including a cross-tenant negative case.
+- Added a no-network correction-governance slice covering pending approval, replay-case creation, and automatic-mutation denial.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
