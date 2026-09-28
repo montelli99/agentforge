@@ -25,6 +25,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Protocol status advanced to `0.1-mechanics-validated`; model IDs, pricing, sample size and provider configuration remain intentionally unfrozen.
 - Added a related-work register and comparison matrix with source-quality rules and explicit verification placeholders.
 - Added a sanitized results ledger and protocol-consistency validator so frozen conditions, outcomes and publication boundaries stay aligned.
+- Re-ran the approved mechanics sweep after cleanup; all checks passed with zero network and provider calls.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
