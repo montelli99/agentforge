@@ -34,7 +34,7 @@ Run the durable semantic-memory adapter slice:
 node --import tsx research/runner/durableMemorySlice.ts
 ```
 
-This uses a temporary JSON adapter and two separate `SemanticMemory` instances. It verifies hydration and retrieval across instances without network calls. Production deployments still need to supply a privacy-reviewed, tenant-safe persistence adapter and a separate-process acceptance test.
+This uses a temporary JSON adapter and separate writer/reader OS processes. It verifies hydration and retrieval across a restart without network calls. Production deployments still need to supply a privacy-reviewed, tenant-safe persistence adapter.
 
 ## Research rules
 
