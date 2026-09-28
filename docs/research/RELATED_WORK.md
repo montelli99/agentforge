@@ -25,6 +25,14 @@ Official starting points used for the initial register (accessed 2026-09-28):
 
 Before comparative testing, pin each project to a commit or release, record the date, document enabled channels/tools/models, and preserve the exact setup commands. URLs alone do not establish a comparable configuration.
 
+### Source pin snapshot (2026-09-28)
+
+- OpenClaw `openclaw/openclaw` HEAD: `57fd5038c5e977476ed9c8d226ed075d4fcd18f9`
+- Hermes Agent `NousResearch/hermes-agent` `main`: `b9df1cccaec26a910e5f0d1d77f52a71641e3d98`
+- OpenMuse `CopilotKit/openmuse` HEAD: `34b15bc80340e582fb8c25573646cfb0bbc5184d`
+
+These refs are source-audit pins only. No comparative run has been started from them.
+
 ## Research areas to cover
 
 - Agent memory and long-horizon continuity: identify persistence model, retrieval method, conflict handling, provenance and evaluation task.

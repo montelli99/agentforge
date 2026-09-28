@@ -131,3 +131,9 @@ At planning time README.md and package.json were already modified; installation/
 - Recorded the exact supported statement and the boundary for each source; no source is used to imply AgentForge performance or superiority.
 - The remaining citation gate is version pinning and final pre-submission recheck.
 
+## 2026-09-28 comparison source pins
+
+- Recorded immutable source refs for OpenClaw, Hermes Agent and OpenMuse in `RELATED_WORK.md`.
+- These pins are for reproducible source inspection only; no provider, model or comparative run was performed.
+- This closes the initial version-pinning preparation gate while leaving matched configuration testing open.
+
