@@ -74,3 +74,9 @@ At planning time README.md and package.json were already modified; installation/
 - Recorded only implementation-level comparison points (server-owned jobs, reviews, persistent browser/computer workers and artifacts); no performance, novelty or superiority claim was added.
 - The approved AgentForge protocol and test configuration were not changed.
 
+## 2026-09-28 status matrix refinement
+
+- Marked the execution-entry inventory as complete while keeping the broader source reconnaissance in progress.
+- Marked the external comparison register as expanded with OpenClaw, Hermes and OpenMuse references; matched-version testing remains open.
+- No protocol, fixture, scorer, test command or benchmark condition was changed.
+

@@ -7,7 +7,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Phase | Status | Evidence | Remaining gate |
 | --- | --- | --- | --- |
 | Scope, privacy and publication boundaries | Complete for local preparation | `WHITE_PAPER_EXECUTION_PLAN.md`, `SUBMISSION_CHECKLIST.md` | Final human/public-release review |
-| Source reconnaissance and capability register | In progress | `CAPABILITY_EVIDENCE.md`, `SOURCE_RUNTIME_TRACE.md` | Finish remaining source-to-runtime rows |
+| Source reconnaissance and capability register | In progress; execution-entry inventory complete | `CAPABILITY_EVIDENCE.md`, `SOURCE_RUNTIME_TRACE.md` | Finish remaining source-to-runtime rows and resolve behavioral evidence gaps |
 | Frozen protocol and comparison design | Mechanics validated | `PROTOCOL.md`, `validateProtocol.ts` | Freeze hashes before held-out runs |
 | Synthetic fixtures and deterministic scoring | Initial fixture validated | `research/tasks/offline-intent-v1.json`, `offlineSlice.ts` | Add remaining protocol task families |
 | Memory, correction, handoff and evidence mechanics | Local mechanics validated | Five research slices and `mechanicsSweep.ts` | Production-path and model-backed acceptance |
@@ -20,7 +20,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Memory, context and benchmark mechanics | Focused checks verified | 3 files, 12 tests passed; offline and cross-process slices also pass | Model-backed retention, token savings and quality remain unmeasured |
 | Correction governance and completion auditing | Focused checks verified | 2 files, 27 tests passed; approval boundary and audit mechanics recorded | Recurrence reduction and full controller-path coverage remain open |
 | Operational memory and JEv routing | Source trace verified | `SOURCE_RUNTIME_TRACE.md` documents namespace filtering, optional persistence, deterministic routing and fixed-confidence limits | Cross-process deployment policy and calibrated routing study remain open |
-| External comparisons | Research register started | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
+| External comparisons | Research register expanded with OpenClaw, Hermes and OpenMuse source references | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
 | Publication submission | Not started | `SUBMISSION_CHECKLIST.md` | Results, authorship approval, archive and venue submission |
 
 ## Current truthful release state
