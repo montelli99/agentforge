@@ -27,6 +27,7 @@ const prohibitedContent = [
 ];
 const approvedPublicReferences = new Map([
   ["website/github.html", ["https://github.com/montelli99/agentforge"]],
+  ["website/install.html", ["https://github.com/montelli99/agentforge"]],
 ]);
 const textExtensions = new Set([".cjs", ".cts", ".css", ".csv", ".html", ".json", ".js", ".md", ".mjs", ".mts", ".svg", ".ts", ".txt", ".yml", ".yaml"]);
 
