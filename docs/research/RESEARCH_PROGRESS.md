@@ -273,6 +273,12 @@ At planning time README.md and package.json were already modified; installation/
 - Kept the abstract, results and conclusion unclaimed until measured results exist.
 - Manuscript validator passes with no unsupported claims detected.
 
+## 2026-09-28 reproducibility page
+
+- Added `docs/research/REPRODUCTION.md` with clean-checkout, zero-spend sweep, broader verification and charged-evaluation boundary instructions.
+- Updated the public research page to link directly to the reproduction document.
+- Manuscript, website link/mobile/static and public-privacy checks all pass.
+
 ## 2026-09-28 mechanics sweep recheck
 
 - Re-ran the complete zero-spend mechanics sweep: all 11 runners passed, with zero network/provider calls and all frozen input hashes unchanged.
