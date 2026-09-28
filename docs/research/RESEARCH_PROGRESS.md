@@ -31,6 +31,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added `NEXT_RUN_INPUTS.md` to preserve the exact continuation point before model-backed evaluation.
 - Added the verified regression-suite result to the execution status matrix.
 - Audited public comparison and manuscript language; unsupported superiority, novelty and market-leadership claims remain excluded.
+- Corrected research-page evidence links to deployable public GitHub paths; website and static acceptance passed afterward.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
