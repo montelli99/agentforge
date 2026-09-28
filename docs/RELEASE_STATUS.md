@@ -90,6 +90,9 @@ The requirement-by-requirement evidence index is maintained in
   Docker acceptance, and approved Docker end-to-end evidence.
 - The full Vitest regression suite passed with 86 files and 480 tests; two
   tests remain skipped only behind explicit live-test opt-in.
+- A read-only native Telegram BotFather check accepted the configured token,
+  returned the bot identity, reported no webhook, zero pending updates, and
+  no last-error state. No polling or outbound message was performed.
 
 ## Implemented but dependent on the deployment environment
 
