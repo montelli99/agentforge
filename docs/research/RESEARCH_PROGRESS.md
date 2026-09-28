@@ -254,3 +254,8 @@ At planning time README.md and package.json were already modified; installation/
 - Re-ran the mobile acceptance check across all 42 public pages; metadata and fixed-width hazard checks passed.
 - This verifies static mobile constraints only; live device rendering and download verification remain separate release gates.
 
+## 2026-09-28 full regression verification
+
+- Full repository regression passed after the workflow-facade coverage addition: 87 test files, 482 tests passed, 2 skipped.
+- The approved protocol and mechanics-only boundary remain unchanged.
+
