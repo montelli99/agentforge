@@ -279,6 +279,12 @@ At planning time README.md and package.json were already modified; installation/
 - Updated the public research page to link directly to the reproduction document.
 - Manuscript, website link/mobile/static and public-privacy checks all pass.
 
+## 2026-09-28 mechanics-verified white paper completion
+
+- Completed the abstract, mechanics results table, limitations boundary and conclusion in `paper.md`.
+- The manuscript now presents the verified zero-spend mechanics evidence while keeping model-backed outcomes explicitly `NOT MEASURED`.
+- Manuscript validation passes with no unsupported claims detected.
+
 ## 2026-09-28 mechanics sweep recheck
 
 - Re-ran the complete zero-spend mechanics sweep: all 11 runners passed, with zero network/provider calls and all frozen input hashes unchanged.
