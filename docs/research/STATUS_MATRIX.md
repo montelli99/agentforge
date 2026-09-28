@@ -14,6 +14,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Zero-spend controls and accounting | Complete for dry-run guard | `pilot-v0.1.json`, `validatePilotConfig.ts` | Owner-approved paid-run ceiling |
 | Manuscript and results records | Scaffold complete | `paper.md`, `RESULTS.md`, `validateManuscript.ts` | Replace placeholders only after measured study |
 | Website research disclosure | Complete locally | `website/research.html`, static/link acceptance | Live deployment verification |
+| Repository regression suite | Verified | 86 test files passed, 480 tests passed, 2 skipped | Re-run after future code changes |
 | External comparisons | Research register started | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
 | Publication submission | Not started | `SUBMISSION_CHECKLIST.md` | Results, authorship approval, archive and venue submission |
 
