@@ -28,6 +28,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Re-ran the approved mechanics sweep after cleanup; all checks passed with zero network and provider calls.
 - Ran the repository test suite unchanged: 86 files passed, 480 tests passed, 2 skipped.
 - Added and linked the public research disclosure page; static and website link acceptance passed.
+- Added `NEXT_RUN_INPUTS.md` to preserve the exact continuation point before model-backed evaluation.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
