@@ -85,6 +85,9 @@ The requirement-by-requirement evidence index is maintained in
   acceptance.
 - The public Render site is live from the current `vnext` source. Local
   completion audit, repository-privacy, and product-isolation gates pass.
+- The complete `pnpm verify:public` sequence passed on the release host,
+  including typecheck, build, archive privacy, persistence crash recovery,
+  Docker acceptance, and approved Docker end-to-end evidence.
 
 ## Implemented but dependent on the deployment environment
 
