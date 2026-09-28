@@ -4,7 +4,7 @@ Status: local preparation only. This file is not a publication approval or a reg
 
 ## Revision
 
-- Local release-readiness revision: `96809cb4adf60656324db3e52e4af430bee127f0`
+- Local release-readiness revision: `d42719f1a4ec44bcc4d05269bd4191267fe72972`
 
 ## Frozen research inputs
 
@@ -18,6 +18,7 @@ Status: local preparation only. This file is not a publication approval or a reg
 
 ```text
 pnpm typecheck
+pnpm test --reporter=dot  # 87 files, 482 passed, 2 skipped on 2026-09-28
 node --import tsx research/runner/mechanicsSweep.ts
 node scripts/website-link-acceptance.mjs
 node scripts/website-mobile-acceptance.mjs
