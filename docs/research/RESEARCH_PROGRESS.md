@@ -142,3 +142,10 @@ At planning time README.md and package.json were already modified; installation/
 - Updated the status matrix to mark the source register and immutable repository pins complete.
 - Matched supported configurations, live provider round trips and outcome comparisons remain open by design.
 
+## 2026-09-28 public-artifact privacy scan
+
+- Scanned `docs/research`, `research`, and `website` for email addresses, phone-number patterns, local user paths, credential prefixes and private CRM identifiers.
+- No personal credentials, private paths, phone numbers or account secrets were found in the public research artifacts.
+- Expected documentation terms such as Telegram, CRM and token accounting were reviewed as context, not treated as secret exposure.
+- No benchmark or testing configuration was changed.
+
