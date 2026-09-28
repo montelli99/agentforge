@@ -26,6 +26,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added a related-work register and comparison matrix with source-quality rules and explicit verification placeholders.
 - Added a sanitized results ledger and protocol-consistency validator so frozen conditions, outcomes and publication boundaries stay aligned.
 - Re-ran the approved mechanics sweep after cleanup; all checks passed with zero network and provider calls.
+- Ran the repository test suite unchanged: 86 files passed, 480 tests passed, 2 skipped.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
