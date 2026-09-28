@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: agentforge-site
+    runtime: static
+    rootDir: website
+    buildCommand: node verify-static.mjs
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-store
