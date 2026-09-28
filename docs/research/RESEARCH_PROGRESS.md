@@ -249,3 +249,8 @@ At planning time README.md and package.json were already modified; installation/
 - Re-ran public release readiness, product-isolation, repository-privacy, package-privacy and CLI acceptance successfully.
 - Release readiness remains `packageReady: true` and `publishReady: false` only because hosted CI, registry/provenance evidence and publication actions are intentionally external gates.
 
+## 2026-09-28 website mobile acceptance
+
+- Re-ran the mobile acceptance check across all 42 public pages; metadata and fixed-width hazard checks passed.
+- This verifies static mobile constraints only; live device rendering and download verification remain separate release gates.
+
