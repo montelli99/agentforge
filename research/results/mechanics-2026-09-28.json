@@ -1,0 +1,52 @@
+{
+  "releaseStatus": "mechanics-only",
+  "experimentDate": "2026-09-28",
+  "syntheticOnly": true,
+  "networkCalls": 0,
+  "providerCalls": 0,
+  "runs": [
+    {
+      "experimentId": "offline-slice-2026-09-28-v1",
+      "runner": "research/runner/offlineSlice.ts",
+      "cases": 2,
+      "passedCases": 2,
+      "negativeControlFailedCases": 2,
+      "negativeControlRejected": true
+    },
+    {
+      "experimentId": "memory-evidence-slice-2026-09-28-v1",
+      "runner": "research/runner/memoryAndEvidenceSlice.ts",
+      "retainedHit": true,
+      "crossTenantIsolation": true,
+      "completionAuditPassed": true
+    },
+    {
+      "experimentId": "correction-slice-2026-09-28-v1",
+      "runner": "research/runner/correctionSlice.ts",
+      "pendingReplayRejected": true,
+      "automaticMutationAllowed": false,
+      "approvedReplayCreated": true
+    },
+    {
+      "experimentId": "durable-memory-slice-2026-09-28-v1",
+      "runner": "research/runner/durableMemorySlice.ts",
+      "writerPersistedEntries": 1,
+      "retainedAcrossSeparateProcesses": true
+    },
+    {
+      "experimentId": "handoff-slice-2026-09-28-v1",
+      "runner": "research/runner/handoffSlice.ts",
+      "restored": true,
+      "state": "EXECUTING",
+      "goalHashPreserved": true,
+      "requirementsPreserved": true,
+      "dagPreserved": true
+    }
+  ],
+  "limitations": [
+    "These runs use synthetic deterministic fixtures and make no model calls.",
+    "They do not establish model quality, token savings, cost, latency, correction recurrence, or production reliability.",
+    "The durable memory result uses a temporary JSON adapter; deployment privacy, encryption, retention and tenant policy remain deployment-specific.",
+    "A replacement engine restored state, but model-backed next-action quality remains unmeasured."
+  ]
+}
