@@ -1,7 +1,7 @@
 # AgentForge evaluation protocol
 
-Version: 0.1-draft  
-Status: mechanics and protocol freeze candidate; no paid or model-backed results.
+Version: 0.1-mechanics-validated  
+Status: local mechanics validated; no paid or model-backed results.
 
 ## Purpose
 
@@ -67,7 +67,7 @@ The following are verified mechanics only:
 
 The following remain unmeasured:
 
-- cross-process semantic-memory durability;
+- deployment-specific semantic-memory privacy, encryption and retention;
 - model handoff quality;
 - model quality, token usage, latency and cost;
 - lower correction recurrence;
@@ -75,6 +75,8 @@ The following remain unmeasured:
 - production provider round trips.
 
 Do not write an abstract, result claim or superiority claim until these statuses are updated with run IDs and artifacts.
+
+The local mechanics were re-run together on 2026-09-28 with the zero-spend pilot validator and TypeScript typecheck. This validates the protocol harness, not model IDs, pricing, sample size or provider-specific configuration.
 
 ## Reproducibility record
 

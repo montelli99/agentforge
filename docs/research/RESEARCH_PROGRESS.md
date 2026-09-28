@@ -22,6 +22,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added a manuscript scaffold with evidence-linked sections and explicit NOT MEASURED result placeholders.
 - Added a venue-specific submission checklist with evidence, privacy, licensing, author approval and publication-state gates.
 - Full local mechanics sweep passed: all five research slices plus pilot-config validation and TypeScript typecheck.
+- Protocol status advanced to `0.1-mechanics-validated`; model IDs, pricing, sample size and provider configuration remain intentionally unfrozen.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
