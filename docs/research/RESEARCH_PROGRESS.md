@@ -18,6 +18,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Added a protocol draft that freezes comparison conditions, task families, scoring definitions, run rules and explicit unmeasured outcomes.
 - Added a completion-session handoff slice for persisted goal, requirements, DAG and execution-state continuity.
 - Consolidated the verified mechanics outputs into `research/results/mechanics-2026-09-28.json` with explicit limitations.
+- Added and validated a zero-spend pilot configuration with concurrency, retry, timeout, billing and unknown-cost stop caps.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
@@ -28,7 +29,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
 2. Run deployment-specific semantic-memory acceptance with a privacy-reviewed adapter, then validate the handoff slice and correction recurrence against model-backed tasks.
 3. Validate the protocol against the local scorers and freeze its version after the negative controls pass; the current mechanics results are recorded.
-4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
+4. Prepare a real-model pilot estimate and obtain research spend ceiling before charged batches; the current config is deliberately zero-spend.
 
 ## Dependencies to resolve in parallel
 - Exact paid model routes and owner-approved experimental spend ceiling.

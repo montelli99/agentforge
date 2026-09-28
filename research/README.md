@@ -51,3 +51,11 @@ This creates a synthetic completion session, starts it, constructs a replacement
 - Treat missing provider usage or cost as unknown, never zero.
 - Keep raw logs out of the public repository until they pass privacy screening.
 - See `docs/research/WHITE_PAPER_EXECUTION_PLAN.md` for the complete protocol and publication gates.
+
+Validate the dry-run pilot configuration:
+
+```powershell
+node --import tsx research/runner/validatePilotConfig.ts
+```
+
+The pilot config intentionally permits zero provider spend only. It is not authorization to start paid model runs.

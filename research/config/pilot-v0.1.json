@@ -1,0 +1,26 @@
+{
+  "protocolVersion": "0.1-draft",
+  "experimentId": "agentforge-pilot-v0.1",
+  "networkAllowed": false,
+  "providerCallsAllowed": false,
+  "conditions": ["B0", "B1", "AF"],
+  "developmentTasks": 12,
+  "replicatesPerCondition": 2,
+  "plannedTrajectories": 72,
+  "caps": {
+    "maxConcurrentTrajectories": 1,
+    "maxAttemptsPerTrajectory": 2,
+    "maxWallTimeMsPerTrajectory": 120000,
+    "maxEstimatedUsd": 0,
+    "stopOnUnknownBilling": true
+  },
+  "requiredUsageFields": ["inputTokens", "cachedInputTokens", "outputTokens", "totalTokens", "currency", "costSource"],
+  "requiredArtifacts": ["run-manifest.json", "sanitized-results.json", "failure-log.json"],
+  "analysisSet": "all-attempts",
+  "status": "mechanics-only-until-owner-authorizes-provider-runs",
+  "notes": [
+    "This configuration is a planning and dry-run artifact, not authorization to spend money.",
+    "Held-out task count and model-backed pilot require protocol freeze and owner-approved budget.",
+    "No credentials, provider names, private data, or real account identifiers belong in this file."
+  ]
+}
