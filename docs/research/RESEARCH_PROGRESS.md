@@ -265,6 +265,7 @@ At planning time README.md and package.json were already modified; installation/
 - Added a regression proving an unauthorized file write is rejected before the executor runs.
 - Focused boundary tests and typecheck passed.
 - Re-ran product-isolation, repository-privacy, package-privacy, CLI acceptance and release-evidence checks after the repair; all passed.
+- Consolidated public-release readiness also passes with `packageReady: true`, no local blockers, and only hosted-CI/registry-provenance evidence remaining external.
 
 ## 2026-09-28 mechanics sweep recheck
 
