@@ -75,3 +75,11 @@ node --import tsx research/runner/validateProtocol.ts
 ```
 
 This confirms that the frozen conditions and primary outcomes named by the protocol are represented before any future result is treated as publishable.
+
+Validate source paths cited by the capability register:
+
+```powershell
+node --import tsx research/runner/validateEvidencePaths.ts
+```
+
+This catches stale source references after refactors; it does not turn source existence into a behavior or performance claim.
