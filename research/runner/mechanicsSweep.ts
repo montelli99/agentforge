@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../..");
 const runners = [
+  "hashProtocolInputs.ts",
   "validateTaskFixtures.ts",
   "offlineSlice.ts",
   "memoryAndEvidenceSlice.ts",
