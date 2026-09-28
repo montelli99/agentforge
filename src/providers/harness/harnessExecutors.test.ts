@@ -49,6 +49,37 @@ describe("public harness executors", () => {
     await harness.shutdown();
   });
 
+  it("enforces file scope before an attached executor can run", async () => {
+    let ran = false;
+    const executor = {
+      async createSession() {},
+      async executeTask() { ran = true; return { output: "should not run" }; },
+      async shutdown() {},
+    };
+    const harness = new AgentForgeNativeHarnessProvider(false, executor as unknown as NativeComputeExecutor);
+    const started = await harness.startSession({ agentId: "a1", systemPrompt: "test" });
+    const result = await harness.executeTask(started.sessionId, {
+      taskId: "t-contract",
+      instruction: "write outside scope",
+      inputFiles: ["outside.txt"],
+      contract: {
+        id: "contract-harness",
+        taskId: "t-contract",
+        version: 1,
+        repository: { baseBranch: "main", baseSha: "a".repeat(40) },
+        workspace: { requireIsolatedWorktree: true },
+        scope: { allowedPaths: ["src/**"], protectedPaths: [], maxFilesChanged: 1 },
+        authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+        requiredChecks: [],
+        completion: { requireEvidencePack: true, requireHumanApproval: false },
+        createdAt: new Date().toISOString(),
+      },
+    });
+    expect(ran).toBe(false);
+    expect(result).toMatchObject({ status: "failure", error: expect.stringMatching(/contract boundary violation/i) });
+    await harness.shutdown();
+  });
+
   it("redacts a credential echoed by a harness executor", async () => {
     const executor = {
       async createSession() {},
