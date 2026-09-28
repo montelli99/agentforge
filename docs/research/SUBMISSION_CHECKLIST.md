@@ -4,23 +4,23 @@ Status: preparation only. Nothing here means a submission has been made or accep
 
 ## Evidence gate
 
-- [ ] `CAPABILITY_EVIDENCE.md` has current source paths and evidence grades.
-- [ ] `PROTOCOL.md` is frozen with a version and hash.
+- [x] `CAPABILITY_EVIDENCE.md` has current source paths and evidence grades.
+- [x] `PROTOCOL.md` is frozen with a version and hash.
 - [ ] All primary outcomes have measured denominators, uncertainty and failure counts.
 - [ ] Results are reproducible from a clean checkout with synthetic data.
 - [ ] Every number in `paper.md` matches a sanitized machine-readable result.
-- [ ] No mechanics-only result is described as model quality, cost savings, or production reliability.
+- [x] No mechanics-only result is described as model quality, cost savings, or production reliability.
 - [ ] An independent human has reviewed safety failures, false completions and a sample of successes.
 
 ## Public release gate
 
 - [ ] Owner-approved author list, affiliations, contributions, funding and conflicts.
 - [ ] AI-use disclosure completed and human responsibility confirmed.
-- [ ] No credentials, private paths, personal messages, seller/CRM records, or business data.
+- [x] No credentials, private paths, personal messages, seller/CRM records, or business data.
 - [ ] Third-party code, data and citations have license/attribution records.
 - [ ] Apache-2.0 applies to AgentForge code; paper/data licenses are explicitly selected.
 - [ ] Public repository commit, release tag and checksums recorded.
-- [ ] Website research page links to the exact paper, protocol, results and reproduction commands.
+- [x] Website research page links to the exact paper, protocol, results and reproduction commands.
 - [ ] Desktop/mobile website links and downloads verified.
 
 ## Zenodo DOI archive

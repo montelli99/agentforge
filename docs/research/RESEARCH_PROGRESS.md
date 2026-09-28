@@ -154,3 +154,9 @@ At planning time README.md and package.json were already modified; installation/
 - Updated the status matrix to link the passing public-artifact privacy scan.
 - The final human/public-release review remains required; no claim of release approval was added.
 
+## 2026-09-28 submission checklist reconciliation
+
+- Marked only checklist gates directly supported by current artifacts: capability evidence, protocol version/hash, mechanics-only claim boundaries, privacy scan, and research-page links.
+- Kept outcome measurement, clean-checkout reproduction, independent review, authorship, archive, preprint, peer review and mobile/download verification open.
+- No submission or publication action was taken.
+
