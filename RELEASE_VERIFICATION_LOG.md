@@ -45,3 +45,10 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Result: passed
 - All seven jobs passed after requiring the privacy-safe 404 page, robots file, and sitemap in the static deployment verification.
 - Public package and isolated execution acceptance: passed.
+
+## Public tarball smoke test
+
+- Built `agentforge-0.1.0.tgz` with `pnpm pack`.
+- Installed it into a clean temporary npm project with no workspace dependencies.
+- Verified the published CLI starts and returns its help/usage output through `npm exec agentforge --help`.
+- Verified package metadata reports `agentforge` version `0.1.0`.
