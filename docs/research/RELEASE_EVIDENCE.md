@@ -26,6 +26,7 @@ node website/verify-static.mjs
 node scripts/public-release-readiness.mjs
 node scripts/public-package-acceptance.mjs
 node scripts/package-cli-acceptance.mjs
+node scripts/release-evidence-acceptance.mjs
 ```
 
 The mechanics sweep is synthetic and zero-spend. Hosted CI, model-backed measurements, registry publication and provenance verification are not represented as complete here.
