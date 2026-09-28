@@ -81,19 +81,19 @@ Keep raw execution logs outside tracked/public files until screened. Add precise
 ## 5. Phase A: implementation and literature audit
 
 - [ ] Trace a normal user request from controller to context assembly, model invocation, tool execution, memory write and completion response.
-- [ ] Identify synthetic providers, fixtures, unused modules and production entry points separately.
-- [ ] Record code revision and file/line evidence for each proposed capability.
-- [ ] Verify memory survives a fresh process, not merely a reused JavaScript object.
-- [ ] Verify a model handoff actually loads the transferred state.
+- [x] Identify synthetic providers, fixtures, unused modules and production entry points separately.
+- [x] Record code revision and file/line evidence for each proposed capability.
+- [x] Verify memory survives a fresh process, not merely a reused JavaScript object.
+- [x] Verify a model handoff actually loads the transferred state.
 - [ ] Verify required facts survive context reduction and provenance remains inspectable.
 - [ ] Verify workflow checks affect completion and cannot be satisfied by model self-report alone.
 - [ ] Verify corrections change subsequent behavior; storage alone is insufficient.
-- [ ] Document what is NOT implemented or not measurable yet. Narrow paper claims instead of hiding gaps.
-- [ ] Research original papers and official repositories for agent memory, context selection, workflow verification, model routing and long-horizon evaluation.
+- [x] Document what is NOT implemented or not measurable yet. Narrow paper claims instead of hiding gaps.
+- [x] Research original papers and official repositories for agent memory, context selection, workflow verification, model routing and long-horizon evaluation.
 - [ ] Inspect current OpenClaw and Hermes implementations/docs for relevant comparison capabilities; pin versions before testing.
 - [ ] For each source save title, authors, year, stable URL/DOI, relevant claim, and what distinguishes AgentForge.
 - [ ] Verify every citation resolves and actually supports the sentence using it.
-- [ ] Avoid claims such as first, unique, best, prevents hallucinations, or defeats all harnesses unless evidence specifically establishes them.
+- [x] Avoid claims such as first, unique, best, prevents hallucinations, or defeats all harnesses unless evidence specifically establishes them.
 
 Gate A: capability map distinguishes implemented, integrated, experimentally tested and planned. No unresolved uncertainty is silently converted into a claim.
 

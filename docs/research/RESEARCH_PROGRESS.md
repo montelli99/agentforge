@@ -113,3 +113,9 @@ At planning time README.md and package.json were already modified; installation/
 - Marked only the seven preparation actions that are demonstrably complete; the paid-run estimate remains open until owner-selected routes, pricing and budget exist.
 - Unrelated working-tree files remain untouched.
 
+## 2026-09-28 Phase A checklist reconciliation
+
+- Marked only Phase A items directly supported by existing source traces, fresh-process memory/handoff slices, the claim register, and the documented limitation policy.
+- Left normal end-to-end model/tool tracing, context-fact preservation, workflow anti-self-report coverage, correction recurrence, version pinning and citation-claim audits open.
+- No testing or protocol definitions were changed.
+
