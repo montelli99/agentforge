@@ -38,3 +38,10 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Hosted workflow run: `36448562514`
 - Result: passed
 - All seven jobs passed after recording the website acceptance evidence.
+
+## Revision a71ffe7
+
+- Hosted workflow run: `36449217125`
+- Result: passed
+- All seven jobs passed after requiring the privacy-safe 404 page, robots file, and sitemap in the static deployment verification.
+- Public package and isolated execution acceptance: passed.
