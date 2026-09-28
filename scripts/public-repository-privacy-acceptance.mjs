@@ -26,6 +26,12 @@ const prohibitedContent = [
   /\breal-estate-operations-pack\b/i,
 ];
 const approvedPublicReferences = new Map([
+  // The package manifest must identify the public repository for npm/GitHub
+  // consumers. This is release metadata, not an operational owner record.
+  ["package.json", [
+    "https://github.com/montelli99/agentforge",
+    "git+https://github.com/montelli99/agentforge.git",
+  ]],
   ["website/github.html", ["https://github.com/montelli99/agentforge"]],
   ["website/install.html", ["https://github.com/montelli99/agentforge"]],
 ]);
