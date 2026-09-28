@@ -14,7 +14,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Zero-spend controls and accounting | Complete for dry-run guard | `pilot-v0.1.json`, `validatePilotConfig.ts` | Owner-approved paid-run ceiling |
 | Manuscript and results records | Scaffold complete | `paper.md`, `RESULTS.md`, `validateManuscript.ts` | Replace placeholders only after measured study |
 | Website research disclosure | Complete locally | `website/research.html`, deployable GitHub links, static/link acceptance | Live deployment verification |
-| Repository regression suite | Verified | 86 test files passed, 480 tests passed, 2 skipped | Re-run after future code changes |
+| Repository regression suite | Verified | 87 test files passed, 483 tests passed, 2 skipped | Re-run after future code changes |
 | Contract enforcement | Focused, workflow-facade, and native-executor boundary checks verified | `contractEnforcer.test.ts`, `workflowEngine.integration.test.ts`, and `harnessExecutors.test.ts`: unauthorized native-executor file writes are rejected before execution | Controller-wide completion-evidence coverage and production deployment remain open |
 | Browser policy and native gateway | Focused checks verified | 2 files, 10 tests passed; source trace documents freshness and channel lifecycle boundaries | Authenticated provider round trips remain deployment-specific |
 | Memory, context and benchmark mechanics | Focused checks verified | 3 files, 12 tests passed; offline and cross-process slices also pass | Model-backed retention, token savings and quality remain unmeasured |
