@@ -12,6 +12,26 @@ The local mechanics phase is complete. The following inputs are required before 
 4. Whether a human reviewer is available for safety failures, false-completion cases and a random success sample.
 5. The supported disposable runtime used for production-path acceptance.
 
+## Owner response template
+
+Copy this block into the approval record and replace every placeholder. Blank values keep the run unauthorized.
+
+```text
+Model routes:
+- B0: <provider/model/version>
+- B1: <provider/model/version>
+- AF: <provider/model/version>
+- Ablations: <provider/model/version or none>
+Pricing source and currency: <dated source / currency>
+Pilot replicates: <integer>
+Hard total spend ceiling: <amount and currency>
+Human reviewer: <name or “not available”>
+Disposable runtime: <runtime, version, isolation boundary>
+Publication intent: <none / Zenodo / arXiv / TMLR>
+Approved by: <real person>
+Approval date: <UTC date>
+```
+
 ## Required freeze artifacts
 
 Before charged execution, save:
