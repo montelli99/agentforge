@@ -22,6 +22,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Operational memory and JEv routing | Source trace verified | `SOURCE_RUNTIME_TRACE.md` documents namespace filtering, optional persistence, deterministic routing and fixed-confidence limits | Cross-process deployment policy and calibrated routing study remain open |
 | External comparisons | Source register and immutable repository pins complete | `RELATED_WORK.md` | Run matched supported configurations and record limitations |
 | Publication submission | Not started | `SUBMISSION_CHECKLIST.md` | Results, authorship approval, archive and venue submission |
+| Public package readiness | Local blockers clear | `public-release-readiness.mjs`, package and CLI acceptance outputs | Hosted CI evidence and registry/provenance publication |
 
 ## Current truthful release state
 

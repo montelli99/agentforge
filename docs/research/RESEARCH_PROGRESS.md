@@ -175,3 +175,8 @@ At planning time README.md and package.json were already modified; installation/
 - Corrected only that package metadata field; CLI acceptance now passes and public release readiness reports no local blockers.
 - External hosted-CI and registry/provenance evidence remain open. The approved research protocol and benchmark tests were not changed.
 
+## 2026-09-28 package readiness status
+
+- Added a status-matrix row for public package readiness: local blockers are clear after package-surface, archive-privacy and CLI acceptance passed.
+- Hosted CI and registry/provenance publication remain external gates and were not attempted.
+
