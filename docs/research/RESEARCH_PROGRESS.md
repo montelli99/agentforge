@@ -259,8 +259,15 @@ At planning time README.md and package.json were already modified; installation/
 - Full repository regression passed after the workflow-facade coverage addition: 87 test files, 482 tests passed, 2 skipped.
 - The approved protocol and mechanics-only boundary remain unchanged.
 
+## 2026-09-28 native contract boundary repair
+
+- Moved native-harness file-scope contract enforcement ahead of both simulation and attached-executor paths.
+- Added a regression proving an unauthorized file write is rejected before the executor runs.
+- Focused boundary tests and typecheck passed.
+
 ## 2026-09-28 mechanics sweep recheck
 
 - Re-ran the complete zero-spend mechanics sweep: all 11 runners passed, with zero network/provider calls and all frozen input hashes unchanged.
 - The sweep continues to report mechanics only; no model-quality, cost-savings or production-performance claim is inferred.
+- Full regression after the repair: 87 test files, 483 tests passed, 2 skipped.
 
