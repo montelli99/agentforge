@@ -216,3 +216,8 @@ At planning time README.md and package.json were already modified; installation/
 - Public repository privacy acceptance passed with the new owner approval packet.
 - Manuscript and evidence-path validators passed; results remain explicitly unmeasured.
 
+## 2026-09-28 checklist evidence link
+
+- Linked `RELEASE_EVIDENCE.md` from the submission checklist for local commit, protocol/input hashes and reproduction commands.
+- Kept the release-tag requirement open because no public release tag has been created.
+

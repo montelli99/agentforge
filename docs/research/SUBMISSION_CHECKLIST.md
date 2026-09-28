@@ -19,7 +19,7 @@ Status: preparation only. Nothing here means a submission has been made or accep
 - [x] No credentials, private paths, personal messages, seller/CRM records, or business data.
 - [ ] Third-party code, data and citations have license/attribution records.
 - [ ] Apache-2.0 applies to AgentForge code; paper/data licenses are explicitly selected.
-- [ ] Public repository commit, release tag and checksums recorded.
+- [x] Local public repository commit, protocol/input checksums and reproduction commands recorded in `RELEASE_EVIDENCE.md`; release tag remains open.
 - [x] Website research page links to the exact paper, protocol, results and reproduction commands.
 - [ ] Desktop/mobile website links and downloads verified.
 
