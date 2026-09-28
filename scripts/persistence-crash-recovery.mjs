@@ -118,7 +118,14 @@ async function createGoalSession(port, taskId, rawGoalText) {
 
 function assertSnapshotIsReadable(filePath) {
   if (!fs.existsSync(filePath)) return false;
-  const snapshot = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  let snapshot;
+  try {
+    snapshot = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    // A forced process stop can leave the primary file present but truncated;
+    // the caller must still be able to validate the backup snapshot.
+    return false;
+  }
   assert.ok(snapshot && typeof snapshot === "object", "snapshot must parse to an object after abrupt termination");
   assert.equal(snapshot.schemaVersion, CURRENT_WORKSPACE_SNAPSHOT_SCHEMA_VERSION, "snapshot must retain the current schema after abrupt termination");
   return true;
