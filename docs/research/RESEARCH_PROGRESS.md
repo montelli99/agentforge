@@ -211,3 +211,8 @@ At planning time README.md and package.json were already modified; installation/
 - Added `docs/research/OWNER_APPROVAL_PACKET.md` with the exact decisions required before charged evaluation or publication.
 - The packet links the governing inputs and explicitly preserves the zero-spend boundary.
 
+## 2026-09-28 approval-packet safety check
+
+- Public repository privacy acceptance passed with the new owner approval packet.
+- Manuscript and evidence-path validators passed; results remain explicitly unmeasured.
+
