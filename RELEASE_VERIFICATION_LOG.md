@@ -20,3 +20,9 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Hosted workflow run: `36444385078`
 - Result: passed
 - All seven jobs passed, including Windows, macOS, Ubuntu, Node 22, Node 24, and public-package acceptance.
+
+## Revision 4b7c0be
+
+- Hosted workflow run: `36445764577`
+- Result: passed
+- All seven jobs passed with bounded matrix execution time.
