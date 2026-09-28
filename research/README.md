@@ -59,3 +59,11 @@ node --import tsx research/runner/validatePilotConfig.ts
 ```
 
 The pilot config intentionally permits zero provider spend only. It is not authorization to start paid model runs.
+
+Validate the manuscript safety gates before publishing or handing the paper to a reviewer:
+
+```powershell
+node --import tsx research/runner/validateManuscript.ts
+```
+
+This check keeps the scaffold status, explicit `NOT MEASURED` results, and incomplete-study disclosure intact until a measured run replaces them. It is a publication guard, not evidence of model quality.
