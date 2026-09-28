@@ -19,6 +19,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Browser policy and native gateway | Focused checks verified | 2 files, 10 tests passed; source trace documents freshness and channel lifecycle boundaries | Authenticated provider round trips remain deployment-specific |
 | Memory, context and benchmark mechanics | Focused checks verified | 3 files, 12 tests passed; offline and cross-process slices also pass | Model-backed retention, token savings and quality remain unmeasured |
 | Correction governance and completion auditing | Focused checks verified | 2 files, 27 tests passed; approval boundary and audit mechanics recorded | Recurrence reduction and full controller-path coverage remain open |
+| Operational memory and JEv routing | Source trace verified | `SOURCE_RUNTIME_TRACE.md` documents namespace filtering, optional persistence, deterministic routing and fixed-confidence limits | Cross-process deployment policy and calibrated routing study remain open |
 | External comparisons | Research register started | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
 | Publication submission | Not started | `SUBMISSION_CHECKLIST.md` | Results, authorship approval, archive and venue submission |
 
