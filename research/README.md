@@ -83,3 +83,11 @@ node --import tsx research/runner/validateEvidencePaths.ts
 ```
 
 This catches stale source references after refactors; it does not turn source existence into a behavior or performance claim.
+
+Run the complete local mechanics and publication-safety sweep:
+
+```powershell
+node --import tsx research/runner/mechanicsSweep.ts
+```
+
+The sweep runs sequentially, stops on the first failed check, and makes no network or provider calls.
