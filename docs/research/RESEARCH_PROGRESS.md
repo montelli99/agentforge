@@ -34,6 +34,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Corrected research-page evidence links to deployable public GitHub paths; website and static acceptance passed afterward.
 - Integrated sweep, website link acceptance, and static-site verification all pass at the current checkpoint.
 - Focused browser-policy and native-gateway checks passed: 2 files, 10 tests.
+- Focused correction-registry and completion-engine checks passed: 2 files, 27 tests.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
