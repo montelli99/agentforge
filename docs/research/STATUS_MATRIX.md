@@ -15,6 +15,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Manuscript and results records | Scaffold complete | `paper.md`, `RESULTS.md`, `validateManuscript.ts` | Replace placeholders only after measured study |
 | Website research disclosure | Complete locally | `website/research.html`, static/link acceptance | Live deployment verification |
 | Repository regression suite | Verified | 86 test files passed, 480 tests passed, 2 skipped | Re-run after future code changes |
+| Contract enforcement | Focused check verified | `contractEnforcer.test.ts`: 1 test passed | Dedicated workflow-engine integration coverage remains to be added |
 | External comparisons | Research register started | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
 | Publication submission | Not started | `SUBMISSION_CHECKLIST.md` | Results, authorship approval, archive and venue submission |
 
