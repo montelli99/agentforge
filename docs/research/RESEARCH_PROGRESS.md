@@ -206,3 +206,8 @@ At planning time README.md and package.json were already modified; installation/
 - Correct executor passed all two synthetic cases; the negative control was rejected as expected.
 - All runners completed with zero network and provider calls.
 
+## 2026-09-28 owner approval packet
+
+- Added `docs/research/OWNER_APPROVAL_PACKET.md` with the exact decisions required before charged evaluation or publication.
+- The packet links the governing inputs and explicitly preserves the zero-spend boundary.
+
