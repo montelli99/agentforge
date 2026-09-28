@@ -125,3 +125,9 @@ At planning time README.md and package.json were already modified; installation/
 - Confirmed the register describes what each paper evaluates rather than importing its results into AgentForge claims.
 - This closes the metadata portion of the literature-register task; version pinning and claim-by-claim citation audit remain open.
 
+## 2026-09-28 citation-claim audit
+
+- Added a claim-by-claim citation audit covering the three primary papers and the OpenClaw, Hermes and OpenMuse product references.
+- Recorded the exact supported statement and the boundary for each source; no source is used to imply AgentForge performance or superiority.
+- The remaining citation gate is version pinning and final pre-submission recheck.
+

@@ -51,6 +51,17 @@ These papers frame the evaluation questions; they are not outcome evidence for A
 - Never claim “first,” “unique,” “best,” “state of the art,” or “beats” without a systematic search and matched evidence.
 - Distinguish implementation comparison, user-experience comparison and empirical outcome comparison.
 
+## Citation audit
+
+| Reference | Supported statement in this register | Boundary kept explicit |
+| --- | --- | --- |
+| MemGPT (Packer et al., 2023) | Describes virtual context management and tiered memory for extending usable context. | Its reported experiments are not AgentForge results and do not establish equivalence. |
+| LongMemEval (Wu et al., 2024) | Defines long-term memory evaluation dimensions including extraction, multi-session reasoning, temporal reasoning, updates and abstention. | Its benchmark scores and datasets are not used as AgentForge measurements. |
+| TRAJECT-Bench (He et al., 2025) | Evaluates tool-use trajectories with selection, argument and ordering diagnostics. | No cross-system performance comparison is claimed here. |
+| OpenClaw official docs | Documents available channels, providers, gateway and automation surfaces. | Product documentation is not treated as measured reliability or quality evidence. |
+| Hermes official docs | Documents installation and memory feature surfaces. | No parity or performance claim is made without pinned, matched testing. |
+| OpenMuse repository/roadmap | Documents server-owned jobs, reviews, persistent browser/computer workers and artifact workflows. | The repository identifies itself as an alpha reference; no superiority claim is made. |
+
 ## Comparison matrix template
 
 | Capability | AgentForge evidence | OpenClaw evidence | Hermes evidence | Evaluation status |
