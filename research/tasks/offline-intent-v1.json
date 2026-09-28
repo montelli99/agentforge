@@ -1,0 +1,26 @@
+{
+  "id": "research-offline-intent-v1",
+  "name": "Research offline intent mechanics",
+  "targetType": "MODEL",
+  "thresholds": [{ "metricName": "pass_rate", "comparison": "eq", "targetValue": 100 }],
+  "cases": [
+    {
+      "id": "greeting",
+      "name": "Recognize greeting",
+      "description": "Synthetic routing fixture.",
+      "input": { "text": "Hello from the synthetic fixture", "expected": "greeting" },
+      "expectedOutput": { "intent": "greeting" },
+      "timeoutMs": 1000,
+      "tags": ["offline", "negative-control-compatible"]
+    },
+    {
+      "id": "bug-report",
+      "name": "Recognize bug report",
+      "description": "Synthetic routing fixture.",
+      "input": { "text": "TypeError in the synthetic fixture", "expected": "bug_report" },
+      "expectedOutput": { "intent": "bug_report" },
+      "timeoutMs": 1000,
+      "tags": ["offline"]
+    }
+  ]
+}

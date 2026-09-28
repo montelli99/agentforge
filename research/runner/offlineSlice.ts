@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { BenchmarkRunner } from "../../src/providers/benchmark/benchmarkRunner.js";
 import type { BenchmarkSuite } from "../../src/core/types/benchmark.js";
 
@@ -6,32 +8,7 @@ import type { BenchmarkSuite } from "../../src/core/types/benchmark.js";
  * or private data. Its output proves the runner/scorer wiring, not AgentForge
  * quality in production.
  */
-const suite: BenchmarkSuite = {
-  id: "research-offline-intent-v1",
-  name: "Research offline intent mechanics",
-  targetType: "MODEL",
-  thresholds: [{ metricName: "pass_rate", comparison: "eq", targetValue: 100 }],
-  cases: [
-    {
-      id: "greeting",
-      name: "Recognize greeting",
-      description: "Synthetic routing fixture.",
-      input: { text: "Hello from the synthetic fixture", expected: "greeting" },
-      expectedOutput: { intent: "greeting" },
-      timeoutMs: 1000,
-      tags: ["offline", "negative-control-compatible"],
-    },
-    {
-      id: "bug-report",
-      name: "Recognize bug report",
-      description: "Synthetic routing fixture.",
-      input: { text: "TypeError in the synthetic fixture", expected: "bug_report" },
-      expectedOutput: { intent: "bug_report" },
-      timeoutMs: 1000,
-      tags: ["offline"],
-    },
-  ],
-};
+const suite = JSON.parse(await readFile(resolve(import.meta.dirname, "../tasks/offline-intent-v1.json"), "utf8")) as BenchmarkSuite;
 
 const runner = new BenchmarkRunner([suite]);
 const result = await runner.runSuite(suite, "offline-fixture-executor", async (input) => ({

@@ -91,3 +91,5 @@ node --import tsx research/runner/mechanicsSweep.ts
 ```
 
 The sweep runs sequentially, stops on the first failed check, and makes no network or provider calls.
+
+Synthetic fixtures are versioned under `research/tasks/`; the offline runner loads `offline-intent-v1.json` rather than embedding task data in the executable.
