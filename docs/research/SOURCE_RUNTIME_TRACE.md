@@ -24,3 +24,8 @@ pnpm typecheck
 ```
 
 The handoff slice verifies the persisted goal, requirements, DAG and execution state across replacement engines. It is intentionally narrower than a full production workflow acceptance test.
+
+## Browser and native-channel boundaries
+
+- `src/providers/browser/jevUltrafastBrowser.ts` validates browser actions against the observed element table, matching observation ID and freshness before accepting target operations. Its tests establish the policy boundary; they do not establish a live browser-provider round trip.
+- `src/nativeGateway.ts` owns gateway lifecycle and dispatches inbound events through `ChannelRuntimeRegistry` for Telegram, Discord and Slack. Its `nativeOwnership` snapshot distinguishes the AgentForge gateway from optional external bridges. Channel readiness and authenticated round trips remain deployment-specific acceptance work.
