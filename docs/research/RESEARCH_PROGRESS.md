@@ -160,3 +160,11 @@ At planning time README.md and package.json were already modified; installation/
 - Kept outcome measurement, clean-checkout reproduction, independent review, authorship, archive, preprint, peer review and mobile/download verification open.
 - No submission or publication action was taken.
 
+## 2026-09-28 release-readiness privacy gate repair
+
+- The readiness audit initially failed because the privacy scanners treated the approved public GitHub repository URL as owner data and the public research plan still named two private product integrations.
+- Corrected the scanner allowlist for the exact public repository URL and generalized those two plan references.
+- Re-ran readiness: package blockers are clear; product-isolation and repository-privacy gates pass.
+- External proof remains correctly open: hosted CI evidence and registry/provenance publication have not been performed.
+- The approved research protocol and benchmark tests were not changed.
+

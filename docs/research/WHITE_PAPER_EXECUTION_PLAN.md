@@ -6,12 +6,12 @@ Owner request: prepare every execution step so Luna can continue without restart
 
 ## 1. Objective and boundaries
 
-Produce a reproducible evaluation of the public AgentForge system, a technical paper supported by the results, and publication-ready website and repository materials. Study AgentForge memory/workforce coordination, the public Workflow Engine (the domain-neutral Prolific engine), and JEv together and separately.
+Produce a reproducible evaluation of the public AgentForge system, a technical paper supported by the results, and publication-ready website and repository materials. Study AgentForge memory/workforce coordination, the public domain-neutral Workflow Engine, and JEv together and separately.
 
 Working title: **AgentForge: Evidence-Guided Execution and Durable Memory for Cost-Efficient Agent Systems**. This is a working title, not a novelty claim.
 
 - Work in AgentForge-Staging; preserve unrelated edits and production OpenClaw processes.
-- Use synthetic public-domain tasks and disposable workspaces. No seller records, CRM, JustCall, personal messages, private business workflows, credentials, or private course material.
+- Use synthetic public-domain tasks and disposable workspaces. No seller records, CRM data, personal messages, private business workflows, credentials, or private course material.
 - Do not use the owner's Telegram bot for benchmarks. Channel integration is a separate product acceptance concern, not necessary for this paper.
 - Reuse verified production components. Do not implement a research-only imitation and present it as the shipped system.
 - Do not overwrite, pause, complete, or replace the broader product goal because this research plan exists.
