@@ -25,5 +25,8 @@ unless the corresponding runtime acceptance evidence is published. It uses
 system fonts and has no external presentation fetches, so the static preview
 does not silently contact a font or analytics provider.
 
+The public `research.html` page links the evaluation protocol, sanitized results,
+execution status matrix, manuscript scaffold, and local reproduction commands.
+
 Do not add paid-plan prices, uptime commitments, support promises, or a public
 repository URL until the owner has selected and authorized those commitments.
