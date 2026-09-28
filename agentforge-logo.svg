@@ -1,0 +1,6 @@
+<svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer A Structure & Right Wing -->
+  <path d="M50 8 L15 85 L32 85 L50 45 L68 85 L85 85 Z" />
+  <!-- Crossbar forming the F -->
+  <path d="M42 62 L75 62 L69 76 L35 76 Z" />
+</svg>
