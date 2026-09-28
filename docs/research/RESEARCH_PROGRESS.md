@@ -238,3 +238,8 @@ At planning time README.md and package.json were already modified; installation/
 
 - Linked the owner approval packet from `research/README.md` so clean-checkout users can find the decision gate before running charged work.
 
+## 2026-09-28 workflow facade integration coverage
+
+- Added `src/workflowEngine.integration.test.ts` to exercise process compilation, privileged-action blocking without an explicit business rule, and durable goal-session creation through the public workflow facade.
+- This adds coverage without changing the frozen protocol, mechanics sweep, existing test commands, or any research measurement claims.
+

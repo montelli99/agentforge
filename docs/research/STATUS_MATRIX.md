@@ -15,7 +15,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Manuscript and results records | Scaffold complete | `paper.md`, `RESULTS.md`, `validateManuscript.ts` | Replace placeholders only after measured study |
 | Website research disclosure | Complete locally | `website/research.html`, deployable GitHub links, static/link acceptance | Live deployment verification |
 | Repository regression suite | Verified | 86 test files passed, 480 tests passed, 2 skipped | Re-run after future code changes |
-| Contract enforcement | Focused check verified | `contractEnforcer.test.ts`: 1 test passed; source trace covers path scope and authority gates | Dedicated workflow-engine integration coverage remains to be added |
+| Contract enforcement | Focused and workflow-facade integration checks verified | `contractEnforcer.test.ts` and `workflowEngine.integration.test.ts`: focused checks pass; source trace covers path scope, authority gates, process compilation, and durable goal session creation | Full production deployment path remains deployment-specific |
 | Browser policy and native gateway | Focused checks verified | 2 files, 10 tests passed; source trace documents freshness and channel lifecycle boundaries | Authenticated provider round trips remain deployment-specific |
 | Memory, context and benchmark mechanics | Focused checks verified | 3 files, 12 tests passed; offline and cross-process slices also pass | Model-backed retention, token savings and quality remain unmeasured |
 | Correction governance and completion auditing | Focused checks verified | 2 files, 27 tests passed; approval boundary and audit mechanics recorded | Recurrence reduction and full controller-path coverage remain open |
