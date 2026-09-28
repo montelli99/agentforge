@@ -234,3 +234,7 @@ At planning time README.md and package.json were already modified; installation/
 
 - Linked the main execution plan directly to `OWNER_APPROVAL_PACKET.md` so the continuation handoff is self-contained.
 
+## 2026-09-28 research README navigation
+
+- Linked the owner approval packet from `research/README.md` so clean-checkout users can find the decision gate before running charged work.
+

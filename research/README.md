@@ -2,6 +2,8 @@
 
 This directory contains public, synthetic benchmark fixtures and reproducibility helpers for the AgentForge white paper. It must never contain credentials, private conversations, seller records, business data, or raw provider logs.
 
+Owner decisions required before any charged run or publication action are listed in [`../docs/research/OWNER_APPROVAL_PACKET.md`](../docs/research/OWNER_APPROVAL_PACKET.md).
+
 ## Offline mechanics slice
 
 Run from the repository root:
