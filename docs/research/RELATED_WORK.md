@@ -11,6 +11,7 @@ Every source used in the manuscript must be verified again before submission. Re
 | OpenClaw documentation and source | Channel adapters, gateway lifecycle, plugins, model/provider separation, automation and browser operations. | Compare implemented connection/runtime mechanisms and tested workflows. Do not claim feature parity from the integration catalog alone. |
 | Hermes Agent documentation and source | Installation, model setup, memory behavior, tools and user-facing workflow. | Compare setup and memory semantics using pinned versions and supported configurations. |
 | AgentForge public architecture | AgentForge control plane, Workflow Engine, JEv, contracts, memory, completion auditing and native gateway. | Use source evidence register; separate design intent from measured behavior. |
+| CopilotKit OpenMuse | Personal-agent reference with a server-owned task worker, persistent browser/computer workers, stored action review and artifact-oriented workflows. | Compare user-visible work inspection, durable task state, review boundaries and installation—not performance. OpenMuse is identified as an alpha reference implementation. |
 
 Official starting points used for the initial register (accessed 2026-09-28):
 
@@ -19,6 +20,8 @@ Official starting points used for the initial register (accessed 2026-09-28):
 - OpenClaw Telegram channel: https://docs.openclaw.ai/channels/telegram
 - Hermes quickstart: https://hermes-agent.nousresearch.com/docs/getting-started/quickstart/
 - Hermes memory guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/
+- OpenMuse repository and architecture: https://github.com/CopilotKit/openmuse
+- OpenMuse roadmap: https://github.com/CopilotKit/openmuse/blob/main/ROADMAP.md
 
 Before comparative testing, pin each project to a commit or release, record the date, document enabled channels/tools/models, and preserve the exact setup commands. URLs alone do not establish a comparable configuration.
 
@@ -51,5 +54,6 @@ Before comparative testing, pin each project to a commit or release, record the 
 | Token/cost accounting | Optimizer/accounting code; provider-backed savings unmeasured | TO VERIFY | TO VERIFY | Not measured |
 | Channels and gateway | Native adapter source and acceptance tests | Official catalog/docs | Official docs | Round trips require pinned test accounts |
 | Browser actions | JEv UltraFast-style bounded policy | TO VERIFY | TO VERIFY | Deployment bridge required |
+| Visible task plans, action review and artifacts | Source evidence in AgentForge completion/evidence paths | OpenMuse server-owned jobs, reviews and artifact workflows | TO VERIFY | Implementation comparison only |
 
 Replace every `TO VERIFY` before submitting a comparative claim. If a competitor cannot be tested fairly, describe the limitation and omit the outcome comparison.

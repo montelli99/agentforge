@@ -68,3 +68,9 @@ At planning time README.md and package.json were already modified; installation/
 - Re-ran the repository TypeScript check against `tsconfig.vnext.json`; it passed.
 - The protocol/input hashes reported by the sweep remain the recorded frozen inputs for this local mechanics track.
 
+## 2026-09-28 related-work register expansion
+
+- Added the official CopilotKit OpenMuse repository and roadmap to the related-work register after source inspection.
+- Recorded only implementation-level comparison points (server-owned jobs, reviews, persistent browser/computer workers and artifacts); no performance, novelty or superiority claim was added.
+- The approved AgentForge protocol and test configuration were not changed.
+
