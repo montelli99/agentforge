@@ -80,3 +80,9 @@ At planning time README.md and package.json were already modified; installation/
 - Marked the external comparison register as expanded with OpenClaw, Hermes and OpenMuse references; matched-version testing remains open.
 - No protocol, fixture, scorer, test command or benchmark condition was changed.
 
+## 2026-09-28 public-site verification
+
+- Verified the public site link graph: 42 pages checked, all local links resolve, and 39 pages include footer navigation.
+- Verified the static-site privacy guard: the interactive preview is self-contained and privacy-safe.
+- These checks do not alter or substitute for the approved research protocol.
+
