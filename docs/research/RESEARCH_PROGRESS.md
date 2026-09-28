@@ -267,6 +267,12 @@ At planning time README.md and package.json were already modified; installation/
 - Re-ran product-isolation, repository-privacy, package-privacy, CLI acceptance and release-evidence checks after the repair; all passed.
 - Consolidated public-release readiness also passes with `packageReady: true`, no local blockers, and only hosted-CI/registry-provenance evidence remaining external.
 
+## 2026-09-28 white paper methods expansion
+
+- Expanded `paper.md` with evidence-grounded related work, architecture, task families, conditions, scoring, accounting, failure analysis, limitations boundaries and reproducibility details.
+- Kept the abstract, results and conclusion unclaimed until measured results exist.
+- Manuscript validator passes with no unsupported claims detected.
+
 ## 2026-09-28 mechanics sweep recheck
 
 - Re-ran the complete zero-spend mechanics sweep: all 11 runners passed, with zero network/provider calls and all frozen input hashes unchanged.
