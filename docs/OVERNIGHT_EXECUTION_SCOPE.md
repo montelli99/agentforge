@@ -34,3 +34,20 @@ run without new owner input or external account authorization.
 Each item must retain a command or URL, commit SHA, result, and timestamp in the
 release evidence record. A clean-room test must use an empty data directory and
 must confirm `privateDataIncluded: false`.
+
+## Current evidence
+
+- Render website: live at `https://agentforge-site.onrender.com`; HTTP 200,
+  expected public markers, and `Cache-Control: no-store` verified on September
+  28, 2026.
+- Clean-room runtime: fresh install, build, product-isolation check, runtime
+  startup, empty workspace status, and `privateDataIncluded: false` manifest
+  verified on September 28, 2026.
+- Release gates: `pnpm audit:completion`, `pnpm release:audit`, and static-site
+  verification passed on September 28, 2026.
+- Hosted verification: CI run `36365475569` passed on commit
+  `dd8ac2feba5e28cfe24b124f3116281d961c9a40` across Ubuntu, macOS, and Windows
+  on Node 22 and 24.
+- Native channel fixtures: Telegram, Slack, and Discord lifecycle, routing,
+  subgroup, normalization, and fail-closed tests are covered by the focused
+  adapter suites. Live provider accounts remain intentionally unconfigured.
