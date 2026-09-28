@@ -69,6 +69,8 @@ Create incrementally; these paths are planned, not claims they already exist:
 | docs/research/SUBMISSION_CHECKLIST.md | Venue-specific files and human sign-off |
 | website/research.html | Educational summary, limitations, code and paper links |
 
+`docs/research/RESULTS.md` is the current sanitized results ledger. It records verified local mechanics and keeps all model-backed outcomes explicitly unmeasured until the approved study runs.
+
 Keep raw execution logs outside tracked/public files until screened. Add precise ignore rules before creating logs. Record raw-log hashes and sanitization decisions without publishing sensitive content.
 
 ## 5. Phase A: implementation and literature audit
