@@ -9,6 +9,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Initial code reconnaissance identified existing benchmark/memory/JEv/completion entry points.
 - Detailed phased plan saved, including data boundaries, micro steps, measurement definitions, budget gates, publication steps and acceptance criteria.
 - Capability evidence register created, separating source/test evidence from claims that still require end-to-end measurement.
+- Targeted checks passed: 4 test files, 13 tests covering operational memory, benchmark execution/routing, corrections and contract enforcement.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
