@@ -200,3 +200,9 @@ At planning time README.md and package.json were already modified; installation/
 - Public release readiness still reports `packageReady: true`, `publishReady: false`, with no local blockers.
 - The only reported gaps remain hosted CI evidence and registry/provenance verification.
 
+## 2026-09-28 mechanics recheck after release repairs
+
+- The approved zero-spend mechanics sweep still passes with the same protocol, fixture and config hashes.
+- Correct executor passed all two synthetic cases; the negative control was rejected as expected.
+- All runners completed with zero network and provider calls.
+
