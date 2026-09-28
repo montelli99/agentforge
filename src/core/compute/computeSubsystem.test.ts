@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -121,13 +121,15 @@ describe("Compute Subsystem & Sandboxing (Section 36)", () => {
 
     it("fails closed when Docker is unavailable and environment creation is attempted", async () => {
       const docker = new DockerComputeProvider();
-      const status = await docker.isAvailable();
-
-      if (!status.available) {
-        await expect(
-          docker.createEnvironment({ worktreeDir: tempDir, agentId: "agent-1" })
-        ).rejects.toThrow("Cannot create Docker sandbox");
-      }
+      // Control the provider response so this safety assertion is deterministic
+      // even when the host daemon starts or stops between availability checks.
+      vi.spyOn(docker, "isAvailable").mockResolvedValue({
+        available: false,
+        error: "Docker daemon is unavailable for this test",
+      });
+      await expect(
+        docker.createEnvironment({ worktreeDir: tempDir, agentId: "agent-1" })
+      ).rejects.toThrow("Cannot create Docker sandbox");
     });
   });
 });
