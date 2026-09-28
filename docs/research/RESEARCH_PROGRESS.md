@@ -230,3 +230,7 @@ At planning time README.md and package.json were already modified; installation/
 
 - Linked the owner approval packet from `NEXT_RUN_INPUTS.md` so model, pricing, budget, reviewer, runtime and publication decisions have one direct entry point.
 
+## 2026-09-28 execution-plan navigation
+
+- Linked the main execution plan directly to `OWNER_APPROVAL_PACKET.md` so the continuation handoff is self-contained.
+

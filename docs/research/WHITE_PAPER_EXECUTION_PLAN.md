@@ -4,6 +4,8 @@ Date: 2026-09-28
 Status: PLANNED. No experimental findings or submission acceptance are claimed.
 Owner request: prepare every execution step so Luna can continue without restarting planning.
 
+Owner decisions for the next charged or publication phase are collected in [`OWNER_APPROVAL_PACKET.md`](OWNER_APPROVAL_PACKET.md).
+
 ## 1. Objective and boundaries
 
 Produce a reproducible evaluation of the public AgentForge system, a technical paper supported by the results, and publication-ready website and repository materials. Study AgentForge memory/workforce coordination, the public domain-neutral Workflow Engine, and JEv together and separately.
