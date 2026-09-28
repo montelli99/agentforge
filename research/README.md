@@ -67,3 +67,11 @@ node --import tsx research/runner/validateManuscript.ts
 ```
 
 This check keeps the scaffold status, explicit `NOT MEASURED` results, and incomplete-study disclosure intact until a measured run replaces them. It is a publication guard, not evidence of model quality.
+
+Validate protocol/results consistency:
+
+```powershell
+node --import tsx research/runner/validateProtocol.ts
+```
+
+This confirms that the frozen conditions and primary outcomes named by the protocol are represented before any future result is treated as publishable.
