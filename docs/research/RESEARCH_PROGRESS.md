@@ -137,3 +137,8 @@ At planning time README.md and package.json were already modified; installation/
 - These pins are for reproducible source inspection only; no provider, model or comparative run was performed.
 - This closes the initial version-pinning preparation gate while leaving matched configuration testing open.
 
+## 2026-09-28 comparison status update
+
+- Updated the status matrix to mark the source register and immutable repository pins complete.
+- Matched supported configurations, live provider round trips and outcome comparisons remain open by design.
+
