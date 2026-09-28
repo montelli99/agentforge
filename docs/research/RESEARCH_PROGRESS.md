@@ -221,3 +221,8 @@ At planning time README.md and package.json were already modified; installation/
 - Linked `RELEASE_EVIDENCE.md` from the submission checklist for local commit, protocol/input hashes and reproduction commands.
 - Kept the release-tag requirement open because no public release tag has been created.
 
+## 2026-09-28 publication status refinement
+
+- Updated the status matrix to distinguish complete local publication preparation from approval-dependent measured results, release tagging, archiving and venue submission.
+- No external submission, tag, paid run or publication action was initiated.
+
