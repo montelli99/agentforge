@@ -71,6 +71,9 @@ Create incrementally; these paths are planned, not claims they already exist:
 
 `docs/research/RESULTS.md` is the current sanitized results ledger. It records verified local mechanics and keeps all model-backed outcomes explicitly unmeasured until the approved study runs.
 
+The current phase-by-phase state is maintained in [`STATUS_MATRIX.md`](STATUS_MATRIX.md).
+
+
 Keep raw execution logs outside tracked/public files until screened. Add precise ignore rules before creating logs. Record raw-log hashes and sanitization decisions without publishing sensitive content.
 
 ## 5. Phase A: implementation and literature audit
