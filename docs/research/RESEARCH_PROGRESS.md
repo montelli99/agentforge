@@ -243,3 +243,9 @@ At planning time README.md and package.json were already modified; installation/
 - Added `src/workflowEngine.integration.test.ts` to exercise process compilation, privileged-action blocking without an explicit business rule, and durable goal-session creation through the public workflow facade.
 - This adds coverage without changing the frozen protocol, mechanics sweep, existing test commands, or any research measurement claims.
 
+## 2026-09-28 local release and protocol validator sweep
+
+- Re-ran protocol, fixture, pilot-config and manuscript validators successfully.
+- Re-ran public release readiness, product-isolation, repository-privacy, package-privacy and CLI acceptance successfully.
+- Release readiness remains `packageReady: true` and `publishReady: false` only because hosted CI, registry/provenance evidence and publication actions are intentionally external gates.
+
