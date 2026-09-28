@@ -78,3 +78,9 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Hosted workflow run: `36454629818`
 - Result: passed
 - All seven jobs passed after recording the mobile acceptance verification evidence.
+
+## Revision ca56dee
+
+- Hosted workflow run: `36455154116`
+- Result: passed
+- All seven jobs passed across Windows, macOS, and Ubuntu on Node 22 and 24, including public package and isolated execution acceptance.
