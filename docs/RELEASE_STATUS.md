@@ -88,6 +88,8 @@ The requirement-by-requirement evidence index is maintained in
 - The complete `pnpm verify:public` sequence passed on the release host,
   including typecheck, build, archive privacy, persistence crash recovery,
   Docker acceptance, and approved Docker end-to-end evidence.
+- The full Vitest regression suite passed with 86 files and 480 tests; two
+  tests remain skipped only behind explicit live-test opt-in.
 
 ## Implemented but dependent on the deployment environment
 
