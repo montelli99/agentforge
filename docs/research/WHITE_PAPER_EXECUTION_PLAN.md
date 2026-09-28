@@ -21,13 +21,13 @@ Working title: **AgentForge: Evidence-Guided Execution and Durable Memory for Co
 
 ## 2. First actions for Luna
 
-- [ ] Read this file and RESEARCH_PROGRESS.md. Continue at the first incomplete item.
-- [ ] Inspect git status, branch, and current commit; record them in the progress file without copying private paths or identity data into public artifacts.
-- [ ] Read applicable AGENTS.md instructions and existing public architecture/release documents.
-- [ ] Inspect docs/PUBLIC_SYSTEM_ARCHITECTURE.md, docs/AGENT_QUALITY_FLYWHEEL.md, docs/PRODUCTION_EXECUTION_BOUNDARY.md, docs/LIVE_PROVIDER_ACCEPTANCE.md, and docs/research/UNIFIED_AI_MEMORY_RD.md.
-- [ ] Inventory existing benchmark code before adding a runner.
-- [ ] Create a claim ledger and capability map before writing an abstract promising benefits.
-- [ ] Implement local fixtures, scoring and a no-network dry run first.
+- [x] Read this file and RESEARCH_PROGRESS.md. Continue at the first incomplete item.
+- [x] Inspect git status, branch, and current commit; record them in the progress file without copying private paths or identity data into public artifacts.
+- [x] Read applicable AGENTS.md instructions and existing public architecture/release documents.
+- [x] Inspect docs/PUBLIC_SYSTEM_ARCHITECTURE.md, docs/AGENT_QUALITY_FLYWHEEL.md, docs/PRODUCTION_EXECUTION_BOUNDARY.md, docs/LIVE_PROVIDER_ACCEPTANCE.md, and docs/research/UNIFIED_AI_MEMORY_RD.md.
+- [x] Inventory existing benchmark code before adding a runner.
+- [x] Create a claim ledger and capability map before writing an abstract promising benefits.
+- [x] Implement local fixtures, scoring and a no-network dry run first.
 - [ ] Report a paid-run estimate only after a functioning local runner exists.
 
 ## 3. Evidence already observed; do not misrepresent it

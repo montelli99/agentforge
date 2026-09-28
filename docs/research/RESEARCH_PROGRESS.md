@@ -107,3 +107,9 @@ At planning time README.md and package.json were already modified; installation/
 - `git diff --check` found no whitespace errors in the scoped changes.
 - No benchmark inputs, fixtures, scorers, or test rules were changed.
 
+## 2026-09-28 plan checklist reconciliation
+
+- Reconciled the first-actions checklist in `WHITE_PAPER_EXECUTION_PLAN.md` against the repository evidence.
+- Marked only the seven preparation actions that are demonstrably complete; the paid-run estimate remains open until owner-selected routes, pricing and budget exist.
+- Unrelated working-tree files remain untouched.
+
