@@ -26,6 +26,8 @@ provider or production deployment.
   acceptance.
 - The public Render site is deployed from commit `22baa80` and returns HTTP
   200 with the expected AgentForge entrypoint.
+- The full Vitest regression suite passes with 86 files and 480 tests; two
+  tests are skipped only behind explicit live-test opt-in.
 
 ## Implemented but requiring deployment evidence
 
