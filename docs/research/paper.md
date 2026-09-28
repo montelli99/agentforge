@@ -1,13 +1,13 @@
 # AgentForge: Evidence-Guided Execution and Durable Memory for Cost-Efficient Agent Systems
 
-Status: manuscript scaffold. Results are intentionally not claimed yet.  
+Status: manuscript scaffold with mechanics-verified content. Model-backed outcomes remain unmeasured.
 Protocol: [PROTOCOL.md](PROTOCOL.md)  
 Evidence register: [CAPABILITY_EVIDENCE.md](CAPABILITY_EVIDENCE.md)  
 Mechanics record: `research/results/mechanics-2026-09-28.json`
 
 ## Abstract
 
-**To be written after the measured study is complete.** The abstract must state the task set, comparison conditions, primary outcome, uncertainty, and limitations. It must not claim improved quality, lower cost, or novelty from the current mechanics-only checks.
+AgentForge is an open-source control plane for governed agent work. This mechanics report documents its workflow compilation, durable goal state, memory and handoff boundaries, correction governance, execution contracts, evidence auditing and reproducibility controls. We define a preregistered protocol for comparing matched baselines and AgentForge ablations on synthetic task trajectories, including delayed recall, handoff, correction, workflow failure, recovery and completion safety. The current release validates the protocol machinery and zero-spend mechanics: the runners execute without network or provider calls, preserve frozen input hashes, retain synthetic state across process boundaries, reject cross-tenant access and negative controls, and prevent unauthorized native-harness file writes. No model-backed success rate, token reduction, cost savings, latency advantage or comparative superiority is claimed. Paid evaluation, independent review and production-provider acceptance remain future gates.
 
 ## 1. Introduction
 
@@ -61,7 +61,19 @@ Human reviewers inspect safety failures, false completions and a sample of succe
 
 ## 6. Results
 
-**PLACEHOLDER — do not fill from mechanics-only checks.**
+The current release reports mechanics only. The complete sanitized record is `research/results/mechanics-2026-09-28.json`. The combined sweep used synthetic fixtures, made zero network calls and zero provider calls, and preserved the frozen protocol, fixture and pilot hashes.
+
+| Mechanics check | Observed result | Interpretation |
+| --- | --- | --- |
+| Offline scorer and negative control | Correct executor accepted; incorrect executor rejected | Scoring and rejection wiring operate as specified |
+| Memory and evidence | Same-tenant fact retained; cross-tenant query rejected; evidence audit passed | Local privacy and evidence boundaries operate in the fixture |
+| Correction governance | Pending replay rejected; automatic mutation denied; approved replay case created | Approval boundary mechanics operate as specified |
+| Cross-process memory | Temporary adapter hydrated in a separate reader process | Adapter continuity works in the fixture; deployment privacy remains open |
+| Handoff continuity | Goal hash, requirements and execution DAG restored | State continuity works; next-action quality is unmeasured |
+| Native execution contract | Unauthorized file path rejected before attached executor ran | File-scope boundary is enforced below the executor |
+| Full regression | 87 test files; 483 passed; 2 skipped | Repository checks pass at the recorded revision |
+
+These observations are not model-quality or production-performance results. The outcome table below remains intentionally unmeasured until the owner-approved study is run.
 
 | Outcome | B0 | B1 | AF | AF-memory-off | AF-routing-off | AF-evidence-off |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -88,7 +100,7 @@ The public package includes the Apache-2.0 code, protocol, synthetic fixtures, r
 
 ## 11. Conclusion
 
-**To be written after results.** The conclusion must answer only the frozen research questions and state meaningful null findings.
+This release establishes a reproducible mechanics track for evaluating AgentForge; it does not establish that AgentForge improves task quality, reduces token use or costs less than another system. The implementation exposes explicit boundaries for workflow authority, memory scope, handoff state, correction approval, browser freshness, native execution and completion evidence. The protocol, fixtures, validators and public reproduction guide make the next study auditable. The remaining claims require frozen model routes, an approved budget, measured trajectories, independent review and deployment-specific acceptance. Until those gates pass, the appropriate conclusion is that the control and measurement machinery is available and its substantive outcome is unknown.
 
 ## Author and AI-use disclosure
 
