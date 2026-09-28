@@ -3,6 +3,8 @@
 Updated: 2026-09-28  
 Status: implementation reconnaissance; this is not experimental proof.
 
+The initial source-to-runtime trace is recorded in [`SOURCE_RUNTIME_TRACE.md`](SOURCE_RUNTIME_TRACE.md). It documents the verified WorkflowEngine → CompletionEngine route and its evidence limits.
+
 This register separates source evidence from claims that still require an end-to-end experiment. Paths and line numbers identify the current checkout and must be refreshed when the implementation changes.
 
 ## Evidence table
