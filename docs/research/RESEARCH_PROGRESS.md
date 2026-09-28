@@ -99,3 +99,11 @@ At planning time README.md and package.json were already modified; installation/
 - Mapped each paper to the study questions without importing its results into AgentForge claims.
 - The approved protocol and testing configuration remain unchanged.
 
+## 2026-09-28 consolidated verification
+
+- TypeScript verification passed against `tsconfig.vnext.json`.
+- Protocol, evidence-path and manuscript validators passed; the manuscript still correctly reports results as not measured.
+- Website link acceptance and static privacy checks passed.
+- `git diff --check` found no whitespace errors in the scoped changes.
+- No benchmark inputs, fixtures, scorers, or test rules were changed.
+
