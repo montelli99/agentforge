@@ -32,3 +32,16 @@ The handoff slice verifies the persisted goal, requirements, DAG and execution s
 - `src/core/contract/contractEnforcer.ts` checks path scope, protected files, file-count limits and authority gates before side effects. `src/core/completion/completionContract.ts` separately requires evidence, tests, build/typecheck, integration, privacy and adversarial-review conditions before verified completion. The focused contract test covers a narrow enforcement case; complete controller-path coverage remains open.
 - `src/providers/memory/operationalMemory.ts` records namespaced operational records and filters by project, category and tags before lexical scoring and recency ranking. Its repository is optional, so default process-local storage must not be described as durable deployment memory.
 - `src/providers/decision/jevDecision.ts` performs deterministic candidate matching and controller-workflow heuristics with fixed confidence values. It is a fast routing classifier, not a trained or calibrated probability model; measured confusion and cost remain future study work.
+
+## Execution-entry inventory
+
+The source audit found these production-facing execution entry points:
+
+- `src/workflowEngine.ts` is the domain facade: `beginGoal()` constructs the completion session and `startGoal()` delegates to `CompletionEngine.startExecution()`.
+- `src/server/start.ts` and `src/server/webServer.ts` construct the server completion engine and expose the goal/start routes. The web server routes call the same workflow/completion objects rather than a second executor.
+- `src/core/runtime/taskWorkerRuntime.ts` is the worker boundary. It delegates each task to the configured execution backend and records the returned execution output.
+- `src/core/runtime/contractedDockerExecutionBackend.ts` is the filesystem/process side-effect boundary and invokes `ContractEnforcer` before execution.
+- `src/providers/harness/nativeHarness.ts` is a separate harness provider boundary and also owns a `ContractEnforcer` instance.
+- `src/speculativeExecution.ts` is an explicit speculative path; it selects candidates and invokes the supplied executor, so its caller must provide the same contract/evidence wrapper when used for side effects.
+
+This inventory narrows the remaining integration-coverage requirement: verify that every side-effecting caller (worker, Docker backend, native harness and any speculative executor supplied by a controller) reaches the same contract and completion evidence gates. It does not claim that coverage is complete.
