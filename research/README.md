@@ -95,3 +95,11 @@ The sweep runs sequentially, stops on the first failed check, and makes no netwo
 Synthetic fixtures are versioned under `research/tasks/`; the offline runner loads `offline-intent-v1.json` rather than embedding task data in the executable.
 
 The sweep validates fixture structure before executing it, including unique IDs, expected-output consistency, timeouts and negative-control coverage.
+
+Generate a reproducibility manifest for the protocol inputs:
+
+```powershell
+node --import tsx research/runner/hashProtocolInputs.ts
+```
+
+Save the output with a future run record before changing the protocol, fixtures or budget configuration.
