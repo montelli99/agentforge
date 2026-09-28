@@ -24,6 +24,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Full local mechanics sweep passed: all five research slices plus pilot-config validation and TypeScript typecheck.
 - Protocol status advanced to `0.1-mechanics-validated`; model IDs, pricing, sample size and provider configuration remain intentionally unfrozen.
 - Added a related-work register and comparison matrix with source-quality rules and explicit verification placeholders.
+- Added a sanitized results ledger and protocol-consistency validator so frozen conditions, outcomes and publication boundaries stay aligned.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
@@ -33,7 +34,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 ## Next actions
 1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
 2. Run deployment-specific semantic-memory acceptance with a privacy-reviewed adapter, then validate the handoff slice and correction recurrence against model-backed tasks.
-3. Validate the protocol against the local scorers and freeze its version after the negative controls pass; the current mechanics results are recorded.
+3. Freeze protocol/task/config hashes after the local consistency and negative-control checks remain green.
 4. Prepare a real-model pilot estimate and obtain research spend ceiling before charged batches; the current config is deliberately zero-spend.
 
 ## Dependencies to resolve in parallel
