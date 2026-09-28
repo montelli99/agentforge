@@ -12,6 +12,16 @@ Every source used in the manuscript must be verified again before submission. Re
 | Hermes Agent documentation and source | Installation, model setup, memory behavior, tools and user-facing workflow. | Compare setup and memory semantics using pinned versions and supported configurations. |
 | AgentForge public architecture | AgentForge control plane, Workflow Engine, JEv, contracts, memory, completion auditing and native gateway. | Use source evidence register; separate design intent from measured behavior. |
 
+Official starting points used for the initial register:
+
+- OpenClaw integrations: https://openclaw.ai/integrations
+- OpenClaw getting started: https://docs.openclaw.ai/start/getting-started
+- OpenClaw Telegram channel: https://docs.openclaw.ai/channels/telegram
+- Hermes quickstart: https://hermes-agent.nousresearch.com/docs/getting-started/quickstart/
+- Hermes memory guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/
+
+Before comparative testing, pin each project to a commit or release, record the date, document enabled channels/tools/models, and preserve the exact setup commands. URLs alone do not establish a comparable configuration.
+
 ## Research areas to cover
 
 - Agent memory and long-horizon continuity: identify persistence model, retrieval method, conflict handling, provenance and evaluation task.
