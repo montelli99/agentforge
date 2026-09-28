@@ -264,6 +264,7 @@ At planning time README.md and package.json were already modified; installation/
 - Moved native-harness file-scope contract enforcement ahead of both simulation and attached-executor paths.
 - Added a regression proving an unauthorized file write is rejected before the executor runs.
 - Focused boundary tests and typecheck passed.
+- Re-ran product-isolation, repository-privacy, package-privacy, CLI acceptance and release-evidence checks after the repair; all passed.
 
 ## 2026-09-28 mechanics sweep recheck
 
