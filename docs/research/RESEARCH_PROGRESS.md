@@ -11,6 +11,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 - Capability evidence register created, separating source/test evidence from claims that still require end-to-end measurement.
 - Targeted checks passed: 4 test files, 13 tests covering operational memory, benchmark execution/routing, corrections and contract enforcement.
 - Added a no-network synthetic runner with a deliberate negative control; this is mechanics evidence only.
+- Added a no-network slice invoking the real SemanticMemory and CompletionAuditor classes, including a cross-tenant negative case.
 
 ## Not completed / no claim made
 - Full capability audit, benchmark implementation and real-model evaluation.
@@ -19,7 +20,7 @@ Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 
 ## Next actions
 1. Complete the source-to-runtime trace for the remaining capability rows in CAPABILITY_EVIDENCE.md.
-2. Validate the offline runner and add fresh-process memory, model handoff, completion evidence and correction-recurrence fixtures.
+2. Validate both offline runners and add fresh-process memory, model handoff and correction-recurrence fixtures; the current memory slice is in-process only.
 3. Freeze preliminary questions and protocol after the local scorers pass negative controls.
 4. Prepare pilot cost estimate and obtain research spend ceiling before charged batches.
 
