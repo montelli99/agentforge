@@ -17,8 +17,10 @@ credentials, owner data, or production-only records.
 acceptance, and the public repository privacy acceptance.
 
 **Current state:** locally verified, with hosted CI passing on the public
-repository across Ubuntu, macOS, and Windows on Node 22 and 24. Registry
-publication remains a separate owner-approved action.
+repository across Ubuntu, macOS, and Windows on Node 22 and 24. The latest
+recorded run is `36369989794` for commit
+`3e646932dd71d3e2a97a98e7f6928760abd4e9f3`. Registry publication remains a
+separate owner-approved action.
 
 ## Phase 2 — Canonical workspace and durable memory
 
@@ -77,8 +79,8 @@ after explicit owner approval.
 archive report, and registry provenance.
 
 **Current state:** local package-ready audit passes and hosted CI is recorded
-for the public repository. Passing run `36369330117` verified commit
-`e742d785099e750c2dda891f46acd69f4536384a` across Ubuntu, macOS, and Windows
+for the public repository. Passing run `36369989794` verified commit
+`3e646932dd71d3e2a97a98e7f6928760abd4e9f3` across Ubuntu, macOS, and Windows
 on Node 22 and 24, including public-package and isolated-execution acceptance.
 Registry publication and provenance verification remain separate
 operator-approved release actions.
