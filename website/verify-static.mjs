@@ -3,6 +3,9 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname);
 const html = await readFile(resolve(root, "index.html"), "utf8");
+for (const requiredFile of ["404.html", "robots.txt", "sitemap.xml"]) {
+  await readFile(resolve(root, requiredFile), "utf8");
+}
 const required = [
   "Illustrative AgentForge workspace — not live runtime data",
   "id=\"operator-replay\"",
