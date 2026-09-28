@@ -1,0 +1,21 @@
+<svg viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Top Central Crease -->
+  <line x1="512" y1="262" x2="512" y2="395" stroke="currentColor" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Left Main Leg & Arrowhead Foot -->
+  <polygon points="512,262 305,643 408,563 430,535 538,535 512,395" stroke="currentColor" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="10" />
+
+  <!-- Upper Right Slope (Above Wing) -->
+  <polygon points="512,262 598,436 544,436 512,395" stroke="currentColor" stroke-width="10" stroke-linejoin="miter" stroke-miterlimit="10" />
+
+  <!-- Horizontal Wing (Top Arm of the 'F') -->
+  <polygon points="478,455 653,455 620,502 478,502" stroke="currentColor" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="10" />
+  <!-- Wing Inner Cutout -->
+  <polygon points="508,468 630,468 608,488 508,488" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" stroke-miterlimit="10" />
+
+  <!-- Vertical Connector from Wing to Lower Bar -->
+  <polygon points="522,502 546,502 538,535 514,535" stroke="currentColor" stroke-width="10" stroke-linejoin="miter" stroke-miterlimit="10" />
+
+  <!-- Lower Right Leg with Arrowhead Foot -->
+  <polygon points="584,506 644,506 718,643 615,563" stroke="currentColor" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="10" />
+</svg>
