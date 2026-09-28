@@ -61,3 +61,10 @@ No experimental runs have been performed for this study. Add run IDs, code/confi
 
 ## Existing worktree note
 At planning time README.md and package.json were already modified; installation/deployment docs, branding and scratch files were also present. Preserve unrelated work. Do not stage the whole repository.
+## 2026-09-28 protocol-preserving verification
+
+- Re-ran the approved mechanics sweep without changing the protocol, fixtures, scoring, runner order, or test configuration.
+- Sweep passed with zero network calls and zero provider calls; the six synthetic conditions and all validation runners remained valid.
+- Re-ran the repository TypeScript check against `tsconfig.vnext.json`; it passed.
+- The protocol/input hashes reported by the sweep remain the recorded frozen inputs for this local mechanics track.
+
