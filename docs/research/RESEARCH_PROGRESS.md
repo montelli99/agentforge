@@ -180,3 +180,8 @@ At planning time README.md and package.json were already modified; installation/
 - Added a status-matrix row for public package readiness: local blockers are clear after package-surface, archive-privacy and CLI acceptance passed.
 - Hosted CI and registry/provenance publication remain external gates and were not attempted.
 
+## 2026-09-28 local release evidence pack
+
+- Added `docs/research/RELEASE_EVIDENCE.md` with the local revision, frozen protocol/input hashes and exact non-paid verification commands.
+- The evidence pack explicitly excludes hosted CI, model-backed measurements, registry publication and provenance verification from the completed state.
+
