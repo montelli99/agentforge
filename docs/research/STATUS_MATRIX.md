@@ -13,7 +13,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Memory, correction, handoff and evidence mechanics | Local mechanics validated | Five research slices and `mechanicsSweep.ts` | Production-path and model-backed acceptance |
 | Zero-spend controls and accounting | Complete for dry-run guard | `pilot-v0.1.json`, `validatePilotConfig.ts` | Owner-approved paid-run ceiling |
 | Manuscript and results records | Scaffold complete | `paper.md`, `RESULTS.md`, `validateManuscript.ts` | Replace placeholders only after measured study |
-| Website research disclosure | Complete locally | `website/research.html`, static/link acceptance | Live deployment verification |
+| Website research disclosure | Complete locally | `website/research.html`, deployable GitHub links, static/link acceptance | Live deployment verification |
 | Repository regression suite | Verified | 86 test files passed, 480 tests passed, 2 skipped | Re-run after future code changes |
 | Contract enforcement | Focused check verified | `contractEnforcer.test.ts`: 1 test passed | Dedicated workflow-engine integration coverage remains to be added |
 | External comparisons | Research register started | `RELATED_WORK.md` | Pin versions and run matched supported configurations |
