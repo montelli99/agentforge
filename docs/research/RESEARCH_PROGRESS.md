@@ -226,3 +226,7 @@ At planning time README.md and package.json were already modified; installation/
 - Updated the status matrix to distinguish complete local publication preparation from approval-dependent measured results, release tagging, archiving and venue submission.
 - No external submission, tag, paid run or publication action was initiated.
 
+## 2026-09-28 next-inputs navigation
+
+- Linked the owner approval packet from `NEXT_RUN_INPUTS.md` so model, pricing, budget, reviewer, runtime and publication decisions have one direct entry point.
+

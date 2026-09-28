@@ -1,5 +1,7 @@
 # Next research phase inputs
 
+For a concise approval-ready list, see [`OWNER_APPROVAL_PACKET.md`](OWNER_APPROVAL_PACKET.md).
+
 The local mechanics phase is complete. The following inputs are required before any model-backed or paid run can begin. They are intentionally not guessed or filled from private account configuration.
 
 ## Required owner decisions
