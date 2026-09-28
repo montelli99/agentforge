@@ -26,3 +26,9 @@ The repository is package-ready. Publishing to a registry remains a separate ope
 - Hosted workflow run: `36445764577`
 - Result: passed
 - All seven jobs passed with bounded matrix execution time.
+
+## Revision 8cb7d4e
+
+- Hosted workflow run: `36447987934`
+- Result: passed
+- All seven jobs passed after adding the public 404 page and link-scan coverage.
