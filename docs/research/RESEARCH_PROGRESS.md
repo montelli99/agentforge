@@ -1153,4 +1153,5 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 ## 2026-09-29 public verification checkpoint
 
 - `pnpm verify:public` passed the current checkout: typecheck, product isolation, repository privacy, build, public package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker end-to-end execution.
+- Fresh `pnpm test:research:all` rerun passed; mechanics run `mechanics-2026-09-29T15-48-08-782Z-dd752738-b2aa-4ee1-80ec-38a47aa1c3e0` passed all 22 checks, with manuscript state `scaffold` and measured outcomes explicitly `not measured`.
 
