@@ -1,9 +1,10 @@
 # Release next actions
 
-The local release and hosted build gates are passing. These are the remaining
-operator-authorized actions before calling the public release complete.
+The local release and hosted build gates are passing. AgentForge is an
+upcoming release candidate; the following are optional follow-up actions and
+the separate owner-controlled publication step.
 
-## 1. Live provider acceptance
+## 1. Optional live provider acceptance
 
 Use disposable sandbox targets and private environment variables. Do not put
 tokens, message bodies, phone numbers, workspace identifiers, or account names
@@ -39,6 +40,6 @@ provenance result, and archive digest without recording credentials.
 
 ## 4. Final release decision
 
-Keep the goal active until the evidence above exists. A passing local audit or
-fixture test does not substitute for live provider evidence or an authorized
-publication decision.
+The release candidate may be announced as upcoming without Discord or Slack
+live evidence. A passing local audit or fixture test must still never be
+described as a live provider result.
