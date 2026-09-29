@@ -12,6 +12,42 @@ import { getModelBenchmark, resetModelBenchmark, classifyPrompt } from "./modelB
 import { DefaultSpeculativeExecutor, AdaptiveSpeculativeExecutor } from "./speculativeExecution.js";
 
 describe("AgentForgeBroker", () => {
+  it("fails closed before translation when a side-effecting request has no audit store", async () => {
+    const broker = new AgentForgeBroker();
+    const result = await broker.route({
+      tenantId: "tenant-a",
+      selectedRuntime: "native",
+      selectedTransport: "stdio",
+      selectedModel: { provider: "ollama", model: "test-model" },
+      trustTier: "T1",
+      sideEffecting: true,
+      auditAvailable: false,
+      reflection: { preflight: "approve", postResult: "approve" },
+    });
+
+    expect(result.outcome).toBe("fail-closed");
+    expect(result.notes).toContain("audit unavailable for side effecting request");
+    expect(result.request).toBeUndefined();
+  });
+
+  it("carries an idempotency key into an approved side-effecting request", async () => {
+    const broker = new AgentForgeBroker();
+    const result = await broker.route({
+      tenantId: "tenant-a",
+      selectedRuntime: "native",
+      selectedTransport: "stdio",
+      selectedModel: { provider: "ollama", model: "test-model" },
+      trustTier: "T1",
+      sideEffecting: true,
+      auditAvailable: true,
+      reflection: { preflight: "approve", postResult: "approve" },
+    });
+
+    expect(result.outcome).toBe("pass");
+    expect(result.envelope?.idempotencyKey).toMatch(/^idem-/);
+    expect(result.request?.headers["x-agentforge-run-id"]).toBe(result.envelope?.runId);
+  });
+
   it("reroutes when preflight asks for revision", async () => {
     const broker = new AgentForgeBroker();
     const result = await broker.route({
