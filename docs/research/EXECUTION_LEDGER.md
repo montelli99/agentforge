@@ -5,7 +5,7 @@ Governing plan: [`LUNA_RESEARCH_COMPLETION_RUNBOOK.md`](LUNA_RESEARCH_COMPLETION
 
 This ledger is the continuation record for the white-paper work. A task is **verified** only when the cited artifact or command proves the stated scope. A green local mechanics check does not authorize a paid provider run or support a model-performance claim.
 
-Current public checkpoint: commit dc11cfe on next; hosted CI run 36584092671 passed across the public-boundary and Linux/macOS/Windows Node 22/24 jobs.
+Current public checkpoint: commit ebcc0e8 on next; hosted CI run 36584747789 passed across the public-boundary and Linux/macOS/Windows Node 22/24 jobs.
 
 ## Environment and baseline
 
