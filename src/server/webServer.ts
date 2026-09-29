@@ -38,6 +38,7 @@ import { DiscordMirrorProvider } from "../providers/channels/discordMirror.js";
 import { SlackMirrorProvider } from "../providers/channels/slackMirror.js";
 import { IsolatedSecretStore } from "../core/secret/secretStore.js";
 import { redactRuntimeError } from "../core/secret/runtimeRedaction.js";
+import { verifyEvidencePackIntegrity } from "../core/evidence/evidencePackIntegrity.js";
 import type { AuditEntry } from "../core/types/audit.js";
 import type { PermissionManifest } from "../core/types/package.js";
 import type { ExecutionContract, VerificationCheckType } from "../core/types/contract.js";
@@ -3998,6 +3999,7 @@ export class AgentForgeWebServer {
           return;
         }
         const testsPassed = evidence.testResults.filter(test => test.passed).length;
+        const integrityValid = verifyEvidencePackIntegrity(evidence);
         res.writeHead(200);
         res.end(JSON.stringify({
           available: true,
@@ -4005,6 +4007,7 @@ export class AgentForgeWebServer {
           objective: evidence.objective,
           status: task.status,
           contractPassed: evidence.verifiedPassed,
+          integrityValid,
           testsPassed,
           totalTests: evidence.testResults.length,
           commandsExecuted: evidence.commandsExecuted,
@@ -4019,7 +4022,7 @@ export class AgentForgeWebServer {
           res.end(JSON.stringify({ error: "Permission denied", required: "approvals:decide" }));
           return;
         }
-        if (!task.evidencePack?.verifiedPassed || task.status !== "waiting_approval") {
+        if (!task.evidencePack?.verifiedPassed || !verifyEvidencePackIntegrity(task.evidencePack) || task.status !== "waiting_approval") {
           res.writeHead(409);
           res.end(JSON.stringify({
             error: "This task has no verified evidence awaiting approval. No task status was changed.",
