@@ -7,6 +7,7 @@ Historical entries below preserve earlier checkpoints and their exact measuremen
 
 ## Current verification checkpoint — 2026-09-29
 
+- Hosted CI run `36586933896` for release-evidence commit `8b5bf1d3cfc56346c3ddca893c5d4d8888cb5086` completed successfully across all seven Ubuntu, macOS, Windows, Node 22 and Node 24 jobs, including public-package isolation acceptance. The local release audit reports `packageReady: true`; registry publication and provenance remain deliberately unperformed.
 - Latest zero-spend acceptance rerun: `mechanics-2026-09-29T14-53-04-316Z-c33c8131-21e8-4251-b349-2c6656684246`; revision `28d75cb932d67baaa44a042f07ce0c8420570290`. The clean export, review packet, all 22 isolated mechanics checks, manuscript validation, and release-evidence acceptance passed inside the network-denial boundary. This verifies the reproducible mechanics harness only; model-backed quality, measured outcomes, publication submission, and production deployment remain gated.
 - Re-ran `pnpm test:research:all` after the latest runner and route-safety changes.
 - Re-ran the full repository regression after the same changes: 89 test files passed, 494 tests passed, 2 skipped (496 total; 42.18s).
