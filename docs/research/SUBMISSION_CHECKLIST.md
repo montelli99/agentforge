@@ -7,7 +7,7 @@ Status: preparation only. Nothing here means a submission has been made or accep
 - [x] `CAPABILITY_EVIDENCE.md` has current source paths and evidence grades.
 - [x] `PROTOCOL.md` is frozen with a version and hash.
 - [ ] All primary outcomes have measured denominators, uncertainty and failure counts.
-- [ ] Results are reproducible from a clean checkout with synthetic data.
+- [x] Mechanics results are reproducible from a clean checkout with synthetic data; model-backed outcomes remain unmeasured.
 - [ ] Every number in `paper.md` matches a sanitized machine-readable result.
 - [x] No mechanics-only result is described as model quality, cost savings, or production reliability.
 - [ ] An independent human has reviewed safety failures, false completions and a sample of successes.
