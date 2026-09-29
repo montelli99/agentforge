@@ -1146,3 +1146,7 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - The supplied MiMo credential is treated as sensitive runtime input and is not written to source, logs, artifacts, or documentation.
 - A coding-plan approval does not itself expose Luna or GPT-5.5 API routes to this runtime. Those routes remain unmeasured until their provider endpoint/model identifiers are configured in the disposable runner environment.
 
+## 2026-09-29 hosted CI checkpoint
+
+- GitHub Actions run `36589686630` for revision `8ff4afffdec5d258b1ce8c71e68a72d1afc09458` completed successfully across all seven jobs: Linux Node 22/24, macOS Node 22/24, Windows Node 22/24, and public package/isolated execution acceptance.
+
