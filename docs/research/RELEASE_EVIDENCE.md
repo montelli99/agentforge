@@ -1,6 +1,6 @@
 # Local release evidence
 
-Status: local preparation only. This file is not a publication approval or a registry release record.
+Status: local preparation plus hosted CI verification. This file is not a publication approval or a registry release record.
 
 ## Revision
 
@@ -22,7 +22,7 @@ Status: local preparation only. This file is not a publication approval or a reg
 | --- | --- |
 | `research/results/mechanics-2026-09-29.json` | `b04b24c45ed0059b4615d9ac15e554ec68352d9b99683b3c887db8b5cc81fdab` |
 | `research/results/mechanics-2026-09-29T03-30-05-509Z-1ee36755-2f80-4427-9d5e-17ea58fd96bd/consolidated.json` | `2d54400962a838929b133c5d9f12d7212cad6193f9a42f4bdce93df302b1b7d0` |
-| `research/results/mechanics-2026-09-29T13-25-42-271Z-908ee290-832e-49a1-b8d1-2f4cc85f9c45/consolidated.json` | `21501E4EB11C164496054AABE243BDABD5EEC788DF33AFA13C67E090B5CA3311` |
+| `research/results/mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522/consolidated.json` | `21501E4EB11C164496054AABE243BDABD5EEC788DF33AFA13C67E090B5CA3311` |
 
 ## Local verification commands
 
@@ -42,7 +42,7 @@ pnpm test:research:source-register
 node scripts/release-evidence-acceptance.mjs
 ```
 
-The mechanics sweep is synthetic and zero-spend. The latest isolated rerun passed 22 registered checks, including development and held-out scorer controls. Docker network denial was verified; complete network/provider call counts remain unmeasured. Hosted CI, model-backed measurements, registry publication and provenance verification are not represented as complete here.
+The mechanics sweep is synthetic and zero-spend. Hosted build and public-boundary acceptance were verified in run 36579297290. The latest isolated rerun passed 22 registered checks, including development and held-out scorer controls. Docker network denial was verified; complete network/provider call counts remain unmeasured. Model-backed measurements, registry publication and provenance verification are not represented as complete here.
 
 ## Latest mechanics verification
 
@@ -72,5 +72,5 @@ The mechanics sweep is synthetic and zero-spend. The latest isolated rerun passe
 - Website mobile acceptance: passed for 42 pages
 - Static website verification: passed
 - Research review-packet acceptance: 16 required files present; state `MECHANICS_VERIFIED`
-- Current mechanics evidence: run `mechanics-2026-09-29T13-25-42-271Z-908ee290-832e-49a1-b8d1-2f4cc85f9c45` under `research/results/` (22 checks; network/provider call counts explicitly unmeasured)
-- Remaining external proof: hosted CI, registry publication and provenance verification
+- Current mechanics evidence: run `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522` under `research/results/` (22 checks; network/provider call counts explicitly unmeasured)
+- Remaining external proof: model-backed measurements, registry publication and provenance verification

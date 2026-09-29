@@ -23,7 +23,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 | Operational memory and JEv routing | Source trace verified | `SOURCE_RUNTIME_TRACE.md` documents namespace filtering, optional persistence, deterministic routing and fixed-confidence limits | Cross-process deployment policy and calibrated routing study remain open |
 | External comparisons | Source register, immutable repository pins, source-register acceptance gate, and 2026-09-29 URL-resolution check complete | `RELATED_WORK.md`, `scripts/research-source-register-acceptance.mjs`, `pnpm test:research:source-register` | Run matched supported configurations and record limitations |
 | Publication submission | Local preparation complete; approval pending | `SUBMISSION_CHECKLIST.md`, `OWNER_APPROVAL_PACKET.md`, `RELEASE_EVIDENCE.md`, review-packet acceptance | Measured results, authorship approval, release tag, archive and venue submission |
-| Public package readiness | Local blockers clear | `public-release-readiness.mjs`, package/CLI acceptance, launcher persistence/crash recovery, research clean-export, and `release-evidence-acceptance.mjs` outputs | Hosted CI evidence and registry/provenance publication |
+| Public package readiness | Hosted build and public-boundary acceptance verified | `public-release-readiness.mjs`, package/CLI acceptance, launcher persistence/crash recovery, research clean-export, `release-evidence-acceptance.mjs`, and hosted run 36579297290 | Registry/provenance publication and owner release approval |
 
 ## Current truthful release state
 
