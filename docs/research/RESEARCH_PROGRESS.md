@@ -3,6 +3,12 @@
 Updated: 2026-09-29
 Execution plan: [WHITE_PAPER_EXECUTION_PLAN.md](WHITE_PAPER_EXECUTION_PLAN.md)
 
+## Current verification checkpoint — 2026-09-29 (latest)
+
+- `pnpm verify:public` passed on revision `f16d44f`: typecheck, product isolation, repository privacy, build, package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker E2E all passed.
+- Hosted CI run `36595046440` passed all seven matrix jobs, including Windows Node 22 and Node 24 package acceptance.
+- The research gate remains `MECHANICS_VERIFIED`; model-backed outcomes, human review, registry provenance, and publication remain unperformed.
+
 Historical entries below preserve earlier checkpoints and their exact measurements. The current truthful state is recorded in the latest dated entries near the end of this file; older runner counts and literal call-count statements are not current-state claims.
 
 ## Current verification checkpoint — 2026-09-29
