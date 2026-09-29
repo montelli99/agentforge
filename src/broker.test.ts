@@ -48,6 +48,33 @@ describe("AgentForgeBroker", () => {
     expect(result.request?.headers["x-agentforge-run-id"]).toBe(result.envelope?.runId);
   });
 
+  it("does not let the optimization path bypass the side-effect audit boundary", async () => {
+    const broker = new AgentForgeBroker(undefined, undefined, {
+      enabled: true,
+      promptCompression: false,
+      contextDeduplication: false,
+      semanticCache: false,
+      exactCache: false,
+      memoryBypass: false,
+      largeContextElimination: false,
+      costAwareRouting: false,
+      providerFailover: false,
+    });
+    const result = await broker.route({
+      tenantId: "tenant-a",
+      selectedRuntime: "other",
+      selectedTransport: "stdio",
+      selectedModel: { provider: "ollama", model: "test-model" },
+      trustTier: "T1",
+      sideEffecting: true,
+      auditAvailable: false,
+      reflection: { preflight: "approve", postResult: "approve" },
+    });
+
+    expect(result.outcome).toBe("fail-closed");
+    expect(result.notes).toContain("audit unavailable for side effecting request");
+  });
+
   it("reroutes when preflight asks for revision", async () => {
     const broker = new AgentForgeBroker();
     const result = await broker.route({
