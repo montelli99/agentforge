@@ -1166,3 +1166,9 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - GitHub Actions run `36596403276` completed successfully across all seven jobs: Linux Node 22/24, macOS Node 22/24, Windows Node 22/24, and public package/isolated execution acceptance.
 - The result verifies the public mechanics and packaging path. It does not convert Codex coding-plan access into a repository-callable GPT-5.5/Luna API route, and it does not claim model-quality or cost outcomes that were not measured.
+
+## 2026-09-29 mechanics acceptance rerun
+
+- `pnpm test:research:all` passed on revision `18dd0b6f0cd24aeaf8da6596a4d3b32b8d4794d9`.
+- Mechanics run: `mechanics-2026-09-29T16-20-46-062Z-dcb0b2e8-0149-4992-89a2-a7a69f4a404a`; all 22 required checks passed under Docker network denial.
+- Review packet, route policy, source register, manuscript, and release-evidence acceptance passed. The evidence state remains `MECHANICS_VERIFIED`; model-backed outcomes and publication remain explicitly unmeasured/unperformed.
