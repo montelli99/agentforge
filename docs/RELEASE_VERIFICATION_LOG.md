@@ -24,13 +24,14 @@ The live Render endpoint was checked on 2026-09-29:
 
 - `https://agentforge-site.onrender.com/`: HTTP 200; responsive viewport meta and footer present.
 - `/404.html`, `/robots.txt`, and `/sitemap.xml`: HTTP 200.
+- `pnpm test:website`: passed; all 42 public pages resolve local links and 39
+  include footer navigation.
 - The first check looked for a direct GitHub URL and was a false negative because the current homepage intentionally routes through `github.html`. A follow-up check confirmed the current title, `github.html` CTA, and “View source” CTA are live.
 - Deployment synchronization is accepted for the current static-site content.
 
 The following remain unverified until they are run against disposable targets
 or an explicitly approved deployment:
 
-- Hosted website HTTP and responsive-page checks
 - Authenticated Telegram, Discord, or Slack round trips
 - Registry publication and provenance
 - Final owner approval for public release
