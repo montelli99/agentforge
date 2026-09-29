@@ -1183,3 +1183,7 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - `pnpm research:compare-pilot` regenerated the Phi-3.5 descriptive comparison: B0 0/24, B1 0/24, AF 2/24; all 72 trajectories completed and external spend was zero.
 - This remains development-only evidence with no statistical or superiority claim; it does not replace the held-out/provider-backed study.
+
+## 2026-09-29 full public verification rerun
+
+- `pnpm verify:public` passed on the current revision: typecheck, product isolation, repository privacy, build, 151-file package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker end-to-end evidence.
