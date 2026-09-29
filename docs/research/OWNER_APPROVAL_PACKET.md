@@ -2,6 +2,8 @@
 
 Status: delegated local-study decisions recorded in `OWNER_DECISIONS_AND_NEXT_ACTIONS.md`. That record authorizes local model smoke and development pilot after implementation acceptance, with USD 0 external API spending. The blank template remains a reusable template and must not pause the active local implementation sequence.
 
+Codex coding-plan access is not a provider API route for the repository runner. It can be used to develop and review the study, but it cannot produce GPT-5.5 or Luna provider measurements unless an explicit callable route is configured.
+
 This packet does not read, select, or authorize any credential merely because a credential exists on the machine. A route becomes eligible only after the owner supplies the route identity, dated pricing, hard ceiling, disposable runtime and reviewer decisions below.
 
 ## Locally discovered route candidates (not approved)
