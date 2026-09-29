@@ -48,6 +48,7 @@
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
     "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
     "release:audit": "node scripts/public-release-readiness.mjs",
+    "test:hosted-ci:evidence": "node scripts/hosted-ci-evidence-acceptance.mjs",
     "audit:completion": "node scripts/completion-audit-check.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.vnext.json",
     "typecheck:all": "tsc --noEmit -p tsconfig.json",
