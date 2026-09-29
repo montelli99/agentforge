@@ -1172,3 +1172,9 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - `pnpm test:research:all` passed on revision `18dd0b6f0cd24aeaf8da6596a4d3b32b8d4794d9`.
 - Mechanics run: `mechanics-2026-09-29T16-20-46-062Z-dcb0b2e8-0149-4992-89a2-a7a69f4a404a`; all 22 required checks passed under Docker network denial.
 - Review packet, route policy, source register, manuscript, and release-evidence acceptance passed. The evidence state remains `MECHANICS_VERIFIED`; model-backed outcomes and publication remain explicitly unmeasured/unperformed.
+
+## 2026-09-29 website and public research bundle acceptance
+
+- `pnpm test:website` passed: 42 pages checked, all local links resolve, and 39 pages include footer navigation.
+- `pnpm research:public-bundle` passed: 13 public-safe research files exported (64,688 bytes) to `.artifacts/research-public-bundle`.
+- These checks verify site navigation and reproducible packaging; they do not substitute for measured model outcomes, independent review, or publication approval.
