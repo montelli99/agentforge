@@ -3,11 +3,11 @@
 Status: manuscript scaffold with mechanics-verified content. Model-backed outcomes remain unmeasured.
 Protocol: [PROTOCOL.md](PROTOCOL.md)  
 Evidence register: [CAPABILITY_EVIDENCE.md](CAPABILITY_EVIDENCE.md)  
-Mechanics record: `research/results/mechanics-2026-09-28.json`
+Mechanics record: latest 22-check artifact under `research/results/`, identified in `RESEARCH_PROGRESS.md`
 
 ## Abstract
 
-AgentForge is an open-source control plane for governed agent work. This mechanics report documents its workflow compilation, durable goal state, memory and handoff boundaries, correction governance, execution contracts, evidence auditing and reproducibility controls. We define a preregistered protocol for comparing matched baselines and AgentForge ablations on synthetic task trajectories, including delayed recall, handoff, correction, workflow failure, recovery and completion safety. The current release validates the protocol machinery and zero-spend mechanics: the runners execute without network or provider calls, preserve frozen input hashes, retain synthetic state across process boundaries, reject cross-tenant access and negative controls, and prevent unauthorized native-harness file writes. No model-backed success rate, token reduction, cost savings, latency advantage or comparative superiority is claimed. Paid evaluation, independent review and production-provider acceptance remain future gates.
+AgentForge is an open-source control plane for governed agent work. This mechanics report documents its workflow compilation, durable goal state, memory and handoff boundaries, correction governance, execution contracts, evidence auditing and reproducibility controls. We define a preregistered protocol for comparing matched baselines and AgentForge ablations on synthetic task trajectories, including delayed recall, handoff, correction, workflow failure, recovery and completion safety. The current release validates the protocol machinery and zero-spend mechanics inside a Docker network-denial boundary, preserving frozen input hashes, retaining synthetic state across process boundaries, rejecting cross-tenant access and negative controls, and exercising a declared-path native-harness write-denial case. Complete network/provider call counts remain unmeasured. No model-backed success rate, token reduction, cost savings, latency advantage or comparative superiority is claimed. Paid evaluation, independent review and production-provider acceptance remain future gates.
 
 ## 1. Introduction
 
@@ -41,7 +41,7 @@ Use the frozen questions and conditions in `PROTOCOL.md`. Define primary success
 
 ### 5.1 Tasks and data
 
-All current fixtures are synthetic and contain no private business records, credentials or personal messages. The protocol covers delayed recall/context pressure, restart and model handoff, correction retention, multi-step workflow with a failed requirement, duplicate/timeout recovery, and permission/completion safety. Each case must define required and forbidden outcomes, deterministic state or artifact checks, timeout and attempt limits, injected events, and a negative control. Evaluator answer keys are kept outside the agent context and retrieval store. The checked-in fixture is an initial mechanics fixture; the full held-out task families remain a future study deliverable.
+All current fixtures are synthetic and contain no private business records, credentials or personal messages. The protocol covers delayed recall/context pressure, restart and model handoff, correction retention, multi-step workflow with a failed requirement, duplicate/timeout recovery, and permission/completion safety. Each case must define required and forbidden outcomes, deterministic state or artifact checks, timeout and attempt limits, injected events, and a negative control. Evaluator answer keys are kept outside the agent context and retrieval store. The development and held-out task families are checked in and structurally validated; the held-out split remains unrun and is reserved for the future measured study.
 
 ### 5.2 Conditions and controls
 
@@ -53,7 +53,7 @@ The primary unit is a complete task trajectory. Valid success requires the accep
 
 ### 5.4 Accounting and reproducibility
 
-Each trajectory records experiment, task, condition and replicate IDs, UTC timestamps, code/config/task hashes, model and provider versions, usage categories, pricing source and currency, retries, helper calls, tool actions, permission denials, completion claims and scorer outcomes. Provider-reported input, cached input and output usage are kept distinct; missing usage is `unknown`, never zero. Checkpoints are written after each trajectory and completed work is resumed without repeating charged calls. Raw traces remain outside the public repository until privacy screening. The local zero-spend sweep proves these mechanics and records protocol, fixture and configuration hashes; it does not prove provider performance. Reproduction commands and the current evidence revision are in `RELEASE_EVIDENCE.md`.
+Each trajectory records experiment, task, condition and replicate IDs, UTC timestamps, code/config/task hashes, model and provider versions, usage categories, pricing source and currency, retries, helper calls, tool actions, permission denials, completion claims and scorer outcomes. Provider-reported input, cached input and output usage are kept distinct; missing usage is `unknown`, never zero. Checkpoints are written after each trajectory and completed work is resumed without repeating charged calls. Raw traces remain outside the public repository until privacy screening. The local zero-spend sweep exercises the synthetic accounting and checkpoint mechanics and records protocol, fixture and configuration hashes; it does not verify charged-provider accounting, resume behavior across paid calls or provider performance. Reproduction commands and the current evidence revision are in `RELEASE_EVIDENCE.md`.
 
 ### 5.5 Human review and ethics
 
@@ -61,7 +61,9 @@ Human reviewers inspect safety failures, false completions and a sample of succe
 
 ## 6. Results
 
-The current release reports mechanics only. The complete sanitized record is `research/results/mechanics-2026-09-28.json`. The combined sweep used synthetic fixtures, made zero network calls and zero provider calls, and preserved the frozen protocol, fixture and pilot hashes.
+The checked-in task inventory has two physically separate synthetic splits: 12 development cases across six families and 60 held-out cases across the same families. Both are structurally validated with evaluator data outside agent-visible input. Held-out cases are reserved for evaluation and have not been used for tuning.
+
+The current release reports verified mechanics plus a bounded exploratory local-model pilot; it does not report publication-grade comparative outcomes. The latest sanitized record is the 22-check artifact under `research/results/` identified in `RESEARCH_PROGRESS.md`. The combined sweep used synthetic fixtures inside a Docker network-denial boundary; complete network/provider call counts remain unmeasured, and the frozen protocol, fixture and pilot hashes are preserved. The separate Phi-3.5 development pilot is summarized in `docs/research/RESULTS.md` and remains descriptive evidence only.
 
 | Mechanics check | Observed result | Interpretation |
 | --- | --- | --- |
@@ -71,7 +73,11 @@ The current release reports mechanics only. The complete sanitized record is `re
 | Cross-process memory | Temporary adapter hydrated in a separate reader process | Adapter continuity works in the fixture; deployment privacy remains open |
 | Handoff continuity | Goal hash, requirements and execution DAG restored | State continuity works; next-action quality is unmeasured |
 | Native execution contract | Unauthorized file path rejected before attached executor ran | File-scope boundary is enforced below the executor |
-| Full regression | 87 test files; 483 passed; 2 skipped | Repository checks pass at the recorded revision |
+| Worker/Docker evidence gate | Missing required worker check and incomplete Docker plan rejected before completion/container creation | Required evidence is fail-closed at the tested boundaries |
+| Measured-run configuration guard | Valid measured shape accepted; mock/synthetic condition rejected before dispatch | A real route cannot be silently replaced with a fixture; no provider was contacted |
+| Public controller evidence gate | Incomplete worker evidence persisted as failed through the public completion route | Controller safety mechanics only; no provider-backed trajectory |
+| Speculative side-effect refusal | Side-effecting speculative candidates rejected before model invocation | Speculation remains response-only and cannot authorize effects |
+| Full regression | 89 test files; 494 passed; 2 skipped | Repository checks pass at the recorded revision |
 
 These observations are not model-quality or production-performance results. The outcome table below remains intentionally unmeasured until the owner-approved study is run.
 
@@ -86,7 +92,7 @@ These observations are not model-quality or production-performance results. The 
 
 The analysis will include omitted or invented facts, stale handoffs, repeated corrections, unsupported completion claims, blocked actions, provider failures, retries and accounting gaps. Every included trace must be sanitized and linked to a task and condition identifier. The current mechanics record includes successful and deliberately incorrect controls, but it does not select favorable model examples because no model-backed study has been run.
 
-## 8. Discussion
+## 9. Discussion
 
 The discussion will report paired task-level effects with uncertainty and distinguish confirmatory outcomes from exploratory observations. It will explain confounds when an ablation cannot be isolated and will report null and negative findings. Synthetic mechanics results will not be generalized to arbitrary businesses, providers or deployment environments.
 
@@ -99,6 +105,8 @@ At minimum address synthetic task realism, sample size, model alias drift, provi
 The public package includes the Apache-2.0 code, protocol, synthetic fixtures, runners, validation scripts and sanitized mechanics records. The research page links the protocol, results ledger, source trace and reproduction commands. Offline mechanics require no provider account. Model-backed runs require the owner-approved routes, pricing, budget and disposable runtime captured in `OWNER_APPROVAL_PACKET.md`; those inputs are intentionally absent from the public package until approved. A release tag, archive DOI and live download verification will be added only after the corresponding publication gates pass.
 
 ## 11. Conclusion
+
+Editorial status correction: the held-out task families are now checked in and structurally validated as a separate 60-case split. They remain unrun and are not evidence of model performance.
 
 This release establishes a reproducible mechanics track for evaluating AgentForge; it does not establish that AgentForge improves task quality, reduces token use or costs less than another system. The implementation exposes explicit boundaries for workflow authority, memory scope, handoff state, correction approval, browser freshness, native execution and completion evidence. The protocol, fixtures, validators and public reproduction guide make the next study auditable. The remaining claims require frozen model routes, an approved budget, measured trajectories, independent review and deployment-specific acceptance. Until those gates pass, the appropriate conclusion is that the control and measurement machinery is available and its substantive outcome is unknown.
 

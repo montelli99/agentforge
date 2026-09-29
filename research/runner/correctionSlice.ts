@@ -17,6 +17,11 @@ try {
 const approved = registry.approve(proposal.correctionId, "synthetic-reviewer");
 const replay = registry.toDeterministicCase(proposal.correctionId);
 
+if (!pendingReplayRejected) throw new Error("pending correction replay was not rejected");
+if (automaticMutation.allowed !== false) throw new Error("automatic mutation was allowed");
+if (approved.status !== "APPROVED") throw new Error(`correction was not approved: ${approved.status}`);
+if (!replay.replayKey) throw new Error("approved correction did not create a replay case");
+
 console.log(JSON.stringify({
   experimentId: "correction-slice-2026-09-28-v1",
   syntheticOnly: true,

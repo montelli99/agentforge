@@ -21,6 +21,13 @@ const negative = await runner.runSuite(suite, "offline-negative-control", async 
   latencyMs: 0,
 }));
 
+if (!result.passedOverall || result.passedCases !== result.totalCases) {
+  throw new Error(`offline positive control failed: ${JSON.stringify(result)}`);
+}
+if (negative.passedOverall || negative.failedCases !== negative.totalCases) {
+  throw new Error(`offline negative control was accepted: ${JSON.stringify(negative)}`);
+}
+
 const summary = {
   experimentId: "offline-slice-2026-09-28-v1",
   syntheticOnly: true,

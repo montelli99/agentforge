@@ -5,6 +5,9 @@
   "providerCallsAllowed": false,
   "conditions": ["B0", "B1", "AF"],
   "developmentTasks": 12,
+  "developmentTaskManifest": "research/tasks/protocol-families-v1.json",
+  "heldoutTasks": 60,
+  "heldoutTaskManifest": "research/tasks/protocol-families-v1-heldout.json",
   "replicatesPerCondition": 2,
   "plannedTrajectories": 72,
   "caps": {

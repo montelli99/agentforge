@@ -62,4 +62,30 @@ describe("ContractedDockerExecutionBackend", () => {
       .rejects.toThrow(/review and approve an execution plan/i);
     expect(environmentCreateCalls).toBe(0);
   });
+
+  it("rejects a plan with incomplete required evidence before Docker creation", async () => {
+    let environmentCreateCalls = 0;
+    const docker = {
+      isAvailable: async () => ({ available: true }),
+      createEnvironment: async () => {
+        environmentCreateCalls += 1;
+        throw new Error("Docker must not start with incomplete evidence requirements.");
+      },
+    } as unknown as DockerComputeProvider;
+    const planProvider: ExecutionPlanProvider = {
+      getReadiness: () => ({ ready: true }),
+      getPlan: async () => ({
+        taskId: task.id,
+        source: "human_approved",
+        // The task requires pnpm test; this plan intentionally omits it.
+        commands: [{ checkName: "diff_scope", command: "git diff --check" }],
+      }),
+    };
+    const backend = new ContractedDockerExecutionBackend(docker, planProvider);
+
+    await backend.initialize();
+    await expect(backend.execute({ task, worktreePath: process.cwd(), signal: new AbortController().signal }))
+      .rejects.toThrow(/missing the contracted check command: unit_tests/i);
+    expect(environmentCreateCalls).toBe(0);
+  });
 });

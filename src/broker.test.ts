@@ -77,6 +77,21 @@ describe("AgentForgeBroker", () => {
   });
 });
 
+describe("Speculative execution boundary", () => {
+  it("rejects side-effecting candidates before invoking the model executor", async () => {
+    let invoked = false;
+    const executor = new DefaultSpeculativeExecutor(async () => {
+      invoked = true;
+      return { response: "should not run", success: true };
+    });
+    await expect(executor.execute("mutate", [{
+      prompt: "mutate", model: { provider: "anthropic", model: "claude-sonnet-4-5" },
+      timeout: 1000, priority: 1, sideEffecting: true,
+    }])).rejects.toThrow(/cannot run side-effecting/i);
+    expect(invoked).toBe(false);
+  });
+});
+
 describe("Phase 2 - Delta Engine", () => {
   it("processes multi-turn conversation deltas", () => {
     resetDeltaEngine();

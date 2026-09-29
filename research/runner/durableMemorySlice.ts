@@ -23,7 +23,7 @@ const persistence: SemanticMemoryPersistence = {
 
 function runChild(mode: "write" | "read"): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--import", "tsx", process.argv[1], mode, file], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, [...process.execArgv, process.argv[1], mode, file], { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => { stdout += chunk; });
@@ -45,6 +45,9 @@ if (process.argv[2] === "write") {
 } else {
   const written = JSON.parse(await runChild("write")) as { persisted: number };
   const read = JSON.parse(await runChild("read")) as { retainedAcrossProcess: boolean; response?: unknown };
+
+  if (written.persisted !== 1) throw new Error(`unexpected persisted entry count: ${written.persisted}`);
+  if (!read.retainedAcrossProcess) throw new Error("memory was not retained across separate processes");
 
 console.log(JSON.stringify({
   experimentId: "durable-memory-slice-2026-09-28-v1",

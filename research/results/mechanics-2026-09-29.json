@@ -1,0 +1,28 @@
+{
+  "releaseStatus": "mechanics-only",
+  "experimentDate": "2026-09-29",
+  "syntheticOnly": true,
+  "networkCalls": 0,
+  "providerCalls": 0,
+  "registeredRunnerCount": 20,
+  "inputHashesUnchanged": true,
+  "verifiedBoundaries": [
+    "protocol and development/held-out fixture validation",
+    "trajectory accounting and production-path wiring",
+    "measured-run and owner-approval guards",
+    "context integrity and provenance retention",
+    "correction transfer and workflow recovery",
+    "durable memory and handoff continuity",
+    "evidence-path and manuscript validation"
+  ],
+  "newIntegrationChecks": [
+    "public completion route persists incomplete worker evidence as failed",
+    "speculative execution refuses side-effecting candidates",
+    "clean research export and review packet acceptance"
+  ],
+  "limitations": [
+    "These checks use synthetic deterministic fixtures and make no model calls.",
+    "They do not establish model quality, token savings, cost, latency, correction recurrence, or production reliability.",
+    "Deployment-specific provider round trips, human review, hosted CI, registry provenance and publication remain open."
+  ]
+}

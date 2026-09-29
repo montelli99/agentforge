@@ -1,5 +1,9 @@
 # AgentForge research workspace
 
+Model selection is explicit: set `AGENTFORGE_LOCAL_MODEL` for local runs.
+Runners do not choose a default model and reject Qwen routes. Historical result
+artifacts retain their original model labels and are not approval for new runs.
+
 This directory contains public, synthetic benchmark fixtures and reproducibility helpers for the AgentForge white paper. It must never contain credentials, private conversations, seller records, business data, or raw provider logs.
 
 Owner decisions required before any charged run or publication action are listed in [`../docs/research/OWNER_APPROVAL_PACKET.md`](../docs/research/OWNER_APPROVAL_PACKET.md).
@@ -62,6 +66,27 @@ node --import tsx research/runner/validatePilotConfig.ts
 
 The pilot config intentionally permits zero provider spend only. It is not authorization to start paid model runs.
 
+Validate the six-family development fixture manifest:
+
+```powershell
+node --import tsx research/runner/validateProtocolFamilies.ts
+node --import tsx research/runner/validateHeldoutProtocolFamilies.ts
+```
+
+This checks the twelve synthetic development cases, unique IDs, family coverage, and that evaluator expectations are not embedded in agent-visible input. It does not run a model or establish task quality.
+
+The production-path smoke check is included in the full sweep and can be run directly:
+
+```powershell
+node --import tsx research/runner/productionPathSlice.ts
+node --import tsx research/runner/measuredRunGuardSlice.ts
+node --import tsx research/runner/contextIntegritySlice.ts
+node --import tsx research/runner/correctionTransferSlice.ts
+node --import tsx research/runner/workflowRecoverySlice.ts
+```
+
+It invokes the repository's `BenchmarkRunner` and the shared `TrajectoryLedger` with synthetic answers kept outside the input. It is a wiring check, not model-backed evidence.
+
 Validate the manuscript safety gates before publishing or handing the paper to a reviewer:
 
 ```powershell
@@ -105,3 +130,33 @@ node --import tsx research/runner/hashProtocolInputs.ts
 ```
 
 Save the output with a future run record before changing the protocol, fixtures or budget configuration.
+
+## Owner-authorized MiMo adapter smoke
+
+For a bounded synthetic connectivity check through the real MiMo provider adapter:
+
+```powershell
+pnpm test:research:mimo-smoke
+$env:AGENTFORGE_MIMO_MODEL = 'mimo-v2.5-pro'
+pnpm test:research:mimo-smoke
+```
+
+The smoke validates a required response and writes sanitized, model-specific artifacts. It does not establish pricing, comparative quality, token savings, or production performance. Billing remains `unmeasured` unless reconciled from an authoritative provider record.
+
+### MiMo smoke matrix
+
+Run both approved MiMo connectivity tracks in one command:
+
+```powershell
+pnpm test:research:mimo-matrix
+```
+
+The runner retries empty or invalid synthetic responses up to three times per model with a 256-token response cap and writes `research/results/mimo-adapter-smoke-matrix.json`. It remains a connectivity check; usage and billing are recorded as observed or `unmeasured`, never inferred.
+
+Validate the combined MiMo smoke artifact:
+
+```powershell
+pnpm test:research:mimo-matrix-acceptance
+```
+
+This gate requires both approved models, a passing synthetic response, and an explicit unmeasured billing field.

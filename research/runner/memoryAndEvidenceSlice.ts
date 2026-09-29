@@ -80,6 +80,10 @@ const baseContext: AuditorContext = {
 };
 const audit = await auditor.audit(baseContext);
 
+if (!retained.hit) throw new Error("same-tenant memory fact was not retained");
+if (isolated.hit) throw new Error("cross-tenant memory query returned a fact");
+if (!audit.passed) throw new Error(`completion evidence audit failed: ${JSON.stringify(audit)}`);
+
 const summary = {
   experimentId: "memory-evidence-slice-2026-09-28-v1",
   syntheticOnly: true,

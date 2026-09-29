@@ -20,6 +20,8 @@ Status: preparation only. Nothing here means a submission has been made or accep
 - [ ] Third-party code, data and citations have license/attribution records.
 - [ ] Apache-2.0 applies to AgentForge code; paper/data licenses are explicitly selected.
 - [x] Local public repository commit, protocol/input checksums and reproduction commands recorded in `RELEASE_EVIDENCE.md`; release tag remains open.
+- [x] Local review-packet manifest verifies the paper, protocol, results, reproduction, source trace, evidence, checklist and sanitized mechanics record are present and remain explicitly mechanics-only.
+- [x] Related-work source-register acceptance checks required OpenClaw, Hermes, OpenMuse and primary research links plus pinned source revisions.
 - [x] Website research page links to the exact paper, protocol, results and reproduction commands.
 - [ ] Desktop/mobile website links and downloads verified.
 
@@ -65,3 +67,9 @@ Use exact state labels in every report:
 `DRAFT` → `MECHANICS_VERIFIED` → `RESULTS_VERIFIED` → `OWNER_APPROVED` → `ARCHIVED_DOI` / `PREPRINT_SUBMITTED` / `PEER_REVIEW_SUBMITTED` → `ACCEPTED`.
 
 Never use “published,” “peer reviewed,” “accepted,” or “validated” when the evidence only supports an earlier state.
+
+## Current checkpoint (2026-09-29)
+
+Current state: `MECHANICS_VERIFIED`.
+
+The local mechanics, adapter, memory, package, privacy, website, crash-recovery, and Docker acceptance evidence is complete for its stated scope. `RESULTS_VERIFIED` is not reached: model-backed outcomes, comparative quality, cost, latency, and token-use measurements remain unmeasured. No owner approval, DOI, preprint, peer-review submission, or publication action has occurred.

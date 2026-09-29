@@ -6,6 +6,8 @@ const root = resolve(import.meta.dirname, "../..");
 const files = [
   "docs/research/PROTOCOL.md",
   "research/tasks/offline-intent-v1.json",
+  "research/tasks/protocol-families-v1.json",
+  "research/tasks/protocol-families-v1-heldout.json",
   "research/config/pilot-v0.1.json",
 ];
 const hashes: Record<string, string> = {};

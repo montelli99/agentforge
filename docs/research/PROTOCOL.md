@@ -76,7 +76,7 @@ The following remain unmeasured:
 
 Do not write an abstract, result claim or superiority claim until these statuses are updated with run IDs and artifacts.
 
-The local mechanics were re-run together on 2026-09-28 with the zero-spend pilot validator and TypeScript typecheck. This validates the protocol harness, not model IDs, pricing, sample size or provider-specific configuration.
+The local mechanics were re-run together on 2026-09-29 with the zero-spend pilot validator and TypeScript typecheck. This validates the protocol harness, not model IDs, pricing, sample size or provider-specific configuration.
 
 ## Reproducibility record
 

@@ -57,14 +57,15 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     try {
       const firstRun = new CompletionEngine(undefined, new JsonCompletionSessionStore(sessionPath));
       const created = firstRun.initializeSession("task-AF-RESTORE", sampleGoalText, "user-owner");
-      firstRun.startExecution(created.taskId);
+      const started = firstRun.startExecution(created.taskId);
 
       const restarted = new CompletionEngine(undefined, new JsonCompletionSessionStore(sessionPath));
       const restored = restarted.getSession(created.taskId);
       expect(restored?.originalGoal.rawText).toBe(sampleGoalText);
       expect(restored?.originalGoal.immutableHash).toBe(created.originalGoal.immutableHash);
-      expect(restored?.state).toBe("EXECUTING");
-      expect(restored?.dag.map(node => node.requirementId)).toEqual(created.dag.map(node => node.requirementId));
+      expect(restored?.state).toBe(started.state);
+      expect(restored?.prd.requirements).toEqual(started.prd.requirements);
+      expect(restored?.dag).toEqual(started.dag);
       expect(Object.isFrozen(restored?.originalGoal)).toBe(true);
       expect(Object.isFrozen(restored?.traceability)).toBe(true);
     } finally {

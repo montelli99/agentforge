@@ -1,0 +1,40 @@
+{
+  "status": "awaiting_owner_decisions",
+  "modelRoutes": {
+    "B0": null,
+    "B1": null,
+    "AF": null,
+    "ablations": []
+  },
+  "pricing": {
+    "sources": [],
+    "currency": null,
+    "cachedInputTreatment": null,
+    "outputTreatment": null,
+    "helperModelTreatment": null
+  },
+  "budget": {
+    "replicatesPerCondition": null,
+    "hardTotalSpendCeiling": null,
+    "smokeAuthorization": false,
+    "pilotAuthorization": false
+  },
+  "review": {
+    "reviewer": null,
+    "safetyFailureReview": true,
+    "falseCompletionReview": true,
+    "successSampleReview": true
+  },
+  "runtime": {
+    "disposableRuntime": null,
+    "providerUsageReconciliation": true
+  },
+  "publication": {
+    "authors": [],
+    "affiliations": [],
+    "aiUseDisclosure": null,
+    "paperLicense": null,
+    "dataLicense": null,
+    "destinations": []
+  }
+}

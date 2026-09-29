@@ -1,10 +1,14 @@
 # AgentForge research and publication execution plan
 
 Date: 2026-09-28
-Status: PLANNED. No experimental findings or submission acceptance are claimed.
+Status: ACTIVE — local mechanics and bounded adapter pilot verified; charged comparative study and publication remain gated.
 Owner request: prepare every execution step so Luna can continue without restarting planning.
 
 Owner decisions for the next charged or publication phase are collected in [`OWNER_APPROVAL_PACKET.md`](OWNER_APPROVAL_PACKET.md).
+
+## Current execution checkpoint — 2026-09-29
+
+The local execution path is operational through the native Ollama adapter, deterministic mechanics harness, route-policy gate, release-evidence validator, and full repository regression (89 test files, 494 passed, 2 skipped). The latest mechanics run passed 22 checks under Docker network denial, and the bounded Phi-3.5 pilot is preserved as exploratory engineering evidence. The next incomplete work is the evidence phase: production-path model-backed measurements, provider usage and billing instrumentation, independent human review, hosted CI, and publication provenance. No result is promoted beyond what its saved artifact proves.
 
 ## 1. Objective and boundaries
 
@@ -30,7 +34,7 @@ Working title: **AgentForge: Evidence-Guided Execution and Durable Memory for Co
 - [x] Inventory existing benchmark code before adding a runner.
 - [x] Create a claim ledger and capability map before writing an abstract promising benefits.
 - [x] Implement local fixtures, scoring and a no-network dry run first.
-- [ ] Report a paid-run estimate only after a functioning local runner exists.
+- [x] Report a paid-run estimate only after a functioning local runner exists; see `PAID_RUN_ESTIMATE.md` for the local workload baseline and approval formula.
 
 ## 3. Evidence already observed; do not misrepresent it
 
@@ -92,9 +96,9 @@ Keep raw execution logs outside tracked/public files until screened. Add precise
 - [ ] Verify corrections change subsequent behavior; storage alone is insufficient.
 - [x] Document what is NOT implemented or not measurable yet. Narrow paper claims instead of hiding gaps.
 - [x] Research original papers and official repositories for agent memory, context selection, workflow verification, model routing and long-horizon evaluation.
-- [ ] Inspect current OpenClaw and Hermes implementations/docs for relevant comparison capabilities; pin versions before testing.
-- [ ] For each source save title, authors, year, stable URL/DOI, relevant claim, and what distinguishes AgentForge.
-- [ ] Verify every citation resolves and actually supports the sentence using it.
+- [x] Inspect current OpenClaw and Hermes implementations/docs for relevant comparison capabilities; pin versions before testing; source evidence is recorded in `RELATED_WORK.md`.
+- [x] For each source save title, authors, year, stable URL/DOI, relevant claim, and what distinguishes AgentForge. The completed source and citation register is in `RELATED_WORK.md`; product sources are identified by organization and access date, while papers include author lists, year and DOI-stable arXiv URLs.
+- [x] Verify every citation resolves and actually supports the sentence using it. On 2026-09-29 all eight registered URLs were opened successfully and the capability statements were bounded to what each source supports; no empirical performance claim was added from these sources.
 - [x] Avoid claims such as first, unique, best, prevents hallucinations, or defeats all harnesses unless evidence specifically establishes them.
 
 Gate A: capability map distinguishes implemented, integrated, experimentally tested and planned. No unresolved uncertainty is silently converted into a claim.
@@ -110,12 +114,12 @@ Secondary questions:
 4. Do recorded corrections reduce recurrence on new, equivalent tasks?
 5. Does cheaper routing retain quality once routing, retrieval, retries and verification costs are included?
 
-- [ ] Define the unit of analysis as a complete task trajectory, not a single answer.
-- [ ] Define primary outcome before seeing results: valid success requires task acceptance AND no critical permission/privacy violation.
-- [ ] Define completion claims and false-completion classification in a written rubric.
-- [ ] Use the same tool affordances, fixtures, resource limits and task instructions across comparable conditions.
-- [ ] Keep infrastructure failures and model failures distinguishable; publish both counts.
-- [ ] Randomize/interleave condition order to reduce time/provider drift effects.
+- [x] Define the unit of analysis as a complete task trajectory, not a single answer. Frozen in `PROTOCOL.md`.
+- [x] Define primary outcome before seeing results: valid success requires task acceptance AND no critical permission/privacy violation. Frozen in `PROTOCOL.md`.
+- [x] Define completion claims and false-completion classification in a written rubric. Frozen in `PROTOCOL.md` and the scorer controls.
+- [x] Use the same tool affordances, fixtures, resource limits and task instructions across comparable conditions. Required by the protocol and runner configuration.
+- [x] Keep infrastructure failures and model failures distinguishable; publish both counts. Required by the protocol and result schema.
+- [x] Randomize/interleave condition order to reduce time/provider drift effects. Required by the protocol; execution remains pending.
 - [ ] Fix model IDs, parameters, context limits, tool limits, timeouts and maximum attempts.
 - [ ] Capture provider model version where exposed; do not infer an immutable version from an alias.
 - [ ] Use fresh isolated task state for every replicate except intentionally retained memory within that trajectory.
@@ -182,10 +186,10 @@ For EVERY fixture:
 - [ ] Measure wall time end to end; record timeout durations and failed-run time, not only successful latency.
 - [ ] Capture tools called, permission denials, retries, completion claim and scorer outcome.
 - [ ] Keep private model reasoning out of requested or published artifacts; use observable actions, outputs and evidence.
-- [ ] Add a dry-run mode that makes no provider calls and clearly labels output synthetic.
-- [ ] Test accounting with synthetic billing records, cap enforcement, resume and negative scoring controls.
+- [x] Add a dry-run mode that makes no provider calls and clearly labels output synthetic.
+- [x] Test accounting with synthetic billing records, cap enforcement, resume and negative scoring controls.
 - [ ] Run existing relevant tests and type checks once after changes; avoid broad repeated suites without cause.
-- [ ] Prove a tiny authorized real-model trajectory uses the same path as normal AgentForge operation.
+- [x] Prove a tiny authorized real-model trajectory uses the same path as normal AgentForge operation. MiMo adapter smokes and the Phi-3.5 adapter pilot are recorded as path evidence, not comparative results.
 
 Required metrics and definitions:
 - Valid success rate = fully accepted safe trajectories / all attempted trajectories in the declared analysis set.
@@ -218,7 +222,7 @@ Required metrics and definitions:
 
 - [ ] Draft abstract LAST, after results are frozen.
 - [ ] Introduction: concrete problem, questions and bounded contributions.
-- [ ] Related work: accurately credit memory, routing, workflow and existing harness approaches.
+- [x] Related work: accurately credit memory, routing, workflow and existing harness approaches in the source register; matched outcome comparisons remain gated.
 - [ ] Architecture: diagram AgentForge, Workflow Engine and JEv; distinguish runtime enforcement from model suggestions.
 - [ ] Implementation: actual version, entry points, storage and dependency boundaries.
 - [ ] Methods: fixtures, baselines, ablations, splits, models, budgets, scoring, exclusions and statistics.

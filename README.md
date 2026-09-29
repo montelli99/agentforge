@@ -92,6 +92,15 @@ The dated competitive and release-gap audit is [`docs/MARKET_AUDIT_2026-09-25.md
 
 ## 🚀 Quickstart
 
+For the complete clean-install and provider connection walkthrough, see
+[`docs/INSTALLATION.md`](docs/INSTALLATION.md). It includes the BotFather
+Telegram setup, optional MTProto, Discord, Slack, verification, and credential
+safety steps.
+
+Choose a runtime model with [`docs/DEPLOYMENT_OPTIONS.md`](docs/DEPLOYMENT_OPTIONS.md):
+local workstation, approved Docker execution, always-on self-hosting, or a
+future managed service.
+
 ### Prerequisites
 - Node.js 22+
 - Git
