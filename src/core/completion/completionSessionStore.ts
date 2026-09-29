@@ -72,7 +72,10 @@ export class JsonCompletionSessionStore implements CompletionSessionStore {
     const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
     let lockHandle: number | undefined;
     try {
-      for (let attempt = 0; attempt < 100; attempt += 1) {
+      // Completion writes can overlap with launcher startup/recovery. Keep the
+      // wait bounded, but allow a normal snapshot handoff to finish before
+      // declaring the store unavailable.
+      for (let attempt = 0; attempt < 2000; attempt += 1) {
         try {
           lockHandle = fs.openSync(lockPath, "wx");
           fs.writeSync(lockHandle, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
