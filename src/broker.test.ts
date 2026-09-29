@@ -16,7 +16,7 @@ describe("AgentForgeBroker", () => {
     const broker = new AgentForgeBroker();
     const result = await broker.route({
       tenantId: "tenant-a",
-      selectedRuntime: "native",
+      selectedRuntime: "other",
       selectedTransport: "stdio",
       selectedModel: { provider: "ollama", model: "test-model" },
       trustTier: "T1",
@@ -34,7 +34,7 @@ describe("AgentForgeBroker", () => {
     const broker = new AgentForgeBroker();
     const result = await broker.route({
       tenantId: "tenant-a",
-      selectedRuntime: "native",
+      selectedRuntime: "other",
       selectedTransport: "stdio",
       selectedModel: { provider: "ollama", model: "test-model" },
       trustTier: "T1",
@@ -625,3 +625,4 @@ describe("Phase 2 - Optimizer Integration", () => {
     expect(optimizer.getModelBenchmark()).toBeDefined();
   });
 });
+
