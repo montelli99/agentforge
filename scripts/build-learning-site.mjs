@@ -4,7 +4,9 @@ import { features } from '../website/guide-content.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const site = path.join(root, 'website');
-const repo = 'https://github.com/montelli99/agentforge';
+// Keep the public build generic. A release workflow may provide the actual
+// repository URL without baking a maintainer's personal account into source.
+const repo = process.env.AGENTFORGE_PUBLIC_REPO_URL || 'https://github.com/agentforge/agentforge';
 const esc = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const guides = [
   ['install','Install AgentForge','From a clean checkout to your first working conversation.','website/content/install.md'],
