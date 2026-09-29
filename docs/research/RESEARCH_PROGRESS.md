@@ -1239,3 +1239,7 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - Added `pnpm test:registry:preflight`, a non-publishing registry gate.
 - It passed for `agentforge@0.1.0`, producing a 151-file archive fingerprint and confirming the package is not currently published.
 - The gate never reads credentials and never performs publication.
+
+### 2026-09-29 registry-preflight hosted verification
+
+- Run `36613614147` for `e737a74e6b16065eea8b26eb40f52441d6eef8df` passed all seven jobs, including both Windows package CLI workflows.
