@@ -65,14 +65,14 @@ No paid call, external account, private conversation or production credential is
 
 ## Current verified checkpoint (2026-09-29)
 
-- Latest integrated mechanics run: `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522`.
+- Latest integrated mechanics run: `mechanics-2026-09-29T16-03-36-384Z-2d74334f-fbf9-4d2b-8e7e-c669faef50e0` (revision `2b728af04b975008ce8d0c9638c3f719f3c8077b`).
 - Local mechanics, adapter smoke, durable-memory slice, website, package, privacy, crash-recovery, and approved Docker E2E checks pass.
 - Still gated: owner-approved model-backed/paid execution, measured comparative outcomes, independent human review, and publication actions.
 - Next executable action without owner input: continue local protocol/manuscript/reproducibility work and rerun acceptance checks after any edit. Do not invoke paid providers or publish.
 
 ## Route availability check (2026-09-29)
 
-The current workspace exposes a MiMo credential variable and the local Ollama route. No Luna or OpenAI/GPT route variable is configured in this environment. The route check inspected variable names only and did not read or persist secret values. Exact provider/model IDs for those tracks remain unresolved and must not be guessed.
+The current workspace exposes a MiMo credential variable and the local Ollama route. Codex coding-plan model access is available only to the development conversation; it is not a provider API route exposed to the research runner. No Luna or OpenAI/GPT route variable is configured in this environment. The route check inspected variable names only and did not read or persist secret values. Exact provider/model IDs for those tracks remain unresolved and must not be guessed.
 
 ## Owner route preference (proposal, not yet frozen)
 
