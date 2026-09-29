@@ -109,8 +109,10 @@ The requirement-by-requirement evidence index is maintained in
 ## Not yet proven
 
 - Live Telegram gateway relay acceptance against an authenticated gateway.
-- Live Discord Gateway acceptance against an authorized sandbox bot.
-- Live Slack Socket Mode acceptance against an authorized sandbox app.
+- Optional post-release Discord Gateway acceptance against an authorized
+  sandbox bot.
+- Optional post-release Slack Socket Mode acceptance against an authorized
+  sandbox app.
 - Registry publication and provenance verification. No package publication was
   attempted.
 
@@ -120,10 +122,10 @@ The requirement-by-requirement evidence index is maintained in
 - The GitHub Actions release gates can be started manually with `workflow_dispatch` in `.github/workflows/ci.yml`; the workflow does not require production credentials.
 - Publishing to npm or another registry remains an explicit external release action; it is not performed by the build or audit commands.
 
-Until the remaining live provider and hosted-release checks are complete, the
-release remains a candidate rather than a published release. No code path
-should claim a live provider or worker based only on configuration or a mock
-receipt.
+AgentForge is an upcoming release candidate. Discord and Slack are optional
+post-release integrations until their sandbox accounts are supplied. No code
+path should claim a live provider or worker based only on configuration or a
+mock receipt.
 
 - A disposable local AgentForge runtime acceptance run enabled approved Docker
   execution and confirmed the release-readiness response reported isolated

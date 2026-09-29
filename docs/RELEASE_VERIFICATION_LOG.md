@@ -29,8 +29,8 @@ The live Render endpoint was checked on 2026-09-29:
 - The first check looked for a direct GitHub URL and was a false negative because the current homepage intentionally routes through `github.html`. A follow-up check confirmed the current title, `github.html` CTA, and “View source” CTA are live.
 - Deployment synchronization is accepted for the current static-site content.
 
-The following remain unverified until they are run against disposable targets
-or an explicitly approved deployment:
+The following are optional post-release acceptance items until they are run
+against disposable targets or an explicitly approved deployment:
 
 - Authenticated Telegram, Discord, or Slack round trips
 - Registry publication and provenance
