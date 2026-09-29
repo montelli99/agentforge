@@ -36,6 +36,15 @@ check("package-surface-and-archive-privacy", packageGate.passed, packageGate.det
 check("cli-acceptance", fs.existsSync(path.join(root, "scripts", "package-cli-acceptance.mjs")), "CLI package acceptance gate is available.", true);
 check("package-version", typeof pkg.version === "string" && pkg.version.trim().length > 0 && pkg.version !== "0.0.0", pkg.private === true ? "Owner-selected package version is still required before publishing." : "Package version is selected.", true);
 check("publishability", pkg.private !== true, pkg.private === true ? "Package remains private by design until an owner selects a public release version." : "Package is publishable.", true);
+let hostedCiEvidence = { passed: false, detail: "Hosted CI evidence is not recorded for HEAD." };
+try {
+  execFileSync(process.execPath, [path.join(root, "scripts", "hosted-ci-evidence-acceptance.mjs")], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  hostedCiEvidence = { passed: true, detail: "Recorded hosted CI evidence matches HEAD and reports all seven jobs passed." };
+} catch (error) {
+  const stderr = typeof error.stderr === "string" ? error.stderr.trim() : "";
+  hostedCiEvidence = { passed: false, detail: stderr || "Hosted CI evidence is not recorded for HEAD." };
+}
+check("hosted-ci-evidence", hostedCiEvidence.passed, hostedCiEvidence.detail);
 
 const blockers = checks.filter(item => item.blocker && !item.passed);
 const packageReady = blockers.length === 0;
@@ -43,7 +52,7 @@ const packageReady = blockers.length === 0;
 // package gate so a green local audit never misrepresents an unpublished
 // project as a completed public release.
 const externalReleaseProof = [
-  "Hosted CI run for the release commit has not been recorded by this local audit.",
+  ...(hostedCiEvidence.passed ? [] : [hostedCiEvidence.detail]),
   "Registry publication and provenance verification have not been performed by this local audit.",
 ];
 const report = {
