@@ -124,6 +124,7 @@ describe("ProcessExecutionEngine (Sections 21-24: Governed Process & SOP Is Not 
     expect(trace.stepResults).toHaveLength(2);
     expect(trace.stepResults[0].status).toBe("completed");
     expect(trace.stepResults[1].status).toBe("completed");
+    expect(trace.executionMode).toBe("validated_only");
     expect(trace.completedAt).toBeDefined();
   });
 
@@ -147,6 +148,7 @@ describe("ProcessExecutionEngine (Sections 21-24: Governed Process & SOP Is Not 
     expect(trace.status).toBe("failed");
     expect(trace.stepResults.map(step => step.status)).toEqual(["completed", "failed"]);
     expect(trace.stepResults[0].output).toBe("provider evidence");
+    expect(trace.executionMode).toBe("provider_executed");
   });
 
   it("enforces 'SOP Is Not Authority': halts and requests human approval for privileged file deletion", async () => {

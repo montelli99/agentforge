@@ -42,7 +42,7 @@ export interface ProcessExecutionTrace {
   stepResults: StepExecutionResult[];
   unresolvedBlockers: UnresolvedBusinessRule[];
   /** The public engine currently validates sequencing and authority; it does not pretend to perform side effects. */
-  executionMode: "validated_only";
+  executionMode: "validated_only" | "provider_executed";
 }
 
 export type GovernedStepExecutor = (input: {
@@ -91,6 +91,7 @@ export class ProcessExecutionEngine {
     const { process, agent, contract, taskId, approvedStepIds = new Set<string>() } = params;
     const startedAt = new Date().toISOString();
     const stepResults: StepExecutionResult[] = [];
+    const configuredExecutor = params.stepExecutor || this.stepExecutor;
     const unresolvedBlockers = process.unresolvedRules.filter(r => !r.resolved && r.severity === "blocker");
 
     let overallStatus: "completed" | "waiting_for_approval" | "failed" = "completed";
@@ -142,7 +143,7 @@ export class ProcessExecutionEngine {
       let stepStatus: StepExecutionResult["status"] = "completed";
       let stepOutput = `Governed validation passed under contract authority. Step ${step.sequence} is ready; no external side effect executor is configured.`;
       let stepError: string | undefined;
-      const stepExecutor = params.stepExecutor || this.stepExecutor;
+      const stepExecutor = configuredExecutor;
       if (stepExecutor) {
         try {
           const result = await stepExecutor({ step, taskId, agent, contract, worktreePath: params.worktreePath });
@@ -180,7 +181,7 @@ export class ProcessExecutionEngine {
       status: overallStatus,
       stepResults,
       unresolvedBlockers,
-      executionMode: "validated_only",
+      executionMode: configuredExecutor ? "provider_executed" : "validated_only",
     };
   }
 
