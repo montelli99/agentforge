@@ -17,6 +17,11 @@ crash persistence, and the approved Docker acceptance path. `release:audit`
 reports whether the package is publishable and keeps hosted or registry proof
 separate from local evidence.
 
+Before any authorized publication, run `pnpm test:registry:preflight`. This
+performs an npm pack dry-run, records archive integrity and a file fingerprint,
+checks whether the package name is already present in the registry, and never
+publishes or sends credentials.
+
 ## 2. Hosted CI
 
 The workflow at `.github/workflows/ci.yml` runs on pushes and pull requests.
