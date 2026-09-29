@@ -37,6 +37,13 @@
     "test:package:cli": "node scripts/package-cli-acceptance.mjs",
     "test:package:surface": "node scripts/public-package-acceptance.mjs",
     "test:repository-privacy": "node scripts/public-repository-privacy-acceptance.mjs",
+    "test:research:clean-export": "node scripts/research-clean-export-acceptance.mjs",
+    "research:public-bundle": "node scripts/research-public-bundle.mjs",
+    "test:research:review-packet": "node scripts/research-review-packet-acceptance.mjs",
+    "test:research:route-policy": "node scripts/research-route-policy-acceptance.mjs",
+    "test:research:source-register": "node scripts/research-source-register-acceptance.mjs",
+    "research:compare-pilot": "node --import tsx research/runner/comparePilotArtifacts.ts",
+    "test:research:all": "pnpm test:research:clean-export && pnpm test:research:review-packet && pnpm test:research:route-policy && pnpm test:research:source-register && node --import tsx research/runner/mechanicsSweep.ts && node --import tsx research/runner/validateManuscript.ts && node scripts/release-evidence-acceptance.mjs",
     "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
     "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
@@ -46,7 +53,10 @@
     "typecheck:all": "tsc --noEmit -p tsconfig.json",
     "check": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test && pnpm build && pnpm test:package:surface",
     "test:lab": "node --import tsx src/main.ts",
-    "test:product-isolation": "node scripts/product-isolation-acceptance.mjs"
+    "test:product-isolation": "node scripts/product-isolation-acceptance.mjs",
+    "test:research:mimo-smoke": "node --import tsx research/runner/mimoAdapterSmoke.ts",
+    "test:research:mimo-matrix": "node --import tsx research/runner/mimoSmokeMatrix.ts && node scripts/mimo-matrix-acceptance.mjs",
+    "test:research:mimo-matrix-acceptance": "node scripts/mimo-matrix-acceptance.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -61,5 +71,19 @@
     "@earendil-works/pi-coding-agent": "0.87.1",
     "teleproto": "1.229.0"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "description": "AgentForge is an open-source, self-hostable AI workforce control plane. The source is licensed under Apache-2.0. The current checkout has a passing local release-readiness audit, a built public package, privacy-isolation checks, and local acceptance evidence for the AgentForge-owned Telegram BotFather transport. No provider credential, account, workspace, or business record is included with this repository. Discord, Slack, hosted CI, and public publishing still require deployment-specific acceptance.",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agentforge/agentforge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/agentforge/agentforge/issues"
+  },
+  "homepage": "https://github.com/agentforge/agentforge#readme"
 }
