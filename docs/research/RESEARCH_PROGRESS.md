@@ -1140,3 +1140,9 @@ The production MiMo adapter smoke passed for `mimo-v2.5` using the synthetic Fri
 ## 2026-09-29 — Public bundle packaging gate
 
 The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (64,448 bytes) and passes repository privacy and clean-export acceptance. CI run `36576604441` is validating the public package across Linux, macOS, and Windows before the hosted research gate is reconsidered.
+## 2026-09-29 route-readiness packet update
+
+- Added `docs/research/ROUTE_READINESS.md` to the review-packet acceptance gate; the packet now verifies 17 evidence files.
+- The supplied MiMo credential is treated as sensitive runtime input and is not written to source, logs, artifacts, or documentation.
+- A coding-plan approval does not itself expose Luna or GPT-5.5 API routes to this runtime. Those routes remain unmeasured until their provider endpoint/model identifiers are configured in the disposable runner environment.
+

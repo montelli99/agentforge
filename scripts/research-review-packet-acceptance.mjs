@@ -11,6 +11,7 @@ const packetFiles = [
   "docs/research/SOURCE_RUNTIME_TRACE.md",
   "docs/research/RELEASE_EVIDENCE.md",
   "docs/research/OWNER_APPROVAL_PACKET.md",
+  "docs/research/ROUTE_READINESS.md",
   "docs/research/PAID_RUN_ESTIMATE.md",
   "docs/research/RELATED_WORK.md",
   "docs/research/MECHANICS_RUNNER_ACCEPTANCE.md",
