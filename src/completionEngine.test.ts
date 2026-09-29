@@ -73,6 +73,23 @@ BUILD COMPREHENSIVE MULTI-CHANNEL AGENTFORGE PLATFORM
     }
   });
 
+  it("recovers a dead completion-session writer lock", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-completion-lock-"));
+    const sessionPath = path.join(directory, "sessions.json");
+    const lockPath = `${sessionPath}.lock`;
+    try {
+      fs.writeFileSync(lockPath, JSON.stringify({ pid: 4_294_967_291, createdAt: "old" }));
+      const stale = new Date(Date.now() - 60_000);
+      fs.utimesSync(lockPath, stale, stale);
+      const engine = new CompletionEngine(undefined, new JsonCompletionSessionStore(sessionPath));
+      engine.initializeSession("task-AF-LOCK-RECOVERY", sampleGoalText, "user-owner");
+      expect(fs.existsSync(lockPath)).toBe(false);
+      expect(new JsonCompletionSessionStore(sessionPath).loadAll()).toHaveLength(1);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a persisted session if its immutable OriginalGoal hash was altered", () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-completion-tamper-"));
     const sessionPath = path.join(directory, "sessions.json");
