@@ -3384,6 +3384,16 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/calls/simulate") {
+      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Authenticated identity is required to initiate a call." }));
+        return;
+      }
+      if (!hasPermission(caller.permissions, "voice:outbound")) {
+        res.writeHead(403);
+        res.end(JSON.stringify({ error: "Permission denied", required: "voice:outbound" }));
+        return;
+      }
       const body = await this.readBody(req);
       if (!isRecord(body) || !isBoundedString(body.agentId, 120)
         || typeof body.phoneNumber !== "string" || !/^\+[1-9]\d{7,14}$/.test(body.phoneNumber)
