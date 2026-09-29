@@ -36,6 +36,7 @@ export * from "./providers/harness/piSdkExecutor.js";
 export * from "./providers/harness/pydanticHttpExecutor.js";
 export * from "./providers/harness/nativeComputeExecutor.js";
 export * from "./core/runtime/taskWorkerRuntime.js";
+export * from "./core/runtime/modelToolLoop.js";
 export * from "./core/quality/correctionRegistry.js";
 export * from "./core/types/providerReadiness.js";
 export * from "./core/types/process.js";
