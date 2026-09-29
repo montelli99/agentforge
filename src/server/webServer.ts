@@ -3489,6 +3489,11 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/packages/uninstall") {
+      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Authenticated identity is required to uninstall a package." }));
+        return;
+      }
       const body = await this.readBody(req) as { packageName?: unknown };
       if (typeof body.packageName !== "string" || !body.packageName.trim()) {
         res.writeHead(400);
