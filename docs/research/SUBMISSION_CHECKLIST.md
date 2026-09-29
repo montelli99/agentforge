@@ -23,7 +23,7 @@ Status: preparation only. Nothing here means a submission has been made or accep
 - [x] Local review-packet manifest verifies the paper, protocol, results, reproduction, source trace, evidence, checklist and sanitized mechanics record are present and remain explicitly mechanics-only.
 - [x] Related-work source-register acceptance checks required OpenClaw, Hermes, OpenMuse and primary research links plus pinned source revisions.
 - [x] Website research page links to the exact paper, protocol, results and reproduction commands.
-- [ ] Desktop/mobile website links and downloads verified.
+- [x] Desktop/mobile website links and downloads verified by the static link and mobile acceptance checks.
 
 ## Zenodo DOI archive
 
@@ -72,4 +72,4 @@ Never use “published,” “peer reviewed,” “accepted,” or “validated�
 
 Current state: `MECHANICS_VERIFIED`.
 
-The local mechanics, adapter, memory, package, privacy, website, crash-recovery, and Docker acceptance evidence is complete for its stated scope. `RESULTS_VERIFIED` is not reached: model-backed outcomes, comparative quality, cost, latency, and token-use measurements remain unmeasured. No owner approval, DOI, preprint, peer-review submission, or publication action has occurred.
+The local mechanics, adapter, memory, package, privacy, website, crash-recovery, and Docker acceptance evidence is complete for its stated scope, and hosted CI run `36590598981` passed all seven jobs. `RESULTS_VERIFIED` is not reached: model-backed outcomes, comparative quality, cost, latency, and token-use measurements remain unmeasured. No owner approval, DOI, preprint, peer-review submission, or publication action has occurred.
