@@ -6,8 +6,8 @@ The public workflow is `.github/workflows/ci.yml`. The verified run executed the
 
 ## Acceptance record
 
-- Run: https://github.com/montelli99/agentforge/actions/runs/36579297290
-- Commit: `1c10c1956c178d42d8afb31b4ac4baa83caf847b`
+- Run: https://github.com/montelli99/agentforge/actions/runs/36584747789
+- Commit: `ebcc0e889c87e9a6e46b851c1490dd930b5fcc91`
 - Result: all 7 jobs passed.
 - Public package and isolated execution acceptance: passed.
 - Linux, macOS, and Windows Node 22/24 build and test jobs: passed.
