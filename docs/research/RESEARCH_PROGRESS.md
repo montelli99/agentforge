@@ -1161,3 +1161,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - `pnpm verify:public` passed the current checkout: typecheck, product isolation, repository privacy, build, public package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker end-to-end execution.
 - Fresh `pnpm test:research:all` rerun passed; mechanics run `mechanics-2026-09-29T15-48-08-782Z-dd752738-b2aa-4ee1-80ec-38a47aa1c3e0` passed all 22 checks, with manuscript state `scaffold` and measured outcomes explicitly `not measured`.
 
+
+## 2026-09-29 hosted CI checkpoint — owner-approved route boundary
+
+- GitHub Actions run `36596403276` completed successfully across all seven jobs: Linux Node 22/24, macOS Node 22/24, Windows Node 22/24, and public package/isolated execution acceptance.
+- The result verifies the public mechanics and packaging path. It does not convert Codex coding-plan access into a repository-callable GPT-5.5/Luna API route, and it does not claim model-quality or cost outcomes that were not measured.
