@@ -198,9 +198,7 @@ Ask only when the corresponding package is ready. Do not ask the owner to choose
 - At handoff, state the last verified gate, exact current step, commands/evidence already obtained, outstanding defects, pending input, and next executable action. No vague 'continue work' handoff.
 - Preparation complete requires Gates 1–5 plus a concrete budget packet. Research complete requires Gates 6–7 and review. Published requires Gate 8. These do not mean the entire AgentForge product is complete.
 
-## Immediate next action for Luna
-
-Begin at 1.01. Preserve the frozen study, complete the acceptance repairs, and follow the numbered dependencies. This file is a plan: none of its unchecked items is a claim that work has been performed.
+## Immediate next action for Luna`r`n`r`nBegin at Section 3.12: extend the evidence register with the broker side-effect boundary now covered by `src/broker.test.ts`, then continue the remaining production-path and deployment-specific checks. Sections 1, 2, and the local portions of 3, 4, and 5 are verified in the ledger; do not replay them. This file is a plan: unchecked items remain unverified unless the ledger cites current evidence.
 
 ## 11. Non-stop execution contract
 
