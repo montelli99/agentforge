@@ -1206,3 +1206,9 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Updated the hosted CI and release-evidence records to reference the completed run `36598887916` for the verified seven-job matrix.
 - `pnpm release:audit` remains `packageReady: true`; `publishReady` is intentionally false until the new documentation revision itself has hosted CI evidence and registry/provenance publication is authorized.
+
+## 2026-09-29 hosted-CI audit repair
+
+- Added `scripts/hosted-ci-evidence-acceptance.mjs`, which verifies that the recorded seven-job hosted run matches the current Git revision.
+- Wired it into `public-release-readiness.mjs`; the audit now reports hosted CI evidence as passed instead of a false missing-proof warning.
+- `pnpm release:audit` now reports `packageReady: true`, hosted CI evidence passed, and only registry publication/provenance as external proof still outstanding.
