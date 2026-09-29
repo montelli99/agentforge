@@ -80,7 +80,7 @@ The requirement-by-requirement evidence index is maintained in
   container. Re-run `pnpm test:docker:acceptance` on the release host after
   Docker is available; availability is an environment condition, not a claim
   made by the package.
-- Hosted CI run `36365902052` passed the full Ubuntu, macOS, and Windows matrix
+- Hosted CI run `36619028316` passed the full Ubuntu, macOS, and Windows matrix
   on Node 22 and 24, including public-package and isolated-execution
   acceptance.
 - The public Render site is live from the current `vnext` source. Local
@@ -183,6 +183,10 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
   fetches or unresolved parent-directory links.
 
 ## Latest verification record
+
+- September 29, 2026: hosted CI run `36619028316` passed all seven jobs on
+  commit `b9c52cb2b78935310913fa4d5b602165ebd46b67`, including public-package
+  and isolated-execution acceptance.
 
 - September 28, 2026: the public Render website deployment for commit
   `47a0b914860dd1172469bdb759914b5b99827991` is live at
