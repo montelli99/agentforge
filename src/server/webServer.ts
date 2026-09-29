@@ -3785,6 +3785,9 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "approve-plan") {
+        if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+          res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to approve an execution plan." })); return;
+        }
         if (!hasPermission(caller.permissions, "approvals:decide") || !hasPermission(caller.permissions, "tasks:execute")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Plan approval requires review and execution permissions." })); return;
         }
