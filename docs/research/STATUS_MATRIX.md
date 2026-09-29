@@ -27,7 +27,7 @@ This matrix tracks the approved execution plan. “Complete” means locally ver
 
 ## Current truthful release state
 
-The repository has a reproducible, zero-spend mechanics track, a bounded local adapter pilot, and a public disclosure page. The research bundle is locally verified; its hosted CI gate is deferred until the complete bundle is deliberately published as one unit. The adapter pilot is engineering evidence only; the repository does not yet have final production-path model measurements or **model-backed outcome measurements**, competitive performance results, a DOI, peer review, or publication acceptance.
+The repository has a reproducible, zero-spend mechanics track, a bounded local adapter pilot, a public disclosure page, and a hosted CI-verified public bundle. The adapter pilot is engineering evidence only; the repository does not yet have final production-path model measurements or **model-backed outcome measurements**, competitive performance results, a DOI, peer review, or publication acceptance.
 
 Route policy: new local runs require an explicit `AGENTFORGE_LOCAL_MODEL`; no
 runner selects a default, and Qwen routes are excluded. Historical Qwen pilot
@@ -35,4 +35,4 @@ artifacts remain immutable and are not reused as current approval.
 
 ## Checkpoint refresh (2026-09-29)
 
-The latest integrated mechanics run is `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522` and passed all 22 registered checks under Docker network denial. Repeatable MiMo adapter smokes for `mimo-v2.5` and `mimo-v2.5-pro` also pass through the real adapter. Core regression is 89 test files / 494 passed / 2 skipped. These are mechanics and connectivity evidence only; model-backed outcome measurements, billing reconciliation, independent review, hosted CI, and publication remain open by design.
+The latest integrated mechanics run is `mechanics-2026-09-29T15-22-44-840Z-1f9dbfcd-8066-4f59-8431-7339d8cc9e57` and passed all 22 registered checks under Docker network denial. Repeatable MiMo adapter smokes for `mimo-v2.5` and `mimo-v2.5-pro` also pass through the real adapter. Core regression is 89 test files / 494 passed / 2 skipped. Hosted CI run `36589686630` passed all seven jobs. These are mechanics and connectivity evidence only; model-backed outcome measurements, billing reconciliation, independent review and publication remain open by design.

@@ -42,7 +42,7 @@ pnpm test:research:source-register
 node scripts/release-evidence-acceptance.mjs
 ```
 
-The mechanics sweep is synthetic and zero-spend. Hosted build and public-boundary acceptance were verified in run 36579297290. The latest isolated rerun passed 22 registered checks, including development and held-out scorer controls. Docker network denial was verified; complete network/provider call counts remain unmeasured. Model-backed measurements, registry publication and provenance verification are not represented as complete here.
+The mechanics sweep is synthetic and zero-spend. Hosted build and public-boundary acceptance were verified in run `36589686630` across all seven jobs. The latest isolated rerun passed 22 registered checks, including development and held-out scorer controls. Docker network denial was verified; complete network/provider call counts remain unmeasured. Model-backed measurements, registry publication and provenance verification are not represented as complete here.
 
 ## Latest mechanics verification
 
@@ -71,6 +71,6 @@ The mechanics sweep is synthetic and zero-spend. Hosted build and public-boundar
 - Website link acceptance: 42 pages checked; 39 pages include footer navigation
 - Website mobile acceptance: passed for 42 pages
 - Static website verification: passed
-- Research review-packet acceptance: 16 required files present; state `MECHANICS_VERIFIED`
-- Current mechanics evidence: run `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522` under `research/results/` (22 checks; network/provider call counts explicitly unmeasured)
+- Research review-packet acceptance: 17 required files present; state `MECHANICS_VERIFIED`
+- Current mechanics evidence: run `mechanics-2026-09-29T15-22-44-840Z-1f9dbfcd-8066-4f59-8431-7339d8cc9e57` under `research/results/` (22 checks; network/provider call counts explicitly unmeasured)
 - Remaining external proof: model-backed measurements, registry publication and provenance verification

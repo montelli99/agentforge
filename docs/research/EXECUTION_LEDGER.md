@@ -5,7 +5,7 @@ Governing plan: [`LUNA_RESEARCH_COMPLETION_RUNBOOK.md`](LUNA_RESEARCH_COMPLETION
 
 This ledger is the continuation record for the white-paper work. A task is **verified** only when the cited artifact or command proves the stated scope. A green local mechanics check does not authorize a paid provider run or support a model-performance claim.
 
-Current public checkpoint: commit `34552266ad5b5cc4bab9eebaa6602f3548b76517` on `vnext`; hosted CI run 36586266672 passed across the public-boundary and Linux/macOS/Windows Node 22/24 jobs.
+Current public checkpoint: commit `77afc68` on `vnext`; hosted CI run `36589686630` passed across the public-boundary and Linux/macOS/Windows Node 22/24 jobs.
 
 ## Environment and baseline
 
@@ -28,7 +28,7 @@ Current public checkpoint: commit `34552266ad5b5cc4bab9eebaa6602f3548b76517` on 
 | 3 — execution boundaries | PARTIAL | `BACKEND_BOUNDARY_MATRIX.md` inventories native, Docker, worker, Pydantic, Pi and speculative paths. Native executor requires a contract and rejects destructive commands; worker rejects incomplete evidence and keeps verified work in `waiting_approval` when required; contracted Docker rejects an incomplete required-check plan before container creation; the optional Pydantic adapter rejects insecure endpoints and malformed output; speculative execution rejects side-effecting candidates before model invocation; the public completion route now has an end-to-end regression through the worker evidence gate. The focused boundary checks and broker suite pass, and `pnpm verify:public` passed the network-disabled approved Docker E2E on 2026-09-29. | Deployed-runtime acceptance and any future side-effecting controller beyond the tested public route remain open. |
 | 4 — synthetic task suite | VERIFIED FOR FIXTURE INTEGRITY | Six families and 12 development cases plus six families and 60 held-out cases validate with evaluator data outside agent-visible input. | Held-out behavior still requires a frozen protocol and approved execution; it must not be used for tuning. |
 | 5 — production-path runner | PARTIAL | Real `BenchmarkRunner` plus `TrajectoryLedger` smoke is checkpointed and capped, using synthetic answers; the bounded Ollama adapter pilot and smoke are separately recorded; a measured-run guard rejects missing routes and mock/synthetic conditions. | A real approved comparative route still must be connected and reconciled. |
-| 6 — paid evaluation | WAITING_FOR_INPUT | Owner packet contains route candidates and required decisions; no provider call was made. | Owner must approve route, dated price, replicate/cap matrix, and hard spend ceiling. |
+| 6 — paid evaluation | WAITING_FOR_INPUT | Owner packet contains route candidates and required decisions; no provider call was made. | Freeze exact route IDs, dated price, replicate/cap matrix, and hard spend ceiling before charged execution. |
 | 7 — manuscript/package | PARTIAL | Methods scaffold, synchronized results limitations, evidence links, privacy scan, package-surface/archive checks, CLI and launcher acceptance, review-packet acceptance, and clean-export reproduction checks exist. | Model results, author metadata, independent review, and final archive remain open. |
 | 8 — publication | NOT_STARTED | No external submission or publication action was taken. | Final approval and verified measured package are prerequisites. |
 
