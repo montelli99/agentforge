@@ -3980,6 +3980,7 @@ export class AgentForgeWebServer {
           taskId: task.id,
           baseSha: evidence.baseSha,
           currentSha: evidence.finalSha,
+          integrityValid: verifyEvidencePackIntegrity(evidence),
           diffStat: evidence.diffStat,
           filesChanged: evidence.filesChanged,
         }));
