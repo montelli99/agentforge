@@ -1243,3 +1243,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 ### 2026-09-29 registry-preflight hosted verification
 
 - Run `36613614147` for `e737a74e6b16065eea8b26eb40f52441d6eef8df` passed all seven jobs, including both Windows package CLI workflows.
+
+### 2026-09-29 release verification log
+
+- Added `docs/RELEASE_VERIFICATION_LOG.md` with the exact hosted CI run, local public-boundary results, registry preflight result, and explicit unverified deployment/provider/publication gates.
+- The record contains no credentials or private workspace identifiers.
