@@ -1544,7 +1544,10 @@ export class WorkspaceStore {
       // writer could silently overwrite the other's state. A stale lock is
       // recoverable after a bounded lease so a crashed writer cannot wedge the store.
       const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
-      for (let attempt = 0; attempt < 100; attempt += 1) {
+      // Snapshot writes can overlap during startup and crash-recovery. Allow a
+      // bounded handoff window long enough for the active writer to finish,
+      // while still failing instead of waiting forever on a broken lock.
+      for (let attempt = 0; attempt < 2000; attempt += 1) {
         try {
           lockFd = fs.openSync(lockPath, "wx");
           fs.writeSync(lockFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
