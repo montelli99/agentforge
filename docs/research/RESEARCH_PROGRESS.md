@@ -1197,3 +1197,7 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - `pnpm test:research:all` passed on revision `4c2888e70b03cb4a9d3dba446d5c9f1d986802b9`.
 - Mechanics run `mechanics-2026-09-29T16-35-20-191Z-84d66fe3-76f1-40b5-9de7-c56be20f41ff` passed all 22 checks under Docker network denial; manuscript validation and release-evidence acceptance passed.
+
+## 2026-09-29 hosted CI completion
+
+- GitHub Actions run `36598887916` completed successfully across all seven jobs: Linux Node 22/24, macOS Node 22/24, Windows Node 22/24, and public package/isolated execution acceptance.
