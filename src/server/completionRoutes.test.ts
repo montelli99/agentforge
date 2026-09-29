@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CompletionEngine } from "../core/completion/completionEngine.js";
 import { JsonCompletionSessionStore } from "../core/completion/completionSessionStore.js";
 import { WorkspaceStore } from "../core/store/workspaceStore.js";
+import { TaskWorkerRuntime, type TaskExecutionBackend } from "../core/runtime/taskWorkerRuntime.js";
 import { AgentForgeWebServer } from "./webServer.js";
 
 async function availablePort(): Promise<number> {
@@ -276,5 +277,55 @@ describe("completion goal API", () => {
     const report = (await reportRes.json() as { report: string }).report;
     expect(report).not.toContain("COMPLETE_VERIFIED");
     expect(report).not.toContain("YES (Verified)");
+  });
+
+  it("routes public execution through the worker evidence gate", async () => {
+    const port = await availablePort();
+    const store = new WorkspaceStore();
+    const completion = new CompletionEngine();
+    const backend: TaskExecutionBackend = {
+      getReadiness: () => ({
+        ready: true,
+        blockers: [],
+        capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+      }),
+      execute: async () => ({
+        commandsExecuted: [], testResults: [], filesChanged: [], artifacts: [], finalSha: "controller-gate-sha",
+      }),
+    };
+    const worker = new TaskWorkerRuntime(store, backend, { repoRoot: process.cwd(), autoStart: false }, completion);
+    server = new AgentForgeWebServer(store, port, completion, worker);
+    await server.start();
+    worker.start();
+    const base = `http://127.0.0.1:${port}`;
+    const goal = await fetch(`${base}/api/completion/sessions`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: "controller-evidence-gate", rawGoalText: "Run a governed verification task." }),
+    });
+    expect(goal.status).toBe(201);
+    const started = await fetch(`${base}/api/completion/sessions/controller-evidence-gate/start`, { method: "POST" });
+    expect(started.status).toBe(200);
+    store.createTask({
+      id: "controller-evidence-gate", title: "Public controller evidence gate", status: "ready", priority: "high",
+      contract: {
+        id: "controller-evidence-contract", taskId: "controller-evidence-gate", version: 1,
+        repository: { baseBranch: "vnext", baseSha: "abc1234" }, workspace: { requireIsolatedWorktree: false },
+        scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+        authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+        requiredChecks: [{ type: "unit_tests", command: "pnpm test", required: true }],
+        completion: { requireEvidencePack: true, requireHumanApproval: false }, createdAt: new Date().toISOString(),
+      },
+    });
+
+    try {
+      const run = await fetch(`${base}/api/completion/sessions/controller-evidence-gate/run`, { method: "POST" });
+      expect(run.status).toBe(200);
+      const body = await run.json() as { task: { status: string; evidencePack?: { verifiedPassed?: boolean } } };
+      expect(body.task.status).toBe("failed");
+      expect(body.task.evidencePack?.verifiedPassed).toBe(false);
+      expect(store.listAuditEntries().some(entry => entry.action === "TASK_EXECUTION_FAILED" || entry.action === "TASK_EXECUTION_FAILED".toUpperCase())).toBe(true);
+    } finally {
+      worker.stop();
+    }
   });
 });

@@ -5,6 +5,8 @@ export type SpeculativeRequest = {
   model: AgentForgeModelChoice;
   timeout: number;
   priority: number;
+  /** Speculation is response-only; side effects must use a governed task contract. */
+  sideEffecting?: boolean;
 };
 
 export type SpeculativeResult = {
@@ -58,6 +60,9 @@ export class DefaultSpeculativeExecutor implements SpeculativeExecutor {
     candidates: SpeculativeRequest[],
     config: Partial<RaceConfig> = {},
   ): Promise<RaceResult> {
+    if (candidates.some((candidate) => candidate.sideEffecting === true)) {
+      throw new Error("Speculative execution cannot run side-effecting requests; use the governed task worker.");
+    }
     const {
       strategy = "first-acceptable",
       maxConcurrency = 3,

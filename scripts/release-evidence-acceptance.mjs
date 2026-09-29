@@ -15,10 +15,13 @@ void revisionExists;
 const inputs = [
   "docs/research/PROTOCOL.md",
   "research/tasks/offline-intent-v1.json",
+  "research/tasks/protocol-families-v1.json",
+  "research/tasks/protocol-families-v1-heldout.json",
   "research/config/pilot-v0.1.json",
 ];
+const sanitizedRecords = ["research/results/mechanics-2026-09-29.json"];
 const failures = [];
-for (const file of inputs) {
+for (const file of [...inputs, ...sanitizedRecords]) {
   const row = evidence.split("\n").find((line) => line.includes(`| \`${file}\` |`));
   const expected = row?.match(/`([0-9a-f]{64})`/)?.[1];
   const actual = createHash("sha256").update(readFileSync(path.join(root, file), "utf8").replaceAll("\r\n", "\n")).digest("hex");
@@ -29,4 +32,4 @@ if (failures.length) {
   console.error(JSON.stringify({ valid: false, failures }, null, 2));
   process.exit(1);
 }
-console.log(JSON.stringify({ valid: true, revision, frozenInputs: inputs.length }, null, 2));
+console.log(JSON.stringify({ valid: true, revision, frozenInputs: inputs.length, sanitizedRecords: sanitizedRecords.length }, null, 2));

@@ -114,6 +114,16 @@ export class AgentForgeNativeHarnessProvider implements HarnessProvider {
     }
 
     if (this.executor) {
+      if (!task.contract) {
+        return {
+          taskId: task.taskId,
+          sessionId,
+          status: "failure",
+          output: "",
+          error: "Native execution requires an execution contract.",
+          durationMs: Date.now() - startTime,
+        };
+      }
       try {
         const result = await this.executor.executeTask({ session, task });
         return { taskId: task.taskId, sessionId, status: "success", output: result.output, filesModified: result.filesModified, durationMs: Date.now() - startTime };

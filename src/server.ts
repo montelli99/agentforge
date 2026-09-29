@@ -1920,7 +1920,7 @@ function handleSettingsPage(_req: http.IncomingMessage, res: http.ServerResponse
           <div class="form-group">
             <label class="form-label">Model Name</label>
             <input class="form-input" type="text" id="model" placeholder="gpt-4o-mini">
-            <div class="form-hint">e.g. gpt-4o-mini, llama3.1:8b, qwen2.5:14b</div>
+            <div class="form-hint">e.g. gpt-4o-mini, llama3.1:8b, mistral-small:latest</div>
           </div>
           <div class="form-group">
             <label class="form-label">Port</label>

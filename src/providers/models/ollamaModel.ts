@@ -40,13 +40,12 @@ export class OllamaModelProvider implements GenerativeModelProvider {
   }
 
   async generate(options: ModelRequestOptions): Promise<ModelResponse> {
-    const url = `${this.baseUrl}/v1/chat/completions`;
-    const timeoutMs = 30000;
+    const url = `${this.baseUrl}/api/chat`;
     const bodyPayload: Record<string, unknown> = {
       model: options.model,
       messages: options.messages,
       temperature: options.temperature,
-      max_tokens: options.maxTokens,
+      options: { num_predict: options.maxTokens },
       stream: false,
     };
 
@@ -58,7 +57,7 @@ export class OllamaModelProvider implements GenerativeModelProvider {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bodyPayload),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: options.signal ?? AbortSignal.timeout(30000),
     });
 
     if (!res.ok) {
@@ -67,27 +66,32 @@ export class OllamaModelProvider implements GenerativeModelProvider {
     }
 
     const json = await res.json() as {
-      id?: string;
-      choices: Array<{ message: { content: string }; finish_reason?: string }>;
-      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+      model?: string;
+      message?: { content?: string };
+      done?: boolean;
+      done_reason?: string;
+      prompt_eval_count?: number;
+      eval_count?: number;
     };
+    const promptTokens = json.prompt_eval_count || 0;
+    const completionTokens = json.eval_count || 0;
 
     return {
-      id: json.id || `ollama-${Date.now()}`,
+      id: `ollama-${Date.now()}`,
       model: options.model,
-      content: json.choices?.[0]?.message?.content || "",
+      content: json.message?.content || "",
       usage: {
-        promptTokens: json.usage?.prompt_tokens || 0,
-        completionTokens: json.usage?.completion_tokens || 0,
-        totalTokens: json.usage?.total_tokens || 0,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
         estimatedCostUsd: 0, // Local compute is $0 external cost
       },
-      finishReason: json.choices?.[0]?.finish_reason,
+      finishReason: json.done_reason ?? (json.done ? "stop" : undefined),
     };
   }
 
   async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {
-    const url = `${this.baseUrl}/v1/chat/completions`;
+    const url = `${this.baseUrl}/api/chat`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,9 +99,10 @@ export class OllamaModelProvider implements GenerativeModelProvider {
         model: options.model,
         messages: options.messages,
         temperature: options.temperature,
-        max_tokens: options.maxTokens,
+        options: { num_predict: options.maxTokens },
         stream: true,
       }),
+      signal: options.signal,
     });
 
     if (!res.ok || !res.body) {
@@ -117,18 +122,12 @@ export class OllamaModelProvider implements GenerativeModelProvider {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed === "data: [DONE]") continue;
-        if (trimmed.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(trimmed.slice(6));
-            yield {
-              id: data.id,
-              deltaText: data.choices?.[0]?.delta?.content,
-              finishReason: data.choices?.[0]?.finish_reason,
-            };
-          } catch {
-            // Ignore parse errors on partial chunks
-          }
+        if (!trimmed) continue;
+        try {
+          const data = JSON.parse(trimmed) as { model?: string; message?: { content?: string }; done?: boolean; done_reason?: string };
+          yield { id: `ollama-${Date.now()}`, deltaText: data.message?.content, finishReason: data.done ? (data.done_reason ?? "stop") : undefined };
+        } catch {
+          // Ignore malformed partial lines; the next chunk completes the JSON.
         }
       }
     }

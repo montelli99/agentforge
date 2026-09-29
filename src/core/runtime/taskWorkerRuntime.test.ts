@@ -149,6 +149,88 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     }
   });
 
+  it("never treats verified work as final when the contract requires human approval", async () => {
+    const approvalRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
+      repoRoot: process.cwd(),
+      autoStart: false,
+    });
+    try {
+      const task = store.createTask({
+        id: "TASK-HUMAN-APPROVAL",
+        title: "Require review before completion",
+        priority: "high",
+        status: "ready",
+        contract: {
+          id: "contract-human-approval", taskId: "TASK-HUMAN-APPROVAL", version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" },
+          workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [{ type: "unit_tests", command: "pnpm test", required: true }],
+          completion: { requireEvidencePack: true, requireHumanApproval: true },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const result = await approvalRuntime.executeTask(task.id);
+      expect(result.status).toBe("waiting_approval");
+      expect(result.completedAt).toBeUndefined();
+      expect(result.evidencePack?.verifiedPassed).toBe(true);
+      expect(result.evidencePack?.approvalId).toBeDefined();
+      expect(store.listApprovals().some(approval => approval.taskId === task.id && approval.status === "pending")).toBe(true);
+    } finally {
+      approvalRuntime.stop();
+    }
+  });
+
+  it("does not accept a worker success claim when required evidence is missing", async () => {
+    const backend: TaskExecutionBackend = {
+      getReadiness: () => ({
+        ready: true,
+        blockers: [],
+        capabilities: { modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true },
+      }),
+      execute: async () => ({
+        commandsExecuted: [],
+        // The worker reports one passing check, but the contract requires two.
+        testResults: [{
+          checkName: "unit_tests", command: "pnpm test", passed: true, exitCode: 0,
+          stdout: "unit tests passed", stderr: "", durationMs: 1,
+        }],
+        filesChanged: [], artifacts: [], finalSha: "evidence-missing-sha",
+      }),
+    };
+    const guardedRuntime = new TaskWorkerRuntime(store, backend, { repoRoot: process.cwd(), autoStart: false });
+    try {
+      const task = store.createTask({
+        id: "TASK-MISSING-EVIDENCE",
+        title: "Reject incomplete worker evidence",
+        priority: "high",
+        status: "ready",
+        contract: {
+          id: "contract-missing-evidence", taskId: "TASK-MISSING-EVIDENCE", version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" },
+          workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["src/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [
+            { type: "unit_tests", command: "pnpm test", required: true },
+            { type: "diff_scope", required: true },
+          ],
+          completion: { requireEvidencePack: true, requireHumanApproval: false },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const result = await guardedRuntime.executeTask(task.id);
+      expect(result.status).toBe("failed");
+      expect(result.evidencePack?.verifiedPassed).toBe(false);
+      expect(result.error).toMatch(/required verification check failed/i);
+    } finally {
+      guardedRuntime.stop();
+    }
+  });
+
   it("redacts credential-shaped backend output before persisting an evidence pack", async () => {
     const exposedToken = "sk-evidencepackfixture1234567890";
     const backend: TaskExecutionBackend = {
