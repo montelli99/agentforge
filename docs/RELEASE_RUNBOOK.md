@@ -22,6 +22,11 @@ performs an npm pack dry-run, records archive integrity and a file fingerprint,
 checks whether the package name is already present in the registry, and never
 publishes or sends credentials.
 
+For a deployed static site, run `AGENTFORGE_DEPLOYMENT_URL=https://example.invalid
+pnpm test:deployment:smoke` (or pass the URL as the first argument). The smoke
+check verifies the required routes, responsive metadata, footer, and GitHub
+guide CTA without modifying the deployment.
+
 ## 2. Hosted CI
 
 The workflow at `.github/workflows/ci.yml` runs on pushes and pull requests.
