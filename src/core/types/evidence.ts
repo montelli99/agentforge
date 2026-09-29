@@ -78,4 +78,6 @@ export interface EvidencePack {
 
   generatedAt: string;
   verifiedPassed: boolean;
+  /** SHA-256 over the canonical pack payload, excluding this field. */
+  integrityHash?: string;
 }

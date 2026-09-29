@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type { Task, TaskStatus } from "../types/task.js";
 import type { ArtifactRecord, CommandAuditRecord, EvidencePack, FileDiffRecord, TestResultRecord } from "../types/evidence.js";
+import { sealEvidencePack } from "../evidence/evidencePackIntegrity.js";
 import type { WorkspaceStore } from "../store/workspaceStore.js";
 import { WorktreeManager } from "../worktree/worktreeManager.js";
 import type { CompletionEngine } from "../completion/completionEngine.js";
@@ -403,7 +404,7 @@ export class TaskWorkerRuntime {
   }
 
   private createEvidencePack(task: Task, output: TaskExecutionOutput, processTrace?: ProcessExecutionTrace): EvidencePack {
-    return {
+    return sealEvidencePack({
       id: `ev-${crypto.randomUUID()}`, taskId: task.id,
       agentId: task.assignedAgentId || "agentforge-orchestrator", objective: task.title,
       contractId: task.contract.id, baseSha: task.worktree?.baseSha || task.contract.repository?.baseSha || "UNKNOWN",
@@ -422,7 +423,7 @@ export class TaskWorkerRuntime {
         stepResults: processTrace.stepResults.map(step => ({ stepId: step.stepId, status: step.status, output: step.output ? redactRuntimeText(step.output) : undefined, error: step.error ? redactRuntimeText(step.error) : undefined })),
       } : undefined,
       generatedAt: new Date().toISOString(), verifiedPassed: false,
-    };
+    });
   }
 }
 

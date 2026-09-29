@@ -42,6 +42,8 @@ export * from "./core/types/providerReadiness.js";
 export * from "./core/types/process.js";
 export * from "./core/types/contract.js";
 export * from "./core/types/task.js";
+export * from "./core/types/evidence.js";
+export * from "./core/evidence/evidencePackIntegrity.js";
 export * from "./core/types/agent.js";
 export * from "./core/providers/memory.js";
 export * from "./core/store/workspaceStore.js";
