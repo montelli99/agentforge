@@ -1178,3 +1178,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - `pnpm test:website` passed: 42 pages checked, all local links resolve, and 39 pages include footer navigation.
 - `pnpm research:public-bundle` passed: 13 public-safe research files exported (64,688 bytes) to `.artifacts/research-public-bundle`.
 - These checks verify site navigation and reproducible packaging; they do not substitute for measured model outcomes, independent review, or publication approval.
+
+## 2026-09-29 local development-pilot comparison refresh
+
+- `pnpm research:compare-pilot` regenerated the Phi-3.5 descriptive comparison: B0 0/24, B1 0/24, AF 2/24; all 72 trajectories completed and external spend was zero.
+- This remains development-only evidence with no statistical or superiority claim; it does not replace the held-out/provider-backed study.
