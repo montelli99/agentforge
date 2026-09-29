@@ -1248,3 +1248,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Added `docs/RELEASE_VERIFICATION_LOG.md` with the exact hosted CI run, local public-boundary results, registry preflight result, and explicit unverified deployment/provider/publication gates.
 - The record contains no credentials or private workspace identifiers.
+
+### 2026-09-29 live website verification
+
+- Checked the Render deployment: `/`, `/404.html`, `/robots.txt`, and `/sitemap.xml` all returned HTTP 200.
+- The deployed homepage has responsive metadata and a footer, but it does not contain the current GitHub CTA marker; deployment synchronization is therefore explicitly unaccepted pending a fresh deploy.
