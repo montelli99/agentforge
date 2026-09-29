@@ -68,7 +68,7 @@ export interface EvidencePack {
   processExecution?: {
     processId: string;
     status: "completed" | "waiting_for_approval" | "failed";
-    executionMode: "validated_only";
+    executionMode: "validated_only" | "provider_executed";
     stepResults: Array<{ stepId: string; status: string; output?: string; error?: string }>;
   };
 
