@@ -83,7 +83,17 @@ export class JsonCompletionSessionStore implements CompletionSessionStore {
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
           try {
-            if (Date.now() - fs.statSync(lockPath).mtimeMs > 30_000) fs.unlinkSync(lockPath);
+            const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
+            let ownerAlive = true;
+            try {
+              const lock = JSON.parse(fs.readFileSync(lockPath, "utf8")) as { pid?: unknown };
+              if (typeof lock.pid === "number" && lock.pid !== process.pid) {
+                try { process.kill(lock.pid, 0); } catch { ownerAlive = false; }
+              }
+            } catch {
+              // A partially written lock remains recoverable once its lease expires.
+            }
+            if (!ownerAlive || ageMs > 30_000) fs.unlinkSync(lockPath);
           } catch {
             // A competing process may have released the lock while it was checked.
           }
