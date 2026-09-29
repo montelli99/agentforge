@@ -3751,6 +3751,9 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "revoke-plan") {
+        if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+          res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to revoke an execution plan." })); return;
+        }
         if (!hasPermission(caller.permissions, "approvals:decide")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "approvals:decide" })); return;
         }
