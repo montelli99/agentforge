@@ -1270,3 +1270,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Added `pnpm test:deployment:smoke`, which verifies the deployed route set, responsive metadata, footer, GitHub CTA, and guide repository link without modifying the deployment.
 - Ran it against the live Render site successfully: all five required routes returned HTTP 200.
+
+### 2026-09-29 combined release preflight
+
+- Added `pnpm release:preflight` to run the full local public verification, release audit, and non-publishing registry preflight in one sequence.
+- Full sequence passed: typecheck, privacy, build, package surface, crash persistence, Docker acceptance, release audit, and registry archive preflight.

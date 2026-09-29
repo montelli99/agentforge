@@ -12,6 +12,9 @@ pnpm verify:public
 pnpm release:audit
 ```
 
+The combined `pnpm release:preflight` command runs those checks and the
+non-publishing registry preflight in one repeatable sequence.
+
 `verify:public` checks type safety, the public package surface, archive privacy,
 crash persistence, and the approved Docker acceptance path. `release:audit`
 reports whether the package is publishable and keeps hosted or registry proof
