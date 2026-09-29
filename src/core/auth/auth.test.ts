@@ -190,10 +190,12 @@ describe("Section 11: Identity, Authentication & Multi-User RBAC", () => {
 
     beforeEach(async () => {
       const store = new WorkspaceStore();
-      port = 58000 + Math.floor(Math.random() * 1000);
+      // Let the OS choose an ephemeral port. Random fixed ports can collide
+      // with a just-closed listener on parallel or slower CI runners.
+      port = 0;
       server = new AgentForgeWebServer(store, port);
-      baseUrl = `http://127.0.0.1:${port}`;
       await server.start();
+      baseUrl = server.getBaseUrl();
     });
 
     afterEach(async () => {
