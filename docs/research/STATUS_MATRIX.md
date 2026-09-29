@@ -35,4 +35,4 @@ artifacts remain immutable and are not reused as current approval.
 
 ## Checkpoint refresh (2026-09-29)
 
-The latest integrated mechanics run is `mechanics-2026-09-29T13-25-42-271Z-908ee290-832e-49a1-b8d1-2f4cc85f9c45` and passed all 22 registered checks under Docker network denial. Repeatable MiMo adapter smokes for `mimo-v2.5` and `mimo-v2.5-pro` also pass through the real adapter. Core regression is 89 test files / 494 passed / 2 skipped. These are mechanics and connectivity evidence only; model-backed outcome measurements, billing reconciliation, independent review, hosted CI, and publication remain open by design.
+The latest integrated mechanics run is `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522` and passed all 22 registered checks under Docker network denial. Repeatable MiMo adapter smokes for `mimo-v2.5` and `mimo-v2.5-pro` also pass through the real adapter. Core regression is 89 test files / 494 passed / 2 skipped. These are mechanics and connectivity evidence only; model-backed outcome measurements, billing reconciliation, independent review, hosted CI, and publication remain open by design.
