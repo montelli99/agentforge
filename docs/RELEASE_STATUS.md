@@ -88,7 +88,7 @@ The requirement-by-requirement evidence index is maintained in
 - The complete `pnpm verify:public` sequence passed on the release host,
   including typecheck, build, archive privacy, persistence crash recovery,
   Docker acceptance, and approved Docker end-to-end evidence.
-- The full Vitest regression suite passed with 86 files and 480 tests; two
+- The full Vitest regression suite passed with 91 files and 502 tests; two
   tests remain skipped only behind explicit live-test opt-in.
 - A read-only native Telegram BotFather check accepted the configured token,
   returned the bot identity, reported no webhook, zero pending updates, and
