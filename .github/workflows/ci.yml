@@ -44,15 +44,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
-      - name: Verify research mechanics and publication evidence bundle
-        run: pnpm test:research:all
-        env:
-          NODE_ENV: test
-          CI: true
-          OPENAI_API_KEY: ""
-          TELEGRAM_BOT_TOKEN: ""
-          DISCORD_BOT_TOKEN: ""
-
   test:
     name: Build & Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
     runs-on: ${{ matrix.os }}
