@@ -56,6 +56,7 @@ The source audit found these production-facing execution entry points:
 - `src/core/runtime/contractedDockerExecutionBackend.ts` is the filesystem/process side-effect boundary and invokes `ContractEnforcer` before execution.
 - `src/providers/harness/nativeHarness.ts` is a separate harness provider boundary and also owns a `ContractEnforcer` instance.
 - `src/speculativeExecution.ts` is an explicit response-race path; it rejects candidates marked `sideEffecting` before model invocation. Any side-effecting work must use the governed worker/backend contract and evidence path.
+- `src/router.ts` is the broker preflight boundary for routed requests. It rejects policy/reflection failures, requires an audit store for side-effecting requests, assigns an idempotency key, preserves the run ID through `translateEnvelope()`, and cannot be bypassed by the optimizer. `src/broker.test.ts` covers unavailable-audit rejection, approved idempotency propagation, and the optimization-enabled audit path.
 
 This inventory narrows the remaining integration-coverage requirement: verify that every side-effecting caller (worker, Docker backend and native harness) reaches the same contract and completion evidence gates. The native harness now applies its file-scope contract before both simulation and attached-executor paths. The worker boundary now has regressions proving a missing required check cannot become a completed task and that human approval prevents final completion. The public completion route has an end-to-end regression through that worker gate. Docker, adapter and speculative refusal boundaries are summarized in `BACKEND_BOUNDARY_MATRIX.md`; deployed-runtime acceptance remains open.
 
@@ -64,7 +65,7 @@ This inventory narrows the remaining integration-coverage requirement: verify th
 - `src/core/runtime/taskWorkerRuntime.test.ts` covers fail-closed startup, explicit backend execution, retry/resume behavior and readiness reporting.
 - `src/core/runtime/contractedDockerExecutionBackend.test.ts` covers the contracted Docker backend boundary, including rejection of an incomplete required-check plan before container creation.
 - `src/providers/harness/harnessExecutors.test.ts` covers the native harness executor boundary.
-- `src/broker.test.ts` covers speculative executor selection and execution behavior.
+- `src/broker.test.ts` covers broker policy/reflection routing, speculative executor behavior, side-effect audit enforcement, idempotency propagation, and the optimization-enabled audit path.
 
 The worker evidence gate is covered by `src/core/runtime/taskWorkerRuntime.test.ts` (`TASK-MISSING-EVIDENCE`): a backend that reports only a subset of required checks is persisted as `failed`, with `verifiedPassed: false`.
 
