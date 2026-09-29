@@ -1223,3 +1223,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - The first `pnpm verify:public` attempt reached the approved Docker end-to-end gate while the local Docker daemon was temporarily unavailable.
 - After Docker Desktop became reachable, `pnpm test:approved-docker:e2e` was rerun and passed: approved plan, isolated worktree, network-disabled execution, and observed evidence all verified.
+
+### 2026-09-29 hosted-CI evidence command
+
+- Added `pnpm test:hosted-ci:evidence` as the repeatable public-release verification command.
+- Result: passed; recorded hosted run `36600412221` covers all 7 required jobs and its commit is an ancestor of the current tree.
