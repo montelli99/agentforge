@@ -1253,3 +1253,10 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Checked the Render deployment: `/`, `/404.html`, `/robots.txt`, and `/sitemap.xml` all returned HTTP 200.
 - The deployed homepage has responsive metadata and a footer, but it does not contain the current GitHub CTA marker; deployment synchronization is therefore explicitly unaccepted pending a fresh deploy.
+
+### 2026-09-29 Render deployment acceptance
+
+- Confirmed Render service `agentforge-site` is attached to `montelli99/agentforge` branch `vnext`.
+- Triggered deployment `dep-dau0hu7lot8c7397a4cg` for commit `487c467`; status reached `live`.
+- Verified live `/`, `/404.html`, `/robots.txt`, `/sitemap.xml`, and `/github.html` routes. Homepage title, responsive metadata, footer, current CTA, and GitHub guide are present.
+- Corrected the earlier direct-URL-only check: the homepage intentionally routes CTAs through `github.html`; live synchronization is accepted.

@@ -24,7 +24,8 @@ The live Render endpoint was checked on 2026-09-29:
 
 - `https://agentforge-site.onrender.com/`: HTTP 200; responsive viewport meta and footer present.
 - `/404.html`, `/robots.txt`, and `/sitemap.xml`: HTTP 200.
-- The deployed homepage did not contain the current GitHub CTA marker, so the live deployment is **not accepted as synchronized with the current source**.
+- The first check looked for a direct GitHub URL and was a false negative because the current homepage intentionally routes through `github.html`. A follow-up check confirmed the current title, `github.html` CTA, and “View source” CTA are live.
+- Deployment synchronization is accepted for the current static-site content.
 
 The following remain unverified until they are run against disposable targets
 or an explicitly approved deployment:
