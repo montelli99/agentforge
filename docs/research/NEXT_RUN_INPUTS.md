@@ -65,7 +65,7 @@ No paid call, external account, private conversation or production credential is
 
 ## Current verified checkpoint (2026-09-29)
 
-- Latest integrated mechanics run: `mechanics-2026-09-29T10-00-02-464Z-8bba4dcf-c427-4e3c-ac56-17c58fa8ad2c`.
+- Latest integrated mechanics run: `mechanics-2026-09-29T13-51-13-102Z-669824ea-f17b-42ea-8c67-86cba900e522`.
 - Local mechanics, adapter smoke, durable-memory slice, website, package, privacy, crash-recovery, and approved Docker E2E checks pass.
 - Still gated: owner-approved model-backed/paid execution, measured comparative outcomes, independent human review, and publication actions.
 - Next executable action without owner input: continue local protocol/manuscript/reproducibility work and rerun acceptance checks after any edit. Do not invoke paid providers or publish.
