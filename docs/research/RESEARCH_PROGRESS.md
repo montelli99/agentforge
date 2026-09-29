@@ -1192,3 +1192,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Expanded the public research bundle allowlist to include route readiness, status matrix, and submission checklist documents so public consumers can see the route boundary and release gates.
 - Rebuilt the bundle successfully: 16 files, 77,303 bytes. Clean-export and review-packet acceptance still pass.
+
+## 2026-09-29 consolidated research gate after bundle repair
+
+- `pnpm test:research:all` passed on revision `4c2888e70b03cb4a9d3dba446d5c9f1d986802b9`.
+- Mechanics run `mechanics-2026-09-29T16-35-20-191Z-84d66fe3-76f1-40b5-9de7-c56be20f41ff` passed all 22 checks under Docker network denial; manuscript validation and release-evidence acceptance passed.
