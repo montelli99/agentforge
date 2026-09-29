@@ -92,7 +92,7 @@ These observations are not model-quality or production-performance results. The 
 
 The analysis will include omitted or invented facts, stale handoffs, repeated corrections, unsupported completion claims, blocked actions, provider failures, retries and accounting gaps. Every included trace must be sanitized and linked to a task and condition identifier. The current mechanics record includes successful and deliberately incorrect controls, but it does not select favorable model examples because no model-backed study has been run.
 
-## 9. Discussion
+## 8. Discussion
 
 The discussion will report paired task-level effects with uncertainty and distinguish confirmatory outcomes from exploratory observations. It will explain confounds when an ablation cannot be isolated and will report null and negative findings. Synthetic mechanics results will not be generalized to arbitrary businesses, providers or deployment environments.
 
