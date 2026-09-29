@@ -7,6 +7,7 @@ Historical entries below preserve earlier checkpoints and their exact measuremen
 
 ## Current verification checkpoint — 2026-09-29
 
+- Latest zero-spend acceptance rerun: `mechanics-2026-09-29T14-53-04-316Z-c33c8131-21e8-4251-b349-2c6656684246`; revision `28d75cb932d67baaa44a042f07ce0c8420570290`. The clean export, review packet, all 22 isolated mechanics checks, manuscript validation, and release-evidence acceptance passed inside the network-denial boundary. This verifies the reproducible mechanics harness only; model-backed quality, measured outcomes, publication submission, and production deployment remain gated.
 - Re-ran `pnpm test:research:all` after the latest runner and route-safety changes.
 - Re-ran the full repository regression after the same changes: 89 test files passed, 494 tests passed, 2 skipped (496 total; 42.18s).
 - Clean export, review packet, all 22 isolated mechanics checks, manuscript validation, and release-evidence acceptance passed.
