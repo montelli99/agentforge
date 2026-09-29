@@ -1233,3 +1233,9 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Run `36612672985` for commit `b7fc0b85ba718f50bcfec62570d25c9bb7952c30` completed successfully.
 - All seven jobs passed: public package acceptance plus Linux, macOS, and Windows Node 22/24.
+
+### 2026-09-29 registry release preflight
+
+- Added `pnpm test:registry:preflight`, a non-publishing registry gate.
+- It passed for `agentforge@0.1.0`, producing a 151-file archive fingerprint and confirming the package is not currently published.
+- The gate never reads credentials and never performs publication.
