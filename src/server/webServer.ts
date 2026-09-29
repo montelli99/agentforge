@@ -3123,6 +3123,11 @@ export class AgentForgeWebServer {
       return;
     }
     if (processRollbackRoute && req.method === "POST") {
+      if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to roll back a process." }));
+        return;
+      }
       const processId = decodeURIComponent(processRollbackRoute[1]);
       const current = this.store.getProcess(processId);
       if (!current) {
