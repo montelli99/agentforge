@@ -3076,6 +3076,11 @@ export class AgentForgeWebServer {
     const processRevisionResolutionRoute = path.match(/^\/api\/processes\/([^/]+)\/revisions\/([^/]+)\/resolve$/);
     const processRollbackRoute = path.match(/^\/api\/processes\/([^/]+)\/rollback$/);
     if (processRevisionResolutionRoute && req.method === "POST") {
+      if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to resolve a process revision." }));
+        return;
+      }
       const processId = decodeURIComponent(processRevisionResolutionRoute[1]);
       const proposalId = decodeURIComponent(processRevisionResolutionRoute[2]);
       const body = await this.readBody(req);
