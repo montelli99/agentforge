@@ -20,6 +20,12 @@ workspace data.
 
 ## Deployment-specific evidence
 
+The live Render endpoint was checked on 2026-09-29:
+
+- `https://agentforge-site.onrender.com/`: HTTP 200; responsive viewport meta and footer present.
+- `/404.html`, `/robots.txt`, and `/sitemap.xml`: HTTP 200.
+- The deployed homepage did not contain the current GitHub CTA marker, so the live deployment is **not accepted as synchronized with the current source**.
+
 The following remain unverified until they are run against disposable targets
 or an explicitly approved deployment:
 
