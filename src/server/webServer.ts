@@ -3423,6 +3423,11 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/packages/install") {
+      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Authenticated identity is required to install a package." }));
+        return;
+      }
       const body = await this.readBody(req) as { packageName?: unknown; approvedPermissions?: unknown };
       if (typeof body.packageName !== "string" || !body.packageName.trim()) {
         res.writeHead(400);
@@ -3470,7 +3475,7 @@ export class AgentForgeWebServer {
       }
       const inst = this.packageProvider.installPackage({
         manifest: pkg,
-        installedByUserId: "user-owner",
+        installedByUserId: caller.user?.id || "user-owner",
         workspaceId: "ws-default",
         approvedPermissions: approvedPermissions as PermissionManifest,
       });
