@@ -1187,3 +1187,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 ## 2026-09-29 full public verification rerun
 
 - `pnpm verify:public` passed on the current revision: typecheck, product isolation, repository privacy, build, 151-file package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker end-to-end evidence.
+
+## 2026-09-29 research bundle completeness repair
+
+- Expanded the public research bundle allowlist to include route readiness, status matrix, and submission checklist documents so public consumers can see the route boundary and release gates.
+- Rebuilt the bundle successfully: 16 files, 77,303 bytes. Clean-export and review-packet acceptance still pass.

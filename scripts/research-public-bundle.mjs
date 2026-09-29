@@ -18,6 +18,9 @@ const files = [
   "docs/research/OWNER_APPROVAL_PACKET.md",
   "docs/research/paper.md",
   "docs/research/RESULTS.md",
+  "docs/research/ROUTE_READINESS.md",
+  "docs/research/STATUS_MATRIX.md",
+  "docs/research/SUBMISSION_CHECKLIST.md",
 ];
 const forbidden = [
   /[A-Z]:\\Users\\/i,
