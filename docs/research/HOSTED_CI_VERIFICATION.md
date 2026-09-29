@@ -8,8 +8,8 @@ The public workflow is `.github/workflows/ci.yml`. The verified run executed the
 
 Latest run:
 
-- Run: https://github.com/montelli99/agentforge/actions/runs/36613614147
-- Commit: `e737a74e6b16065eea8b26eb40f52441d6eef8df`
+- Run: https://github.com/montelli99/agentforge/actions/runs/36616016481
+- Commit: `1333b6c2f2a9bd6c2923264e30db9600fe700201`
 - Result: all 7 jobs passed.
 
 - Run: https://github.com/montelli99/agentforge/actions/runs/36591463968

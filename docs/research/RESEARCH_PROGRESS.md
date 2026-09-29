@@ -1260,3 +1260,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - Triggered deployment `dep-dau0hu7lot8c7397a4cg` for commit `487c467`; status reached `live`.
 - Verified live `/`, `/404.html`, `/robots.txt`, `/sitemap.xml`, and `/github.html` routes. Homepage title, responsive metadata, footer, current CTA, and GitHub guide are present.
 - Corrected the earlier direct-URL-only check: the homepage intentionally routes CTAs through `github.html`; live synchronization is accepted.
+
+### 2026-09-29 privacy repair verification
+
+- Replacement run `36616016481` for commit `1333b6c` passed all seven jobs after removing the owner identifier from the public progress log.
+- Updated the hosted verification records to this exact successful run.
