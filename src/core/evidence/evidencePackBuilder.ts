@@ -13,6 +13,7 @@ import type {
   CommandAuditRecord,
   ArtifactRecord,
 } from "../types/evidence.js";
+import { sealEvidencePack } from "./evidencePackIntegrity.js";
 
 export class EvidencePackBuilder {
   private filesChanged: FileDiffRecord[] = [];
@@ -64,12 +65,12 @@ export class EvidencePackBuilder {
     approvalInfo?: { approvalId: string; approvedBy: string; source: "web" | "telegram" | "discord" | "api" }
   ): any {
     if (typeof optionsOrFinalSha === "object" && optionsOrFinalSha !== null) {
-      return {
+      return sealEvidencePack({
         id: `evid-${crypto.randomUUID().slice(0, 8)}`,
         generatedAt: new Date().toISOString(),
         verifiedPassed: true,
         ...optionsOrFinalSha,
-      };
+      } as unknown as EvidencePack);
     }
 
     const finalSha = optionsOrFinalSha as string | undefined;
