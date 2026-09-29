@@ -1218,3 +1218,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 - Confirmed hosted run `36600412221` passed all seven jobs for commit `b8a5f2859aa3fe596f6a7ed2d6ef771437275466`.
 - Changed hosted-CI evidence validation to require the recorded verified commit to be an ancestor of the current checkout, preventing documentation-only follow-up commits from creating a false missing-proof warning.
 - `pnpm release:audit` now passes hosted-CI evidence and reports only registry publication/provenance as external release proof.
+
+## 2026-09-29 approved Docker local recovery
+
+- The first `pnpm verify:public` attempt reached the approved Docker end-to-end gate while the local Docker daemon was temporarily unavailable.
+- After Docker Desktop became reachable, `pnpm test:approved-docker:e2e` was rerun and passed: approved plan, isolated worktree, network-disabled execution, and observed evidence all verified.
