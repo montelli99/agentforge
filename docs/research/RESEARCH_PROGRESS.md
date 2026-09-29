@@ -1265,3 +1265,8 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - Replacement run `36616016481` for commit `1333b6c` passed all seven jobs after removing the owner identifier from the public progress log.
 - Updated the hosted verification records to this exact successful run.
+
+### 2026-09-29 deployment smoke gate
+
+- Added `pnpm test:deployment:smoke`, which verifies the deployed route set, responsive metadata, footer, GitHub CTA, and guide repository link without modifying the deployment.
+- Ran it against the live Render site successfully: all five required routes returned HTTP 200.
