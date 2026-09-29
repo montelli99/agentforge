@@ -968,7 +968,7 @@ export class AgentForgeWebServer {
       };
     }
 
-    if (process.env.AGENTFORGE_AUTH_STRICT === "1") {
+    if (process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") {
       return { role: "viewer", permissions: [], isAuthenticated: false };
     }
 
@@ -1113,7 +1113,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "GET" && path === "/api/auth/me") {
-      const strictMode = process.env.AGENTFORGE_AUTH_STRICT === "1";
+      const strictMode = process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production";
       res.writeHead(200);
       res.end(JSON.stringify({
         authenticated: caller.isAuthenticated,
@@ -1366,7 +1366,7 @@ export class AgentForgeWebServer {
     }
 
     // Strict mode rejection for unauthenticated requests on non-auth paths
-    if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+    if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
       res.writeHead(401);
       res.end(JSON.stringify({ error: "Authentication required" }));
       return;
@@ -3076,7 +3076,7 @@ export class AgentForgeWebServer {
     const processRevisionResolutionRoute = path.match(/^\/api\/processes\/([^/]+)\/revisions\/([^/]+)\/resolve$/);
     const processRollbackRoute = path.match(/^\/api\/processes\/([^/]+)\/rollback$/);
     if (processRevisionResolutionRoute && req.method === "POST") {
-      if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to resolve a process revision." }));
         return;
@@ -3123,7 +3123,7 @@ export class AgentForgeWebServer {
       return;
     }
     if (processRollbackRoute && req.method === "POST") {
-      if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to roll back a process." }));
         return;
@@ -3756,7 +3756,7 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "revoke-plan") {
-        if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+        if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
           res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to revoke an execution plan." })); return;
         }
         if (!hasPermission(caller.permissions, "approvals:decide")) {
@@ -3793,7 +3793,7 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "approve-plan") {
-        if (process.env.AGENTFORGE_AUTH_STRICT === "1" && !caller.isAuthenticated) {
+        if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
           res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to approve an execution plan." })); return;
         }
         if (!hasPermission(caller.permissions, "approvals:decide") || !hasPermission(caller.permissions, "tasks:execute")) {
