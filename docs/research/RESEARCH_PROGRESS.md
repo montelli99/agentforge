@@ -1150,3 +1150,7 @@ The allowlisted bundle builder is committed as `365f2fa`. It produces 13 files (
 
 - GitHub Actions run `36589686630` for revision `8ff4afffdec5d258b1ce8c71e68a72d1afc09458` completed successfully across all seven jobs: Linux Node 22/24, macOS Node 22/24, Windows Node 22/24, and public package/isolated execution acceptance.
 
+## 2026-09-29 public verification checkpoint
+
+- `pnpm verify:public` passed the current checkout: typecheck, product isolation, repository privacy, build, public package/archive privacy, crash recovery, network-disabled Docker acceptance, and approved Docker end-to-end execution.
+
