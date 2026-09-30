@@ -254,7 +254,8 @@ export class UniversalMirrorRouter {
             origin: "telegram", actorId: user.id, actorType: "user", action: "conversation.replied",
             targetType: "message", targetId: canonicalMsg.id,
             details: { outboundMessageId: outbound.externalMessageId, route: local ? "local" : this.conversation ? "configured_read_only" : "unconfigured",
-              modelMs: reply.modelMs, roundTripMs: Math.round(performance.now() - started) },
+              modelMs: reply.modelMs, fallback: "fallback" in reply && reply.fallback === true,
+              roundTripMs: Math.round(performance.now() - started) },
           });
         } catch (error) {
           const reply = redactRuntimeError(error, "I couldn't complete that reply. Please try again.");

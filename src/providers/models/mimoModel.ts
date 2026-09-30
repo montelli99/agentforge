@@ -123,7 +123,9 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         tool_choice: options.toolChoice,
         stream: false,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: options.signal
+        ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)])
+        : AbortSignal.timeout(60_000),
     });
 
     if (!res.ok) {
@@ -184,7 +186,9 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         max_tokens: options.maxTokens,
         stream: true,
       }),
-      signal: AbortSignal.timeout(120_000),
+      signal: options.signal
+        ? AbortSignal.any([options.signal, AbortSignal.timeout(120_000)])
+        : AbortSignal.timeout(120_000),
     });
 
     if (!res.ok || !res.body) {

@@ -4,7 +4,7 @@
  * provider neutrality, vision routing, and benchmark targets.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   MiMoModelProvider,
   MIMO_MODEL_REGISTRY,
@@ -17,6 +17,24 @@ import type {
   ModelRequestOptions,
   ModelResponse,
 } from "./core/providers/model.js";
+
+it("MiMo generation honors the caller's cancellation signal", async () => {
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((_url, init) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
+    }));
+  try {
+    const controller = new AbortController();
+    const pending = new MiMoModelProvider("test-key", "https://example.com/v1").generate({
+      model: "mimo-v2.5", messages: [{ role: "user", content: "Hello" }], signal: controller.signal,
+    });
+    controller.abort();
+    await expect(pending).rejects.toThrow("cancelled");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
 
 function restoreEnv(name: string, value: string | undefined): void {
   if (value === undefined) {

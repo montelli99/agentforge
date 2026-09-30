@@ -36,16 +36,24 @@ based on a small latency diagnostic, not a measured quality comparison.
 
 Linked Telegram identities can receive read-only text replies in a private
 chat when a conversation model is configured. This uses a bounded context per
-private chat, kept in process memory and cleared on restart. Group messages,
+private chat. Incoming messages and sent replies are saved in that private
+canonical channel, so recent context can be restored after a restart. The
+assistant also receives relevant facts from the packaged public architecture,
+chat setup, and gateway documentation. Operational memory is supplied only when
+its project scope exactly matches the private channel. Group messages,
 unlinked identities, attachments and tool execution are outside this route.
 Telegram `/status` and other remote-control commands use their separate
 authorized command path.
 
 Common private-chat questions about workspace status, tasks, pending approvals,
-and AgentForge's capabilities use immediate local answers without a model call.
+AgentForge's capabilities, approvals, JEv, memory, and MiMo setup use immediate
+local answers without a model call when the wording asks for information.
 Other open-ended questions still use the selected model, and their latency is
-subject to that provider. The channel audit records model time and total reply
-time without storing the reply text in the audit entry.
+subject to that provider. The private-chat route cancels an unanswered model
+request after 20 seconds. For a few common product questions it returns a
+conservative, verified answer when the model times out; other requests receive
+an explicit failure rather than a fabricated answer. The channel audit records
+model time and total reply time without storing the reply text in the audit entry.
 
 The configured provider receives that conversation's text and its project's instructions when generation is requested. Attachment contents are not supported by this route; conversations containing attachments are rejected rather than pretending to inspect them. Review the endpoint and its data-handling policy before sending private content.
 

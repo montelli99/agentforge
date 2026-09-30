@@ -5,8 +5,44 @@ import { TelegramMirrorProvider } from "../../providers/channels/telegramMirror.
 import { UniversalMirrorRouter } from "./universalMirrorRouter.js";
 import { ChannelConversation } from "./channelConversation.js";
 import { OperationalMemoryProvider } from "../../providers/memory/operationalMemory.js";
+import { productFallbackFor, productKnowledgeFor } from "./productKnowledge.js";
 
 describe("linked private Telegram conversation", () => {
+  it("retrieves bounded public setup guidance without private repository content", () => {
+    const context = productKnowledgeFor("How do I configure a MiMo conversation route?");
+    expect(context).toContain("CHAT_SETUP.md");
+    expect(context).toContain("MIMO_API_KEY");
+    expect(context.length).toBeLessThan(4500);
+    expect(productFallbackFor("Please approve my deployment")).toBeUndefined();
+  });
+  it("returns a verified answer when a slow model is cancelled", async () => {
+    const provider: GenerativeModelProvider = {
+      id: "slow", name: "slow", defaultTier: 1, isAvailable: async () => true,
+      listModels: async () => ["slow"],
+      generate: options => new Promise<ModelResponse>((_resolve, reject) => {
+        options.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+      }),
+      async *stream(): AsyncIterable<StreamChunk> { throw new Error("not used"); },
+    };
+    const response = await new ChannelConversation(provider, "slow", undefined, 10)
+      .reply("chat", "In two sentences, how does AgentForge handle approvals?", "channel", "review");
+    expect(response.text).toContain("authorized reviewer");
+    expect(response.modelMs).toBeGreaterThanOrEqual(0);
+    expect(response.fallback).toBe(true);
+  });
+  it("does not send an incomplete model reply as a product answer", async () => {
+    const provider: GenerativeModelProvider = {
+      id: "incomplete", name: "incomplete", defaultTier: 1, isAvailable: async () => true,
+      listModels: async () => ["incomplete"],
+      generate: async () => ({ id: "1", model: "incomplete", content: "", finishReason: "length",
+        usage: { promptTokens: 1, completionTokens: 600, totalTokens: 601 } }),
+      async *stream(): AsyncIterable<StreamChunk> { throw new Error("not used"); },
+    };
+    const response = await new ChannelConversation(provider, "incomplete")
+      .reply("chat", "How do I configure a MiMo conversation route?", "channel", "route");
+    expect(response.text).toContain("AGENTFORGE_CHAT_PROVIDER=mimo");
+    expect(response.fallback).toBe(true);
+  });
   it("supplies verified product facts and only same-channel memory to the model", async () => {
     const requests: ModelRequestOptions[] = [];
     const provider: GenerativeModelProvider = {
@@ -33,6 +69,11 @@ describe("linked private Telegram conversation", () => {
       "chan-one", "route", [{ role: "user", content: "Prior question" },
         { role: "assistant", content: "Prior answer" }]);
     expect(requests[1].messages.some(message => message.content === "Prior answer")).toBe(true);
+    await conversation.reply("chat-one", "Summarize the latest context", "chan-one", "route",
+      Array.from({ length: 12 }, (_, index) => ({ role: index % 2 ? "assistant" as const : "user" as const,
+        content: `Message ${index} ${"x".repeat(4000)}` })));
+    expect(requests[2].messages.slice(1, -1).reduce((total, message) => total + message.content.length, 0))
+      .toBeLessThanOrEqual(4000);
   });
   it("keeps context per chat and rejects unlinked or group messages", async () => {
     const requests: ModelRequestOptions[] = [];
@@ -61,8 +102,10 @@ describe("linked private Telegram conversation", () => {
     await telegram.ingestInboundUpdate({ updateId: 9004, chatId: "303", userId: "unlinked", text: "Unknown" });
     await telegram.ingestInboundUpdate({ updateId: 9005, chatId: "-100999", userId: "linked", text: "Group" });
     await telegram.ingestInboundUpdate({ updateId: 9006, chatId: "101", userId: "linked", text: "What's the workspace status?" });
+    await telegram.ingestInboundUpdate({ updateId: 9007, chatId: "101", userId: "linked", text: "How do approvals work?" });
     expect(sent).toEqual([{ chatId: "101", text: "Reply 1" }, { chatId: "101", text: "Reply 2" }, { chatId: "202", text: "Reply 3" },
-      { chatId: "101", text: expect.stringContaining("Workspace status:") }]);
+      { chatId: "101", text: expect.stringContaining("Workspace status:") },
+      { chatId: "101", text: expect.stringContaining("authorized reviewer") }]);
     expect(requests).toHaveLength(3);
     expect(requests[1].messages.some(message => message.content === "First")).toBe(true);
     expect(requests[2].messages.some(message => message.content === "First")).toBe(false);

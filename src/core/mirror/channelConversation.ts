@@ -1,6 +1,18 @@
 import type { GenerativeModelProvider, ModelMessage } from "../providers/model.js";
 import type { MemoryProvider } from "../providers/memory.js";
-import { productKnowledgeFor } from "./productKnowledge.js";
+import { productFallbackFor, productKnowledgeFor } from "./productKnowledge.js";
+
+function boundedHistory(messages: ModelMessage[]): ModelMessage[] {
+  const selected: ModelMessage[] = [];
+  let remaining = 4000;
+  for (const message of [...messages].reverse()) {
+    if (remaining <= 0 || selected.length >= 10) break;
+    const content = message.content.slice(-Math.min(1000, remaining));
+    remaining -= content.length;
+    selected.unshift({ role: message.role, content });
+  }
+  return selected;
+}
 
 /** Bounded, read-only conversation for an authenticated channel identity. */
 export class ChannelConversation {
@@ -11,12 +23,13 @@ export class ChannelConversation {
     private readonly provider: GenerativeModelProvider,
     private readonly model: string,
     private readonly memory?: MemoryProvider,
+    private readonly timeoutMs = 20_000,
   ) {}
 
   async reply(chatId: string, text: string, channelId?: string, intent?: string,
-    durableHistory?: ModelMessage[]): Promise<{ text: string; modelMs: number | null }> {
+    durableHistory?: ModelMessage[]): Promise<{ text: string; modelMs: number | null; fallback?: boolean }> {
     if (this.active.has(chatId)) return { text: "I'm still working on your previous message. Please try again shortly.", modelMs: null };
-    const recent = durableHistory ?? this.histories.get(chatId) ?? [];
+    const recent = boundedHistory(durableHistory ?? this.histories.get(chatId) ?? []);
     const recalled = this.memory && channelId ? await this.memory.query({
       namespace: "agentforge-chat", projectId: channelId, queryText: text.slice(0, 500), limit: 5,
     }) : [];
@@ -32,19 +45,27 @@ export class ChannelConversation {
     ];
     this.active.add(chatId);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60_000);
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const modelStarted = performance.now();
     try {
-      const modelStarted = performance.now();
-      const result = await this.provider.generate({ model: this.model, messages, maxTokens: 400, signal: controller.signal });
+      const result = await this.provider.generate({ model: this.model, messages, maxTokens: 600, signal: controller.signal });
       const modelMs = Math.round(performance.now() - modelStarted);
       if (result.toolCalls?.length || !result.content.trim() || result.content.length > 4000 ||
           (result.finishReason && !["stop", "end_turn"].includes(result.finishReason))) {
+        const fallback = productFallbackFor(text);
+        if (fallback) return { text: fallback, modelMs, fallback: true };
         throw new Error("The model did not return a complete text reply.");
       }
       const reply = result.content.trim();
       const next: ModelMessage[] = [...recent, { role: "user", content: text.slice(0, 4000) }, { role: "assistant", content: reply }];
       this.histories.set(chatId, next.slice(-12));
       return { text: reply, modelMs };
+    } catch (error) {
+      if (controller.signal.aborted) {
+        const fallback = productFallbackFor(text);
+        if (fallback) return { text: fallback, modelMs: Math.round(performance.now() - modelStarted), fallback: true };
+      }
+      throw error;
     } finally {
       clearTimeout(timeout);
       this.active.delete(chatId);
