@@ -45,7 +45,7 @@ All current fixtures are synthetic and contain no private business records, cred
 
 ### 5.2 Conditions and controls
 
-The frozen conditions are B0 (bounded recent-history tool-use baseline), B1 (rolling-summary/retrieval baseline), AF (the configured AgentForge path), AF-memory-off, AF-routing-off where independently isolable, and AF-evidence-off in a disposable benchmark workspace. Matched conditions must use the same tools, task instructions, limits and model settings. A model route, provider version, prompt revision, code revision, configuration hash and task hash must be recorded for each measured run. If an ablation cannot be isolated, it is reported as a combined intervention rather than attributed to one component. No model-backed condition has been run in the current evidence set.
+The frozen conditions are B0 (bounded recent-history tool-use baseline), B1 (rolling-summary/retrieval baseline), AF (the configured AgentForge path), AF-memory-off, AF-routing-off where independently isolable, and AF-evidence-off in a disposable benchmark workspace. Matched conditions must use the same tools, task instructions, limits and model settings. A model route, provider version, prompt revision, code revision, configuration hash and task hash must be recorded for each measured run. If an ablation cannot be isolated, it is reported as a combined intervention rather than attributed to one component. The only model-backed comparison so far is the exploratory development recall slice in Section 6; no full-trajectory condition has been run.
 
 ### 5.3 Scoring
 
