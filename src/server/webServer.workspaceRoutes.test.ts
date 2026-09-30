@@ -153,6 +153,8 @@ describe("workspace hierarchy API", () => {
     const audit = await auditResponse.json() as Array<{ action: string; targetId: string }>;
     expect(audit).toEqual(expect.arrayContaining([
       expect.objectContaining({ action: "workspace_created", targetId: workspace.id }),
+      expect.objectContaining({ action: "native_gateway_start", targetId: "native-gateway" }),
+      expect.objectContaining({ action: "native_gateway_stop", targetId: "native-gateway" }),
       expect.objectContaining({ action: "process_agent_bound" }),
       expect.objectContaining({ action: "process_agent_run_prepared", targetId: prepared.task.id }),
       expect.objectContaining({ action: "task_created", targetId: task.id }),

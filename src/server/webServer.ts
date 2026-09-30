@@ -3289,6 +3289,15 @@ export class AgentForgeWebServer {
       const snapshot = action === "start"
         ? await this.nativeGateway.start(requested)
         : await this.nativeGateway.stop(requested);
+      this.store.recordAudit({
+        origin: "api",
+        actorId: caller.user?.id || "local-unverified-web-client",
+        actorType: caller.user ? "user" : "system",
+        action: `native_gateway_${action}`,
+        targetType: "system",
+        targetId: "native-gateway",
+        details: { providers: requested ?? "all" },
+      });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(snapshot));
       return;
