@@ -89,3 +89,19 @@ chat IDs and exclude unlinked and group messages from model calls. The live
 acceptance above preceded that change; a natural-language model reply has
 not yet been observed through the real Telegram bot. The route requires an
 explicit chat-model configuration described in `CHAT_SETUP.md`.
+
+### Private conversational reply, 2026-09-30
+
+A second controlled cutover used the same owner-authorized BotFather bot and
+the isolated AgentForge workspace with the explicitly configured MiMo 2.5 Pro
+chat route. The owner sent one ordinary text message in the linked private
+chat. AgentForge recorded the inbound message and a successful outgoing
+Telegram message ID; the owner confirmed receipt of the model reply. The
+elapsed time from inbound message audit to outgoing reply audit was about
+47 seconds. No model-output content or private chat identifier is included
+here. AgentForge was stopped and the original OpenClaw scheduled gateway was
+restarted; its local listener and task state were verified. This proves one
+read-only private text round trip, not an agent tool action or acceptable
+steady-state latency. A later code change records per-reply round-trip
+milliseconds and reduces the default output allowance; its latency effect
+has not been measured live.
