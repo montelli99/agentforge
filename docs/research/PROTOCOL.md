@@ -1,7 +1,7 @@
 # AgentForge evaluation protocol
 
 Version: 0.1-mechanics-validated  
-Status: local mechanics validated; no paid or model-backed results.
+Status: local mechanics validated; no paid or model-backed results under the primary full-trajectory protocol. A small exploratory model-backed recall slice is reported separately in `RESULTS.md`.
 
 ## Purpose
 
@@ -74,7 +74,7 @@ The following remain unmeasured:
 - external OpenClaw/Hermes comparisons;
 - production provider round trips.
 
-Do not write an abstract, result claim or superiority claim until these statuses are updated with run IDs and artifacts.
+An abstract may describe methods and bounded observations, but no primary outcome or superiority claim is supported until the full-trajectory results are linked to run IDs and artifacts.
 
 The local mechanics were re-run together on 2026-09-29 with the zero-spend pilot validator and TypeScript typecheck. This validates the protocol harness, not model IDs, pricing, sample size or provider-specific configuration.
 
