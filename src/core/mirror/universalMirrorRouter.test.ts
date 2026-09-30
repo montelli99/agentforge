@@ -52,6 +52,24 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     expect(store.getTask(second.id)?.status).toBe("in_progress");
   });
 
+  it("answers a linked owner's read-only question in the originating group topic", async () => {
+    const sent: Array<{ chatId: string | number; text: string; topicId?: number }> = [];
+    telegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async (chatId, text, topicId) => { sent.push({ chatId, text, topicId }); return 53; } });
+    store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner-tg",
+      linkedAt: new Date().toISOString() });
+    await telegram.ingestInboundUpdate({ updateId: 307, chatId: "-100123", topicId: 389,
+      userId: "owner-tg", text: "What needs my approval?" });
+    expect(sent).toEqual([{ chatId: "-100123", topicId: 389,
+      text: expect.stringContaining("Pending Approvals") }]);
+    const channel = store.findMirroredChannel("telegram", "group:-100123:topic:389");
+    expect(store.listMessages(channel!.id).some(message => message.authorType === "agent" &&
+      message.content.includes("Pending Approvals"))).toBe(true);
+    await telegram.ingestInboundUpdate({ updateId: 308, chatId: "-100123", topicId: 389,
+      userId: "owner-tg", text: "pause task AF-1" });
+    expect(sent).toHaveLength(1);
+  });
+
   it("sends a private Telegram link reply to the originating chat without a topic ID", async () => {
     const sent: Array<{ chatId: string | number; text: string; topicId?: number }> = [];
     telegram.attachLiveTransport({
