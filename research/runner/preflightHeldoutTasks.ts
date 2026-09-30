@@ -10,7 +10,9 @@ type Case = {
   negativeControl?: unknown;
 };
 type Fixture = { families: Array<{ id: string; cases: Case[] }> };
-const file = resolve(import.meta.dirname, "../tasks/protocol-families-v1-heldout.json");
+const file = process.argv[2]
+  ? resolve(process.argv[2])
+  : resolve(import.meta.dirname, "../tasks/protocol-families-v1-heldout.json");
 const fixture = JSON.parse(await readFile(file, "utf8")) as Fixture;
 const findings: Array<{ caseId: string; missing: string[] }> = [];
 for (const family of fixture.families) {
@@ -26,10 +28,10 @@ for (const family of fixture.families) {
     if (missing.length) findings.push({ caseId: item.id, missing });
   }
 }
-const summary = { caseCount: fixture.families.reduce((total, family) => total + family.cases.length, 0),
-  studyReady: findings.length === 0, invalidCases: findings.length, missingFieldCounts: Object.fromEntries(
+const summary = { fixture: file, caseCount: fixture.families.reduce((total, family) => total + family.cases.length, 0),
+  structurallyComplete: findings.length === 0, invalidCases: findings.length, missingFieldCounts: Object.fromEntries(
     [...new Set(findings.flatMap(item => item.missing))].map(field =>
       [field, findings.filter(item => item.missing.includes(field)).length])),
   sampleCaseIds: findings.slice(0, 6).map(item => item.caseId) };
 process.stdout.write(JSON.stringify(summary, null, 2) + "\n");
-if (!summary.studyReady) process.exitCode = 1;
+if (!summary.structurallyComplete) process.exitCode = 1;
