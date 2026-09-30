@@ -52,7 +52,12 @@ function markdown(raw) {
     if(/^#{2,4} /.test(line)){flush();const level=line.match(/^#+/)[0].length;html+=`<h${level}>${inline(line.replace(/^#+ /,''))}</h${level}>`;continue;}
     if(!line.trim()){flush();continue;}
     const item=line.match(/^\s*(?:([-*])|\d+\.)\s+(.+)$/);
-    if(item){if(paragraph.length){html+=`<p>${inline(paragraph.join(' '))}</p>`;paragraph=[];}const type=item[1]?'ul':'ol';if(list!==type){if(list)html+=`</${list}>`;html+=`<${type}>`;list=type;}html+=`<li>${inline(item[2])}</li>`;}else{if(list&&/^\s+/.test(line)){html+=`<p>${inline(line.trim())}</p>`;}else{if(list){html+=`</${list}>`;list='';}paragraph.push(line.trim());}}
+    if(item){if(paragraph.length){html+=`<p>${inline(paragraph.join(' '))}</p>`;paragraph=[];}const type=item[1]?'ul':'ol';if(list!==type){if(list)html+=`</${list}>`;html+=`<${type}>`;list=type;}html+=`<li>${inline(item[2])}</li>`;}
+    else if(list){
+      // Wrapped Markdown list lines belong to the preceding item, including
+      // lines that are not indented. Emitting a paragraph here makes invalid HTML.
+      html=html.replace(/<\/li>$/,` ${inline(line.trim())}</li>`);
+    }else paragraph.push(line.trim());
   } flush(); return html;
 }
 const nav = `<a href="learn.html">All guides</a><a href="install.html">Install</a><a href="model-router.html">Models</a><a href="telegram.html">Connect Telegram</a><a href="github.html">GitHub</a>`;

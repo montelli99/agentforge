@@ -8,6 +8,9 @@ for (const file of files) pages.set(file, await readFile(resolve(root, file), "u
 
 const missing = [];
 for (const [file, html] of pages) {
+  for (const list of html.match(/<(?:ul|ol)>[\s\S]*?<\/(?:ul|ol)>/g) || []) {
+    if (/<\/li>\s*<p\b/.test(list)) missing.push(`${file} contains a paragraph outside a list item`);
+  }
   for (const match of html.matchAll(/href=["']([^"'#?]+\.html)(?:[^"']*)["']/gi)) {
     const target = basename(match[1]);
     if (!pages.has(target)) missing.push(`${file} -> ${target}`);
