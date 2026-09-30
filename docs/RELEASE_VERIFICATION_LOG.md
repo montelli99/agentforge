@@ -6,6 +6,11 @@ workspace data.
 
 ## Hosted CI
 
+- Run: https://github.com/montelli99/agentforge/actions/runs/36653357336
+- Commit: `bf7a18e637184ec5e1cc9a281321476b5721f76f`
+- Result: all seven jobs passed (public package acceptance plus Linux, macOS,
+  and Windows Node 22/24).
+
 - Run: https://github.com/montelli99/agentforge/actions/runs/36652863872
 - Commit: `79c9d14f4c4e8e741405c632a3aafa18284cf6a3`
 - Result: all seven jobs passed (public package acceptance plus Linux, macOS,
