@@ -35,6 +35,12 @@ unlinked identities, attachments and tool execution are outside this route.
 Telegram `/status` and other remote-control commands use their separate
 authorized command path.
 
+Common private-chat questions about workspace status, tasks, pending approvals,
+and AgentForge's capabilities use immediate local answers without a model call.
+Other open-ended questions still use the selected model, and their latency is
+subject to that provider. The channel audit records model time and total reply
+time without storing the reply text in the audit entry.
+
 The configured provider receives that conversation's text and its project's instructions when generation is requested. Attachment contents are not supported by this route; conversations containing attachments are rejected rather than pretending to inspect them. Review the endpoint and its data-handling policy before sending private content.
 
 ## Behavior

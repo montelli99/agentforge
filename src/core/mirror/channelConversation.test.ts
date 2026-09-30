@@ -32,7 +32,9 @@ describe("linked private Telegram conversation", () => {
     await telegram.ingestInboundUpdate({ updateId: 9003, chatId: "202", userId: "linked", text: "Other chat" });
     await telegram.ingestInboundUpdate({ updateId: 9004, chatId: "303", userId: "unlinked", text: "Unknown" });
     await telegram.ingestInboundUpdate({ updateId: 9005, chatId: "-100999", userId: "linked", text: "Group" });
-    expect(sent).toEqual([{ chatId: "101", text: "Reply 1" }, { chatId: "101", text: "Reply 2" }, { chatId: "202", text: "Reply 3" }]);
+    await telegram.ingestInboundUpdate({ updateId: 9006, chatId: "101", userId: "linked", text: "What's the workspace status?" });
+    expect(sent).toEqual([{ chatId: "101", text: "Reply 1" }, { chatId: "101", text: "Reply 2" }, { chatId: "202", text: "Reply 3" },
+      { chatId: "101", text: expect.stringContaining("Workspace status:") }]);
     expect(requests).toHaveLength(3);
     expect(requests[1].messages.some(message => message.content === "First")).toBe(true);
     expect(requests[2].messages.some(message => message.content === "First")).toBe(false);
