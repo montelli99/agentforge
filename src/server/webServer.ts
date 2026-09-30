@@ -3315,8 +3315,8 @@ export class AgentForgeWebServer {
       });
       this.store.recordAudit({
         origin: "api",
-        actorId: "system",
-        actorType: "system",
+        actorId: caller.user?.id || "system",
+        actorType: caller.user ? "user" : "system",
         action: "process_agent_run_prepared",
         targetType: "task",
         targetId: task.id,
