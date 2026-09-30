@@ -1,13 +1,13 @@
 # AgentForge: Evidence-Guided Execution and Durable Memory for Cost-Efficient Agent Systems
 
-Status: manuscript scaffold with mechanics-verified content. Model-backed outcomes remain unmeasured.
+Status: manuscript scaffold with mechanics evidence and a small model-backed development recall slice. Primary outcomes remain unmeasured.
 Protocol: [PROTOCOL.md](PROTOCOL.md)  
 Evidence register: [CAPABILITY_EVIDENCE.md](CAPABILITY_EVIDENCE.md)  
 Mechanics record: latest 22-check artifact under `research/results/`, identified in `RESEARCH_PROGRESS.md`
 
 ## Abstract
 
-AgentForge is an open-source control plane for governed agent work. This mechanics report documents its workflow compilation, durable goal state, memory and handoff boundaries, correction governance, execution contracts, evidence auditing and reproducibility controls. We define a preregistered protocol for comparing matched baselines and AgentForge ablations on synthetic task trajectories, including delayed recall, handoff, correction, workflow failure, recovery and completion safety. The current release validates the protocol machinery and zero-spend mechanics inside a Docker network-denial boundary, preserving frozen input hashes, retaining synthetic state across process boundaries, rejecting cross-tenant access and negative controls, and exercising a declared-path native-harness write-denial case. Complete network/provider call counts remain unmeasured. No model-backed success rate, token reduction, cost savings, latency advantage or comparative superiority is claimed. Paid evaluation, independent review and production-provider acceptance remain future gates.
+AgentForge is an open-source control plane for governed agent work. This mechanics report documents its workflow compilation, durable goal state, memory and handoff boundaries, correction governance, execution contracts, evidence auditing and reproducibility controls. We define a preregistered protocol for comparing matched baselines and AgentForge ablations on synthetic task trajectories, including delayed recall, handoff, correction, workflow failure, recovery and completion safety. The current release validates protocol machinery and zero-spend mechanics inside a Docker network-denial boundary. A bounded model-backed development recall slice exists, but does not test full task trajectories. Complete network/provider call counts, full-trajectory success, token reduction, cost savings, latency advantage and comparative superiority remain unmeasured. Held-out evaluation and independent review remain future gates.
 
 ## 1. Introduction
 
@@ -79,7 +79,9 @@ The current release reports verified mechanics plus a bounded exploratory local-
 | Speculative side-effect refusal | Side-effecting speculative candidates rejected before model invocation | Speculation remains response-only and cannot authorize effects |
 | Full regression | 89 test files; 494 passed; 2 skipped | Repository checks pass at the recorded revision |
 
-These observations are not model-quality or production-performance results. The outcome table below remains intentionally unmeasured until the owner-approved study is run.
+These mechanics observations are not model-quality or production-performance results. A separate, exploratory MiMo 2.5 Pro recall slice supplied the same synthetic prior facts to B1 (rolling summary) and AF (semantic-memory/context-optimizer path), while B0 saw only the current task. Across two development cases and two replicates, B0 passed 0/4 required-fact checks; B1 and AF each passed 4/4. AF retrieval hit in all four attempts. This small slice uses hash-fallback embeddings and a provider model alias, and it does not measure the full AgentForge workflow or establish an advantage over B1. Provider prompt tokens were 1,178 (B0), 1,258 (B1), and 1,262 (AF); completion tokens were 441, 474, and 419, respectively. Billing remains unknown. The public aggregate and private raw-artifact hash are identified in `RESULTS.md`.
+
+The full-study outcome table below remains intentionally unmeasured until the matched production-path study is run.
 
 | Outcome | B0 | B1 | AF | AF-memory-off | AF-routing-off | AF-evidence-off |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -90,7 +92,7 @@ These observations are not model-quality or production-performance results. The 
 
 ## 7. Failure analysis
 
-The analysis will include omitted or invented facts, stale handoffs, repeated corrections, unsupported completion claims, blocked actions, provider failures, retries and accounting gaps. Every included trace must be sanitized and linked to a task and condition identifier. The current mechanics record includes successful and deliberately incorrect controls, but it does not select favorable model examples because no model-backed study has been run.
+The analysis will include omitted or invented facts, stale handoffs, repeated corrections, unsupported completion claims, blocked actions, provider failures, retries and accounting gaps. Every included trace must be sanitized and linked to a task and condition identifier. The current mechanics record includes successful and deliberately incorrect controls. The development recall slice is reported in full rather than selecting favorable examples; the full model-backed study has not been run.
 
 ## 8. Discussion
 
