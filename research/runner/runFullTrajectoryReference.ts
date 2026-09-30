@@ -17,11 +17,14 @@ type Fixture = { id: string; split: string; measurement: string; families: Array
 const root = resolve(import.meta.dirname, "../..");
 const fixtureBytes = await readFile(resolve(root, "research/tasks/full-trajectory-development-v2.json"));
 const fixture = JSON.parse(fixtureBytes.toString("utf8")) as Fixture;
-const cases = fixture.families.flatMap(family => family.cases);
-const issues = fullTrajectoryReadiness(cases);
-if (fixture.split !== "development" || fixture.measurement !== "reference-mechanics-only" || cases.length !== 12 || issues.length) {
+const allCases = fixture.families.flatMap(family => family.cases);
+const issues = fullTrajectoryReadiness(allCases);
+if (fixture.split !== "development" || fixture.measurement !== "reference-mechanics-only" || allCases.length !== 12 || issues.length) {
   throw new Error(`Development fixture is incomplete: ${issues.length} readiness issues`);
 }
+const selectedCaseId = process.argv[2];
+const cases = selectedCaseId ? allCases.filter(item => item.id === selectedCaseId) : allCases;
+if (cases.length === 0) throw new Error(`Unknown development case: ${selectedCaseId}`);
 const docker = new DockerComputeProvider({ maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1 });
 const available = await docker.isAvailable();
 if (!available.available) throw new Error(available.error || "Docker is unavailable");
@@ -62,7 +65,7 @@ for (const item of cases) {
       description: "Development-only reference command; no model call.", priority: "medium", status: "ready",
       contract: { id: `contract-${taskId}`, taskId, version: 1,
         repository: { baseBranch: "main", baseSha }, workspace: { requireIsolatedWorktree: true },
-        scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env", ...item.expected.forbiddenEffects!.map(effect => effect.target)],
+        scope: { allowedPaths: ["artifacts/**", ...item.expected.observableChecks!.map(check => check.target)], protectedPaths: [".env", ...item.expected.forbiddenEffects!.map(effect => effect.target)],
           maxFilesChanged: item.expected.observableChecks!.length },
         authority: { externalMessage: false, productionWrite: false, deployment: false,
           forcePush: false, deleteFiles: false, networkOutbound: false },
@@ -88,6 +91,7 @@ for (const item of cases) {
     const outcome = await new TaskWorkerRuntime(store, backend,
       { repoRoot: tempRoot, autoStart: false, automaticDispatch: false }).executeTask(taskId);
     result.workerVerified = outcome.status === "completed" && outcome.evidencePack?.verifiedPassed === true;
+    if (!result.workerVerified) throw new Error(outcome.error || `Worker status: ${outcome.status}`);
     for (const check of item.expected.observableChecks ?? []) {
       if (check.kind !== "file" || !isSafe(check.target)) throw new Error("Invalid artifact check");
       const actual = await readFile(join(worktreePath, check.target), "utf8");
@@ -100,7 +104,6 @@ for (const item of cases) {
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
       result.forbiddenChecks += 1;
     }
-    if (!result.workerVerified) throw new Error(outcome.error || "Worker evidence failed");
     result.status = "completed";
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
@@ -116,7 +119,9 @@ const summary = { schemaVersion: 1, kind: "full-trajectory-reference-mechanics",
   modelCalls: 0, externalSpendUsd: 0, attempted: results.length,
   completed: results.filter(item => item.status === "completed").length, results,
   limitation: "Evaluator-authored reference commands; no model generation, live event timing, or matched study inference." };
-await writeFile(resolve(root, "research/results/full-trajectory-development-v2-reference.json"), JSON.stringify(summary, null, 2));
+const outputName = selectedCaseId ? `full-trajectory-development-v2-reference-${selectedCaseId}.json` :
+  "full-trajectory-development-v2-reference.json";
+await writeFile(resolve(root, "research/results", outputName), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify({ attempted: summary.attempted, completed: summary.completed,
   failed: results.filter(item => item.status !== "completed") }));
 if (summary.completed !== cases.length) process.exitCode = 1;

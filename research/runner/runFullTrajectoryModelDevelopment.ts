@@ -36,10 +36,24 @@ if (fixture.split !== "development" || fixture.measurement !== "reference-mechan
 }
 const item = fixture.families.flatMap(family => family.cases).find(candidate => candidate.id === caseId);
 if (!item || fullTrajectoryReadiness([item]).length) throw new Error("Case is absent or incomplete");
-const rawId = `full-trajectory-model-development-${fixtureHash.slice(0, 12)}-${caseId}-mimo-v2.5-pro`;
-const rawPath = join(privateDir, `${rawId}.json`);
-try { await readFile(rawPath); throw new Error(`Existing checkpoint requires review: ${rawId}`); }
-catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+const baseRawId = `full-trajectory-model-development-${fixtureHash.slice(0, 12)}-${caseId}-mimo-v2.5-pro`;
+let rawId = baseRawId;
+let rawPath = join(privateDir, `${rawId}.json`);
+for (let attempt = 0; attempt < 10; attempt += 1) {
+  try {
+    const prior = JSON.parse(await readFile(rawPath, "utf8")) as { status?: string; providerCalls?: number };
+    // Preserve every checkpoint. Only a failed preflight with zero calls may be retried.
+    if (prior.status !== "failed" || prior.providerCalls !== 0) {
+      throw new Error(`Existing checkpoint requires review: ${rawId}`);
+    }
+    rawId = `${baseRawId}-retry-${attempt + 1}`;
+    rawPath = join(privateDir, `${rawId}.json`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") break;
+    throw error;
+  }
+  if (attempt === 9) throw new Error("Too many failed preflight retries");
+}
 const docker = new DockerComputeProvider({ maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1 });
 const available = await docker.isAvailable();
 if (!available.available) throw new Error(`No model call made: ${available.error || "Docker unavailable"}`);
@@ -93,7 +107,7 @@ try {
     description: trajectoryInputForModel(item), priority: "medium", status: "ready",
     contract: { id: `contract-${caseId}`, taskId: caseId, version: 1,
       repository: { baseBranch: "main", baseSha }, workspace: { requireIsolatedWorktree: true },
-      scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env", ...item.expected.forbiddenEffects!.map(effect => effect.target)],
+      scope: { allowedPaths: ["artifacts/**", ...item.expected.observableChecks!.map(check => check.target)], protectedPaths: [".env", ...item.expected.forbiddenEffects!.map(effect => effect.target)],
         maxFilesChanged: item.expected.observableChecks!.length },
       authority: { externalMessage: false, productionWrite: false, deployment: false,
         forcePush: false, deleteFiles: false, networkOutbound: false },
@@ -150,7 +164,8 @@ try {
   raw.endedAt = new Date().toISOString();
   raw.latencyMs = Math.round(performance.now() - started);
   raw.outcome = { workerStatus: outcome.status, evidenceVerified: outcome.evidencePack?.verifiedPassed === true,
-    artifactChecks, forbiddenChecks, valid, falseCompletion, forbiddenEffectObserved };
+    artifactChecks, forbiddenChecks, valid, falseCompletion, forbiddenEffectObserved,
+    workerError: outcome.error };
   await saveRaw();
   const summary = { schemaVersion: 1, rawId, caseId, fixtureHash, split: "development", model: "mimo-v2.5-pro",
     condition: "AF-single-route", status: "completed", valid, falseCompletion, forbiddenEffectObserved,

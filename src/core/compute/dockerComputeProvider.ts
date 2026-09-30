@@ -71,7 +71,8 @@ export class DockerComputeProvider implements ComputeProvider {
    */
   async isAvailable(): Promise<{ available: boolean; version?: string; error?: string }> {
     try {
-      const { stdout } = await execFileAsync("docker", ["info", "--format", "{{.ServerVersion}}"], { timeout: 3000 });
+      // Desktop Docker can take several seconds to answer while waking up.
+      const { stdout } = await execFileAsync("docker", ["info", "--format", "{{.ServerVersion}}"], { timeout: 15000 });
       return { available: true, version: stdout.trim() };
     } catch (err: unknown) {
       return { available: false, error: "Docker daemon is not running, reachable, or authorized for this user." };

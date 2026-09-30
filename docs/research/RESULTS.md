@@ -120,8 +120,10 @@ state, an observable injected event, independent state/artifact checks, a
 forbidden-effect control, and execution limits. The existing phrase scorer is
 valid only for a bounded answer check; it cannot establish the six-family
 full-trajectory outcomes. The audit is a preflight diagnostic, not a scored
-model result. Versioned executable fixtures and a production-path runner must
-be prepared and frozen before the held-out study can begin.
+model result. The separate 12-case synthetic development v2 fixture now has
+file-backed state and exact checks; the 60 held-out cases remain phrase-only.
+A new held-out fixture must be designed and frozen before any full-trajectory
+held-out study.
 Without `--report-only`, the command fails closed while any case is incomplete.
 
 ### Separate model-backed execution development check
@@ -136,6 +138,23 @@ the raw checkpoint is kept outside the public repository. This single run used
 is unknown. Earlier bounded development attempts v1–v4 failed before execution
 and remain in private checkpoints. This check is engineering acceptance only;
 it is excluded from matched research outcomes and comparative claims.
+
+### Full-trajectory synthetic development checks
+
+The corrected v2 development fixture passed 12/12 evaluator-authored Docker
+reference cases. This validates the fixture's execution mechanics only: the
+commands were supplied by the evaluator and no model calls were made. The
+public result is `research/results/full-trajectory-development-v2-reference.json`.
+
+Two separate MiMo V2.5 Pro development attempts tested model-generated plans.
+The first, on the earlier v2 fixture hash, returned a successful worker status
+after only reading an input file; the independent artifact scorer marked it as
+false completion. The second, on the corrected fixture, attempted to write the
+requested file but the worker failed and the artifact was absent. Their public
+summaries are retained under `research/results/full-trajectory-model-development-*`.
+These are negative development observations, not matched B0/B1/AF estimates.
+Reported usage was 389 and 604 tokens respectively; actual charges are unknown.
+No full-trajectory model success or comparative advantage is established.
 
 The following remain `NOT MEASURED` until a frozen, owner-approved model-backed study is run:
 

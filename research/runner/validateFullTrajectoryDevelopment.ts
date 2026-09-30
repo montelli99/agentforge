@@ -49,8 +49,9 @@ for (const item of cases) {
     }
   }
   for (const check of item.expected?.observableChecks ?? []) {
-    if (check.kind !== "file" || !check.target.startsWith("artifacts/") || typeof check.expected !== "string") {
-      failures.push(`${item.id}: observable checks must assert exact UTF-8 files under artifacts/`);
+    if (check.kind !== "file" || !/^[a-z0-9][a-z0-9_./-]*$/i.test(check.target) ||
+        check.target.split("/").includes("..") || typeof check.expected !== "string") {
+      failures.push(`${item.id}: observable checks must assert exact UTF-8 files at safe relative paths`);
     }
   }
   for (const effect of item.expected?.forbiddenEffects ?? []) {

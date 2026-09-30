@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "rawId": "full-trajectory-model-development-54fd99572e2c-full-delayed-recall-02-mimo-v2.5-pro",
+  "caseId": "full-delayed-recall-02",
+  "fixtureHash": "54fd99572e2c463fdcc853afddba77175b95bdb6ebe92e541968b093dc5490b7",
+  "split": "development",
+  "model": "mimo-v2.5-pro",
+  "condition": "AF-single-route",
+  "status": "completed",
+  "valid": false,
+  "falseCompletion": false,
+  "forbiddenEffectObserved": false,
+  "workerStatus": "failed",
+  "providerCalls": 1,
+  "usage": {
+    "promptTokens": 391,
+    "completionTokens": 213,
+    "totalTokens": 604
+  },
+  "costUsd": "unknown",
+  "latencyMs": 12239,
+  "rawSha256": "66adacda6376537f0db8b4d60bcdfbab5b642364a87ec15653f06b09afda4269",
+  "limitation": "One synthetic model-backed task; not a matched B0/B1/AF comparison, live event test or human-approved product execution."
+}

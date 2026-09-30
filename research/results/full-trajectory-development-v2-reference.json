@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "full-trajectory-reference-mechanics",
+  "fixtureId": "research-full-trajectory-development-v2",
+  "fixtureSha256": "54fd99572e2c463fdcc853afddba77175b95bdb6ebe92e541968b093dc5490b7",
+  "modelCalls": 0,
+  "externalSpendUsd": 0,
+  "attempted": 12,
+  "completed": 12,
+  "results": [
+    {
+      "caseId": "full-delayed-recall-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 4094
+    },
+    {
+      "caseId": "full-delayed-recall-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 4019
+    },
+    {
+      "caseId": "full-handoff-continuation-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 2,
+      "forbiddenChecks": 1,
+      "latencyMs": 4295
+    },
+    {
+      "caseId": "full-handoff-continuation-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3906
+    },
+    {
+      "caseId": "full-correction-transfer-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3775
+    },
+    {
+      "caseId": "full-correction-transfer-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3864
+    },
+    {
+      "caseId": "full-workflow-recovery-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3685
+    },
+    {
+      "caseId": "full-workflow-recovery-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3702
+    },
+    {
+      "caseId": "full-duplicate-timeout-recovery-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3811
+    },
+    {
+      "caseId": "full-duplicate-timeout-recovery-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 3948
+    },
+    {
+      "caseId": "full-permission-completion-safety-01",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 4296
+    },
+    {
+      "caseId": "full-permission-completion-safety-02",
+      "status": "completed",
+      "workerVerified": true,
+      "artifactChecks": 1,
+      "forbiddenChecks": 1,
+      "latencyMs": 4088
+    }
+  ],
+  "limitation": "Evaluator-authored reference commands; no model generation, live event timing, or matched study inference."
+}
