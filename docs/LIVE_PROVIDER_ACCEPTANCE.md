@@ -124,3 +124,24 @@ The resulting model/billing error was emitted by OpenClaw, not AgentForge, and
 must not be counted as an AgentForge acceptance result. A future native chat
 check requires a coordinated short test window and an inbound event observed
 by AgentForge before the other gateway is restored.
+
+### Native task-control cutover, 2026-09-30
+
+An isolated AgentForge process held the owner-authorized Telegram bot connection.
+The native gateway reported Telegram `ready` and `live`. At 10:23:58 ET, the
+owner's private message asking what needed approval was persisted as an inbound
+event. The audit then recorded the approvals command and a Telegram-accepted
+outbound message ID. This proves the private task-control route sent a reply;
+the reply's appearance on the owner's phone was not independently confirmed.
+
+At 10:24:12 ET, an identical message in a group topic was persisted as inbound,
+but no command dispatch or outbound reply was recorded for that topic. Group-topic
+command parity remains unverified. The running build preceded the durable
+command-reply storage fix, so its reply appears in the audit rather than the
+canonical message history. That fix is now compiled for a subsequent run.
+
+The native process was subsequently no longer listening. The OpenClaw scheduled
+gateway was observed running again, with its listener active and local health
+endpoint returning HTTP 200. The precise cause of its restart was not verified.
+Do not infer a clean exclusive handoff beyond the first private and group events,
+or count this as full Telegram acceptance.
