@@ -145,15 +145,15 @@ mock receipt.
 
 - The browser adapter now includes a bounded Jev observe/choose/execute loop with re-observation, step limits, blocked/max-step results, and independent verification before accepting DONE.
 
-## Current local verification — 2026-09-27
+## Current local verification — 2026-09-29
 
 The repeatable release procedure is documented in [RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md). It separates locally verified package/privacy gates from external proof that requires a hosted CI run or disposable live-provider accounts.
 
 The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md](./GOAL_EXECUTION_MAP.md).
 
 - `pnpm check`, `pnpm verify:public`, `pnpm test:persistence:launcher`, and
-  `pnpm test:package:cli` passed. The current full suite reports 86 files
-  passed, 480 tests passed, and 2 opt-in live-model tests skipped.
+  `pnpm test:package:cli` passed. The current full suite reports 91 files
+  passed, 502 tests passed, and 2 opt-in live-model tests skipped.
 - Docker Desktop was started and `pnpm test:docker:acceptance` created the
   isolated network-disabled container successfully.
 - `pnpm test:approved-docker:e2e` created a disposable Git repository and real
@@ -186,9 +186,10 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 
 ## Latest verification record
 
-- September 29, 2026: hosted CI run `36645820769` passed all seven jobs on
-  commit `84a0c78f8d19d946b8c9a64cb5c6bf59c29492ae`, including public-package
-  and isolated-execution acceptance.
+- September 29, 2026: hosted CI run `36647635826` passed all seven jobs on
+  commit `cd248b61ab5ee5a9c59de09d2674b08efc549b72`, including public-package
+  and isolated-execution acceptance. The run includes the cross-platform fix
+  that replaced random fixed auth-test ports with OS-assigned ephemeral ports.
 
 - September 28, 2026: the public Render website deployment for commit
   `47a0b914860dd1172469bdb759914b5b99827991` is live at
