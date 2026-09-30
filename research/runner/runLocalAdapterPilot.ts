@@ -20,7 +20,9 @@ const outputOverride = process.env.AGENTFORGE_PILOT_OUTPUT?.trim();
 const pilotOutput = outputOverride ? resolve(root, outputOverride) : output;
 const runLabel = process.env.AGENTFORGE_PILOT_RUN_ID?.trim() || "v0.1";
 const ledger = new TrajectoryLedger(resolve(root, "research/results/local-adapter-pilot-ledger.json"), 0);
-try { const prior = JSON.parse(await readFile(pilotOutput, "utf8")) as { records?: Array<Record<string, unknown>> }; records.push(...(prior.records ?? []).filter((record) => record.status === "completed")); } catch { /* first run */ }
+try { const prior = JSON.parse(await readFile(pilotOutput, "utf8")) as { records?: Array<Record<string, unknown>> }; records.push(...(prior.records ?? []).filter((record) => record.status === "completed")); } catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+}
 const completedIds = new Set(records.map((record) => String(record.trajectoryId)));
 const maxTrajectories = Number(process.env.AGENTFORGE_PILOT_LIMIT ?? Number.POSITIVE_INFINITY);
 const timeoutMs = Number(process.env.AGENTFORGE_PILOT_TIMEOUT_MS ?? 10_000);
@@ -32,8 +34,8 @@ pilot: for (const condition of conditions) for (const item of cases) for (let re
   if (completedIds.has(trajectoryId)) continue;
   const startedAt = new Date().toISOString();
   const record: Record<string, unknown> = { trajectoryId, condition, taskId: item.id, replicate, model, status: "failed", usage: "unknown", cost: "unknown", startedAt };
+  await ledger.start(trajectoryId, 0);
   try {
-    await ledger.start(trajectoryId, 0);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let taskPrompt = buildPilotPrompt(condition, item.input.task);

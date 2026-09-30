@@ -29,8 +29,13 @@ export class TrajectoryLedger {
   async load(): Promise<TrajectoryLedgerState> {
     try {
       return JSON.parse(await fs.readFile(this.file, "utf8")) as TrajectoryLedgerState;
-    } catch {
-      return { schemaVersion: 1, trajectories: [], totalReservedUsd: 0 };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return { schemaVersion: 1, trajectories: [], totalReservedUsd: 0 };
+      }
+      // A damaged checkpoint must not be mistaken for an empty ledger: doing
+      // so could replay a charged trajectory after a restart.
+      throw error;
     }
   }
 
@@ -43,7 +48,9 @@ export class TrajectoryLedger {
   async start(id: string, estimatedCostUsd: number): Promise<TrajectoryLedgerState> {
     const state = await this.load();
     const existing = state.trajectories.find(item => item.id === id);
-    if (existing && existing.status !== "failed") return state;
+    if (existing && existing.status !== "failed") {
+      throw new Error(`trajectory ${id} is already ${existing.status}; reconcile its checkpoint before another provider call`);
+    }
     if (!Number.isFinite(estimatedCostUsd) || estimatedCostUsd < 0) throw new Error("estimated trajectory cost must be non-negative");
     if (state.totalReservedUsd + estimatedCostUsd > this.maxSpendUsd) throw new Error("trajectory spend cap would be exceeded");
     if (existing) {

@@ -42,7 +42,9 @@ let records: RecordItem[] = [];
 try {
   const saved = JSON.parse(await readFile(resultPath, "utf8")) as { records?: RecordItem[] };
   records = saved.records ?? [];
-} catch { /* New development run. */ }
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+}
 const done = new Set(records.map(item => item.id));
 
 async function promptFor(item: Case, source: string, condition: Condition): Promise<{ text: string; retrievalHit?: boolean }> {
@@ -77,8 +79,8 @@ for (let replicate = 1; replicate <= 2; replicate++) {
       const startedAt = new Date().toISOString();
       const started = performance.now();
       const record: RecordItem = { id, taskId: item.id, condition, replicate, model, status: "failed", startedAt, endedAt: startedAt, latencyMs: 0, costUsd: "unknown" };
+      await ledger.start(id, 0);
       try {
-        await ledger.start(id, 0);
         const prompt = await promptFor(item, source, condition);
         record.retrievalHit = prompt.retrievalHit;
         const response = await provider.generate({ model, messages: [{ role: "user", content: prompt.text }], temperature: 0, maxTokens: 512 });
