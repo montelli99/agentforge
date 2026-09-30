@@ -28,6 +28,12 @@ provide `MIMO_API_KEY` privately to the AgentForge process. This option uses
 AgentForge's native MiMo adapter and does not require a second chat key. Leave
 `AGENTFORGE_CHAT_PROVIDER` unset for the OpenAI-compatible route above.
 
+For private Telegram chat, allow both `mimo-v2.5,mimo-v2.5-pro` to make the
+regular model the default conversational route. Set
+`AGENTFORGE_TELEGRAM_CHAT_MODEL=mimo-v2.5-pro` only if that model is in the
+allowed list and you deliberately want it for private chat. This default is
+based on a small latency diagnostic, not a measured quality comparison.
+
 Linked Telegram identities can receive read-only text replies in a private
 chat when a conversation model is configured. This uses a bounded context per
 private chat, kept in process memory and cleared on restart. Group messages,
