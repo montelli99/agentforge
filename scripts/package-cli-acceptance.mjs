@@ -20,7 +20,10 @@ function runNpm(args, cwd) {
   const result = spawnSync(command, commandArgs, {
     cwd,
     encoding: "utf8",
-    timeout: 300_000,
+    // Windows hosted runners occasionally take several minutes to expand and
+    // resolve a packed workspace tarball. Keep the acceptance gate bounded,
+    // but do not turn transient runner I/O into a false release failure.
+    timeout: 600_000,
   });
   if (result.error) throw result.error;
   return result;
