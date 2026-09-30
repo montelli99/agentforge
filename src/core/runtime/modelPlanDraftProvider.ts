@@ -17,7 +17,8 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
   async draft(task: Task, signal?: AbortSignal): Promise<ApprovedExecutionPlan> {
     const response = await this.model.generate({
       model: this.modelName,
-      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. For each required check, copy its type exactly into checkName and copy its command exactly into command. Produce a minimal verification plan. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, checks: task.contract.requiredChecks }) }],
+      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. For each required check, copy its type exactly into checkName and copy its command exactly into command. Produce a minimal verification plan within the supplied task boundaries. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, description: task.description,
+        scope: task.contract.scope, authority: task.contract.authority, checks: task.contract.requiredChecks }) }],
       responseFormat: "json",
       thinking: "disabled",
       temperature: 0,
