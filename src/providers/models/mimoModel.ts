@@ -121,6 +121,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         max_tokens: options.maxTokens,
         tools: options.tools,
         tool_choice: options.toolChoice,
+        ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
         stream: false,
       }),
       signal: options.signal
@@ -184,6 +185,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         messages: options.messages,
         temperature: options.temperature,
         max_tokens: options.maxTokens,
+        ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
         stream: true,
       }),
       signal: options.signal

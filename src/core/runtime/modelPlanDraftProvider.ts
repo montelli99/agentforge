@@ -17,13 +17,16 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
   async draft(task: Task, signal?: AbortSignal): Promise<ApprovedExecutionPlan> {
     const response = await this.model.generate({
       model: this.modelName,
-      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]} . Produce a minimal verification plan. Never include destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, checks: task.contract.requiredChecks }) }],
+      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. For each required check, copy its type exactly into checkName and copy its command exactly into command. Produce a minimal verification plan. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, checks: task.contract.requiredChecks }) }],
       responseFormat: "json",
+      thinking: "disabled",
       temperature: 0,
       signal,
     });
     let parsed: unknown;
-    try { parsed = JSON.parse(response.content); } catch { throw new Error("Model returned an invalid execution-plan draft."); }
+    const content = response.content.trim();
+    const fenced = /^```(?:json)?\s*\r?\n([\s\S]*?)\r?\n```$/.exec(content);
+    try { parsed = JSON.parse(fenced ? fenced[1] : content); } catch { throw new Error("Model returned an invalid execution-plan draft."); }
     const commands = (parsed as { commands?: unknown })?.commands;
     if (!Array.isArray(commands) || commands.length === 0 || commands.some(command => {
       const item = command as { checkName?: unknown; command?: unknown; timeoutMs?: unknown };
