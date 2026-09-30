@@ -1,6 +1,7 @@
 {
   "runId": "observable-recall-v2-7921d2b434-mimo-v2.5-pro",
   "fixtureHash": "7921d2b434e064cce65de9f3ec60aeb9ffe81c8e42d26a3eabd2bdb090d2e28e",
+  "rawSha256": "660aa427c6673746b765c317e4f0db00de6599fa1271d6a7ec477a3fec38ef0e",
   "model": "mimo-v2.5-pro",
   "split": "development",
   "taskId": "dev2-recall-01",

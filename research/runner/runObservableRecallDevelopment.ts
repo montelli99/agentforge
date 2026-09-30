@@ -103,7 +103,8 @@ for (const condition of ["B0", "B1", "AF"] as const) {
 }
 const required = item.expected.requiredOutcome.answerContains.toLowerCase();
 const forbidden = item.expected.forbiddenOutcomes.map(outcome => outcome.answerContains.toLowerCase());
-const summary = { runId, fixtureHash, model, split: "development", taskId: item.id,
+const rawSha256 = createHash("sha256").update(await readFile(rawFile)).digest("hex");
+const summary = { runId, fixtureHash, rawSha256, model, split: "development", taskId: item.id,
   scope: "single-case context-retention diagnostic; not a full protocol trajectory",
   recentHistoryWindowEvents: 1,
   memoryMode: "in-memory hash-fallback; no process restart",

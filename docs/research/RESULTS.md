@@ -64,6 +64,25 @@ usage, and matched the public aggregate to the raw artifact hash. It requires
 the private raw files on the machine that ran the pilot; no raw conversations
 are included in the public bundle.
 
+## Observable v2 recall diagnostic, 2026-09-30
+
+The first observable-development-v2 case completed six MiMo 2.5 Pro calls:
+one exposure and one final answer in each of B0, B1 and AF. Independent
+re-scoring of the private checkpoint passed with six distinct IDs and SHA-256
+`660aa427c6673746b765c317e4f0db00de6599fa1271d6a7ec477a3fec38ef0e`.
+The sanitized aggregate is
+`research/results/observable-recall-development-v2-summary.json`.
+B0 omitted the earlier fact and failed the final-answer check; B1 and AF both
+included the required fact and passed. AF used in-memory hash-fallback retrieval,
+not restart-persistent memory. Its two calls used 627 prompt and 294 completion
+tokens, versus 608 and 301 for B1; AF's summed call latency was 21,970 ms,
+versus 11,626 ms for B1. Billing remains unknown.
+
+This is a single-case context-retention diagnostic, not a complete task
+trajectory or a held-out comparison. It adds no evidence of a general AF
+advantage over B1. Re-score it without provider calls with
+`node --import tsx research/runner/validateObservableRecallDevelopment.ts`.
+
 ## Local adapter pilot boundary
 
 The zero-spend Ollama adapter pilot is recorded separately in
