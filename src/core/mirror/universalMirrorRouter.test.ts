@@ -74,11 +74,26 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
       text: "Progress update on sprint tasks",
     });
 
-    const messages = store.listMessages("chan-general");
+    const privateChannel = store.findMirroredChannel("telegram", "dm:tg-chat-1");
+    expect(privateChannel?.visibility).toBe("private");
+    const messages = store.listMessages(privateChannel!.id);
     expect(messages.some(m => m.content === "Progress update on sprint tasks")).toBe(true);
 
     // Loop suppression must ensure 0 outbound messages back to Telegram
     expect(tgOutboundCount).toBe(0);
+  });
+
+  it("separates private chats and repeated group topic IDs in canonical storage", async () => {
+    await telegram.ingestInboundUpdate({ updateId: 1101, chatId: "101", userId: "one", text: "First private" });
+    await telegram.ingestInboundUpdate({ updateId: 1102, chatId: "202", userId: "two", text: "Second private" });
+    await telegram.ingestInboundUpdate({ updateId: 1103, chatId: "-1001", topicId: 7, userId: "one", text: "First group" });
+    await telegram.ingestInboundUpdate({ updateId: 1104, chatId: "-1002", topicId: 7, userId: "two", text: "Second group" });
+    const ids = ["dm:101", "dm:202", "group:-1001:topic:7", "group:-1002:topic:7"];
+    const channels = ids.map(id => store.findMirroredChannel("telegram", id));
+    expect(channels.every(Boolean)).toBe(true);
+    expect(new Set(channels.map(channel => channel!.id)).size).toBe(4);
+    expect(channels.map(channel => store.listMessages(channel!.id).length)).toEqual([1, 1, 1, 1]);
+    expect(channels.slice(0, 2).every(channel => channel!.visibility === "private")).toBe(true);
   });
 
   it("keeps external adapters visibly bounded to sandbox readiness", () => {

@@ -19,6 +19,7 @@ import type { MemoryProvider } from "../providers/memory.js";
 import { redactRuntimeError } from "../secret/runtimeRedaction.js";
 import type { ChannelConversation } from "./channelConversation.js";
 import { localChannelReply } from "./localChannelReply.js";
+import type { ModelMessage } from "../providers/model.js";
 
 export class UniversalMirrorRouter {
   private readonly pendingTelegramLinks = new Map<string, { userId: string; expiresAt: number }>();
@@ -90,24 +91,25 @@ export class UniversalMirrorRouter {
     );
 
     if (!canonicalChannel && event.provider === "telegram" && this.telegram) {
-      const binding = this.telegram.getBindingByTopic(event.externalWorkspaceId, Number(event.externalChannelId));
+      const binding = this.telegram.getBindingByTopic(event.externalWorkspaceId, Number(event.externalThreadId) || 1);
       if (binding) {
         canonicalChannel = this.store.getChannel(binding.canonicalChannelId);
       }
     }
 
-    if (!canonicalChannel && (event.externalChannelId === "1" || !event.externalChannelId)) {
+    if (!canonicalChannel && event.provider !== "telegram" && (event.externalChannelId === "1" || !event.externalChannelId)) {
       canonicalChannel = this.store.getChannel("chan-general");
     }
 
     if (!canonicalChannel) {
       // Find or create external space
       const spaces = this.store.listSpaces();
-      let providerSpace = spaces.find(s => s.provider === event.provider);
+      let providerSpace = spaces.find(s => s.provider === event.provider &&
+        (event.provider !== "telegram" || s.externalId === event.externalWorkspaceId));
       if (!providerSpace) {
         providerSpace = this.store.createSpace({
           workspaceId: "ws-default",
-          name: `${event.provider.toUpperCase()} Mirror`,
+        name: `${event.provider.toUpperCase()} Mirror`,
           provider: event.provider as any,
           externalId: event.externalWorkspaceId,
         });
@@ -116,8 +118,9 @@ export class UniversalMirrorRouter {
       canonicalChannel = this.store.createChannel({
         workspaceId: "ws-default",
         spaceId: providerSpace.id,
-        name: `Topic ${event.externalChannelId}`,
-        visibility: "public",
+        name: event.provider === "telegram" && !event.externalWorkspaceId.startsWith("-")
+          ? "Private chat" : `Topic ${event.externalThreadId || "General"}`,
+        visibility: event.provider === "telegram" && !event.externalWorkspaceId.startsWith("-") ? "private" : "public",
         archived: false,
         provider: event.provider as any,
         externalId: event.externalChannelId,
@@ -137,11 +140,17 @@ export class UniversalMirrorRouter {
       if (event.provider === "telegram" && this.telegram) {
         this.telegram.bindTopic(
           event.externalWorkspaceId,
-          Number(event.externalChannelId) || 1,
+          Number(event.externalThreadId) || 1,
           canonicalChannel.id,
-          `Topic ${event.externalChannelId}`,
+          `Topic ${event.externalThreadId || "General"}`,
         );
       }
+    }
+
+    if (event.provider === "telegram" && this.telegram &&
+        !this.telegram.getBindingByChannel(canonicalChannel.id)) {
+      this.telegram.bindTopic(event.externalWorkspaceId, Number(event.externalThreadId) || 1,
+        canonicalChannel.id, canonicalChannel.name);
     }
 
     // Every channel event receives the same bounded controller handoff as API
@@ -227,12 +236,20 @@ export class UniversalMirrorRouter {
         try {
           const started = performance.now();
           const local = localChannelReply(event.payload.text, this.store);
+          const durableHistory: ModelMessage[] = this.store.listMessages(canonicalChannel.id, 13)
+            .filter(message => message.id !== canonicalMsg.id && (message.authorType === "user" || message.authorType === "agent"))
+            .slice(-12).map(message => ({ role: message.authorType === "agent" ? "assistant" : "user",
+              content: message.content.slice(0, 4000) }));
           const reply = local
             ? { text: local, modelMs: null }
             : this.conversation
-              ? await this.conversation.reply(event.externalWorkspaceId, event.payload.text)
+              ? await this.conversation.reply(event.externalWorkspaceId, event.payload.text,
+                canonicalChannel.id, inspection.intent, durableHistory)
               : { text: "I can show workspace status, tasks, and approvals, but open-ended chat needs a configured model in AgentForge Settings.", modelMs: null };
           const outbound = await this.telegram.sendReply(event.externalWorkspaceId, reply.text);
+          this.store.createMessage({ channelId: canonicalChannel.id, authorId: "agent-agentforge-coordinator",
+            authorType: "agent", content: reply.text, externalMessageId: outbound.externalMessageId,
+            externalProvider: "telegram", replyToMessageId: canonicalMsg.id });
           this.store.recordAudit({
             origin: "telegram", actorId: user.id, actorType: "user", action: "conversation.replied",
             targetType: "message", targetId: canonicalMsg.id,

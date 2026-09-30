@@ -322,7 +322,8 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         userId: "user-owner",
         text: "Please start the intake task",
       });
-      expect(store.listMessages("chan-general").some(m => m.content.includes("intake task"))).toBe(true);
+      expect(store.listMessages(store.findMirroredChannel("telegram", "group:-1001928374:topic:1")!.id)
+        .some(m => m.content.includes("intake task"))).toBe(true);
 
       // Web replies
       const replyRes = await fetch(`http://localhost:${testPort}/api/messages`, {
@@ -493,7 +494,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       });
 
       // Message created in store
-      const msgs = store.listMessages("chan-general");
+      const msgs = store.listMessages(store.findMirroredChannel("telegram", "group:-1001:topic:1")!.id);
       expect(msgs.some(m => m.content === "Hello from Telegram")).toBe(true);
 
       // Discord mock inbound

@@ -149,6 +149,11 @@ export class TelegramMirrorProvider implements ChannelProvider {
   }): Promise<void> {
     const eventId = `tg-${update.updateId}`;
     const topicId = update.topicId || 1; // Default General topic
+    // Provider topic IDs repeat across chats. Include the chat ID in the
+    // canonical key so private conversations and groups cannot share a record.
+    const channelKey = update.chatId.startsWith("-")
+      ? `group:${update.chatId}:topic:${topicId}`
+      : `dm:${update.chatId}`;
 
     // Handle interactive button callback (e.g. "approve:AF-142", "reject:AF-142")
     if (update.callbackData) {
@@ -158,7 +163,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
         provider: "telegram",
         eventType: "action_button_clicked",
         externalWorkspaceId: update.chatId,
-        externalChannelId: String(topicId),
+        externalChannelId: channelKey,
         externalThreadId: update.topicId ? String(update.topicId) : undefined,
         externalUserId: update.userId,
         externalUsername: update.username,
@@ -182,7 +187,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
         provider: "telegram",
         eventType: "command",
         externalWorkspaceId: update.chatId,
-        externalChannelId: String(topicId),
+        externalChannelId: channelKey,
         externalThreadId: update.topicId ? String(update.topicId) : undefined,
         externalUserId: update.userId,
         externalUsername: update.username,
@@ -199,7 +204,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
       provider: "telegram",
       eventType: "message",
       externalWorkspaceId: update.chatId,
-      externalChannelId: String(topicId),
+      externalChannelId: channelKey,
       externalThreadId: update.topicId ? String(update.topicId) : undefined,
       externalUserId: update.userId,
       externalUsername: update.username,
@@ -215,16 +220,17 @@ export class TelegramMirrorProvider implements ChannelProvider {
   // Outbound: AgentForge Web -> Telegram Topic
   async sendMessage(message: OutboundChannelMessage): Promise<{ externalMessageId: string }> {
     const binding = this.channelToTopic.get(message.canonicalChannelId);
+    const topicId = binding?.chatId.startsWith("-") && binding.topicId > 1 ? binding.topicId : undefined;
     if (this.gatewayRelay && binding) {
-      const messageId = await this.gatewayRelay.sendMessage(binding.chatId, message.text, binding.topicId);
+      const messageId = await this.gatewayRelay.sendMessage(binding.chatId, message.text, topicId);
       return { externalMessageId: String(messageId) };
     }
     if (this.liveTransport && binding) {
-      const messageId = await this.liveTransport.sendMessage(binding.chatId, message.text, binding.topicId);
+      const messageId = await this.liveTransport.sendMessage(binding.chatId, message.text, topicId);
       return { externalMessageId: String(messageId) };
     }
     if (this.userSessionTransport && binding) {
-      const messageId = await this.userSessionTransport.sendMessage(binding.chatId, message.text, binding.topicId);
+      const messageId = await this.userSessionTransport.sendMessage(binding.chatId, message.text, topicId);
       return { externalMessageId: String(messageId) };
     }
     const externalMessageId = `tg-msg-${crypto.randomUUID().slice(0, 8)}`;
