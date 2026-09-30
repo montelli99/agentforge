@@ -109,3 +109,18 @@ has not been measured live.
 The local answer path for a small set of workspace questions was added after
 the live test. It has focused test coverage but no measured live latency yet.
 It does not accelerate arbitrary model-backed questions or grant chat tools.
+
+### Follow-up cutover without inbound acceptance, 2026-09-30
+
+A later controlled cutover connected the native AgentForge Telegram transport to
+an isolated workspace. The gateway reported `ready` and `live`; no inbound
+owner message arrived while AgentForge held the bot connection. The transport
+was stopped and the original OpenClaw scheduled gateway was restored. Its
+local health endpoint returned HTTP 200. This attempt does not verify the
+new product-knowledge or fast-answer paths end to end.
+
+The owner sent a product question after OpenClaw had resumed the bot connection.
+The resulting model/billing error was emitted by OpenClaw, not AgentForge, and
+must not be counted as an AgentForge acceptance result. A future native chat
+check requires a coordinated short test window and an inbound event observed
+by AgentForge before the other gateway is restored.
