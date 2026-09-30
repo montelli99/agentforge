@@ -236,7 +236,8 @@ export class TaskWorkerRuntime {
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
       const evidence = this.createEvidencePack(currentTask, output, processTrace);
       const verifiedPassed = requiredChecksPassedByEvidence(currentTask, output.testResults)
-        && output.testResults.every(result => result.passed);
+        && output.testResults.every(result => result.passed)
+        && requiredArtifactsPassedByEvidence(currentTask, output.artifacts, output.filesChanged);
       const finalStatus: TaskStatus = verifiedPassed
         ? (currentTask.contract.completion.requireHumanApproval ? "waiting_approval" : "completed")
         : "failed";
@@ -254,7 +255,7 @@ export class TaskWorkerRuntime {
       const updated = this.store.updateTask(taskId, {
         status: finalStatus, evidencePack: { ...evidence, verifiedPassed },
         completedAt: finalStatus === "completed" ? new Date().toISOString() : undefined,
-        error: verifiedPassed ? undefined : "A required verification check failed or was not returned by the executor.",
+        error: verifiedPassed ? undefined : "A required verification check or artifact failed or was not returned by the executor.",
       });
       this.store.recordAudit({
         origin: "system", actorId: "system", actorType: "system", action: `TASK_EXECUTION_${finalStatus.toUpperCase()}`,
@@ -432,4 +433,15 @@ function requiredChecksPassedByEvidence(task: Task, testResults: TestResultRecor
     .filter(check => check.required)
     .every(check => testResults.some(result => result.checkName === check.type && result.passed
       && (!check.command || result.command === check.command)));
+}
+
+function requiredArtifactsPassedByEvidence(task: Task, artifacts: ArtifactRecord[], filesChanged: FileDiffRecord[]): boolean {
+  return (task.contract.completion.requiredArtifacts ?? []).every(required => {
+    const path = required.path;
+    if (!/^artifacts\/[a-z0-9][a-z0-9_./-]*$/i.test(path) || path.split("/").includes("..")) return false;
+    if (required.sha256 && !/^[a-f0-9]{64}$/i.test(required.sha256)) return false;
+    return filesChanged.some(file => file.status !== "deleted" && file.filePath.replace(/\\/g, "/") === path)
+      && artifacts.some(artifact => artifact.path === path &&
+        (!required.sha256 || artifact.sha256.toLowerCase() === required.sha256.toLowerCase()));
+  });
 }
