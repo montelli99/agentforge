@@ -3173,7 +3173,14 @@ export class AgentForgeWebServer {
       const agentSpecification = this.compiler.compile(restored);
       const revalidation = this.taskWorkerRuntime.processExecutionEngine.revalidateAgentsForProcess(processId, restored);
       res.writeHead(200);
-      res.end(JSON.stringify({ process: restored, diff, restoredFromVersion: target.version, agentSpecification, revalidation }));
+      res.end(JSON.stringify({
+        process: restored,
+        diff,
+        restoredFromVersion: target.version,
+        rolledBackBy: caller.user?.id || "local-unverified-web-client",
+        agentSpecification,
+        revalidation,
+      }));
       return;
     }
 
