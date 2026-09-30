@@ -27,4 +27,18 @@ describe("NativeAgentForgeGateway", () => {
     expect(sent.externalMessageId).toMatch(/^tg-msg-/);
     await gateway.stop(["telegram"]);
   });
+
+  it("reports only started providers in aggregate readiness", async () => {
+    const telegram = new TelegramMirrorProvider();
+    telegram.attachLiveTransport({
+      start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async () => 1,
+    });
+    const gateway = new NativeAgentForgeGateway(new ChannelRuntimeRegistry({ telegram }));
+    expect((await gateway.start(["telegram"])).state).toBe("ready");
+    expect(gateway.snapshot().channels.filter(channel => channel.state === "stopped")).toHaveLength(2);
+    expect((await gateway.start(["discord"])).state).toBe("degraded");
+    expect((await gateway.stop(["discord"])).state).toBe("ready");
+    expect((await gateway.stop(["telegram"])).state).toBe("stopped");
+  });
 });

@@ -17,6 +17,42 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     router = new UniversalMirrorRouter(store, telegram, discord);
   });
 
+  it("sends a private Telegram link reply to the originating chat without a topic ID", async () => {
+    const sent: Array<{ chatId: string | number; text: string; topicId?: number }> = [];
+    telegram.attachLiveTransport({
+      start: async () => {},
+      stop: () => {},
+      isRunning: () => true,
+      sendMessage: async (chatId, text, topicId) => { sent.push({ chatId, text, topicId }); return 42; },
+    });
+    const { code } = router.issueTelegramLinkCode("user-owner");
+    await telegram.ingestInboundUpdate({
+      updateId: 301,
+      chatId: "123456789",
+      userId: "owner-tg",
+      text: `/link ${code}, then /status`,
+    });
+    expect(sent).toEqual([{ chatId: "123456789", text: expect.stringContaining("linked"), topicId: undefined }]);
+    expect(store.findUserByExternalId("telegram", "owner-tg")?.id).toBe("user-owner");
+    expect(store.listAuditEntries().find(entry => entry.action === "identity.telegram.linked")?.details).toMatchObject({ outboundMessageId: "42" });
+  });
+
+  it("uses a Telegram thread ID only when the inbound group message has one", async () => {
+    const sent: Array<{ chatId: string | number; topicId?: number }> = [];
+    telegram.attachLiveTransport({
+      start: async () => {},
+      stop: () => {},
+      isRunning: () => true,
+      sendMessage: async (chatId, _text, topicId) => { sent.push({ chatId, topicId }); return 43; },
+    });
+    await telegram.ingestInboundUpdate({ updateId: 302, chatId: "-100123", userId: "unlinked", text: "/status" });
+    await telegram.ingestInboundUpdate({ updateId: 303, chatId: "-100123", topicId: 7, userId: "unlinked", text: "/status" });
+    expect(sent).toEqual([
+      { chatId: "-100123", topicId: undefined },
+      { chatId: "-100123", topicId: 7 },
+    ]);
+  });
+
   it("suppresses echoes: does not reflect inbound external message back to same origin", async () => {
     let tgOutboundCount = 0;
     let dcOutboundCount = 0;

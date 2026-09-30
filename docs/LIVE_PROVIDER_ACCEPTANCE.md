@@ -64,3 +64,21 @@ outbound provider message ID, and shutdown result in an evidence file inside
 the task workspace. Do not record raw tokens, message bodies containing
 personal data, or private account identifiers. A provider may be marked `live`
 only when these observations pass; configuration alone is not evidence.
+
+### Telegram controlled acceptance, 2026-09-30
+
+The existing owner-authorized BotFather credential was passed to a disposable
+AgentForge data directory through the process environment. The competing
+poller was stopped for the handoff. AgentForge's native gateway reported
+Telegram `ready` and `live`, with no webhook conflict. In a private test chat,
+the owner linked an AgentForge owner identity and received a direct reply;
+`/status` returned the disposable workspace's agent, task, and approval counts.
+The persisted event audit recorded one accepted link and one status command.
+No private chat ID, credential, account identifier, or message payload is in
+this public record.
+
+The AgentForge test process was stopped. The original scheduled gateway was
+restarted, and its channel probe confirmed the Telegram bot was running in
+polling mode and working. This proves the bounded private-chat link/status
+round trip and rollback. It does not prove natural conversation, agent
+execution, group-topic mirroring, Slack, or Discord acceptance.
