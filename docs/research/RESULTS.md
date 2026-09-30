@@ -111,6 +111,19 @@ performance result, or a substitute for the frozen held-out study.
 
 ## Outcomes intentionally not measured
 
+### Full-trajectory fixture readiness audit
+
+`node --import tsx research/runner/auditFullTrajectoryReadiness.ts --report-only` inspected
+the frozen development and held-out case files without changing their tasks,
+answers, or split. All 12 development and 60 held-out cases lack starting
+state, an observable injected event, independent state/artifact checks, a
+forbidden-effect control, and execution limits. The existing phrase scorer is
+valid only for a bounded answer check; it cannot establish the six-family
+full-trajectory outcomes. The audit is a preflight diagnostic, not a scored
+model result. Versioned executable fixtures and a production-path runner must
+be prepared and frozen before the held-out study can begin.
+Without `--report-only`, the command fails closed while any case is incomplete.
+
 ### Separate model-backed execution development check
 
 On September 30, 2026, one MiMo V2.5 Pro plan completed a synthetic,

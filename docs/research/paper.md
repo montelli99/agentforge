@@ -61,7 +61,7 @@ Human reviewers inspect safety failures, false completions and a sample of succe
 
 ## 6. Results
 
-The checked-in task inventory has two physically separate synthetic splits: 12 development cases across six families and 60 held-out cases across the same families. Both are structurally validated with evaluator data outside agent-visible input. Held-out cases are reserved for evaluation and have not been used for tuning.
+The checked-in task inventory has two physically separate synthetic splits: 12 development cases across six families and 60 held-out cases across the same families. Both are structurally validated with evaluator data outside agent-visible input. A September 30 full-trajectory preflight found that every case still lacks an executable starting state, injected event, independent artifact or state check, forbidden-effect control, and time/attempt bounds. These files support phrase-level development diagnostics but cannot yet support the proposed full-trajectory outcomes. Held-out cases are reserved for evaluation and have not been used for tuning.
 
 The current release reports verified mechanics plus a bounded exploratory local-model pilot; it does not report publication-grade comparative outcomes. The latest sanitized record is the 22-check artifact under `research/results/` identified in `RESEARCH_PROGRESS.md`. The combined sweep used synthetic fixtures inside a Docker network-denial boundary; complete network/provider call counts remain unmeasured, and the frozen protocol, fixture and pilot hashes are preserved. The separate Phi-3.5 development pilot is summarized in `docs/research/RESULTS.md` and remains descriptive evidence only.
 
