@@ -1,0 +1,39 @@
+{
+  "runId": "observable-recall-v2-7921d2b434-mimo-v2.5-pro",
+  "fixtureHash": "7921d2b434e064cce65de9f3ec60aeb9ffe81c8e42d26a3eabd2bdb090d2e28e",
+  "model": "mimo-v2.5-pro",
+  "split": "development",
+  "taskId": "dev2-recall-01",
+  "scope": "single-case context-retention diagnostic; not a full protocol trajectory",
+  "recentHistoryWindowEvents": 1,
+  "memoryMode": "in-memory hash-fallback; no process restart",
+  "attemptedCalls": 6,
+  "completedCalls": 6,
+  "costUsd": "unknown",
+  "conditions": {
+    "B0": {
+      "status": "completed",
+      "validAnswer": false,
+      "retrievalHit": null,
+      "latencyMs": 14012,
+      "promptTokens": 589,
+      "completionTokens": 221
+    },
+    "B1": {
+      "status": "completed",
+      "validAnswer": true,
+      "retrievalHit": null,
+      "latencyMs": 11626,
+      "promptTokens": 608,
+      "completionTokens": 301
+    },
+    "AF": {
+      "status": "completed",
+      "validAnswer": true,
+      "retrievalHit": true,
+      "latencyMs": 21970,
+      "promptTokens": 627,
+      "completionTokens": 294
+    }
+  }
+}
