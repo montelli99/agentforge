@@ -65,7 +65,11 @@ export class TelegramMirrorProvider implements ChannelProvider {
       status: live ? "live" : "sandbox",
         summary: live
         ? "Telegram is connected through an AgentForge-owned transport and routed through the canonical AgentForge mirror."
-        : "Telegram mirror contracts are wired; configure an AgentForge-owned BotFather bot, an advanced MTProto user session, or an optional migration relay to go live.",
+        : this.liveTransport?.getLastPollFailure?.() === "conflict"
+          ? "Telegram polling conflict: another process is receiving updates for this bot. Stop the competing poller before treating this channel as live."
+          : this.liveTransport?.isRunning()
+            ? "Telegram poller is starting or temporarily unreachable; no successful update poll has been observed yet."
+            : "Telegram mirror contracts are wired; configure an AgentForge-owned BotFather bot, an advanced MTProto user session, or an optional migration relay to go live.",
       capabilities: ["topic binding", "inbound event normalization", "remote-control policy handling", "outbound message contract", "BotFather Bot API transport", "native MTProto user-session transport", "optional migration relay"],
       missing: live ? [] : ["AgentForge BotFather token, MTProto session, or migration relay", "live provider acceptance"],
     };

@@ -39,12 +39,34 @@ describe("TelegramBotApiTransport", () => {
     await transport.start();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(pollSignal).toBeDefined();
-    expect(transport.isHealthy()).toBe(true);
+    expect(transport.isHealthy()).toBe(false);
     transport.stop();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(pollSignal?.aborted).toBe(true);
     expect(transport.isRunning()).toBe(false);
     expect(transport.isHealthy()).toBe(false);
+  });
+
+  it("does not report a competing poller as a live Telegram connection", async () => {
+    let polled = false;
+    const transport = new TelegramBotApiTransport({ token, pollTimeoutSeconds: 0,
+      fetchImpl: async input => {
+        if (String(input).endsWith("/getWebhookInfo")) {
+          return new Response(JSON.stringify({ ok: true, result: { url: "" } }), { status: 200 });
+        }
+        polled = true;
+        return new Response("conflict", { status: 409 });
+      },
+      onUpdate: async () => undefined,
+    });
+    await transport.start();
+    for (let attempt = 0; attempt < 10 && !transport.getLastPollFailure(); attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    expect(polled).toBe(true);
+    expect(transport.getLastPollFailure()).toBe("conflict");
+    expect(transport.isHealthy()).toBe(false);
+    transport.stop();
   });
 
   it("delivers BotFather callback-button updates without advancing past a failed handler", async () => {

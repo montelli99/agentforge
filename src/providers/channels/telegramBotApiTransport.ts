@@ -43,6 +43,7 @@ export class TelegramBotApiTransport implements TelegramLiveTransport {
   private offset = 0;
   private pollAbort: AbortController | undefined;
   private healthy = false;
+  private lastPollFailure: "conflict" | "other" | undefined;
 
   constructor(options: TelegramBotApiTransportOptions) {
     if (!/^\d{6,}:[A-Za-z0-9_-]{20,}$/.test(options.token)) throw new Error("Telegram bot token format is invalid.");
@@ -63,6 +64,7 @@ export class TelegramBotApiTransport implements TelegramLiveTransport {
   isRunning(): boolean { return this.running; }
   /** A poller may be running while Telegram is temporarily unreachable. */
   isHealthy(): boolean { return this.running && this.healthy; }
+  getLastPollFailure(): "conflict" | "other" | undefined { return this.lastPollFailure; }
 
   async getWebhookInfo(): Promise<TelegramWebhookInfo> {
     const payload = await this.call("getWebhookInfo");
@@ -88,7 +90,8 @@ export class TelegramBotApiTransport implements TelegramLiveTransport {
     const webhook = await this.getWebhookInfo();
     if (webhook.url) throw new Error("Telegram polling refused while a webhook is registered.");
     this.running = true;
-    this.healthy = true;
+    this.healthy = false;
+    this.lastPollFailure = undefined;
     const controller = new AbortController();
     this.pollAbort = controller;
     void this.pollLoop(controller);
@@ -128,8 +131,11 @@ export class TelegramBotApiTransport implements TelegramLiveTransport {
           this.offset = Math.max(this.offset, update.update_id + 1);
         }
         this.healthy = true;
-      } catch {
+        this.lastPollFailure = undefined;
+      } catch (error) {
         this.healthy = false;
+        this.lastPollFailure = error instanceof Error && /Telegram getUpdates failed with HTTP 409\./.test(error.message)
+          ? "conflict" : "other";
         if (this.running && !controller.signal.aborted) await new Promise(resolve => setTimeout(resolve, 1_000));
       }
     }
