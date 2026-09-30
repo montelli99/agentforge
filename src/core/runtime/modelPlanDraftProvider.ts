@@ -17,7 +17,7 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
   async draft(task: Task, signal?: AbortSignal): Promise<ApprovedExecutionPlan> {
     const response = await this.model.generate({
       model: this.modelName,
-      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. Propose the minimal commands needed to perform the task, followed by every required check. For each required check, copy its type exactly into checkName and copy its command exactly when one is supplied. Keep all commands within the supplied task boundaries. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, description: task.description,
+      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. Propose commands that complete the requested deliverables, not commands that only inspect input files. When the task names an output file or state change, include a bounded command that creates any missing parent directory, writes the output, and verifies the requested content. A command that redirects into a nonexistent directory fails. Follow with every required check. For each required check, copy its type exactly into checkName and copy its command exactly when one is supplied. Keep all commands within the supplied task boundaries. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, description: task.description,
         scope: task.contract.scope, authority: task.contract.authority, checks: task.contract.requiredChecks }) }],
       responseFormat: "json",
       thinking: "disabled",
