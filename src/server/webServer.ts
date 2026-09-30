@@ -3105,7 +3105,7 @@ export class AgentForgeWebServer {
         const result = this.store.resolveProcessRevisionProposal({
           proposalId,
           status: body.status,
-          approverUserId: "local-unverified-web-client",
+          approverUserId: caller.user?.id || "local-unverified-web-client",
         });
         if (result.proposal.status === "stale") {
           res.writeHead(409);
