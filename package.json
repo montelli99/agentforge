@@ -47,7 +47,7 @@
     "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
     "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e",
-    "release:preflight": "pnpm verify:public && pnpm release:audit && pnpm test:registry:preflight",
+    "release:preflight": "pnpm verify:public && pnpm release:audit && pnpm test:registry:preflight && pnpm test:provider:preflight",
     "release:audit": "node scripts/public-release-readiness.mjs",
     "test:registry:preflight": "node scripts/registry-release-preflight.mjs",
     "test:deployment:smoke": "node scripts/deployment-smoke.mjs",
