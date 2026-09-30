@@ -1,4 +1,5 @@
 import type { WorkspaceStore } from "../store/workspaceStore.js";
+import { productFallbackFor } from "./productKnowledge.js";
 
 /** Free, immediate answers for bounded workspace questions. No model or tool call. */
 export function localChannelReply(text: string, store: WorkspaceStore): string | undefined {
@@ -20,5 +21,5 @@ export function localChannelReply(text: string, store: WorkspaceStore): string |
     const approvals = store.listApprovals("pending");
     return approvals.length ? `Pending approvals (${approvals.length}):\n${approvals.slice(0, 8).map(approval => `• ${approval.action} — task ${approval.taskId}`).join("\n")}` : "There are no pending approvals.";
   }
-  return undefined;
+  return productFallbackFor(text);
 }
