@@ -11,6 +11,35 @@ import { OperationalMemoryProvider } from "../../providers/memory/operationalMem
 import { productFallbackFor, productKnowledgeFor } from "./productKnowledge.js";
 
 describe("linked private Telegram conversation", () => {
+  it("retries an accepted update after a workspace restart without copying its inbound message", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-telegram-retry-"));
+    try {
+      const file = path.join(directory, "workspace.json");
+      const update = { updateId: 8200, chatId: "private-one", userId: "owner", text: "What needs my approval?" };
+      const firstStore = new WorkspaceStore(file);
+      firstStore.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner",
+        linkedAt: new Date().toISOString() });
+      const firstTelegram = new TelegramMirrorProvider();
+      firstTelegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+        sendMessage: async () => { throw new Error("send temporarily unavailable"); } });
+      new UniversalMirrorRouter(firstStore, firstTelegram);
+      await expect(firstTelegram.ingestInboundUpdate(update)).rejects.toThrow("send temporarily unavailable");
+      const secondStore = new WorkspaceStore(file);
+      const secondTelegram = new TelegramMirrorProvider();
+      const sent: string[] = [];
+      secondTelegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+        sendMessage: async (_chatId, text) => { sent.push(text); return 8201; } });
+      new UniversalMirrorRouter(secondStore, secondTelegram);
+      await secondTelegram.ingestInboundUpdate(update);
+      const channel = secondStore.findMirroredChannel("telegram", "dm:private-one");
+      expect(secondStore.listMessages(channel!.id).filter(message => message.authorType === "user")).toHaveLength(1);
+      expect(secondStore.listMessages(channel!.id).filter(message => message.authorType === "agent")).toHaveLength(1);
+      expect(sent).toHaveLength(1);
+      expect(secondStore.eventLedger.getAllEntries().find(entry => entry.eventId === "tg-8200")?.status).toBe("applied");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
   it("answers an approvals question immediately through the native Telegram route", async () => {
     const store = new WorkspaceStore();
     store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner",
