@@ -154,6 +154,7 @@ describe("workspace hierarchy API", () => {
     expect(audit).toEqual(expect.arrayContaining([
       expect.objectContaining({ action: "workspace_created", targetId: workspace.id }),
       expect.objectContaining({ action: "process_agent_bound" }),
+      expect.objectContaining({ action: "process_agent_run_prepared", targetId: prepared.task.id }),
       expect.objectContaining({ action: "task_created", targetId: task.id }),
     ]));
     expect(workspace.name).toBe("RC2 acceptance");
