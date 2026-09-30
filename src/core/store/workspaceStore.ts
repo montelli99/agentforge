@@ -471,6 +471,11 @@ export class WorkspaceStore {
     return list.slice(-limit);
   }
 
+  findExternalMessage(channelId: string, provider: string, externalMessageId: string): CanonicalMessage | undefined {
+    return (this.messages.get(channelId) || []).find(message =>
+      message.externalProvider === provider && message.externalMessageId === externalMessageId);
+  }
+
   // --- Agents ---
   createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt" | "id"> & { id?: string }): AgentTeammate {
     const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;

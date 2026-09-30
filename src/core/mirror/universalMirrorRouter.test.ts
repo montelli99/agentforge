@@ -70,6 +70,24 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     expect(sent).toHaveLength(1);
   });
 
+  it("retries an accepted Telegram update after send failure without duplicating the inbound message", async () => {
+    let sends = 0;
+    telegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async () => { sends += 1; if (sends === 1) throw new Error("temporary send failure"); return 54; } });
+    store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner-tg",
+      linkedAt: new Date().toISOString() });
+    const update = { updateId: 309, chatId: "123456789", userId: "owner-tg", text: "What needs my approval?" };
+    await expect(telegram.ingestInboundUpdate(update)).rejects.toThrow("temporary send failure");
+    expect(store.eventLedger.getAllEntries().find(entry => entry.eventId === "tg-309")?.status).toBe("accepted");
+    await telegram.ingestInboundUpdate(update);
+    const channel = store.findMirroredChannel("telegram", "dm:123456789");
+    const messages = store.listMessages(channel!.id);
+    expect(messages.filter(message => message.authorType === "user")).toHaveLength(1);
+    expect(messages.filter(message => message.authorType === "agent")).toHaveLength(1);
+    expect(store.eventLedger.getAllEntries().find(entry => entry.eventId === "tg-309")?.status).toBe("applied");
+    expect(sends).toBe(2);
+  });
+
   it("sends a private Telegram link reply to the originating chat without a topic ID", async () => {
     const sent: Array<{ chatId: string | number; text: string; topicId?: number }> = [];
     telegram.attachLiveTransport({

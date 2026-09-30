@@ -80,7 +80,7 @@ export class UniversalMirrorRouter {
       payload: event.payload,
     });
 
-    if (isDuplicate) return;
+    if (isDuplicate && entry.status !== "accepted") return;
 
     // 2. Resolve Canonical User Identity & Authorization
     const user = this.store.findUserByExternalId(event.provider, event.externalUserId);
@@ -210,7 +210,8 @@ export class UniversalMirrorRouter {
 
     // 5. Standard Message Normalization
     if (event.eventType === "message" && event.payload.text) {
-      const canonicalMsg = this.store.createMessage({
+      const priorMessage = this.store.findExternalMessage(canonicalChannel.id, event.provider, event.id);
+      const canonicalMsg = priorMessage || this.store.createMessage({
         channelId: canonicalChannel.id,
         authorId: user?.id || `ext-${event.externalUserId}`,
         authorType: "user",
@@ -219,7 +220,7 @@ export class UniversalMirrorRouter {
         externalProvider: event.provider as any,
       });
 
-      this.store.recordAudit({
+      if (!priorMessage) this.store.recordAudit({
         origin: event.provider,
         actorId: user?.id || event.externalUserId,
         actorType: "user",
@@ -229,7 +230,6 @@ export class UniversalMirrorRouter {
         details: { channelId: canonicalChannel.id, textLength: event.payload.text.length },
       });
 
-      this.store.eventLedger.updateEventStatus(entry.id, "applied");
       // In a group, answer only a linked user's explicit read-only request.
       // Keep open-ended chat and task mutations in the private conversation.
       if (event.provider === "telegram" && this.telegram && user &&
@@ -241,13 +241,13 @@ export class UniversalMirrorRouter {
             payload: { ...event.payload, command: natural.command, commandArgs: natural.args } },
           canonicalChannel.id, user.id);
         }
+        this.store.eventLedger.updateEventStatus(entry.id, "applied");
         return;
       }
       // A private linked chat can converse through the explicitly configured,
       // read-only model route. Keep group mirroring separate from direct replies.
       if (event.provider === "telegram" && this.telegram && user &&
           !event.externalWorkspaceId.startsWith("-")) {
-        try {
           const natural = resolveNaturalCommand(event.payload.text, this.store);
           if (natural) {
             if ("clarification" in natural) {
@@ -261,6 +261,7 @@ export class UniversalMirrorRouter {
                 payload: { ...event.payload, command: natural.command, commandArgs: natural.args } },
               canonicalChannel.id, user.id);
             }
+            this.store.eventLedger.updateEventStatus(entry.id, "applied");
             return;
           }
           const started = performance.now();
@@ -269,12 +270,18 @@ export class UniversalMirrorRouter {
             .filter(message => message.id !== canonicalMsg.id && (message.authorType === "user" || message.authorType === "agent"))
             .slice(-12).map(message => ({ role: message.authorType === "agent" ? "assistant" : "user",
               content: message.content.slice(0, 4000) }));
-          const reply = local
-            ? { text: local, modelMs: null }
-            : this.conversation
-              ? await this.conversation.reply(event.externalWorkspaceId, event.payload.text,
-                canonicalChannel.id, inspection.intent, durableHistory)
-              : { text: "I can show workspace status, tasks, and approvals, but open-ended chat needs a configured model in AgentForge Settings.", modelMs: null };
+          let reply: { text: string; modelMs: number | null; fallback?: boolean };
+          try {
+            reply = local
+              ? { text: local, modelMs: null }
+              : this.conversation
+                ? await this.conversation.reply(event.externalWorkspaceId, event.payload.text,
+                  canonicalChannel.id, inspection.intent, durableHistory)
+                : { text: "I can show workspace status, tasks, and approvals, but open-ended chat needs a configured model in AgentForge Settings.", modelMs: null };
+          } catch (error) {
+            reply = { text: redactRuntimeError(error, "I couldn't complete that reply. Please try again."),
+              modelMs: null, fallback: true };
+          }
           const outbound = await this.telegram.sendReply(event.externalWorkspaceId, reply.text);
           this.store.createMessage({ channelId: canonicalChannel.id, authorId: "agent-agentforge-coordinator",
             authorType: "agent", content: reply.text, externalMessageId: outbound.externalMessageId,
@@ -286,11 +293,9 @@ export class UniversalMirrorRouter {
               modelMs: reply.modelMs, fallback: "fallback" in reply && reply.fallback === true,
               roundTripMs: Math.round(performance.now() - started) },
           });
-        } catch (error) {
-          const reply = redactRuntimeError(error, "I couldn't complete that reply. Please try again.");
-          await this.telegram.sendReply(event.externalWorkspaceId, reply);
-        }
+          this.store.eventLedger.updateEventStatus(entry.id, "applied");
       }
+      if (entry.status === "accepted") this.store.eventLedger.updateEventStatus(entry.id, "applied");
     }
   }
 
