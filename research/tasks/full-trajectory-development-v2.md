@@ -17,3 +17,12 @@ pnpm research:reference:validate
 When Docker is reachable, run the isolated worker reference path with
 `pnpm research:reference:run`. The public result is written to
 `research/results/full-trajectory-development-v2-reference.json`.
+
+The bounded model-backed development route accepts one explicit case ID, for
+example `pnpm research:model-development:one full-delayed-recall-01`. It checks
+Docker and the configured MiMo route before any provider call, writes a private
+checkpoint outside the repository before the call, and refuses to silently
+repeat an existing attempt. It supplies only `input` to the model, executes its
+draft in a disposable network-disabled worktree under contract policy, and
+scores the artifact independently. This is a research-only synthetic route;
+it does not establish product approval behavior or a matched study result.
