@@ -22,6 +22,19 @@ Supply these environment variables to the AgentForge server process through your
 
 Both a dedicated credential and model list are required. AgentForge never adopts `OPENAI_API_KEY` or another application's stored credentials for this chat route. Restart the server after configuration. Select a model in the conversation composer before sending; “Save locally” does not request a response.
 
+For an explicitly selected MiMo route, set `AGENTFORGE_CHAT_PROVIDER=mimo`,
+`AGENTFORGE_CHAT_MODELS=mimo-v2.5-pro` (or another supported MiMo model), and
+provide `MIMO_API_KEY` privately to the AgentForge process. This option uses
+AgentForge's native MiMo adapter and does not require a second chat key. Leave
+`AGENTFORGE_CHAT_PROVIDER` unset for the OpenAI-compatible route above.
+
+Linked Telegram identities can receive read-only text replies in a private
+chat when a conversation model is configured. This uses a bounded context per
+private chat, kept in process memory and cleared on restart. Group messages,
+unlinked identities, attachments and tool execution are outside this route.
+Telegram `/status` and other remote-control commands use their separate
+authorized command path.
+
 The configured provider receives that conversation's text and its project's instructions when generation is requested. Attachment contents are not supported by this route; conversations containing attachments are rejected rather than pretending to inspect them. Review the endpoint and its data-handling policy before sending private content.
 
 ## Behavior

@@ -454,7 +454,7 @@ export class AgentForgeWebServer {
     const telegramSession = inspectTelegramSessionConfig();
     const discord = inspectDiscordBotConfig();
     const slack = inspectSlackSocketModeConfig();
-    const modelConfigured = Boolean(process.env.AGENTFORGE_CHAT_API_KEY?.trim() && process.env.AGENTFORGE_CHAT_MODELS?.trim());
+    const modelConfigured = this.conversations.status().configured;
     const executionMode = process.env.AGENTFORGE_EXECUTION_MODE?.trim() || "off";
     const channelStates = new Map(this.nativeGateway.snapshot().channels.map(channel => [channel.provider, channel.state]));
     const capabilities = [
