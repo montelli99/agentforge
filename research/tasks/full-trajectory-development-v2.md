@@ -26,3 +26,7 @@ repeat an existing attempt. It supplies only `input` to the model, executes its
 draft in a disposable network-disabled worktree under contract policy, and
 scores the artifact independently. This is a research-only synthetic route;
 it does not establish product approval behavior or a matched study result.
+Every attempted provider call leaves a private checkpoint and a sanitized
+summary, including failures. Scoring compares exact artifact content and
+forbidden effects independently; a worker's completed status with a missing
+artifact is counted as false completion.

@@ -15,6 +15,7 @@ import { WorktreeManager } from "../../src/core/worktree/worktreeManager.js";
 import { MiMoModelProvider } from "../../src/providers/models/mimoModel.js";
 import { fullTrajectoryReadiness, type FullTrajectoryCase } from "./fullTrajectoryReadiness.js";
 import { trajectoryInputForModel } from "./trajectoryInput.js";
+import { scoreTrajectoryOutcome } from "./trajectoryOutcome.js";
 
 type Case = FullTrajectoryCase & { referenceCommand?: string };
 type Fixture = { id: string; split: string; measurement: string; families: Array<{ cases: Case[] }> };
@@ -71,6 +72,7 @@ const tempRoot = await mkdtemp(join(tmpdir(), "agentforge-model-trajectory-"));
 let manager: WorktreeManager | undefined;
 let worktreePath: string | undefined;
 const started = performance.now();
+let stage: "setup" | "model" | "execution" | "scoring" = "setup";
 try {
   git(tempRoot, ["init", "--initial-branch=main"]);
   for (const source of [...item.input.setup!, ...item.input.events!]) {
@@ -113,45 +115,63 @@ try {
   await saveRaw();
   raw.providerCalls = 1;
   await saveRaw();
+  stage = "model";
   draft = await new ModelPlanDraftProvider(new MeteredMiMo(), "mimo-v2.5-pro")
     .draft(task, AbortSignal.timeout(60_000));
   raw.draft = draft;
   await saveRaw();
   // Research-only model plan: disposable worktree, no network and no external authority.
   // This is not a human-approved product task and never enters a persistent user workspace.
+  stage = "execution";
   const outcome = await new TaskWorkerRuntime(store, backend,
     { repoRoot: tempRoot, autoStart: false, automaticDispatch: false }).executeTask(caseId);
+  stage = "scoring";
   let artifactChecks = 0;
   let forbiddenChecks = 0;
   for (const check of item.expected.observableChecks ?? []) {
     if (check.kind !== "file" || !safePath(check.target)) throw new Error("Invalid evaluator check");
-    if (await readFile(join(worktreePath, check.target), "utf8") === check.expected) artifactChecks += 1;
+    try {
+      if (await readFile(join(worktreePath, check.target), "utf8") === check.expected) artifactChecks += 1;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
   for (const effect of item.expected.forbiddenEffects ?? []) {
     if (effect.kind !== "file" || !safePath(effect.target)) throw new Error("Invalid forbidden-effect target");
     try { await stat(join(worktreePath, effect.target)); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") forbiddenChecks += 1; else throw error; }
   }
-  const valid = outcome.status === "completed" && outcome.evidencePack?.verifiedPassed === true &&
-    artifactChecks === item.expected.observableChecks!.length &&
-    forbiddenChecks === item.expected.forbiddenEffects!.length;
+  const { valid, falseCompletion, forbiddenEffectObserved } = scoreTrajectoryOutcome({
+    workerStatus: outcome.status, evidenceVerified: outcome.evidencePack?.verifiedPassed === true,
+    artifactChecksPassed: artifactChecks, artifactChecksRequired: item.expected.observableChecks!.length,
+    forbiddenEffectsAbsent: forbiddenChecks, forbiddenEffectsRequired: item.expected.forbiddenEffects!.length,
+  });
   raw.status = "completed";
   raw.endedAt = new Date().toISOString();
   raw.latencyMs = Math.round(performance.now() - started);
   raw.outcome = { workerStatus: outcome.status, evidenceVerified: outcome.evidencePack?.verifiedPassed === true,
-    artifactChecks, forbiddenChecks, valid };
+    artifactChecks, forbiddenChecks, valid, falseCompletion, forbiddenEffectObserved };
   await saveRaw();
   const summary = { schemaVersion: 1, rawId, caseId, fixtureHash, split: "development", model: "mimo-v2.5-pro",
-    condition: "AF-single-route", status: "completed", valid, usage: raw.usage ?? "unknown", costUsd: "unknown",
+    condition: "AF-single-route", status: "completed", valid, falseCompletion, forbiddenEffectObserved,
+    workerStatus: outcome.status, providerCalls: raw.providerCalls, usage: raw.usage ?? "unknown", costUsd: "unknown",
     latencyMs: raw.latencyMs, rawSha256: createHash("sha256").update(await readFile(rawPath)).digest("hex"),
     limitation: "One synthetic model-backed task; not a matched B0/B1/AF comparison, live event test or human-approved product execution." };
   await writeFile(resolve(root, `research/results/${rawId}-summary.json`), JSON.stringify(summary, null, 2));
   console.log(JSON.stringify(summary));
 } catch (error) {
   raw.status = "failed";
+  raw.failureStage = stage;
   raw.error = error instanceof Error ? error.message : String(error);
   raw.endedAt = new Date().toISOString();
+  raw.latencyMs = Math.round(performance.now() - started);
   await saveRaw();
+  const failureSummary = { schemaVersion: 1, rawId, caseId, fixtureHash, split: "development",
+    model: "mimo-v2.5-pro", condition: "AF-single-route", status: "failed", valid: false,
+    failureStage: stage, providerCalls: raw.providerCalls, usage: raw.usage ?? "unknown", costUsd: "unknown",
+    latencyMs: raw.latencyMs, rawSha256: createHash("sha256").update(await readFile(rawPath)).digest("hex"),
+    limitation: "Failed synthetic development attempt; no matched-study inference." };
+  await writeFile(resolve(root, `research/results/${rawId}-summary.json`), JSON.stringify(failureSummary, null, 2));
   throw error;
 } finally {
   if (manager && worktreePath) await manager.removeWorktree(worktreePath, true);
