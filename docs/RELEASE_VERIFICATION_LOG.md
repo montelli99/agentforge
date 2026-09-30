@@ -23,6 +23,12 @@ workspace data.
 - `pnpm release:audit`: passed with no local blockers.
 - `pnpm test:registry:preflight`: passed; package archive has 151 files and
   registry state is unpublished. No publication was performed.
+- Follow-up preflight on 2026-09-30: `agentforge-0.1.0.tgz` passed with 154
+  files, SHA-512 integrity
+  `SRUYI57PpZvGW9vKjbCosAsnOwnm7E3NlQNIxZj5LXNZ6dSAjSvuZRyxNB++Y0CEpSMGUegQMADm8sAMwFUXqg==`,
+  and archive fingerprint
+  `4366fb77cdb6c0358cacb73024c997e5f9dec0f05024248643ebd8ef44a5a803`.
+  Registry state remains unpublished; no publication was performed.
 
 ## Deployment-specific evidence
 
