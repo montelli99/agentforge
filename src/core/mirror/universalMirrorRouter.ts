@@ -224,12 +224,14 @@ export class UniversalMirrorRouter {
       if (event.provider === "telegram" && this.telegram && this.conversation && user &&
           !event.externalWorkspaceId.startsWith("-")) {
         try {
+          const started = performance.now();
           const reply = await this.conversation.reply(event.externalWorkspaceId, event.payload.text);
           const outbound = await this.telegram.sendReply(event.externalWorkspaceId, reply);
           this.store.recordAudit({
             origin: "telegram", actorId: user.id, actorType: "user", action: "conversation.replied",
             targetType: "message", targetId: canonicalMsg.id,
-            details: { outboundMessageId: outbound.externalMessageId, modelRoute: "configured_read_only" },
+            details: { outboundMessageId: outbound.externalMessageId, modelRoute: "configured_read_only",
+              roundTripMs: Math.round(performance.now() - started) },
           });
         } catch (error) {
           const reply = redactRuntimeError(error, "I couldn't complete that reply. Please try again.");

@@ -22,7 +22,7 @@ export class ChannelConversation {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
     try {
-      const result = await this.provider.generate({ model: this.model, messages, maxTokens: 600, signal: controller.signal });
+      const result = await this.provider.generate({ model: this.model, messages, maxTokens: 400, signal: controller.signal });
       if (result.toolCalls?.length || !result.content.trim() || result.content.length > 4000 ||
           (result.finishReason && !["stop", "end_turn"].includes(result.finishReason))) {
         throw new Error("The model did not return a complete text reply.");
