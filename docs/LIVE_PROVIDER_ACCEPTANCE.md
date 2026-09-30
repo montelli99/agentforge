@@ -5,6 +5,11 @@ proves provider contracts and safety boundaries with fixtures; this procedure
 proves an operator-authorized external session without placing credentials in
 the repository or workspace snapshot.
 
+Before starting a live run, use `pnpm test:provider:preflight`. It is read-only:
+it reports whether private runtime variables or token-file paths are present,
+without printing their values or contacting a provider. A passing preflight is
+configuration evidence only; it never marks a provider live.
+
 ## Telegram
 
 Choose one ownership path for the test run:

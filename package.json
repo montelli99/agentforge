@@ -52,6 +52,7 @@
     "test:registry:preflight": "node scripts/registry-release-preflight.mjs",
     "test:deployment:smoke": "node scripts/deployment-smoke.mjs",
     "test:hosted-ci:evidence": "node scripts/hosted-ci-evidence-acceptance.mjs",
+    "test:provider:preflight": "node scripts/provider-acceptance-preflight.mjs",
     "audit:completion": "node scripts/completion-audit-check.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.vnext.json",
     "typecheck:all": "tsc --noEmit -p tsconfig.json",
