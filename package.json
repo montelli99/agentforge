@@ -45,6 +45,7 @@
     "research:compare-pilot": "node --import tsx research/runner/comparePilotArtifacts.ts",
     "research:reference:validate": "node --import tsx research/runner/validateFullTrajectoryDevelopment.ts",
     "research:reference:run": "node --import tsx research/runner/runFullTrajectoryReference.ts",
+    "research:model-development:one": "node --import tsx research/runner/runFullTrajectoryModelDevelopment.ts",
     "test:research:all": "pnpm test:research:clean-export && pnpm test:research:review-packet && pnpm test:research:route-policy && pnpm test:research:source-register && node --import tsx research/runner/mechanicsSweep.ts && node --import tsx research/runner/validateManuscript.ts && node scripts/release-evidence-acceptance.mjs",
     "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
