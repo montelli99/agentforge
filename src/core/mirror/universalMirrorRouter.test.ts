@@ -30,6 +30,9 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     expect(store.getTask(task.id)?.status).toBe("paused");
     expect(sent[0]).toContain("has been paused");
     expect(store.listAuditEntries().some(entry => entry.action === "command.pause")).toBe(true);
+    const privateChannel = store.findMirroredChannel("telegram", "dm:123456789");
+    expect(store.listMessages(privateChannel!.id).some(message =>
+      message.authorType === "agent" && message.content.includes("has been paused"))).toBe(true);
   });
 
   it("does not guess among duplicate task titles or act for an unlinked sender", async () => {
