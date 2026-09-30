@@ -105,3 +105,7 @@ read-only private text round trip, not an agent tool action or acceptable
 steady-state latency. A later code change records per-reply round-trip
 milliseconds and reduces the default output allowance; its latency effect
 has not been measured live.
+
+The local answer path for a small set of workspace questions was added after
+the live test. It has focused test coverage but no measured live latency yet.
+It does not accelerate arbitrary model-backed questions or grant chat tools.
