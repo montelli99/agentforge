@@ -2,6 +2,7 @@ import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
 import { ConversationRuntime, type ConversationConfiguration } from "./conversationRuntime.js";
 import { ChannelConversation } from "../core/mirror/channelConversation.js";
+import { selectTelegramChatModel } from "./telegramChatModel.js";
 import { renderWorkspaceApp } from "./ui/workspaceApp.js";
 /**
  * AgentForge Web Server & Control Plane
@@ -408,8 +409,12 @@ export class AgentForgeWebServer {
     this.correctionRegistry = new CorrectionRegistry(this.store);
     this.callLifecycleManager = new CallLifecycleManager(this.store);
     this.controller = new AgentForgeController(undefined, this.operationalMemory);
-    const channelConversation = options.conversation?.models[0]
-      ? new ChannelConversation(options.conversation.provider, options.conversation.models[0])
+    const telegramChatModel = options.conversation
+      ? selectTelegramChatModel(options.conversation.provider, options.conversation.models,
+        process.env.AGENTFORGE_TELEGRAM_CHAT_MODEL?.trim())
+      : undefined;
+    const channelConversation = telegramChatModel && options.conversation
+      ? new ChannelConversation(options.conversation.provider, telegramChatModel)
       : undefined;
     this.mirrorRouter = new UniversalMirrorRouter(this.store, this.telegram, this.discord, undefined, this.operationalMemory, this.slack, channelConversation);
     // The runtime registry must operate on these same provider instances so a
