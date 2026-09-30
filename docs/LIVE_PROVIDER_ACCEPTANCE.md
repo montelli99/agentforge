@@ -88,4 +88,4 @@ model with bounded per-chat context. Focused tests verify isolation between
 chat IDs and exclude unlinked and group messages from model calls. The live
 acceptance above preceded that change; a natural-language model reply has
 not yet been observed through the real Telegram bot. The route requires an
-explicit `AGENTFORGE_CHAT_API_KEY` and `AGENTFORGE_CHAT_MODELS` configuration.
+explicit chat-model configuration described in `CHAT_SETUP.md`.

@@ -9,6 +9,7 @@ import { getDefaultWorkspaceFilePath, WorkspaceStore } from "../core/store/works
 import { CompletionEngine } from "../core/completion/completionEngine.js";
 import { JsonCompletionSessionStore } from "../core/completion/completionSessionStore.js";
 import { OpenAIModelProvider } from "../providers/models/openaiModel.js";
+import { MiMoModelProvider } from "../providers/models/mimoModel.js";
 import { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider } from "../core/runtime/approvedPlanProvider.js";
 import { ContractedDockerExecutionBackend } from "../core/runtime/contractedDockerExecutionBackend.js";
@@ -35,6 +36,8 @@ const completionStorePath = path.join(path.dirname(workspaceFilePath), "completi
 const chatKey = process.env.AGENTFORGE_CHAT_API_KEY;
 const chatModels = (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
 const chatBase = process.env.AGENTFORGE_CHAT_BASE_URL || "https://api.openai.com/v1";
+const chatProviderName = process.env.AGENTFORGE_CHAT_PROVIDER || "openai-compatible";
+if (!["openai-compatible", "mimo"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
 if (chatKey && chatModels.length) {
   const endpoint = new URL(chatBase);
   if (endpoint.username || endpoint.password || (endpoint.protocol !== "https:" && !(endpoint.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname)))) throw new Error("Chat endpoint requires HTTPS or localhost HTTP.");
@@ -42,7 +45,13 @@ if (chatKey && chatModels.length) {
 const store = new WorkspaceStore(workspaceFilePath);
 const operationalMemory = new OperationalMemoryProvider(store);
 const completion = new CompletionEngine(undefined, new JsonCompletionSessionStore(completionStorePath));
-const chatProvider = chatKey && chatModels.length ? new OpenAIModelProvider(chatKey, chatBase) : undefined;
+const chatProvider = chatModels.length
+  ? chatProviderName === "mimo" && process.env.MIMO_API_KEY
+    ? new MiMoModelProvider()
+    : chatProviderName === "openai-compatible" && chatKey
+      ? new OpenAIModelProvider(chatKey, chatBase)
+      : undefined
+  : undefined;
 const planDraftProvider = chatProvider && chatModels[0] ? new ModelPlanDraftProvider(chatProvider, chatModels[0]) : undefined;
 let taskRuntime: TaskWorkerRuntime | undefined;
 const executionMode = process.env.AGENTFORGE_EXECUTION_MODE;
