@@ -17,6 +17,7 @@ import type { CanonicalMessage } from "../types/workspace.js";
 import { AgentForgeController } from "../../controller/agentController.js";
 import type { MemoryProvider } from "../providers/memory.js";
 import { redactRuntimeError } from "../secret/runtimeRedaction.js";
+import type { ChannelConversation } from "./channelConversation.js";
 
 export class UniversalMirrorRouter {
   private readonly pendingTelegramLinks = new Map<string, { userId: string; expiresAt: number }>();
@@ -34,6 +35,7 @@ export class UniversalMirrorRouter {
     private readonly web?: NativeWebChannelProvider,
     memory?: MemoryProvider,
     private readonly slack?: SlackMirrorProvider,
+    private readonly conversation?: ChannelConversation,
   ) {
     this.controller = new AgentForgeController(undefined, memory);
     this.setupListeners();
@@ -217,6 +219,23 @@ export class UniversalMirrorRouter {
       });
 
       this.store.eventLedger.updateEventStatus(entry.id, "applied");
+      // A private linked chat can converse through the explicitly configured,
+      // read-only model route. Keep group mirroring separate from direct replies.
+      if (event.provider === "telegram" && this.telegram && this.conversation && user &&
+          !event.externalWorkspaceId.startsWith("-")) {
+        try {
+          const reply = await this.conversation.reply(event.externalWorkspaceId, event.payload.text);
+          const outbound = await this.telegram.sendReply(event.externalWorkspaceId, reply);
+          this.store.recordAudit({
+            origin: "telegram", actorId: user.id, actorType: "user", action: "conversation.replied",
+            targetType: "message", targetId: canonicalMsg.id,
+            details: { outboundMessageId: outbound.externalMessageId, modelRoute: "configured_read_only" },
+          });
+        } catch (error) {
+          const reply = redactRuntimeError(error, "I couldn't complete that reply. Please try again.");
+          await this.telegram.sendReply(event.externalWorkspaceId, reply);
+        }
+      }
     }
   }
 

@@ -82,3 +82,10 @@ restarted, and its channel probe confirmed the Telegram bot was running in
 polling mode and working. This proves the bounded private-chat link/status
 round trip and rollback. It does not prove natural conversation, agent
 execution, group-topic mirroring, Slack, or Discord acceptance.
+
+The linked private-chat text path now supports a configured, read-only chat
+model with bounded per-chat context. Focused tests verify isolation between
+chat IDs and exclude unlinked and group messages from model calls. The live
+acceptance above preceded that change; a natural-language model reply has
+not yet been observed through the real Telegram bot. The route requires an
+explicit `AGENTFORGE_CHAT_API_KEY` and `AGENTFORGE_CHAT_MODELS` configuration.
