@@ -35,9 +35,18 @@ describe("ModelPlanDraftProvider", () => {
       expect(input.scope).toEqual({ allowedPaths: ["artifacts/**"], protectedPaths: [".env"] });
       expect(input.authority).toEqual({ networkOutbound: false });
       expect(input.requiredArtifacts).toEqual([{ path: "artifacts/result.txt" }]);
+      expect(input.sandboxTools).toEqual(["sh", "node"]);
       expect(input.checks).toEqual([{ type: "custom_script", command: "node -v" }]);
       return { content: '{"commands":[{"checkName":"custom_script","command":"node -v"}]}' };
     } } as never;
-    await new ModelPlanDraftProvider(model, "test").draft(boundedTask);
+    await new ModelPlanDraftProvider(model, "test", ["sh", "node"]).draft(boundedTask);
+  });
+
+  it("rejects a plan requiring a tool absent from the declared sandbox", async () => {
+    const model = { generate: async () => ({ content: JSON.stringify({ commands: [
+      { checkName: "custom_script", command: "jq . state/job.json" },
+    ] }) }) } as never;
+    await expect(new ModelPlanDraftProvider(model, "test", ["sh", "node"]).draft(task))
+      .rejects.toThrow(/unavailable sandbox tool: jq/i);
   });
 });

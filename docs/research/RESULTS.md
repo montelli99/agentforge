@@ -146,15 +146,21 @@ reference cases. This validates the fixture's execution mechanics only: the
 commands were supplied by the evaluator and no model calls were made. The
 public result is `research/results/full-trajectory-development-v2-reference.json`.
 
-Two separate MiMo V2.5 Pro development attempts tested model-generated plans.
-The first, on the earlier v2 fixture hash, returned a successful worker status
-after only reading an input file; the independent artifact scorer marked it as
-false completion. The second, on the corrected fixture, attempted to write the
-requested file but the worker failed and the artifact was absent. Their public
-summaries are retained under `research/results/full-trajectory-model-development-*`.
-These are negative development observations, not matched B0/B1/AF estimates.
-Reported usage was 389 and 604 tokens respectively; actual charges are unknown.
-No full-trajectory model success or comparative advantage is established.
+Five separate MiMo V2.5 Pro development attempts were made with model-generated
+plans, across successive planner and contract revisions. On the earlier v2
+fixture hash, a worker reported completion after only reading an input file;
+the independent scorer marked false completion. On the corrected fixture, a
+second plan attempted to write the deliverable but failed without an artifact.
+After the product completion gate was tightened, a fresh delayed-recall case
+produced the requested artifact and passed the independent scorer. A handoff
+case then failed because the model chose `jq`, which is absent from the declared
+Docker image. A later handoff request lost its provider connection before a
+plan was returned; no task execution followed. The public summaries are under
+`research/results/full-trajectory-model-development-*`; raw traces remain
+outside the repository. The four responses with usage data reported 389, 604,
+473 and 623 tokens; usage for the dropped connection and actual charges are
+unknown. These are separate development observations, not matched B0/B1/AF
+estimates or a comparative advantage claim.
 
 The following remain `NOT MEASURED` until a frozen, owner-approved model-backed study is run:
 

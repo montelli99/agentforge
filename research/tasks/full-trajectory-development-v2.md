@@ -35,6 +35,8 @@ The task contract also names required output files under `artifacts/`; the
 worker cannot mark the task complete unless those files appear in changed-file
 evidence and the artifact pack. The independent scorer still checks their
 exact contents and any required state transition.
+The planner is told that the default Docker image provides POSIX `sh` and
+Node.js, and rejects common unlisted tools such as `jq` before execution.
 Every attempted provider call leaves a private checkpoint and a sanitized
 summary, including failures. Scoring compares exact artifact content and
 forbidden effects independently; a worker's completed status with a missing

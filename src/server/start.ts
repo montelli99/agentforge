@@ -52,7 +52,7 @@ const chatProvider = chatModels.length
       ? new OpenAIModelProvider(chatKey, chatBase)
       : undefined
   : undefined;
-const planDraftProvider = chatProvider && chatModels[0] ? new ModelPlanDraftProvider(chatProvider, chatModels[0]) : undefined;
+const planDraftProvider = chatProvider && chatModels[0] ? new ModelPlanDraftProvider(chatProvider, chatModels[0], ["sh", "node"]) : undefined;
 let taskRuntime: TaskWorkerRuntime | undefined;
 const executionMode = process.env.AGENTFORGE_EXECUTION_MODE;
 if (executionMode && executionMode !== "off" && executionMode !== "approved-docker") {

@@ -95,7 +95,7 @@ try {
   await saveRaw(); // A rerun must not duplicate the charged request.
   raw.providerCalls = 1;
   await saveRaw();
-  const draft = await new ModelPlanDraftProvider(new MeteredMiMo(), "mimo-v2.5-pro")
+  const draft = await new ModelPlanDraftProvider(new MeteredMiMo(), "mimo-v2.5-pro", ["sh", "node"])
     .draft(task, AbortSignal.timeout(60_000));
   raw.usage = usage;
   raw.draft = draft;

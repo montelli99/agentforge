@@ -132,7 +132,7 @@ try {
   raw.providerCalls = 1;
   await saveRaw();
   stage = "model";
-  draft = await new ModelPlanDraftProvider(new MeteredMiMo(), "mimo-v2.5-pro")
+  draft = await new ModelPlanDraftProvider(new MeteredMiMo(), "mimo-v2.5-pro", ["sh", "node"])
     .draft(task, AbortSignal.timeout(60_000));
   raw.draft = draft;
   await saveRaw();

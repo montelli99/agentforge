@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "rawId": "full-trajectory-model-development-54fd99572e2c-full-handoff-continuation-02-mimo-v2.5-pro",
+  "caseId": "full-handoff-continuation-02",
+  "fixtureHash": "54fd99572e2c463fdcc853afddba77175b95bdb6ebe92e541968b093dc5490b7",
+  "split": "development",
+  "model": "mimo-v2.5-pro",
+  "condition": "AF-single-route",
+  "status": "failed",
+  "valid": false,
+  "failureStage": "model",
+  "providerCalls": 1,
+  "usage": "unknown",
+  "costUsd": "unknown",
+  "latencyMs": 12304,
+  "rawSha256": "93e9c8819b7de8d93a8975cc0ff1523d89c35350a39676c1f578176cea941cd6",
+  "limitation": "Failed synthetic development attempt; no matched-study inference."
+}
