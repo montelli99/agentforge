@@ -294,6 +294,10 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         restoredFromVersion: 1,
         process: { id: procData.process.id, version: 4, rawContent: "# Seller Intake SOP\n1. Receive caller info\n2. Calculate estimated offer\n3. Deploy contract to production signer?" },
       });
+      const auditAfterRollback = await fetch(`http://localhost:${testPort}/api/audit`).then(response => response.json()) as Array<{ action: string; actorId: string }>;
+      expect(auditAfterRollback).toEqual(expect.arrayContaining([
+        expect.objectContaining({ action: "process_revision_rolled_back", actorId: "user-owner" }),
+      ]));
 
       const staleRollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
         method: "POST",
