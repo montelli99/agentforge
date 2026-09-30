@@ -29,6 +29,41 @@ The latest mechanics checkpoint is the fresh 22-check artifact under [`research/
 
 The combined `pnpm test:research:mimo-matrix` artifact passed both `mimo-v2.5` and `mimo-v2.5-pro` with synthetic response validation. This is adapter connectivity evidence only; billing, comparative quality, token savings and production performance remain unmeasured. Acceptance is enforced by `pnpm test:research:mimo-matrix-acceptance`.
 
+## MiMo memory-recall development slice, 2026-09-30
+
+`research/runner/runMimoMemoryRecallPilot.ts` ran two development recall cases with
+two replicates each under B0, B1, and AF (12 completed provider calls). B1 and
+AF received the same synthetic prior facts: B1 as a rolling summary, AF through
+the existing semantic-memory and context-optimizer path. B0 received only the
+current task, consistent with its bounded recent-history condition. The
+independent existing scorer was unchanged. Condition order was reversed for the
+second replicate. Raw records and the trajectory ledger are in the private
+AgentForge research data directory outside this public repository. The sanitized
+aggregate is `research/results/mimo-memory-recall-development-v1-summary.json`;
+its recorded raw-artifact SHA-256 is
+`04713aa7cbed0533ff90b4d408202a835b7d56237698bf57758d439b5438af89`.
+
+| Condition | Completed | Required-fact passes | Provider prompt tokens | Provider completion tokens |
+| --- | ---: | ---: | ---: | ---: |
+| B0 | 4/4 | 0/4 | 1,178 | 441 |
+| B1 | 4/4 | 4/4 | 1,258 | 474 |
+| AF | 4/4 | 4/4 | 1,262 | 419 |
+
+AF retrieval hit in all four of its attempts. This is a small, unblinded,
+development-only fact-recall slice using hash-fallback embeddings and the
+provider's `mimo-v2.5-pro` alias; an immutable model revision was not exposed.
+B1 matched AF's pass count. No token reduction or dollar savings is established; provider
+billing is unknown. The slice does not exercise full task execution, workflow
+repair, corrections, permission safety, or the held-out sample. It must not be
+pooled with the earlier 72-trajectory local pilot or presented as the paper's
+primary outcome.
+
+`node --import tsx research/runner/validateMimoMemoryRecallPilot.ts` independently
+re-scored all 12 private responses, checked distinct trajectory IDs and provider
+usage, and matched the public aggregate to the raw artifact hash. It requires
+the private raw files on the machine that ran the pilot; no raw conversations
+are included in the public bundle.
+
 ## Local adapter pilot boundary
 
 The zero-spend Ollama adapter pilot is recorded separately in
@@ -63,7 +98,7 @@ The following remain `NOT MEASURED` until a frozen, owner-approved model-backed 
 - false-completion rate;
 - fact retention under context pressure;
 - correction recurrence;
-- token use or token reduction;
+- full-trajectory token use or token reduction in matched production conditions;
 - provider cost per valid success;
 - latency and recovery time;
 - comparative performance against OpenClaw, Hermes or other systems.

@@ -19,10 +19,12 @@ try {
     model,
     messages: [{ role: "user", content: "Synthetic smoke task. Return exactly JSON with requiredFact equal to Friday. Do not perform external actions." }],
     temperature: 0,
-    maxTokens: 128,
+    maxTokens: 512,
     responseFormat: "json",
   });
   result.response = response.content.slice(0, 2000);
+  result.usage = response.usage;
+  result.finishReason = response.finishReason;
   if (!response.content.includes("Friday")) throw new Error("MiMo response omitted required fact");
   result.status = "passed";
   result.response = response.content.slice(0, 2000);

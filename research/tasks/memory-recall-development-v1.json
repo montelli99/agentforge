@@ -1,0 +1,15 @@
+{
+  "id": "memory-recall-development-v1",
+  "split": "development",
+  "syntheticOnly": true,
+  "cases": [
+    {
+      "id": "delayed-recall-01",
+      "source": "Earlier synthetic project note: the inspection milestone is due Friday."
+    },
+    {
+      "id": "delayed-recall-02",
+      "source": "Earlier synthetic project note: the permitted data boundary is synthetic-only records."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "development-memory-recall-summary",
+  "runId": "mimo-memory-recall-development-v1",
+  "model": "mimo-v2.5-pro",
+  "rawSha256": "04713aa7cbed0533ff90b4d408202a835b7d56237698bf57758d439b5438af89",
+  "summary": {
+    "B0": {
+      "attempted": 4,
+      "completed": 4,
+      "passed": 0,
+      "promptTokens": 1178,
+      "completionTokens": 441,
+      "retrievalHits": 0
+    },
+    "B1": {
+      "attempted": 4,
+      "completed": 4,
+      "passed": 4,
+      "promptTokens": 1258,
+      "completionTokens": 474,
+      "retrievalHits": 0
+    },
+    "AF": {
+      "attempted": 4,
+      "completed": 4,
+      "passed": 4,
+      "promptTokens": 1262,
+      "completionTokens": 419,
+      "retrievalHits": 4
+    }
+  },
+  "limitations": [
+    "development-only",
+    "hash-fallback embeddings",
+    "billing unknown",
+    "not full production execution"
+  ]
+}

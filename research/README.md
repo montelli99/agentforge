@@ -131,6 +131,29 @@ node --import tsx research/runner/hashProtocolInputs.ts
 
 Save the output with a future run record before changing the protocol, fixtures or budget configuration.
 
+## Model-backed development slice
+
+### Development memory-recall pilot
+
+The following bounded script makes 12 hosted MiMo 2.5 Pro calls on two synthetic
+development cases. It compares the frozen B0/B1/AF condition definitions only
+for fact recall. B1 and AF receive the same prior source fact through different
+paths; the independent existing scorer is unchanged. This is not the full
+six-family or held-out study.
+
+```powershell
+node --import tsx research/runner/runMimoMemoryRecallPilot.ts
+node --import tsx research/runner/validateMimoMemoryRecallPilot.ts
+```
+
+The runner checkpoints each trajectory and skips recorded IDs on a retry.
+Raw responses and the trajectory ledger default to a private AgentForge data
+directory outside the repository; `AGENTFORGE_RESEARCH_PRIVATE_DIR` can select
+another external directory. Only a sanitized aggregate and raw SHA-256 are
+written to `research/results/`. The validator needs the raw files on the run
+machine. Provider usage is captured; dollars remain unknown until billing is
+reconciled. Do not publish the aggregate as the paper's primary outcome.
+
 ## Owner-authorized MiMo adapter smoke
 
 For a bounded synthetic connectivity check through the real MiMo provider adapter:
