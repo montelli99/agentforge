@@ -230,6 +230,19 @@ export class UniversalMirrorRouter {
       });
 
       this.store.eventLedger.updateEventStatus(entry.id, "applied");
+      // In a group, answer only a linked user's explicit read-only request.
+      // Keep open-ended chat and task mutations in the private conversation.
+      if (event.provider === "telegram" && this.telegram && user &&
+          event.externalWorkspaceId.startsWith("-")) {
+        const natural = resolveNaturalCommand(event.payload.text, this.store);
+        if (natural && "command" in natural &&
+            ["/tasks", "/agents", "/approvals"].includes(natural.command)) {
+          await this.handleCommand({ ...event, eventType: "command",
+            payload: { ...event.payload, command: natural.command, commandArgs: natural.args } },
+          canonicalChannel.id, user.id);
+        }
+        return;
+      }
       // A private linked chat can converse through the explicitly configured,
       // read-only model route. Keep group mirroring separate from direct replies.
       if (event.provider === "telegram" && this.telegram && user &&
