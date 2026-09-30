@@ -1,0 +1,23 @@
+{
+  "runId": "model-backed-execution-development-v5-mimo-v2.5-pro",
+  "split": "development",
+  "model": "mimo-v2.5-pro",
+  "condition": "AF",
+  "status": "completed",
+  "providerCalls": 1,
+  "usage": {
+    "promptTokens": 153,
+    "completionTokens": 100,
+    "totalTokens": 253
+  },
+  "costUsd": "unknown",
+  "rawSha256": "9eaf04b326129f40506eba0e1def903b29192bfdd58bd7f8ab740ce91772875a",
+  "latencyMs": 14709,
+  "evidence": {
+    "verifiedPassed": true,
+    "checkCount": 2,
+    "artifactSha256": "09e4ca246ea62091a45b8abe0cd65569daf1845f86ea2f0ff67180b71640d32e",
+    "fileCount": 1
+  },
+  "scope": "single synthetic model-plan and governed-worker acceptance; not a matched study result"
+}

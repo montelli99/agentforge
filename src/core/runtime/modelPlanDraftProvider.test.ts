@@ -4,7 +4,10 @@ import { ModelPlanDraftProvider } from "./modelPlanDraftProvider.js";
 describe("ModelPlanDraftProvider", () => {
   const task = { id: "task-1", title: "Run checks", contract: { requiredChecks: [] } } as never;
   it("validates a model draft but refuses to treat it as approval", async () => {
-    const model = { generate: async () => ({ id: "m", model: "test", content: JSON.stringify({ commands: [{ checkName: "tests", command: "pnpm test" }] }), usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } }) } as never;
+    const model = { generate: async (options: { thinking?: string }) => {
+      expect(options.thinking).toBe("disabled");
+      return { id: "m", model: "test", content: JSON.stringify({ commands: [{ checkName: "tests", command: "pnpm test" }] }), usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } };
+    } } as never;
     const provider = new ModelPlanDraftProvider(model, "test");
     const draft = await provider.draft(task);
     expect(draft.source).toBe("model");
@@ -14,5 +17,10 @@ describe("ModelPlanDraftProvider", () => {
   it("rejects malformed model output", async () => {
     const model = { generate: async () => ({ content: "not-json" }) } as never;
     await expect(new ModelPlanDraftProvider(model, "test").draft(task)).rejects.toThrow(/invalid execution-plan/i);
+  });
+  it("accepts a JSON fenced plan without loosening schema validation", async () => {
+    const model = { generate: async () => ({ content: "```json\n{\"commands\":[{\"checkName\":\"custom_script\",\"command\":\"node -v\"}]}\n```" }) } as never;
+    const draft = await new ModelPlanDraftProvider(model, "test").draft(task);
+    expect(draft.commands[0]?.checkName).toBe("custom_script");
   });
 });

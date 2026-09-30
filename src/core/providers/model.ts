@@ -26,6 +26,7 @@ export interface ModelRequestOptions {
   tools?: unknown[];
   toolChoice?: unknown;
   responseFormat?: "json";
+  thinking?: "enabled" | "disabled";
   stop?: string[];
   stream?: boolean;
   signal?: AbortSignal;

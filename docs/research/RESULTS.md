@@ -111,6 +111,19 @@ performance result, or a substitute for the frozen held-out study.
 
 ## Outcomes intentionally not measured
 
+### Separate model-backed execution development check
+
+On September 30, 2026, one MiMo V2.5 Pro plan completed a synthetic,
+disposable AgentForge worker trajectory with an exact preauthorized command.
+The Docker execution produced one permitted artifact and a passing evidence
+pack. The public summary is
+`research/results/model-backed-execution-development-v5-mimo-v2.5-pro-summary.json`;
+the raw checkpoint is kept outside the public repository. This single run used
+253 reported tokens and took 14.7 seconds end to end. Actual provider charge
+is unknown. Earlier bounded development attempts v1–v4 failed before execution
+and remain in private checkpoints. This check is engineering acceptance only;
+it is excluded from matched research outcomes and comparative claims.
+
 The following remain `NOT MEASURED` until a frozen, owner-approved model-backed study is run:
 
 - valid success rate against matched baselines;
