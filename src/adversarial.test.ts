@@ -153,7 +153,7 @@ describe("AgentForge vNext Adversarial Security Suite (Sections 28 – 32)", () 
         text: xssPayload,
       });
 
-      const messages = store.listMessages("chan-general");
+      const messages = store.listMessages(store.findMirroredChannel("telegram", "group:-1001:topic:1")!.id);
       const savedMsg = messages.find(m => m.externalMessageId === "tg-1000");
       expect(savedMsg).toBeDefined();
       // Saved as inert text string without executing or mutating store

@@ -414,7 +414,7 @@ export class AgentForgeWebServer {
         process.env.AGENTFORGE_TELEGRAM_CHAT_MODEL?.trim())
       : undefined;
     const channelConversation = telegramChatModel && options.conversation
-      ? new ChannelConversation(options.conversation.provider, telegramChatModel)
+      ? new ChannelConversation(options.conversation.provider, telegramChatModel, this.operationalMemory)
       : undefined;
     this.mirrorRouter = new UniversalMirrorRouter(this.store, this.telegram, this.discord, undefined, this.operationalMemory, this.slack, channelConversation);
     // The runtime registry must operate on these same provider instances so a

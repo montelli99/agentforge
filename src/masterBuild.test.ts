@@ -79,7 +79,7 @@ describe("AgentForge vNext Autonomous Master Build Suite", () => {
         text: "Please inspect seller repair estimates",
       });
 
-      const mirroredChannel = store.findMirroredChannel("telegram", "501");
+      const mirroredChannel = store.findMirroredChannel("telegram", "group:-100999:topic:501");
       expect(mirroredChannel).toBeDefined();
       const messages = store.listMessages(mirroredChannel!.id);
       expect(messages).toHaveLength(1);
