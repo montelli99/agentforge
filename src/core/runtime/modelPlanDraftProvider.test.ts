@@ -27,12 +27,14 @@ describe("ModelPlanDraftProvider", () => {
     const boundedTask = { id: "task-2", title: "Artifact task", description: "Write a synthetic artifact", contract: {
       scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env"] },
       authority: { networkOutbound: false }, requiredChecks: [{ type: "custom_script", command: "node -v" }],
+      completion: { requiredArtifacts: [{ path: "artifacts/result.txt" }] },
     } } as never;
     const model = { generate: async (options: { messages: Array<{ content: string }> }) => {
       const input = JSON.parse(options.messages[1].content) as Record<string, unknown>;
       expect(input.description).toBe("Write a synthetic artifact");
       expect(input.scope).toEqual({ allowedPaths: ["artifacts/**"], protectedPaths: [".env"] });
       expect(input.authority).toEqual({ networkOutbound: false });
+      expect(input.requiredArtifacts).toEqual([{ path: "artifacts/result.txt" }]);
       expect(input.checks).toEqual([{ type: "custom_script", command: "node -v" }]);
       return { content: '{"commands":[{"checkName":"custom_script","command":"node -v"}]}' };
     } } as never;

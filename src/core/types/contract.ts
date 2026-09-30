@@ -57,6 +57,8 @@ export interface ExecutionContract {
   completion: {
     requireEvidencePack: boolean;
     requireHumanApproval: boolean;
+    /** Exact paths under artifacts/ that must appear in the execution evidence. */
+    requiredArtifacts?: Array<{ path: string; sha256?: string }>;
   };
 
   budget?: {

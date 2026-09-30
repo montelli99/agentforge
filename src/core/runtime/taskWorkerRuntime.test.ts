@@ -225,9 +225,44 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       const result = await guardedRuntime.executeTask(task.id);
       expect(result.status).toBe("failed");
       expect(result.evidencePack?.verifiedPassed).toBe(false);
-      expect(result.error).toMatch(/required verification check failed/i);
+      expect(result.error).toMatch(/required verification check or artifact failed/i);
     } finally {
       guardedRuntime.stop();
+    }
+  });
+
+  it("requires a changed, matching artifact before marking a deliverable task complete", async () => {
+    for (const [suffix, includeDiff, includeArtifact, artifactHash, expectedStatus] of [
+      ["missing", false, false, "a".repeat(64), "failed"],
+      ["untracked", false, true, "a".repeat(64), "failed"],
+      ["mismatch", true, true, "b".repeat(64), "failed"],
+      ["present", true, true, "a".repeat(64), "completed"],
+    ] as const) {
+      const id = `TASK-ARTIFACT-${suffix}`;
+      const backend: TaskExecutionBackend = {
+        getReadiness: () => ({ ready: true, blockers: [], capabilities: {
+          modelPlanning: true, isolatedCompute: true, realVerification: true, evidenceCollection: true,
+        } }),
+        execute: async () => ({ commandsExecuted: [], testResults: [], finalSha: "test-sha",
+          filesChanged: includeDiff ? [{ filePath: "artifacts/result.txt", status: "added", linesAdded: 1, linesDeleted: 0 }] : [],
+          artifacts: includeArtifact ? [{ name: "result.txt", path: "artifacts/result.txt", sha256: artifactHash, sizeBytes: 1, mimeType: "text/plain" }] : [],
+        }),
+      };
+      const task = store.createTask({ id, title: "Write a deliverable", priority: "medium", status: "ready",
+        contract: { id: `contract-${id}`, taskId: id, version: 1,
+          repository: { baseBranch: "vnext", baseSha: "abc1234" }, workspace: { requireIsolatedWorktree: false },
+          scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env"] },
+          authority: { externalMessage: false, productionWrite: false, deployment: false,
+            forcePush: false, deleteFiles: false, networkOutbound: false },
+          requiredChecks: [], completion: { requireEvidencePack: true, requireHumanApproval: false,
+            requiredArtifacts: [{ path: "artifacts/result.txt", sha256: "a".repeat(64) }] },
+          createdAt: new Date().toISOString(),
+        },
+      });
+      const guardedRuntime = new TaskWorkerRuntime(store, backend, { repoRoot: process.cwd(), autoStart: false });
+      const result = await guardedRuntime.executeTask(task.id);
+      expect(result.status).toBe(expectedStatus);
+      expect(result.evidencePack?.verifiedPassed).toBe(expectedStatus === "completed");
     }
   });
 

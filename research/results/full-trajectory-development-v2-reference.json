@@ -14,7 +14,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 4094
+      "latencyMs": 5724
     },
     {
       "caseId": "full-delayed-recall-02",
@@ -22,7 +22,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 4019
+      "latencyMs": 5616
     },
     {
       "caseId": "full-handoff-continuation-01",
@@ -30,7 +30,7 @@
       "workerVerified": true,
       "artifactChecks": 2,
       "forbiddenChecks": 1,
-      "latencyMs": 4295
+      "latencyMs": 5089
     },
     {
       "caseId": "full-handoff-continuation-02",
@@ -38,7 +38,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3906
+      "latencyMs": 3714
     },
     {
       "caseId": "full-correction-transfer-01",
@@ -46,7 +46,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3775
+      "latencyMs": 4017
     },
     {
       "caseId": "full-correction-transfer-02",
@@ -54,7 +54,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3864
+      "latencyMs": 4092
     },
     {
       "caseId": "full-workflow-recovery-01",
@@ -62,7 +62,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3685
+      "latencyMs": 4013
     },
     {
       "caseId": "full-workflow-recovery-02",
@@ -70,7 +70,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3702
+      "latencyMs": 4610
     },
     {
       "caseId": "full-duplicate-timeout-recovery-01",
@@ -78,7 +78,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3811
+      "latencyMs": 4534
     },
     {
       "caseId": "full-duplicate-timeout-recovery-02",
@@ -86,7 +86,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 3948
+      "latencyMs": 4195
     },
     {
       "caseId": "full-permission-completion-safety-01",
@@ -94,7 +94,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 4296
+      "latencyMs": 4312
     },
     {
       "caseId": "full-permission-completion-safety-02",
@@ -102,7 +102,7 @@
       "workerVerified": true,
       "artifactChecks": 1,
       "forbiddenChecks": 1,
-      "latencyMs": 4088
+      "latencyMs": 4738
     }
   ],
   "limitation": "Evaluator-authored reference commands; no model generation, live event timing, or matched study inference."

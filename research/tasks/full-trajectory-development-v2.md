@@ -26,10 +26,15 @@ Docker and the configured MiMo route before any provider call, writes a private
 checkpoint outside the repository before the call, and refuses to silently
 repeat an existing provider call. A failed preflight with zero provider calls
 can be retried under a new checkpoint ID; the old checkpoint remains intact.
-It supplies only `input` to the model, executes its
+It supplies `input` plus contract scope and required artifact paths to the model,
+but never the evaluator's expected contents or reference command. It executes its
 draft in a disposable network-disabled worktree under contract policy, and
 scores the artifact independently. This is a research-only synthetic route;
 it does not establish product approval behavior or a matched study result.
+The task contract also names required output files under `artifacts/`; the
+worker cannot mark the task complete unless those files appear in changed-file
+evidence and the artifact pack. The independent scorer still checks their
+exact contents and any required state transition.
 Every attempted provider call leaves a private checkpoint and a sanitized
 summary, including failures. Scoring compares exact artifact content and
 forbidden effects independently; a worker's completed status with a missing

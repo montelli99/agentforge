@@ -71,7 +71,9 @@ for (const item of cases) {
           forcePush: false, deleteFiles: false, networkOutbound: false },
         requiredChecks: [{ type: "custom_script", command: item.referenceCommand, required: true,
           timeoutMs: item.limits!.timeoutMs }],
-        completion: { requireEvidencePack: true, requireHumanApproval: false },
+        completion: { requireEvidencePack: true, requireHumanApproval: false,
+          requiredArtifacts: item.expected.observableChecks!.filter(check => check.target.startsWith("artifacts/"))
+            .map(check => ({ path: check.target })) },
         createdAt: new Date().toISOString() } });
     manager = new WorktreeManager(tempRoot);
     const worktree = await manager.createWorktree({ taskId, branchName: `worktree/${taskId}`, baseBranch: baseSha });
