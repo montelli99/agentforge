@@ -11,5 +11,7 @@ export interface TelegramLiveTransport {
   isRunning(): boolean;
   /** Optional provider health separate from the desired polling/session state. */
   isHealthy?(): boolean;
+  /** Sanitized poll failure for operator readiness; never includes credentials. */
+  getLastPollFailure?(): "conflict" | "other" | undefined;
   sendMessage(chatId: string | number, text: string, topicId?: number): Promise<number | string>;
 }
