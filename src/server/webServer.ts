@@ -3161,6 +3161,15 @@ export class AgentForgeWebServer {
         return;
       }
       const restored = this.store.rollbackProcess(processId, target.version, body.expectedVersion);
+      this.store.recordAudit({
+        origin: "api",
+        actorId: caller.user?.id || "local-unverified-web-client",
+        actorType: caller.user ? "user" : "system",
+        action: "process_revision_rolled_back",
+        targetType: "process",
+        targetId: processId,
+        details: { restoredFromVersion: target.version, restoredVersion: restored.version },
+      });
       const agentSpecification = this.compiler.compile(restored);
       const revalidation = this.taskWorkerRuntime.processExecutionEngine.revalidateAgentsForProcess(processId, restored);
       res.writeHead(200);
