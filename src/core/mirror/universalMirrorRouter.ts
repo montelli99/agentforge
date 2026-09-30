@@ -541,6 +541,14 @@ export class UniversalMirrorRouter {
       })).externalMessageId;
     }
 
+    // Keep command responses in the same durable channel history as ordinary
+    // conversation, including requests entered in natural language.
+    if (outboundMessageId) {
+      this.store.createMessage({ channelId: canonicalChannelId, authorId: "agent-agentforge-coordinator",
+        authorType: "agent", content: replyText, externalMessageId: outboundMessageId,
+        externalProvider: event.provider as "telegram" | "discord" });
+    }
+
     this.store.recordAudit({
       origin: event.provider,
       actorId: userId,
