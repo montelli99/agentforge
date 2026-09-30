@@ -1,6 +1,6 @@
 # AgentForge: Evidence-Guided Execution and Durable Memory for Cost-Efficient Agent Systems
 
-Status: manuscript scaffold with mechanics evidence and a small model-backed development recall slice. Primary outcomes remain unmeasured.
+Status: manuscript scaffold with mechanics evidence and bounded model-backed development checks. Primary outcomes remain unmeasured.
 Protocol: [PROTOCOL.md](PROTOCOL.md)  
 Evidence register: [CAPABILITY_EVIDENCE.md](CAPABILITY_EVIDENCE.md)  
 Mechanics record: latest 22-check artifact under `research/results/`, identified in `RESEARCH_PROGRESS.md`
@@ -80,6 +80,8 @@ The current release reports verified mechanics plus a bounded exploratory local-
 | Full regression | 89 test files; 494 passed; 2 skipped | Repository checks pass at the recorded revision |
 
 These mechanics observations are not model-quality or production-performance results. A separate, exploratory MiMo 2.5 Pro recall slice supplied the same synthetic prior facts to B1 (rolling summary) and AF (semantic-memory/context-optimizer path), while B0 saw only the current task. Across two development cases and two replicates, B0 passed 0/4 required-fact checks; B1 and AF each passed 4/4. AF retrieval hit in all four attempts. This small slice uses hash-fallback embeddings and a provider model alias, and it does not measure the full AgentForge workflow or establish an advantage over B1. Provider prompt tokens were 1,178 (B0), 1,258 (B1), and 1,262 (AF); completion tokens were 441, 474, and 419, respectively. Billing remains unknown. The public aggregate and private raw-artifact hash are identified in `RESULTS.md`.
+
+A further single-case development run used the actual MiMo plan adapter and governed Docker worker with a synthetic preauthorized command. It completed the required artifact and evidence checks with 253 reported tokens in 14.7 seconds. Earlier bounded attempts failed before command execution. This verifies one executable integration path but is excluded from the matched B0/B1/AF study: it has no paired comparator, no measured billing, and no evidence about the six task families. Its run ID and raw-artifact hash are recorded in `RESULTS.md`.
 
 The full-study outcome table below remains intentionally unmeasured until the matched production-path study is run.
 

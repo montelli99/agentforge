@@ -1,6 +1,6 @@
 # AgentForge capability evidence register
 
-Updated: 2026-09-29
+Updated: 2026-09-30
 Status: implementation reconnaissance; this is not experimental proof.
 
 The initial source-to-runtime trace is recorded in [`SOURCE_RUNTIME_TRACE.md`](SOURCE_RUNTIME_TRACE.md). It documents the verified WorkflowEngine → CompletionEngine route and its evidence limits.
@@ -16,7 +16,7 @@ This register separates source evidence from claims that still require an end-to
 | Context can be reduced with accounting | `src/memoryContextOptimizer.ts:155` defines the optimizer; large-context decisions begin at `:405`, and token-account records are created at `:467-526`. `src/contextPacket.ts` deduplicates, compresses and bounds packets while retaining source IDs. | `src/memoryContextOptimizer.test.ts`, `src/contextPacket.test.ts`, and `research/runner/contextIntegritySlice.ts` verify required synthetic facts and provenance survive packing. | Source-level savings are not provider-billed savings, and a small synthetic packet does not establish model retention under pressure. | Compare matched prompts through the real model route and score required/omitted/invented facts. |
 | JEv provides inexpensive routing | `src/providers/decision/jevDecision.ts:27` defines `JevDecisionProvider`; `:35` classifies requests. | JEv/provider tests found by `rg` and the benchmark subsystem tests. | The implementation uses deterministic patterns and fixed confidence values. It is not trained, calibrated, or a measured probability model. | Build a blinded intent set; report confusion matrix, abstentions, latency, and cost. |
 | Benchmark suites can be executed | `src/providers/benchmark/benchmarkRunner.ts:26` defines `BenchmarkRunner`; `:53` runs a suite and counts cases. | `src/providers/benchmark/benchmarkSubsystem.test.ts:39` checks suite execution and thresholds. | The runner compares expected top-level fields with strict equality; it does not by itself validate full trajectories, safety or independent scoring. | Add fixture-level artifact/state scorers and negative controls. |
-| Completion is evidence-checked | `src/core/completion/completionAuditor.ts:46` defines `CompletionAuditor`; `:52` audits an `AuditorContext`. `src/core/completion/completionEngine.ts:109` defines the engine and invokes audits around `:274-311`. `src/core/runtime/taskWorkerRuntime.ts:224-231` derives final status from required evidence rather than the worker's prose. | `src/completionEngine.test.ts`, `src/core/runtime/taskWorkerRuntime.test.ts` (`TASK-MISSING-EVIDENCE`), and `src/server/completionRoutes.test.ts` (`routes public execution through the worker evidence gate`) verify an incomplete evidence envelope cannot become completed through the public route. | This proves the tested worker and public completion-route boundaries; deployed runtime acceptance and any untested side-effecting controller remain separate. | Trace one real safe workflow in a disposable deployment, inject a failed requirement, and verify response/state across the configured backend. |
+| Completion is evidence-checked | `src/core/completion/completionAuditor.ts:46` defines `CompletionAuditor`; `:52` audits an `AuditorContext`. `src/core/completion/completionEngine.ts:109` defines the engine and invokes audits around `:274-311`. `src/core/runtime/taskWorkerRuntime.ts:224-231` derives final status from required evidence rather than the worker's prose. | `src/completionEngine.test.ts`, `src/core/runtime/taskWorkerRuntime.test.ts` (`TASK-MISSING-EVIDENCE`), and `src/server/completionRoutes.test.ts` verify an incomplete evidence envelope cannot become completed through the public route. A separate MiMo-backed disposable worker run is recorded below. | This proves the tested worker and public completion-route boundaries; deployed runtime acceptance and any untested side-effecting controller remain separate. | Trace one real safe workflow in a disposable deployment, inject a failed requirement, and verify response/state across the configured backend. |
 | Contracts bind execution | `src/core/contract/contractEnforcer.ts:23` defines `ContractEnforcer`; the execution-entry inventory in `SOURCE_RUNTIME_TRACE.md` covers the workflow/server, worker, contracted Docker, native harness and speculative boundaries. `src/router.ts` also enforces an audit boundary for side-effecting broker requests and carries run/idempotency metadata through translation. | `src/core/contract/contractEnforcer.test.ts`, `src/core/runtime/contractedDockerExecutionBackend.test.ts`, `src/providers/harness/harnessExecutors.test.ts`, `src/core/runtime/taskWorkerRuntime.test.ts`, and `src/broker.test.ts` cover missing-plan, missing-evidence, destructive-command, file-scope, unavailable-audit, and idempotency behavior. Hosted CI run `36591463968` passed these checks across all supported matrix jobs. | The inventory identifies tested boundaries but does not prove every controller path is contract-wrapped; speculative execution remains caller-supplied and live provider deployment is not acceptance-tested. | Add focused denied/approved/malformed coverage for each remaining side-effecting controller entry point without changing the approved research protocol. |
 | Corrections are recorded and transferable after approval | `src/core/quality/correctionRegistry.ts:51` defines `CorrectionRegistry`; `toDeterministicCase()` creates a stable replay case only after human approval. | `src/core/quality/correctionRegistry.test.ts` and `research/runner/correctionTransferSlice.ts` verify pending replay rejection, stable replay transfer and automatic-mutation denial. | This does not prove a model changes later behavior or reduces recurrence. | Run paired before/after equivalent model tasks and score recurrence. |
 | Workflow procedures can become completion goals | `src/workflowEngine.ts:8` defines `WorkflowEngine`; public architecture documents its process facade and preparation routes. | Workflow and completion tests in `src/`, plus `research/runner/workflowRecoverySlice.ts`, which rejects an unresolved blocker before execution. | A prepared goal is not necessarily a completed external workflow; model repair and external side effects remain unmeasured. | Use model-backed synthetic procedures with a failing step and inspect durable state/evidence. |
@@ -33,7 +33,23 @@ This register separates source evidence from claims that still require an end-to
 - **S2 — local end-to-end:** a disposable workflow uses the actual production path with deterministic scoring.
 - **S3 — measured study:** frozen protocol, matched conditions, repeated runs, cost/latency accounting and independent review.
 
-Current register entries are S0 or S1 unless a future progress entry names a run ID and artifact. No S3 claim is authorized yet.
+The worker/Docker path has one S2 development observation below. Other entries remain S0 or S1 unless their own run IDs establish a stronger grade. No S3 claim is authorized yet.
+
+### Model-backed worker development observation
+
+Run `model-backed-execution-development-v5-mimo-v2.5-pro` at commit `14b32ce`
+used the real MiMo adapter, `ModelPlanDraftProvider`, approved-plan gate,
+`TaskWorkerRuntime`, and network-disabled Docker backend. The synthetic task
+required one exact command to write `artifacts/verified.txt`; the runner
+accepted no other command and checked the resulting file and evidence pack.
+The private raw checkpoint hash is
+`9eaf04b326129f40506eba0e1def903b29192bfdd58bd7f8ab740ce91772875a`.
+The public summary under `research/results/` reports one attempted/completed
+trajectory, 153 prompt and 100 completion tokens, 14,709 ms, two passing
+checks, one changed file, and unknown actual provider charge. Failed
+development attempts v1–v4 remain private and did not execute Docker. This
+observation proves this narrow synthetic worker path, not the full controller,
+memory, JEv, six-family protocol, deployment readiness, or comparative benefit.
 
 ## Required audit output
 
