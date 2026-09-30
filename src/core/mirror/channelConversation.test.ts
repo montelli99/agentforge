@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { GenerativeModelProvider, ModelRequestOptions, ModelResponse, StreamChunk } from "../providers/model.js";
 import { WorkspaceStore } from "../store/workspaceStore.js";
@@ -8,6 +11,41 @@ import { OperationalMemoryProvider } from "../../providers/memory/operationalMem
 import { productFallbackFor, productKnowledgeFor } from "./productKnowledge.js";
 
 describe("linked private Telegram conversation", () => {
+  it("restores the linked private conversation after a fresh workspace process", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-telegram-context-"));
+    try {
+      const file = path.join(directory, "workspace.json");
+      const requests: ModelRequestOptions[] = [];
+      const provider: GenerativeModelProvider = {
+        id: "test", name: "test", defaultTier: 1, isAvailable: async () => true,
+        listModels: async () => ["test-model"],
+        generate: async options => { requests.push(options); return { id: String(requests.length), model: "test-model",
+          content: requests.length === 1 ? "Remembered response" : "Continued response",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, finishReason: "stop" }; },
+        async *stream(): AsyncIterable<StreamChunk> { throw new Error("not used"); },
+      };
+      const firstStore = new WorkspaceStore(file);
+      firstStore.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner",
+        linkedAt: new Date().toISOString() });
+      const firstTelegram = new TelegramMirrorProvider();
+      firstTelegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+        sendMessage: async () => 101 });
+      new UniversalMirrorRouter(firstStore, firstTelegram, undefined, undefined, undefined, undefined,
+        new ChannelConversation(provider, "test-model"));
+      await firstTelegram.ingestInboundUpdate({ updateId: 8101, chatId: "private-one", userId: "owner", text: "First question" });
+      const secondStore = new WorkspaceStore(file);
+      const secondTelegram = new TelegramMirrorProvider();
+      secondTelegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+        sendMessage: async () => 102 });
+      new UniversalMirrorRouter(secondStore, secondTelegram, undefined, undefined, undefined, undefined,
+        new ChannelConversation(provider, "test-model"));
+      await secondTelegram.ingestInboundUpdate({ updateId: 8102, chatId: "private-one", userId: "owner", text: "Continue" });
+      expect(requests[1].messages.some(message => message.content === "Remembered response")).toBe(true);
+      expect(secondStore.findMirroredChannel("telegram", "dm:private-one")?.visibility).toBe("private");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
   it("retrieves bounded public setup guidance without private repository content", () => {
     const context = productKnowledgeFor("How do I configure a MiMo conversation route?");
     expect(context).toContain("CHAT_SETUP.md");
