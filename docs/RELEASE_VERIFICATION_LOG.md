@@ -6,6 +6,12 @@ workspace data.
 
 ## Hosted CI
 
+- Run: https://github.com/montelli99/agentforge/actions/runs/36656026124
+- Commit: `dbea5f1a4b7398fb5cd9f6d50ab9103e14b5bd54`
+- Result: all seven jobs passed (public package acceptance plus Linux, macOS,
+  and Windows Node 22/24). This is the current hosted verification for the
+  provider-preflight release sequence.
+
 - Run: https://github.com/montelli99/agentforge/actions/runs/36653357336
 - Commit: `bf7a18e637184ec5e1cc9a281321476b5721f76f`
 - Result: all seven jobs passed (public package acceptance plus Linux, macOS,
