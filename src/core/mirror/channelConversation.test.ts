@@ -11,6 +11,29 @@ import { OperationalMemoryProvider } from "../../providers/memory/operationalMem
 import { productFallbackFor, productKnowledgeFor } from "./productKnowledge.js";
 
 describe("linked private Telegram conversation", () => {
+  it("answers an approvals question immediately through the native Telegram route", async () => {
+    const store = new WorkspaceStore();
+    store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner",
+      linkedAt: new Date().toISOString() });
+    const telegram = new TelegramMirrorProvider();
+    const sent: string[] = [];
+    telegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async (_chatId, text) => { sent.push(text); return 301; } });
+    const provider: GenerativeModelProvider = {
+      id: "test", name: "test", defaultTier: 1, isAvailable: async () => true,
+      listModels: async () => ["test-model"],
+      generate: async () => { throw new Error("Approvals answer must not wait for the model"); },
+      async *stream(): AsyncIterable<StreamChunk> { throw new Error("not used"); },
+    };
+    new UniversalMirrorRouter(store, telegram, undefined, undefined, undefined, undefined,
+      new ChannelConversation(provider, "test-model"));
+    await telegram.ingestInboundUpdate({ updateId: 8100, chatId: "private-one", userId: "owner",
+      text: "In two sentences, how does AgentForge handle approvals?" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toContain("authorized reviewer");
+    expect(store.listAuditEntries().find(entry => entry.action === "conversation.replied")?.details)
+      .toMatchObject({ route: "local", modelMs: null });
+  });
   it("restores the linked private conversation after a fresh workspace process", async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-telegram-context-"));
     try {
