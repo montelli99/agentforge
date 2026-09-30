@@ -17,6 +17,7 @@ export type NativeGatewaySnapshot = {
 export class NativeAgentForgeGateway {
   private state: NativeGatewayState = "stopped";
   private startedAt?: string;
+  private readonly activeProviders = new Set<PublicChannel>();
   private readonly listeners = new Set<(event: InboundChannelEvent) => Promise<void>>();
 
   constructor(private readonly runtimes = new ChannelRuntimeRegistry()) {
@@ -26,16 +27,20 @@ export class NativeAgentForgeGateway {
   }
 
   async start(providers: PublicChannel[] = ["telegram", "discord", "slack"]): Promise<NativeGatewaySnapshot> {
+    if (providers.length === 0) return this.snapshot();
     this.state = "starting";
-    const statuses = await Promise.all(providers.map(provider => this.runtimes.start(provider)));
+    for (const provider of providers) this.activeProviders.add(provider);
+    await Promise.all(providers.map(provider => this.runtimes.start(provider)));
     this.startedAt = new Date().toISOString();
-    this.state = statuses.every(status => status.state === "ready") ? "ready" : "degraded";
+    this.state = this.runtimes.list().filter(status => this.activeProviders.has(status.provider)).every(status => status.state === "ready") ? "ready" : "degraded";
     return this.snapshot();
   }
 
   async stop(providers: PublicChannel[] = ["telegram", "discord", "slack"]): Promise<NativeGatewaySnapshot> {
     await Promise.all(providers.map(provider => this.runtimes.stop(provider)));
-    this.state = "stopped";
+    for (const provider of providers) this.activeProviders.delete(provider);
+    this.state = this.activeProviders.size === 0 ? "stopped" :
+      this.runtimes.list().filter(status => this.activeProviders.has(status.provider)).every(status => status.state === "ready") ? "ready" : "degraded";
     return this.snapshot();
   }
 
@@ -51,9 +56,9 @@ export class NativeAgentForgeGateway {
   provider(provider: PublicChannel): ChannelProvider { return this.runtimes.get(provider); }
   snapshot(): NativeGatewaySnapshot {
     const channels = this.runtimes.list();
-    const state = this.state === "stopped"
-      ? "stopped"
-      : channels.every(channel => channel.state === "ready") ? "ready" : "degraded";
+    const active = channels.filter(channel => this.activeProviders.has(channel.provider));
+    const state = this.state === "starting" ? "starting" :
+      active.length === 0 ? "stopped" : active.every(channel => channel.state === "ready") ? "ready" : "degraded";
     return { state, startedAt: this.startedAt, channels, nativeOwnership: true };
   }
   private async dispatch(event: InboundChannelEvent): Promise<void> { for (const listener of this.listeners) await listener(event); }

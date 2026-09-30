@@ -159,6 +159,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
         eventType: "action_button_clicked",
         externalWorkspaceId: update.chatId,
         externalChannelId: String(topicId),
+        externalThreadId: update.topicId ? String(update.topicId) : undefined,
         externalUserId: update.userId,
         externalUsername: update.username,
         payload: {
@@ -182,6 +183,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
         eventType: "command",
         externalWorkspaceId: update.chatId,
         externalChannelId: String(topicId),
+        externalThreadId: update.topicId ? String(update.topicId) : undefined,
         externalUserId: update.userId,
         externalUsername: update.username,
         payload: { command, commandArgs },
@@ -198,7 +200,7 @@ export class TelegramMirrorProvider implements ChannelProvider {
       eventType: "message",
       externalWorkspaceId: update.chatId,
       externalChannelId: String(topicId),
-      externalThreadId: String(topicId),
+      externalThreadId: update.topicId ? String(update.topicId) : undefined,
       externalUserId: update.userId,
       externalUsername: update.username,
       payload: {
@@ -234,6 +236,24 @@ export class TelegramMirrorProvider implements ChannelProvider {
     });
 
     return { externalMessageId };
+  }
+
+  /** Reply to the originating chat, avoiding a shared channel binding for private DMs. */
+  async sendReply(chatId: string, text: string, topicId?: number): Promise<{ externalMessageId: string }> {
+    if (this.liveTransport) {
+      const id = await this.liveTransport.sendMessage(chatId, text, topicId);
+      return { externalMessageId: String(id) };
+    }
+    if (this.userSessionTransport) {
+      const id = await this.userSessionTransport.sendMessage(chatId, text, topicId);
+      return { externalMessageId: String(id) };
+    }
+    if (this.gatewayRelay) {
+      const id = await this.gatewayRelay.sendMessage(chatId, text, topicId);
+      return { externalMessageId: String(id) };
+    }
+    const binding = this.getBindingByTopic(chatId, topicId ?? 1);
+    return this.sendMessage({ canonicalChannelId: binding?.canonicalChannelId ?? "chan-general", text });
   }
 
   // Outbound: Web Channel created/renamed -> Telegram Topic created/renamed
