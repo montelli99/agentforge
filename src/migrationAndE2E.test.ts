@@ -238,7 +238,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       });
       expect(approvalRes.status).toBe(200);
       expect(await approvalRes.json()).toMatchObject({
-        proposal: { status: "approved", resolvedByUserId: "local-unverified-web-client" },
+        proposal: { status: "approved", resolvedByUserId: "user-owner" },
         process: { id: procData.process.id, version: 2 },
       });
 
