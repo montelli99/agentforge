@@ -17,6 +17,38 @@ describe("UniversalMirrorRouter (Sections 8, 9, 10: Telegram & Discord Remote Co
     router = new UniversalMirrorRouter(store, telegram, discord);
   });
 
+  it("routes a linked owner's plain-language task control through the command permission path", async () => {
+    const sent: string[] = [];
+    telegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async (_chatId, text) => { sent.push(text); return 51; } });
+    store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner-tg",
+      linkedAt: new Date().toISOString() });
+    const task = store.createTask({ id: "AF-NATURAL-1", title: "Prepare launch review",
+      priority: "medium", status: "in_progress" });
+    await telegram.ingestInboundUpdate({ updateId: 304, chatId: "123456789", userId: "owner-tg",
+      text: "pause task Prepare launch review" });
+    expect(store.getTask(task.id)?.status).toBe("paused");
+    expect(sent[0]).toContain("has been paused");
+    expect(store.listAuditEntries().some(entry => entry.action === "command.pause")).toBe(true);
+  });
+
+  it("does not guess among duplicate task titles or act for an unlinked sender", async () => {
+    const sent: string[] = [];
+    telegram.attachLiveTransport({ start: async () => {}, stop: () => {}, isRunning: () => true,
+      sendMessage: async (_chatId, text) => { sent.push(text); return 52; } });
+    store.linkExternalIdentity("user-owner", { provider: "telegram", externalUserId: "owner-tg",
+      linkedAt: new Date().toISOString() });
+    const first = store.createTask({ id: "AF-NATURAL-2", title: "Review release", priority: "medium", status: "in_progress" });
+    const second = store.createTask({ id: "AF-NATURAL-3", title: "Review release", priority: "medium", status: "in_progress" });
+    await telegram.ingestInboundUpdate({ updateId: 305, chatId: "123456789", userId: "owner-tg",
+      text: "cancel task Review release" });
+    await telegram.ingestInboundUpdate({ updateId: 306, chatId: "999999999", userId: "unlinked",
+      text: `pause task ${first.id}` });
+    expect(sent[0]).toContain("multiple tasks");
+    expect(store.getTask(first.id)?.status).toBe("in_progress");
+    expect(store.getTask(second.id)?.status).toBe("in_progress");
+  });
+
   it("sends a private Telegram link reply to the originating chat without a topic ID", async () => {
     const sent: Array<{ chatId: string | number; text: string; topicId?: number }> = [];
     telegram.attachLiveTransport({
