@@ -43,7 +43,13 @@ chat setup, and gateway documentation. Operational memory is supplied only when
 its project scope exactly matches the private channel. Group messages,
 unlinked identities, attachments and tool execution are outside this route.
 Telegram `/status` and other remote-control commands use their separate
-authorized command path.
+authorized command path. In a linked private chat, ordinary requests such as
+"show my tasks", "what needs my approval", and "pause task Prepare launch
+review" are mapped to that same command path. Task controls require an exact,
+unique task title or ID, and the existing server-side permission check still
+applies. Ambiguous titles prompt for the ID; unlinked senders cannot control
+tasks. This narrow mapping does not make the open-ended chat model a tool-using
+agent or authorize arbitrary natural-language actions.
 
 Common private-chat questions about workspace status, tasks, pending approvals,
 AgentForge's capabilities, approvals, JEv, memory, and MiMo setup use immediate

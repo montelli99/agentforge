@@ -19,6 +19,7 @@ import type { MemoryProvider } from "../providers/memory.js";
 import { redactRuntimeError } from "../secret/runtimeRedaction.js";
 import type { ChannelConversation } from "./channelConversation.js";
 import { localChannelReply } from "./localChannelReply.js";
+import { resolveNaturalCommand } from "./naturalCommand.js";
 import type { ModelMessage } from "../providers/model.js";
 
 export class UniversalMirrorRouter {
@@ -234,6 +235,21 @@ export class UniversalMirrorRouter {
       if (event.provider === "telegram" && this.telegram && user &&
           !event.externalWorkspaceId.startsWith("-")) {
         try {
+          const natural = resolveNaturalCommand(event.payload.text, this.store);
+          if (natural) {
+            if ("clarification" in natural) {
+              const outbound = await this.telegram.sendReply(event.externalWorkspaceId, natural.clarification);
+              this.store.createMessage({ channelId: canonicalChannel.id, authorId: "agent-agentforge-coordinator",
+                authorType: "agent", content: natural.clarification, externalMessageId: outbound.externalMessageId,
+                externalProvider: "telegram", replyToMessageId: canonicalMsg.id });
+            } else {
+              // The existing command path owns RBAC, audit, and mutation policy.
+              await this.handleCommand({ ...event, eventType: "command",
+                payload: { ...event.payload, command: natural.command, commandArgs: natural.args } },
+              canonicalChannel.id, user.id);
+            }
+            return;
+          }
           const started = performance.now();
           const local = localChannelReply(event.payload.text, this.store);
           const durableHistory: ModelMessage[] = this.store.listMessages(canonicalChannel.id, 13)
