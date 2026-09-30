@@ -42,6 +42,12 @@ workspace data.
 
 ## Deployment-specific evidence
 
+- A read-only Telegram Bot API `getMe` check on 2026-09-30 accepted the
+  existing private runtime credential. No polling, outbound message, or
+  workspace state change was performed; live AgentForge ownership remains
+  unclaimed until the current bot consumer is stopped and the direct transport
+  runbook is executed.
+
 The live Render endpoint was checked on 2026-09-29:
 
 - `https://agentforge-site.onrender.com/`: HTTP 200; responsive viewport meta and footer present.
