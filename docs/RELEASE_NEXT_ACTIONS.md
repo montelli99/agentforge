@@ -43,3 +43,26 @@ provenance result, and archive digest without recording credentials.
 The release candidate may be announced as upcoming without Discord or Slack
 live evidence. A passing local audit or fixture test must still never be
 described as a live provider result.
+
+## 5. Repeatable operator sequence
+
+Run these checks from a clean release checkout before requesting publication:
+
+```text
+pnpm verify:public
+pnpm test:website
+pnpm test:registry:preflight
+pnpm test:research:all
+```
+
+Then run the provider-specific procedure in
+[`LIVE_PROVIDER_ACCEPTANCE.md`](LIVE_PROVIDER_ACCEPTANCE.md) with disposable
+targets and private runtime secrets. Capture only the readiness snapshot,
+normalized inbound event ID, outbound provider message ID, and clean shutdown
+result. Never copy tokens, private message bodies, or account identifiers into
+the evidence file.
+
+The final publication step is intentionally owner-controlled. The preflight
+must report `passed: true`, the archive fingerprint must be recorded, and the
+owner must explicitly authorize the registry command. No CI job or local audit
+performs publication automatically.
