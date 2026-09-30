@@ -126,6 +126,32 @@ describe("Setup Guide API", () => {
     dataDirectory = undefined;
   });
 
+  it("keeps first-run setup out of a Telegram mirror created before onboarding", async () => {
+    const port = await availablePort();
+    dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-setup-mirror-"));
+    const store = new WorkspaceStore(path.join(dataDirectory, "workspace.json"));
+    const workspace = store.getWorkspace()!;
+    const mirror = store.createSpace({ workspaceId: workspace.id, name: "Telegram Mirror",
+      provider: "telegram", externalId: "synthetic-chat" });
+    store.createChannel({ workspaceId: workspace.id, spaceId: mirror.id, name: "Private chat",
+      visibility: "private", archived: false, provider: "telegram", externalId: "dm:synthetic-chat" });
+    server = new AgentForgeWebServer(store, port);
+    await server.start();
+    const before = await fetch(`http://127.0.0.1:${port}/api/setup-guide/status`).then(response => response.json());
+    expect(before.prepared).toBe(false);
+    const response = await fetch(`http://127.0.0.1:${port}/api/setup-guide/prepare`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ rawGoalText: "Build a research assistant with reviewable evidence." }),
+    });
+    expect(response.status).toBe(201);
+    const prepared = await response.json();
+    expect(prepared.project.provider).toBe("agentforge");
+    expect(prepared.project.id).not.toBe(mirror.id);
+    expect(prepared.channel.spaceId).toBe(prepared.project.id);
+    const status = await fetch(`http://127.0.0.1:${port}/api/setup-guide/status`).then(reply => reply.json());
+    expect(status.project.id).toBe(prepared.project.id);
+  });
+
   it("creates a safe local project structure and a persisted guide from an outcome", async () => {
     const port = await availablePort();
     // A durable installation starts empty apart from the owner workspace.

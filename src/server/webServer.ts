@@ -1609,8 +1609,8 @@ export class AgentForgeWebServer {
 
     if (req.method === "GET" && path === "/api/setup-guide/status") {
       const workspace = this.store.getWorkspace();
-      const project = workspace ? this.store.listSpaces(workspace.id).find(space => !space.archived) : undefined;
-      const channel = project ? this.store.listChannels().find(item => item.spaceId === project.id && !item.archived) : undefined;
+      const project = workspace ? this.store.listSpaces(workspace.id).find(space => !space.archived && space.provider === "agentforge") : undefined;
+      const channel = project ? this.store.listChannels().find(item => item.spaceId === project.id && !item.archived && item.provider === "agentforge") : undefined;
       const guide = this.store.getAgent("agent-setup-guide");
       const thread = channel ? this.store.listThreads(channel.id).find(item => item.title === "Workspace setup" && !item.archived) : undefined;
       const sessions = this.completionEngine.listSessions()
@@ -1927,7 +1927,7 @@ export class AgentForgeWebServer {
         // first-run again after the workspace has already been prepared.
         if (!workspace.experience) this.store.updateWorkspace(workspace.id, { experience: "studio" });
         const compactTitle = rawGoalText.replace(/\s+/g, " ").replace(/[.?!].*$/, "").slice(0, 72) || "First project";
-        let project = this.store.listSpaces(workspace.id).find(space => !space.archived);
+        let project = this.store.listSpaces(workspace.id).find(space => !space.archived && space.provider === "agentforge");
         if (!project) {
           project = this.store.createSpace({
             workspaceId: workspace.id,
@@ -1936,7 +1936,7 @@ export class AgentForgeWebServer {
             provider: "agentforge",
           });
         }
-        let channel = this.store.listChannels().find(item => item.spaceId === project!.id && !item.archived);
+        let channel = this.store.listChannels().find(item => item.spaceId === project!.id && !item.archived && item.provider === "agentforge");
         if (!channel) {
           channel = this.store.createChannel({
             workspaceId: workspace.id,
@@ -2051,8 +2051,8 @@ export class AgentForgeWebServer {
         return;
       }
       const workspace = this.store.getWorkspace();
-      const project = workspace ? this.store.listSpaces(workspace.id).find(space => !space.archived) : undefined;
-      const channel = project ? this.store.listChannels().find(item => item.spaceId === project.id && !item.archived) : undefined;
+      const project = workspace ? this.store.listSpaces(workspace.id).find(space => !space.archived && space.provider === "agentforge") : undefined;
+      const channel = project ? this.store.listChannels().find(item => item.spaceId === project.id && !item.archived && item.provider === "agentforge") : undefined;
       if (!channel) {
         res.writeHead(409);
         res.end(JSON.stringify({ error: "Prepare the workspace before provisioning agents." }));
