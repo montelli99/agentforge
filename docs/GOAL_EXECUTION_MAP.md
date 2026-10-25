@@ -235,3 +235,12 @@ message identifying a missing provider or changed setup version. Service
 reconstruction tests remove the definition and replace it with a newer version;
 both restore attempts fail, leave project memory disconnected, and preserve the
 encrypted selection byte-for-byte. Ten setup tests and typechecking passed.
+
+Memory-ablation evidence now has an exclusive append-only JSONL journal. Each
+started/completed/failed attempt is flushed before the summary is replaced using
+a same-directory rename; existing evaluation outputs cannot be overwritten by
+a new run. The local regression verifies retained start/failure events and
+overwrite refusal, and typechecking passed. No paid request or new competitive
+comparison was run. Power-loss durability and actual process-kill recovery of
+this journal remain unproven; the ablation is still only a recall experiment,
+not a full-agent superiority result.

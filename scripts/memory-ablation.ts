@@ -1,7 +1,5 @@
 /** Frozen-instance memory ablation; no private inputs or provider side effects beyond model requests. */
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
 import {randomBytes,createHash} from 'node:crypto';
 import {EventEmitter} from 'node:events';
 import type {ServerResponse} from 'node:http';
@@ -9,19 +7,19 @@ import {WorkspaceStore} from '../src/core/store/workspaceStore.js';
 import {ConversationRuntime} from '../src/server/conversationRuntime.js';
 import {MiMoModelProvider} from '../src/providers/models/mimoModel.js';
 import type {GenerativeModelProvider,ModelRequestOptions} from '../src/core/providers/model.js';
+import {DurableEvaluationJournal} from '../src/durableEvaluationJournal.js';
 const model=process.env.AGENTFORGE_PROOF_MODEL,output=process.env.AGENTFORGE_PROOF_OUTPUT;
 if(process.env.AGENTFORGE_MEMORY_ABLATION!=='1'||!model||!output||!path.isAbsolute(output)||!process.env.MIMO_API_KEY)throw Error('Explicit opt-in, model, absolute output and credential required');
 const diagnostic=process.env.AGENTFORGE_MEMORY_DIAGNOSTIC==='1';
 const families=diagnostic?['recall','correction']:['recall','correction','cross-project','unknown'];
 const repetitions=diagnostic?1:2;
 const protocol={version:2,diagnostic,design:'Prefetched-history ablation; held-out random instances of declared synthetic families, not a competitor benchmark',families,repetitions,requestsPerArm:1,maxTokens:256,deadlineMs:60000,model,scoring:'Exact JSON value, no forbidden canary; all attempts count; no retries',costUsd:null};
-const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-memory-ablation-'));
 const report:any={protocol,protocolSha256:createHash('sha256').update(JSON.stringify(protocol)).digest('hex'),startedAt:new Date().toISOString(),attempts:[],complete:false};
 // Exclusive output creation prevents silently overwriting a previous attempt.
-const handle=await fs.open(output,'wx');await handle.close();
-const save=()=>fs.writeFile(output,JSON.stringify(report,null,2));
-await save();
+const journal=await DurableEvaluationJournal.create(output);
+const save=()=>journal.checkpoint(report.complete?{type:'completed',summary:report.summary}:report.attempts.length?{type:'attempt',attempt:report.attempts.at(-1)}:{type:'protocol',protocol,protocolSha256:report.protocolSha256},report);
 try{
+ await save();
  const provider=new MiMoModelProvider();
  for(let repetition=0;repetition<repetitions;repetition++)for(const family of families){
   const store=new WorkspaceStore();const w=store.createWorkspace({name:'Synthetic evaluation'});
@@ -55,4 +53,4 @@ try{
   }
  }
  report.complete=true;report.summary=Object.fromEntries(['prefetch','recent-only'].map(arm=>[arm,{correct:report.attempts.filter((a:any)=>a.arm===arm&&a.correct).length,total:families.length*repetitions,failed:report.attempts.filter((a:any)=>a.arm===arm&&a.status==='failed').length}]));await save();console.log(JSON.stringify({output,summary:report.summary,protocolSha256:report.protocolSha256}));
-}finally{if(path.dirname(root)!==path.resolve(os.tmpdir())||!path.basename(root).startsWith('af-memory-ablation-'))throw Error('Unexpected temporary path');await fs.rm(root,{recursive:true,force:true});}
+}finally{await journal.close();}
