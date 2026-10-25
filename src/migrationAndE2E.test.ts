@@ -672,6 +672,12 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         expect(staleRollback.verifyAuditChain().valid).toBe(true);
         expect(fs.readFileSync(rollbackFile, 'utf8')).toBe(rollbackDisk);
         const reopened = new WorkspaceStore(rollbackFile);
+        const referenceStore = new WorkspaceStore();
+        referenceStore.loadFromFile(rollbackFile);
+        referenceStore.createTask({ title: 'Synthetic dependent work', priority: 'low', status: 'backlog', assignedAgentId: 'custom-manifest-agent' });
+        expect(() => referenceStore.rollbackAgentImport(rollbackRun.runId)).toThrow('referenced');
+        expect(referenceStore.getAgent('custom-manifest-agent')).toBeDefined();
+        // Use a separate in-memory copy to check reference refusal without changing the rollback fixture.
         expect(reopened.rollbackAgentImport(rollbackRun.runId).removedIds).toEqual(['custom-manifest-agent', 'second-batch-agent']);
         const afterRollback = new WorkspaceStore(rollbackFile);
         expect(afterRollback.getAgent('custom-manifest-agent')).toBeUndefined();
@@ -747,12 +753,25 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       store.createUser({ username: 'migration-reviewer', displayName: 'Migration reviewer', role: 'owner', password: 'synthetic migration password' });
       const login = await fetch(server.getBaseUrl()+'/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'migration-reviewer', password: 'synthetic migration password' }) });
       const token = (await login.json()).token;
+      const loginMigrationUser = async (username: string, role: 'owner' | 'viewer') => {
+        store.createUser({ username, displayName: username, role, password: 'synthetic migration password' });
+        return (await (await fetch(server.getBaseUrl()+'/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password: 'synthetic migration password' }) })).json()).token;
+      };
+      const viewerToken = await loginMigrationUser('migration-viewer', 'viewer');
+      const otherOwnerToken = await loginMigrationUser('migration-other-owner', 'owner');
+      for (const action of ['prepare-import', 'commit-import', 'rollback-import']) {
+        expect((await migrationRequest(action, {}, viewerToken)).status).toBe(403);
+        expect((await migrationRequest(action, {})).status).toBe(401);
+      }
+      expect((await fetch(server.getBaseUrl()+'/api/migration/import-history', { headers: { Authorization: 'Bearer '+viewerToken } })).status).toBe(403);
       const prepared = await migrationRequest('prepare-import', { source: 'GENERIC', manifest: stagingManifest }, token);
       expect(prepared.status).toBe(200);
       const review = await prepared.json();
       expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
       expect((await migrationRequest('commit-import', { reviewId: review.reviewId, digest: 'changed', confirm: true }, token)).status).toBe(409);
       const commit = { reviewId: review.reviewId, digest: review.digest, confirm: true };
+      expect((await migrationRequest('commit-import', commit, otherOwnerToken)).status).toBe(409);
+      expect((await migrationRequest('commit-import', { ...commit, confirm: false }, token)).status).toBe(409);
       const imported = await migrationRequest('commit-import', commit, token);
       expect(imported.status).toBe(200);
       const importedResult = await imported.json();

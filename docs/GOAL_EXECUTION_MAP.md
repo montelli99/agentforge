@@ -329,3 +329,7 @@ Added authenticated owner/admin import-history lookup from retained audit receip
 ### Actual process termination at migration snapshot replacement
 
 Extended the existing migration integration case with real child processes using synthetic two-agent manifests. The child terminates itself with SIGKILL immediately before or after the workspace snapshot rename. Reopening proves all-or-none agents and completion receipts: before replacement neither appears, after replacement both agents and the receipt survive and verify through a fresh provider. Audit chains remain valid. All 14 migration tests and typecheck:all passed locally. This tests process termination at the commit boundary, not filesystem power-loss durability or browser interaction; hosted cross-platform execution remains pending.
+
+### Migration authorization and dependency refusal coverage
+
+Extended existing API integration coverage across anonymous/viewer denials for prepare, commit and rollback; viewer history denial; cross-owner prepared-review refusal; and explicit-confirmation enforcement. A separate in-memory snapshot copy with a task assigned to an imported agent proves rollback refuses referenced records without deleting the agent. All 14 migration integration tests passed. Hosted runs 40221482665 (installed typed SDK) and 40221638926 (atomic import) completed successfully; later exact-build acceptance remains pending.
