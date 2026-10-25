@@ -74,6 +74,12 @@ describe("Setup Guide API", () => {
     expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(200);
     expect(server.conversations.status().memoryProvider).toBe('obsidian');
     expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain(dataDirectory);
+    expect((await request('/api/memory/connection',owner,{action:'forget',passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect((await request('/api/memory/connection',owner,{action:'forget',passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(400);
+    expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
     expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);

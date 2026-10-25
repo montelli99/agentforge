@@ -2902,7 +2902,12 @@ export class AgentForgeWebServer {
         await this.conversations.changeMemory(async()=>{
           if(body.action==='disconnect')return {memoryNamespace:undefined,memoryProvider:undefined};
           const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
-          if((body.action==='restore'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
+          if((body.action==='restore'||body.action==='forget'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
+          if(body.action==='forget'){
+            await vault.unlock(body.passphrase as string);
+            await vault.save({},body.passphrase as string);
+            return {memoryNamespace:undefined,memoryProvider:undefined};
+          }
           const selection=body.action==='restore'?JSON.parse((await vault.unlock(body.passphrase as string)).AGENTFORGE_KEY_MEMORY_SELECTION||'null'):body;
           if(!selection||selection.action!=='obsidian'||selection.confirmSharing!==true||typeof selection.root!=='string'||selection.root.length>4096||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid memory selection');
           const memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
