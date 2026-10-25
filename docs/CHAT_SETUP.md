@@ -1,6 +1,6 @@
 # Conversation model setup
 
-AgentForge saves conversations locally without a model. Chat generation is an optional, explicitly configured route. It does not grant task execution, repository access, tools, or external channel access.
+AgentForge saves conversations locally without a model. Chat generation is an optional, explicitly configured route. The web conversation exposes scoped history, text attachment and task tools. It does not itself grant repository access or execution authority: task execution still requires an approved plan and configured backend.
 
 ## First-run Setup Guide
 
@@ -61,7 +61,7 @@ conservative, verified answer when the model times out; other requests receive
 an explicit failure rather than a fabricated answer. The channel audit records
 model time and total reply time without storing the reply text in the audit entry.
 
-The configured provider receives that conversation's text and its project's instructions when generation is requested. Attachment contents are not supported by this route; conversations containing attachments are rejected rather than pretending to inspect them. Review the endpoint and its data-handling policy before sending private content.
+The configured provider receives that conversation's text and its project's instructions when generation is requested. Explicitly attached UTF-8 text, Markdown, CSV and JSON can be read through the scoped attachment tool. Binary formats are not interpreted. Review the endpoint and its data-handling policy before sending private content.
 
 ## Behavior
 
@@ -69,9 +69,9 @@ The configured provider receives that conversation's text and its project's inst
 - The composer has a persistent send-key toggle: Enter sends by default; switch to Ctrl/Command+Enter when you prefer Enter for new lines. Shift+Enter inserts a line break in either mode.
 - Complete and partial replies persist with model, provider, originating prompt, and completion status.
 - One response may run per conversation. Sending, editing, and archiving are blocked while it runs.
-- Browser disconnection aborts the request. Partial text, if any, is saved and marked stopped.
+- Browser disconnection leaves the server-owned response running. Saved checkpoints survive restart and are marked incomplete if interrupted; uncertain actions are not automatically replayed.
 - Project instructions are included. No other project's conversation or file contents are automatically read.
-- Context exceeding120,000 characters is rejected rather than silently truncated. Responses are bounded at100,000 characters and120 seconds.
+- Recent context is bounded; omitted originals remain retrievable using search_history. Responses are bounded at 100,000 characters and 12 tool rounds. The default whole-turn budget is 30 minutes; provider and command timeouts still apply.
 - Provider errors are shown without raw provider payloads or credentials. No synthetic success is generated.
 - In authenticated deployments, generation requires `tasks:execute` permission. This does not replace the application's broader access-control review.
 
@@ -90,10 +90,7 @@ Protocol reference: [OpenAI streaming documentation](https://developers.openai.c
 Stop response preserves received text with an explicit partial status. Use Retry
 response on a partial reply, or Try another response on a completed reply, to
 choose a configured model and generate in a new conversation branch. The original
-history is retained. When a provider fails before returning text, the saved user
-message remains available through Respond to last message. These controls use the
-configured text-only chat provider; they do not provide agent tools or attachment
-analysis.
+history is retained. Provider failures persist an explicit incomplete response. Continue in the same conversation to inspect saved task state, or branch to compare another response. See [Conversation execution and recovery](CONVERSATION_EXECUTION.md) for tool boundaries.
 
 ## Optional project memory
 

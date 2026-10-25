@@ -197,6 +197,8 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         temperature: options.temperature,
         max_tokens: options.maxTokens,
         ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
+        tools: options.tools,
+        tool_choice: options.toolChoice,
         stream: true,
       }),
       signal: options.signal
@@ -211,6 +213,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    const toolIds = new Map<number, string>();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -228,6 +231,12 @@ export class MiMoModelProvider implements GenerativeModelProvider {
             yield {
               id: data.id,
               deltaText: data.choices?.[0]?.delta?.content,
+              toolCalls: data.choices?.[0]?.delta?.tool_calls?.map((call: { index?: number; id?: string; function?: { name?: string; arguments?: string } }, position: number) => {
+                const index = call.index ?? position;
+                const id = call.id ?? toolIds.get(index) ?? "tool-index-" + index;
+                toolIds.set(index, id);
+                return { id, type: "function" as const, function: call.function || {} };
+              }),
               finishReason: data.choices?.[0]?.finish_reason,
             };
           } catch {

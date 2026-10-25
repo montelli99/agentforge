@@ -399,7 +399,6 @@ export class AgentForgeWebServer {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.planDraftProvider = options.planDraftProvider;
     this.indexedMemory = options.indexedMemory;
-    this.conversations = new ConversationRuntime(store, options.conversation);
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
     this.operationalMemory = new OperationalMemoryProvider(this.store);
@@ -409,6 +408,7 @@ export class AgentForgeWebServer {
       memoryProvider: this.operationalMemory,
       memoryNamespace: "workspace",
     }, this.completionEngine);
+    this.conversations = new ConversationRuntime(store, options.conversation, this.taskWorkerRuntime);
     this.driftMonitor = new DriftMonitor(this.store);
     this.correctionRegistry = new CorrectionRegistry(this.store);
     this.callLifecycleManager = new CallLifecycleManager(this.store);

@@ -478,6 +478,17 @@ export class WorkspaceStore {
       message.externalProvider === provider && message.externalMessageId === externalMessageId);
   }
 
+  /** Server-owned generation checkpoint; never exposed as a user message edit. */
+  checkpointGeneration(threadId: string, messageId: string, content: string, status: NonNullable<CanonicalMessage["generation"]>["status"]): CanonicalMessage {
+    const message = this.listThreadMessages(threadId).find(item => item.id === messageId);
+    if (!message?.generation || message.authorType !== "agent") throw new Error("Generation checkpoint unavailable.");
+    message.content = content;
+    message.generation.status = status;
+    message.updatedAt = new Date().toISOString();
+    this.emit("message_edited", "message", message);
+    return message;
+  }
+
   // --- Agents ---
   createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt" | "id"> & { id?: string }): AgentTeammate {
     const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
