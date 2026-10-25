@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {runBoundedChild} from './boundedCliProcess.js';
+import {BoundedChildFailure,runBoundedChild} from './boundedCliProcess.js';
 import type {PlatformProtectedCredentialBackend} from './chatgptDirectTokenStore.js';
 import type {DirectCredentials} from './chatgptDirectOAuth.js';
 
@@ -29,12 +29,21 @@ export class WindowsDirectCredentialBackend implements PlatformProtectedCredenti
     const executable=path.join(root,'System32','WindowsPowerShell','v1.0','powershell.exe');
     const entropy=Buffer.from(key).toString('base64');
     // Only fixed code and nonsecret namespace entropy enter argv. Secret bytes use stdin.
-    const script=`$ErrorActionPreference='Stop'; Add-Type -AssemblyName System.Security; try { $data=[Convert]::FromBase64String([Console]::In.ReadToEnd()); $entropy=[Convert]::FromBase64String('${entropy}'); $result=[Security.Cryptography.ProtectedData]::${mode}($data,$entropy,[Security.Cryptography.DataProtectionScope]::CurrentUser); [Console]::Out.Write([Convert]::ToBase64String($result)); } catch { exit 1 }`;
+    const script=`$ErrorActionPreference='Stop'; [Console]::Error.WriteLine('AF_STAGE:started'); try { Add-Type -AssemblyName System.Security; [Console]::Error.WriteLine('AF_STAGE:assembly'); $data=[Convert]::FromBase64String([Console]::In.ReadToEnd()); [Console]::Error.WriteLine('AF_STAGE:input'); $entropy=[Convert]::FromBase64String('${entropy}'); $result=[Security.Cryptography.ProtectedData]::${mode}($data,$entropy,[Security.Cryptography.DataProtectionScope]::CurrentUser); [Console]::Error.WriteLine('AF_STAGE:protected'); [Console]::Out.Write([Convert]::ToBase64String($result)); } catch { exit 1 }`;
+    let stage='launch';
+    const observedStage=(stderr:string)=>stderr.match(/AF_STAGE:(started|assembly|input|protected)/g)?.at(-1)?.slice(9)??'launch';
     try{
       const result=await runBoundedChild(executable,['-NoProfile','-NonInteractive','-Command',script],{input:bytes.toString('base64'),timeoutMs:15000,maxOutputBytes:262144,env:{SystemRoot:root,WINDIR:root}});
+      stage=observedStage(result.stderr);
       if(result.code!==0||!result.stdout||!/^[A-Za-z0-9+/]+={0,2}$/.test(result.stdout))throw Error();
       return Buffer.from(result.stdout,'base64');
-    }catch{throw Error('Windows credential protection failed');}
+    }catch(error){
+      // Never expose child output: it may contain credentials or provider details.
+      // Fixed stage labels and the bounded runner's classification diagnose hangs safely.
+      const classification=error instanceof BoundedChildFailure?error.classification:'operation-error';
+      if(error instanceof BoundedChildFailure)stage=observedStage(error.result.stderr);
+      throw Error(`Windows credential protection failed (${classification}; stage=${stage})`);
+    }
   }
   async read(key:string):Promise<DirectCredentials|undefined>{
     const file=await this.target(key);let encrypted:Buffer;
