@@ -42,6 +42,7 @@ try{
  await delegation.getByLabel('Exact message to send',{exact:true}).fill('Only the reviewed synthetic message');
  await delegation.getByRole('button',{name:'Prepare delegation review',exact:true}).click();
  await delegation.getByText('Review the destination and full message above. Nothing has been sent.',{exact:true}).waitFor();
+ await page.screenshot({path:path.join(root,'delegation-review.png'),fullPage:true});console.log(JSON.stringify({screenshot:path.join(root,'delegation-review.png')}));
  assert.equal(submissions,0);
  await delegation.getByRole('button',{name:'Approve and send this message',exact:true}).click();
  await delegation.getByText('External agent accepted the request. Completion is not yet verified.',{exact:true}).waitFor();

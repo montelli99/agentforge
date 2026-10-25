@@ -147,13 +147,13 @@ function openWorkDetail(task){
   const panel=document.createElement('dialog');panel.className='work-detail';panel.setAttribute('aria-label','Delegate task');
   const title=document.createElement('h2');title.textContent='Delegate to a connected agent';
   const explanation=document.createElement('p');explanation.textContent='Send only the message you review here. The external agent uses its own tools and permissions. Its acceptance does not mean this task has been verified.';
-  const form=document.createElement('form');const destination=document.createElement('select');destination.className='form-control';destination.required=true;
+  const form=document.createElement('form');form.style.cssText='display:grid;gap:16px;margin:20px 0';const destination=document.createElement('select');destination.className='form-control';destination.required=true;
   const session=document.createElement('input');session.className='form-control';session.required=true;session.maxLength=512;
   const message=document.createElement('textarea');message.className='form-control';message.required=true;message.maxLength=32000;message.rows=6;
-  for(const [caption,control] of [['Connected runtime',destination],['Session key',session],['Exact message to send',message]]){const label=document.createElement('label');label.textContent=caption;label.append(control);form.append(label);}
+  for(const [caption,control] of [['Connected runtime',destination],['Session key',session],['Exact message to send',message]]){const label=document.createElement('label');label.textContent=caption;label.style.cssText='display:grid;gap:8px;font-weight:600';control.style.width='100%';label.append(control);form.append(label);}
   const prepare=document.createElement('button');prepare.type='submit';prepare.className='btn';prepare.textContent='Prepare delegation review';prepare.disabled=true;form.append(prepare);
   const feedback=document.createElement('p');feedback.setAttribute('aria-live','polite');feedback.textContent='Loading configured runtimes…';
-  const review=document.createElement('pre');review.style.whiteSpace='pre-wrap';
+  const review=document.createElement('pre');review.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;padding:16px;border:1px solid var(--border);border-radius:10px;line-height:1.65';
   const send=document.createElement('button');send.className='btn';send.textContent='Approve and send this message';send.hidden=true;
   const close=document.createElement('button');close.className='btn btn-secondary';close.textContent='Close delegation';close.onclick=()=>panel.close();panel.onclose=()=>panel.remove();
   panel.append(title,explanation,form,review,send,feedback,close);document.body.append(panel);panel.showModal();
