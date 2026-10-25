@@ -83,6 +83,13 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         expect(res.status).toBe(200);
         const data = await res.json();
         expect(data).toBeDefined();
+        if (route === '/api/migration/sources') {
+          const sources = data as Array<{id: string; fixtureOnly: boolean; liveSourceVerified: boolean; name: string}>;
+          expect(sources.find(source => source.id === 'HERMES')).toMatchObject({fixtureOnly: true, liveSourceVerified: false});
+          expect(sources.find(source => source.id === 'OPENCLAW_CURRENT')).toMatchObject({fixtureOnly: true, liveSourceVerified: false});
+          expect(sources.every(source => source.liveSourceVerified === false)).toBe(true);
+          expect(sources.filter(source => source.fixtureOnly).every(source => /example/i.test(source.name))).toBe(true);
+        }
       }
     });
 

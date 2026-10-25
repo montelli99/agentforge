@@ -4811,11 +4811,11 @@ export class AgentForgeWebServer {
     if (req.method === "GET" && path === "/api/migration/sources") {
       res.writeHead(200);
       res.end(JSON.stringify([
-        { id: "OPENCLAW_LEGACY", name: "OpenClaw (Legacy Layout)", description: "Sanitized compatibility fixture for an earlier OpenClaw layout." },
-        { id: "OPENCLAW_CURRENT", name: "OpenClaw (Modern Upstream)", description: "Latest upstream stable OpenClaw architecture" },
-        { id: "HERMES", name: "Hermes", description: "Hermes autonomous agents and feeds" },
-        { id: "GROK_BOT", name: "Grok Bot", description: "Exported prompts and custom agent definitions" },
-        { id: "GENERIC", name: "Generic Manifest", description: "Standard agentforge-migration.json manifest" },
+        { id: "OPENCLAW_LEGACY", name: "OpenClaw (Legacy example)", fixtureOnly: true, liveSourceVerified: false, description: "Synthetic compatibility example. Does not inspect an installed OpenClaw workspace." },
+        { id: "OPENCLAW_CURRENT", name: "OpenClaw (Example)", fixtureOnly: true, liveSourceVerified: false, description: "Synthetic mapping example. Current upstream compatibility and live task delegation are not verified." },
+        { id: "HERMES", name: "Hermes (Example)", fixtureOnly: true, liveSourceVerified: false, description: "Synthetic agent example. Does not read an installed Hermes workspace, import its memories, or connect its runtime." },
+        { id: "GROK_BOT", name: "Grok Bot (Example)", fixtureOnly: true, liveSourceVerified: false, description: "Synthetic prompt and agent example. No live account or installation is inspected." },
+        { id: "GENERIC", name: "Generic Manifest", fixtureOnly: false, liveSourceVerified: false, description: "Review an explicitly supplied manifest for offline agent import, or explore the example. Runtime and credential connections remain separate." },
       ]));
       return;
     }
