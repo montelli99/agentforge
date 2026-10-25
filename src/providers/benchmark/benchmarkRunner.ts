@@ -55,7 +55,7 @@ export class BenchmarkRunner {
   async runSuite(
     suite: BenchmarkSuite,
     targetId: string,
-    executeCaseFn: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    executeCaseFn: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }>,
   ): Promise<BenchmarkResult> {
     if (!suite.cases.length) throw new Error('A benchmark requires at least one case');
     if (suite.cases.some(item=>!Number.isSafeInteger(item.timeoutMs)||item.timeoutMs<1||item.timeoutMs>300000))
@@ -74,12 +74,17 @@ export class BenchmarkRunner {
       const controller = new AbortController();
       let timer: ReturnType<typeof setTimeout> | undefined;
       let outcome: NonNullable<BenchmarkResult['attempts']>[number]['outcome'] = 'error';
+      let reportedCostUsd:number|null=null;
       try {
         const deadline = new Promise<never>((_, reject)=>{
           timer=setTimeout(()=>{outcome='timeout';controller.abort();reject(new Error('Benchmark case deadline exceeded'));},testCase.timeoutMs);
         });
         const res = await Promise.race([deadline,executeCaseFn(structuredClone(testCase.input),controller.signal)]);
 
+        if(res.costUsd!==undefined){
+          if(!Number.isFinite(res.costUsd)||res.costUsd<0)throw Error('Invalid reported benchmark cost');
+          reportedCostUsd=res.costUsd;
+        }
         // Structural equivalence check on expected output fields
         const passed = Object.keys(testCase.expectedOutput).every(
           key => isDeepStrictEqual(res.output[key], testCase.expectedOutput[key])
@@ -100,7 +105,7 @@ export class BenchmarkRunner {
         // Include failed attempts; target-reported latency is not independent evidence.
         const elapsedMs=performance.now() - attemptStarted;
         totalLatency += elapsedMs;
-        attempts.push({caseId:testCase.id,outcome,elapsedMs});
+        attempts.push({caseId:testCase.id,outcome,elapsedMs,reportedCostUsd});
       }
     }
 
@@ -132,6 +137,7 @@ export class BenchmarkRunner {
       executionKind: 'executor',
       suiteSha256,
       attempts,
+      reportedCostUsd: attempts.every(item=>item.reportedCostUsd!==null) && Number.isFinite(attempts.reduce((sum,item)=>sum+(item.reportedCostUsd??0),0)) ? attempts.reduce((sum,item)=>sum+(item.reportedCostUsd??0),0) : null,
       id: `bench-${crypto.randomUUID().slice(0, 8)}`,
       suiteId: suite.id,
       targetType: suite.targetType,
@@ -154,7 +160,7 @@ export class BenchmarkRunner {
   async executeBenchmark(
     suiteId: string,
     targetId: string,
-    customExecutor?: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    customExecutor?: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }>,
   ): Promise<BenchmarkResult> {
     const suite = this.getSuite(suiteId);
     if (!suite) {
@@ -166,7 +172,7 @@ export class BenchmarkRunner {
     }
 
     // Default automated evaluators for standard targets
-    const defaultExecutor = async (input: Record<string, unknown>): Promise<{ output: Record<string, unknown>; latencyMs: number }> => {
+    const defaultExecutor = async (input: Record<string, unknown>): Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }> => {
       const t0 = Date.now();
       if (suite.targetType === "HARNESS") {
         // Harness security & isolation evaluator

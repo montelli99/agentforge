@@ -75,6 +75,8 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     expect(bounded.passedOverall).toBe(false);
     expect(stopSignal?.aborted).toBe(true);
     expect(bounded.attempts?.[0].outcome).toBe('timeout');
+    expect(bounded.reportedCostUsd).toBeNull();
+    expect(bounded.attempts?.[0].reportedCostUsd).toBeNull();
   });
 
   it("enforces empirical routing: unmeasured models cannot win critical tasks on reputation alone", () => {
