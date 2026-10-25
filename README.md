@@ -5,6 +5,8 @@ AgentForge is an open-source, self-hostable AI workforce control plane. The sour
 
 The readiness descriptions below distinguish code that exists from capabilities that have been validated with live providers. A durable workspace starts empty. Older showcase-only records are removed by a narrow migration and are never treated as connected users, agents, tasks, calls, or marketplace activity.
 
+For the conversation-to-execution workflow, supported attachments, and disconnect/restart behavior, see [Conversation execution and recovery](docs/CONVERSATION_EXECUTION.md). These capabilities require explicit model and execution configuration; live-model quality is separate from harness acceptance.
+
 ---
 
 ## 📊 Current Readiness (staging audit)

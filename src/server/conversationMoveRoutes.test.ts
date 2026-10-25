@@ -144,7 +144,7 @@ describe("conversation move API", () => {
     const moveResponse = await moveResponsePromise;
     expect(moveResponse.status).toBe(409);
     expect(await moveResponse.json()).toMatchObject({ error: "Stop the response before moving this conversation." });
-    expect((await call(`/api/threads/${thread.id}/messages`)).body).toHaveLength(1);
+    expect((await call(`/api/threads/${thread.id}/messages`)).body).toHaveLength(2); // user message plus durable running checkpoint
     expect((await call("/api/threads")).body).toMatchObject([{ id: thread.id, channelId: sourceChannel[0]!.id }]);
 
     await call(`/api/threads/${thread.id}/stop`, "POST", {});

@@ -84,7 +84,7 @@ export interface CanonicalMessage {
   attachments?: MessageAttachment[];
   replyToMessageId?: string;
   revisions?: Array<{ content: string; editedAt: string; editedBy: string }>;
-  generation?: { model: string; provider: string; status: "complete" | "stopped" | "failed"; promptMessageId: string; contextMemories?: Array<{ id: string; title: string; version: number }> };
+  generation?: { model: string; provider: string; status: "running" | "complete" | "stopped" | "failed"; promptMessageId: string; contextMemories?: Array<{ id: string; title: string; version: number }> };
   externalMessageId?: string;
   externalProvider?: "telegram" | "discord" | "slack" | "web" | "api" | "cli";
   createdAt: string;
