@@ -39,6 +39,8 @@ export interface QualityThreshold {
 export interface BenchmarkResult {
   /** Missing provenance is unqualified legacy evidence, not a measured target run. */
   executionKind?: 'executor' | 'simulation' | 'local-validation';
+  suiteSha256?: string;
+  attempts?: Array<{ caseId: string; outcome: 'passed' | 'mismatch' | 'error' | 'timeout'; elapsedMs: number }>;
   id: string;
   suiteId: string;
   targetType: BenchmarkTargetType;

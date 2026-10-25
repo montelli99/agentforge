@@ -47,6 +47,9 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     expect(result.passedCases).toBe(3);
     expect(result.failedCases).toBe(0);
     expect(result.passedOverall).toBe(true);
+    expect(result.suiteSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.attempts?.map(item=>item.outcome)).toEqual(['passed','passed','passed']);
+    expect(result.artifacts).toEqual([]);
 
     const passRateMetric = result.metrics.find(m => m.name === "pass_rate");
     expect(passRateMetric?.value).toBe(100);
@@ -71,6 +74,7 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     expect(bounded.failedCases).toBe(1);
     expect(bounded.passedOverall).toBe(false);
     expect(stopSignal?.aborted).toBe(true);
+    expect(bounded.attempts?.[0].outcome).toBe('timeout');
   });
 
   it("enforces empirical routing: unmeasured models cannot win critical tasks on reputation alone", () => {

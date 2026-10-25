@@ -60,6 +60,10 @@ export class BenchmarkRunner {
     if (!suite.cases.length) throw new Error('A benchmark requires at least one case');
     if (suite.cases.some(item=>!Number.isSafeInteger(item.timeoutMs)||item.timeoutMs<1||item.timeoutMs>300000))
       throw new Error('Benchmark case deadlines must be between 1 and 300000 ms');
+    // Snapshot before executing target code so the evaluated inputs/expectations cannot drift mid-run.
+    suite = structuredClone(suite);
+    const suiteSha256 = crypto.createHash('sha256').update(JSON.stringify(suite)).digest('hex');
+    const attempts: NonNullable<BenchmarkResult['attempts']> = [];
     const startTime = Date.now();
     let passedCases = 0;
     let failedCases = 0;
@@ -69,11 +73,12 @@ export class BenchmarkRunner {
       const attemptStarted = performance.now();
       const controller = new AbortController();
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let outcome: NonNullable<BenchmarkResult['attempts']>[number]['outcome'] = 'error';
       try {
         const deadline = new Promise<never>((_, reject)=>{
-          timer=setTimeout(()=>{controller.abort();reject(new Error('Benchmark case deadline exceeded'));},testCase.timeoutMs);
+          timer=setTimeout(()=>{outcome='timeout';controller.abort();reject(new Error('Benchmark case deadline exceeded'));},testCase.timeoutMs);
         });
-        const res = await Promise.race([deadline,executeCaseFn(testCase.input,controller.signal)]);
+        const res = await Promise.race([deadline,executeCaseFn(structuredClone(testCase.input),controller.signal)]);
 
         // Structural equivalence check on expected output fields
         const passed = Object.keys(testCase.expectedOutput).every(
@@ -81,8 +86,10 @@ export class BenchmarkRunner {
         );
 
         if (passed) {
+          outcome='passed';
           passedCases++;
         } else {
+          outcome='mismatch';
           failedCases++;
         }
       } catch {
@@ -91,7 +98,9 @@ export class BenchmarkRunner {
         if(timer)clearTimeout(timer);
         controller.abort();
         // Include failed attempts; target-reported latency is not independent evidence.
-        totalLatency += performance.now() - attemptStarted;
+        const elapsedMs=performance.now() - attemptStarted;
+        totalLatency += elapsedMs;
+        attempts.push({caseId:testCase.id,outcome,elapsedMs});
       }
     }
 
@@ -121,6 +130,8 @@ export class BenchmarkRunner {
 
     return {
       executionKind: 'executor',
+      suiteSha256,
+      attempts,
       id: `bench-${crypto.randomUUID().slice(0, 8)}`,
       suiteId: suite.id,
       targetType: suite.targetType,
@@ -129,12 +140,8 @@ export class BenchmarkRunner {
       passedCases,
       failedCases,
       metrics,
-      artifacts: [
-        {
-          name: "benchmark_summary.json",
-          url: `memory://benchmarks/${suite.id}/${targetId}/summary.json`,
-        },
-      ],
+      // No downloadable artifact has been created by this in-memory runner.
+      artifacts: [],
       passedOverall,
       executedAt: new Date().toISOString(),
       durationMs: Date.now() - startTime,
