@@ -393,3 +393,17 @@ creation, source tool/permission stripping, disk reopen, separately confirmed
 rollback and persisted removal. The test is now in hosted acceptance. It uses
 synthetic agent records only, not third-party account access or arbitrary
 memory-format migration. Unsupported channels and tasks remain unsupported.
+
+### Clean installed archive: browser and execution acceptance
+
+Browser tests can now load the built modules from an explicitly selected installed
+package root. The clean-install runner installs the supplied tarball with lifecycle
+scripts disabled into a fresh temporary consumer, then exercises memory import,
+API and local connection recovery (including mid-response reload), browser plan
+approval through real Docker execution and final completion, and generic migration
+with rollback. All five journeys passed locally against archive SHA-256
+`059a26c5b318251f545bb5dd16918db839030317d60f4caec8d1bccd3d6eb43f`.
+This archive preceded this documentation addition; it is not a digest for a future
+CI artifact. Hosted CI now runs the installed-archive journeys after packaging and
+before retaining that exact archive. Model endpoints remain synthetic; this does
+not establish live subscription acceptance or competitive performance.

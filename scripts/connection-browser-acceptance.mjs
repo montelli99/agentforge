@@ -1,11 +1,12 @@
+import {builtModule} from './built-package-under-test.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
 import {chromium} from 'playwright';
-import {WorkspaceStore} from '../dist/core/store/workspaceStore.js';
-import {AgentForgeWebServer} from '../dist/server/webServer.js';
+const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
+const {AgentForgeWebServer}=await builtModule('server/webServer.js');
 const executable=process.env.AGENTFORGE_BROWSER_EXECUTABLE;
 if(!executable||!path.isAbsolute(executable))throw Error('Select an absolute Chromium executable.');
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-connections-browser-'));

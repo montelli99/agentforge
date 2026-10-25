@@ -80,6 +80,11 @@ jobs:
           git rev-parse HEAD > release-output/COMMIT.txt
           sha256sum release-output/*.tgz > release-output/SHA256SUMS.txt
 
+      - name: Verify installed release archive in Chromium
+        run: |
+          export AGENTFORGE_BROWSER_EXECUTABLE="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath());")"
+          node scripts/installed-browser-acceptance.mjs "$(realpath release-output/*.tgz)"
+
       - name: Retain verified release package
         uses: actions/upload-artifact@v4
         with:

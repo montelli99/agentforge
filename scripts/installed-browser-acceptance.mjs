@@ -1,0 +1,16 @@
+import {spawnSync} from 'node:child_process';
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+const archive=process.argv[2];
+if(!archive||!path.isAbsolute(archive)||!archive.endsWith('.tgz'))throw Error('Explicit absolute release archive required');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-installed-browser-'));
+const scripts=path.dirname(fileURLToPath(import.meta.url));
+fs.writeFileSync(path.join(root,'package.json'),'{"private":true}');
+const npm=path.join(path.dirname(process.execPath),'node_modules/npm/bin/npm-cli.js');
+const run=(command,args,env=process.env)=>{const result=spawnSync(command,args,{cwd:root,env,encoding:'utf8',timeout:600000,windowsHide:true});if(result.error||result.status!==0)throw Error('Installed-package acceptance failed: '+(result.error?.message||result.stderr||result.stdout));return result.stdout;};
+run(process.platform==='win32'?process.execPath:'npm',[...(process.platform==='win32'?[npm]:[]),'install','--ignore-scripts','--no-audit','--no-fund','--registry=https://registry.npmjs.org',archive]);
+const env={...process.env,AGENTFORGE_PACKAGE_ROOT:path.join(root,'node_modules','agentforge'),AGENTFORGE_BROWSER_LOCAL:'0'};
+for(const name of ['memory','connection','approval','migration'])console.log(run(process.execPath,[path.join(scripts,name+'-browser-acceptance.mjs')],env));
+console.log(run(process.execPath,[path.join(scripts,'connection-browser-acceptance.mjs')],{...env,AGENTFORGE_BROWSER_LOCAL:'1'}));
+console.log(JSON.stringify({passed:true,installedArchive:true,archiveSha256:createHash('sha256').update(fs.readFileSync(archive)).digest('hex'),syntheticOnly:true,consumerDirectory:root}));
