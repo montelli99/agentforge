@@ -155,3 +155,7 @@ AgentForge acceptance requirements:
 - Prove restart recovery, account expiration, denied tools and the complete approval-to-verification workflow before advertising managed subscription execution.
 
 The existing external-client guidance remains the supported Claude subscription route until this acceptance is complete; API chat remains a separate connection.
+
+### Inspect an official Claude client without inference
+
+Run `agentforge connections inspect-claude <absolute-official-client-path>` to inspect a trusted, unmodified installed client. The check runs only version/help, with a fresh temporary configuration and no inherited account credentials, bounded output and deadlines. It reports required control flags and a version, explicitly separating advertised controls from authentication and isolation proof. It does not authenticate, configure a worker, or make a model request. Select the actual regular executable rather than a shell wrapper or symlink.

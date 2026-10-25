@@ -381,3 +381,7 @@ Snapshot lock recovery no longer removes a valid live owner's lock merely becaus
 ### Official Claude client capability probe
 
 Installed the official npm distribution into a disposable external directory with lifecycle scripts disabled, then invoked only --version and --help using an isolated configuration directory and environment without account/API credentials. Native Windows client 2.1.310 reports restricted mode, safe mode, explicit tools and disallowed tools, strict MCP configuration, setting-source selection, JSON schema output and disabled session persistence. This establishes availability of the implementation controls, not their enforcement or model execution. No sign-in or model request occurred; the client is not bundled into the public package. Next implementation must verify effective tool/customization isolation and durable cancellation before claiming an integrated subscription worker.
+
+### Reusable Claude client capability inspection
+
+Added a public capability-inspection function and CLI command using the bounded process runner, explicit regular executable paths, isolated temporary configuration, restricted environment, output limits and deadlines. Structured results never present advertised controls as verified authentication or isolation. The built command inspected official client 2.1.310 successfully with all required controls and no inference. Source/script type checks and build/browser syntax passed. Managed worker execution and GUI connection wiring remain unfinished.
