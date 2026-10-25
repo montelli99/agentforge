@@ -132,3 +132,19 @@ it('cancels pending startup when explicitly stopped', async () => {
   client.stop(); await vi.advanceTimersByTimeAsync(30); await rejected;
   expect(client.isConnecting()).toBe(false);
 });
+
+it('binds a turn to an explicit session and durable request ID without external delivery', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const result = client.submitSessionTurn('agent:main:synthetic', 'Synthetic task', 'request_12345');
+  expect(socket.sent[1]).toMatchObject({method:'chat.send',params:{sessionKey:'agent:main:synthetic',message:'Synthetic task',idempotencyKey:'request_12345',deliver:false,suppressCommandInterpretation:true}});
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{runId:'upstream-run-1'}});
+  await expect(result).resolves.toEqual({runId:'upstream-run-1'});
+  await expect(client.submitSessionTurn('selected','test','')).rejects.toThrow(/durable/);
+  expect(socket.sent).toHaveLength(2); client.stop();
+});
+it('reports a missing run receipt as uncertain rather than completed', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const result = client.submitSessionTurn('agent:main:synthetic', 'Synthetic task', 'request_12345');
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{status:'accepted'}});
+  await expect(result).rejects.toThrow(/uncertain/); expect(socket.sent).toHaveLength(2); client.stop();
+});

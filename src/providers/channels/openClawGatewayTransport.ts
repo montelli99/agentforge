@@ -149,6 +149,20 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return result as Record<string, unknown> & { messages: unknown[] };
   }
 
+  /** Low-level dispatch. The caller must durably record approval and request ID first. */
+  async submitSessionTurn(sessionKey: string, message: string, idempotencyKey: string): Promise<{ runId: string }> {
+    if (!sessionKey.trim() || sessionKey.length > 512 || /[\u0000-\u001f]/.test(sessionKey)) throw new Error("An explicit valid gateway session key is required");
+    if (!message.trim() || message.length > 32_000) throw new Error("Gateway message must contain between 1 and 32000 characters");
+    if (!/^[a-zA-Z0-9_-]{8,128}$/.test(idempotencyKey)) throw new Error("A durable gateway request identifier is required");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!this.grantedScopes.has("operator.write") && !this.grantedScopes.has("operator.admin")) throw new Error("gateway did not grant message write permission");
+    const result = await this.request<Record<string, unknown>>("chat.send", {
+      sessionKey, message, idempotencyKey, deliver: false, suppressCommandInterpretation: true,
+    });
+    if (!result || typeof result.runId !== "string" || !result.runId.trim() || result.runId.length > 512) throw new Error("gateway returned no run receipt; submission may be uncertain");
+    return { runId: result.runId };
+  }
+
   private sendConnect(signedAt: number) {
     const scopes = ["operator.read", "operator.write"];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
