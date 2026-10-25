@@ -4,7 +4,7 @@ import type {Task} from '../types/task.js';
 import {executionContractDigest} from './approvedPlanProvider.js';
 
 export interface ExternalTurnRequest { connectionId: string; sessionKey: string; message: string; }
-export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; }
+export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; }
 export function externalTurnApprovalAction(task: Task, request: ExternalTurnRequest): string {
   return 'external-runtime-turn:' + crypto.createHash('sha256').update(JSON.stringify({taskId:task.id, projectId:task.projectId, contract:executionContractDigest(task), connectionId:request.connectionId, sessionKey:request.sessionKey, message:request.message})).digest('hex');
 }
@@ -31,4 +31,22 @@ export async function dispatchExternalTurn(store: WorkspaceStore, taskId: string
   const accepted: ExternalTurnReceipt = {...receipt,status:'accepted',runId:result.runId};
   store.updateTask(taskId,{externalTurnReceipts:[accepted]});
   return accepted;
+}
+
+/** Read-only upstream reconciliation; remote status never satisfies local verification. */
+export async function observeExternalTurn(store: WorkspaceStore, taskId: string,
+  connection: {id: string; inspectRun(runId: string): Promise<{runId: string; status: string}>}): Promise<ExternalTurnReceipt> {
+  if (store.persistenceMode !== 'local_json') throw Error('External recovery requires durable workspace storage');
+  const receipt = store.getTask(taskId)?.externalTurnReceipts?.[0];
+  if (!receipt || receipt.connectionId !== connection.id) throw Error('Saved external connection is required');
+  if (receipt.status !== 'accepted' || !receipt.runId) throw Error('Submission is uncertain; a saved upstream run ID is required');
+  const result = await connection.inspectRun(receipt.runId);
+  if (result.runId !== receipt.runId || typeof result.status !== 'string' || !result.status.trim() || result.status.length > 128) throw Error('Invalid or mismatched external observation');
+  const current = store.getTask(taskId)?.externalTurnReceipts?.[0];
+  if (!current || current.requestId !== receipt.requestId || current.runId !== receipt.runId || current.connectionId !== connection.id) throw Error('External receipt changed during observation');
+  const observed: ExternalTurnReceipt = {...current, observation: {remoteStatus: result.status, observedAt: new Date().toISOString()}};
+  // Retain only bounded status metadata, not unsolicited remote transcript content.
+  // In particular, never revive a cancelled task or mark an unverified task complete.
+  store.updateTask(taskId, {externalTurnReceipts: [observed]});
+  return observed;
 }

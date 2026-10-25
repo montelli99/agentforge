@@ -46,3 +46,32 @@ it('persists before dispatch and prevents replay after failure and store reopen'
   expect(submit).toHaveBeenCalledTimes(1);expect(reopened.getTask(task.id)?.status).toBe('paused');
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+it('recovers a saved run observation without replay or claiming verified completion',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-external-observation-'));
+ try{
+  const file=path.join(dir,'workspace.json'), store=new WorkspaceStore(file);
+  const task=store.createTask({title:'Synthetic recovery',priority:'medium',status:'ready'});
+  const request={connectionId:'disposable',sessionKey:'agent:main:synthetic',message:'Synthetic request'};
+  const approval=store.createApproval({taskId:task.id,requesterAgentId:'test',action:externalTurnApprovalAction(task,request),risk:'high',expiresAt:new Date(Date.now()+60000).toISOString()});
+  store.resolveApproval({approvalId:approval.id,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});
+  const submit=vi.fn(async()=>({runId:'saved-run'}));
+  await dispatchExternalTurn(store,task.id,approval.id,request,{id:'disposable',submitSessionTurn:submit});
+  const recovered=new WorkspaceStore(file);
+  const inspect=vi.fn(async()=>({runId:'saved-run',status:'timeout'}));
+  const connection={id:'disposable',inspectRun:inspect};
+  const {observeExternalTurn}=await import('./externalTurnDispatch.js');
+  await expect(observeExternalTurn(recovered,task.id,{...connection,id:'wrong'})).rejects.toThrow(/connection/);
+  expect(inspect).not.toHaveBeenCalled();
+  await observeExternalTurn(recovered,task.id,connection);
+  expect(new WorkspaceStore(file).getTask(task.id)?.externalTurnReceipts?.[0].observation?.remoteStatus).toBe('timeout');
+  inspect.mockResolvedValueOnce({runId:'unrelated-run',status:'ok'});
+  await expect(observeExternalTurn(recovered,task.id,connection)).rejects.toThrow(/mismatched/);
+  expect(recovered.getTask(task.id)?.externalTurnReceipts?.[0].observation?.remoteStatus).toBe('timeout');
+  inspect.mockResolvedValueOnce({runId:'saved-run',status:'ok'});
+  await observeExternalTurn(recovered,task.id,connection);
+  expect(recovered.getTask(task.id)?.status).toBe('paused');
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(inspect).toHaveBeenCalledWith('saved-run');
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

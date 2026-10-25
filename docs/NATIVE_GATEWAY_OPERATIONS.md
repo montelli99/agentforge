@@ -169,3 +169,16 @@ Source inspection of prepareAgentWaitForTurn confirmed pending and timeout
 responses; neither establishes completion. Eighteen transport tests and type
 checking passed, including mismatched receipts and no resubmission. This method
 still needs control-plane reconciliation wiring and actual-runtime acceptance.
+
+Durable observation recovery now reads only the receipt's saved connection/run
+ID, persists bounded status metadata and leaves local task status unchanged.
+The disk-reopen test rejects an unrelated connection/run, retains timeout, and
+keeps the task paused even when upstream reports ok. It makes only one original
+submission. All three dispatch recovery tests and type checking passed.
+
+The compiled adapter was also exercised against the disposable OpenClaw 2026.10.7
+runtime: inspecting `agentforge-synthetic-unknown-run` returned that exact run ID
+with status `timeout`. No model call or task submission occurred. The container
+was stopped afterward. This proves unknown-run observation behavior, not recovery
+of a successfully completed real task; UI integration and result verification
+remain outstanding.
