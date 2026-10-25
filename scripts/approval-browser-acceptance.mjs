@@ -5,7 +5,7 @@ import {mkdtemp,writeFile,readFile} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
-const {WorktreeManager}=await builtModule('core/worktree/worktreeManager.js');
+
 const {ApprovedPlanProvider}=await builtModule('core/runtime/approvedPlanProvider.js');
 const {ContractedDockerExecutionBackend}=await builtModule('core/runtime/contractedDockerExecutionBackend.js');
 const {DockerComputeProvider}=await builtModule('core/compute/dockerComputeProvider.js');
@@ -22,39 +22,12 @@ const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}
     git(root, ["-c", "user.name=AgentForge E2E", "-c", "user.email=e2e@example.invalid", "commit", "-m", "fixture"]);
     const baseSha = git(root, ["rev-parse", "HEAD"]);
 
-    const taskId = "approved-docker-e2e";
-    const manager = new WorktreeManager(root);
-    const worktree = await manager.createWorktree({ taskId, branchName: `worktree/${taskId}`, baseBranch: baseSha });
-    const now = Date.now();
-    const command = "node -e \"require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
-    const task = {
-      id: taskId,
-      projectId: "local-acceptance",
-      title: "Prove approved Docker execution",
-      description: "Disposable local acceptance fixture.",
-      priority: "medium",
-      status: "ready",
-      createdAt: new Date(now).toISOString(),
-      updatedAt: new Date(now).toISOString(),
-      contract: {
-        id: "contract-approved-docker-e2e",
-        taskId,
-        version: 1,
-        repository: { baseBranch: "main", baseSha },
-        workspace: { requireIsolatedWorktree: true },
-        scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env"], maxFilesChanged: 1 },
-        authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
-        requiredChecks: [{ type: "custom_script", command, required: true }],
-        completion: { requireEvidencePack: true, requireHumanApproval: true, requiredArtifacts: [{ path: "artifacts/verified.txt" }] },
-        createdAt: new Date(now).toISOString(),
-      },
-      worktree,
-    };
-
+    let taskId;
+    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
 let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web',repositoryPath:root});
-task.projectId=project.id;store.createTask(task);
+
 const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan);
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
 assert.equal((await backend.initialize()).ready,true);
@@ -64,7 +37,7 @@ try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  await page.getByLabel('Tasks and runs',{exact:true}).click();
- await page.locator('#workboard-create').click();
+ await page.getByRole('button',{name:'Create your first task',exact:true}).click();
  await page.locator('#task-project').selectOption(project.id);
  await page.locator('.task-boundary-editor summary').click();
  const taskCount=store.listTasks().length;
@@ -73,7 +46,7 @@ try{
  assert.equal(await page.locator('#task-base-branch').inputValue(),'main');
  assert.equal(await page.locator('#task-base-sha').inputValue(),baseSha);
  assert.equal(store.listTasks().length,taskCount);
- assert.equal(store.getTask(taskId).executionReceipts?.length||0,0);
+ assert.equal(store.listTasks().some(value=>value.executionReceipts?.length),false);
  const anonymous=await fetch(server.getBaseUrl()+'/api/projects/'+project.id+'/execution-baseline');
  assert.ok([401,403].includes(anonymous.status));
  let releaseBaseline,baselineRequested;
@@ -90,18 +63,20 @@ try{
  await page.locator('#task-title').fill('User-created bounded task');
  await page.locator('#task-description').fill('Synthetic task saved through guided setup.');
  await page.locator('#task-allowed-paths').fill('artifacts/**\nreports/**');
- await page.locator('#task-test-command').fill('node -e "console.log(123)"');
+ await page.locator('#task-test-command').fill(command);
+ await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill('artifacts/verified.txt');
  await page.locator('#task-modal').getByRole('button',{name:'Save Task',exact:true}).click();
  await page.locator('#task-modal').waitFor({state:'hidden'});
  const created=store.listTasks().find(value=>value.title==='User-created bounded task');
- assert.ok(created);assert.equal(store.listTasks().length,taskCount+1);
+ assert.ok(created);taskId=created.id;assert.equal(store.listTasks().length,taskCount+1);
  assert.equal(created.projectId,project.id);assert.equal(created.contract.repository.baseSha,baseSha);
  assert.deepEqual(created.contract.scope.allowedPaths,['artifacts/**','reports/**']);
  assert.deepEqual(created.contract.scope.protectedPaths,['.env','.env.*','.git/**']);
  assert.equal(created.contract.completion.requireHumanApproval,true);
+ assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
  assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
  assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(created.id).contract.repository.baseSha,baseSha);
- await page.getByRole('button').filter({has:page.getByText('Prove approved Docker execution',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
  await page.locator('.task-proof-step').filter({hasText:'Plan'}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
  assert.match(await page.locator('.execution-command-list').innerText(),/verified.txt/);
@@ -109,12 +84,12 @@ try{
  await page.getByRole('button',{name:'Approve these commands',exact:true}).click();
  await page.getByText('Approved until',{exact:false}).waitFor();
  assert.equal(store.getTask(taskId).approvedExecutionPlan.approvedBy,'user-owner');
- assert.equal(store.getTask(taskId).executionReceipts?.length||0,0);
+ assert.equal(store.listTasks().some(value=>value.executionReceipts?.length),false);
  await page.getByRole('button',{name:'Run task',exact:true}).click();
  const deadline=Date.now()+60000;
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
- assert.equal(await readFile(path.join(worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
+ assert.equal(await readFile(path.join(result.worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
  const savedReceipts=JSON.parse(JSON.stringify(result.executionReceipts));
  const oldUrl=server.getBaseUrl();worker.stop();await server.stop();
  store=new WorkspaceStore(path.join(root,'state.json'));
@@ -125,7 +100,7 @@ try{
   await page.locator('input[name=username]').fill('owner');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Sign in',exact:true}).click();
  }
  await page.getByLabel('Tasks and runs',{exact:true}).click();
- await page.getByRole('button').filter({has:page.getByText('Prove approved Docker execution',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
  await page.getByRole('button',{name:'Review recorded execution',exact:true}).click();
  await page.getByRole('button',{name:'Restore verified recorded result',exact:true}).click();
  await page.getByText('Validated recorded result restored. No command replayed.',{exact:true}).waitFor();
@@ -142,6 +117,6 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
- console.log(JSON.stringify({passed:true,syntheticOnly:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();}
 

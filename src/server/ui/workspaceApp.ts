@@ -573,6 +573,8 @@ export function renderWorkspaceApp(): string {
 .env.*
 .git/**</textarea>
         <label class="form-label" for="task-test-command">Test command</label><input id="task-test-command" class="form-control" placeholder="npm test" maxlength="20000">
+        <label class="form-label" for="task-output-paths">Required output files (optional) · one exact path per line</label><textarea id="task-output-paths" class="form-control" rows="2" placeholder="artifacts/result.txt"></textarea>
+        <p>Declare new files the task must produce, within the allowed paths. With deletion disabled, undeclared new files cannot be created. Every declared output must pass verification before completion.</p>
         <label class="form-label" for="task-build-command">Build command (optional)</label><input id="task-build-command" class="form-control" placeholder="npm run build" maxlength="20000">
         <p>Separate worktree, verification evidence, and human review are required. External messaging, production writes, deployment, force push, deletion, and outbound network remain disallowed.</p>
       </details>
@@ -2164,7 +2166,7 @@ export function renderWorkspaceApp(): string {
       }
     }
 
-    const taskDraftFields=['task-title','task-description','task-priority','task-project','task-agent','task-base-branch','task-base-sha','task-allowed-paths','task-protected-paths','task-test-command','task-build-command'];
+    const taskDraftFields=['task-title','task-description','task-priority','task-project','task-agent','task-base-branch','task-base-sha','task-allowed-paths','task-protected-paths','task-test-command','task-build-command','task-output-paths'];
     function saveTaskDraft(){
       try{const values={};for(const id of taskDraftFields)values[id]=document.getElementById(id).value;sessionStorage.setItem('agentforge-task-draft',JSON.stringify(values));}catch{}
     }
@@ -2231,10 +2233,11 @@ export function renderWorkspaceApp(): string {
       const branch=document.getElementById('task-base-branch').value.trim(),sha=document.getElementById('task-base-sha').value.trim();
       const paths=document.getElementById('task-allowed-paths').value.split(/\\r?\\n/).map(value=>value.trim()).filter(Boolean);
       const testCommand=document.getElementById('task-test-command').value.trim(),buildCommand=document.getElementById('task-build-command').value.trim();
-      if(branch||sha||paths.length||testCommand||buildCommand){
+      const outputs=document.getElementById('task-output-paths').value.split(/\\r?\\n/).map(value=>value.trim()).filter(Boolean);
+      if(branch||sha||paths.length||testCommand||buildCommand||outputs.length){
         if(!branch||!/^([a-fA-F0-9]{40}|[a-fA-F0-9]{64})$/.test(sha)||!paths.length||!testCommand){result.innerText='To prepare execution, supply a branch, full commit SHA, at least one allowed path, and a test command. Clear these fields to save an organizational task.';return;}
         const id='task-'+crypto.randomUUID();body.id=id;
-        body.contract={id:'contract-'+id,taskId:id,version:1,repository:{baseBranch:branch,baseSha:sha},workspace:{requireIsolatedWorktree:true},scope:{allowedPaths:paths,protectedPaths:document.getElementById('task-protected-paths').value.split(/\\r?\\n/).map(value=>value.trim()).filter(Boolean)},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[{type:'unit_tests',required:true,command:testCommand},...(buildCommand?[{type:'build',required:true,command:buildCommand}]:[])],completion:{requireEvidencePack:true,requireHumanApproval:true},createdAt:new Date().toISOString()};
+        body.contract={id:'contract-'+id,taskId:id,version:1,repository:{baseBranch:branch,baseSha:sha},workspace:{requireIsolatedWorktree:true},scope:{allowedPaths:paths,protectedPaths:document.getElementById('task-protected-paths').value.split(/\\r?\\n/).map(value=>value.trim()).filter(Boolean)},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[{type:'unit_tests',required:true,command:testCommand},...(buildCommand?[{type:'build',required:true,command:buildCommand}]:[])],completion:{requireEvidencePack:true,requireHumanApproval:true,...(outputs.length?{requiredArtifacts:outputs.map(path=>({path}))}:{})},createdAt:new Date().toISOString()};
       }
       const assignedAgentId = document.getElementById('task-agent').value;
       const projectId=document.getElementById('task-project').value;
@@ -2254,7 +2257,7 @@ export function renderWorkspaceApp(): string {
         }
         document.getElementById('task-title').value = '';
         document.getElementById('task-description').value = '';
-        for(const field of ['task-base-branch','task-base-sha','task-allowed-paths','task-test-command','task-build-command'])document.getElementById(field).value='';
+        for(const field of ['task-base-branch','task-base-sha','task-allowed-paths','task-test-command','task-build-command','task-output-paths'])document.getElementById(field).value='';
         document.getElementById('task-protected-paths').value='.env\\n.env.*\\n.git/**';
         document.querySelector('.task-boundary-editor').open=false;
         try{sessionStorage.removeItem('agentforge-task-draft');}catch{}
