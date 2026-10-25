@@ -145,3 +145,20 @@ authorization endpoint; callers must not log the resulting authorization URL.
 Fifteen OAuth/listener tests and full typechecking passed. This is preparation
 support, not completed account UI, refresh, revocation or provider activation.
 Source: https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions
+
+Hosted confirmation: commit dcae21517fa1c61e4a3f2db3e5b334a1be8559b2 passed
+all seven checks in run 40210196891, including Windows Node 22/24, macOS Node
+22/24, Linux Node 22/24 and public package/isolated execution acceptance.
+The Windows assembly-loading defect is closed for that tested build. This does
+not establish subscription activation, account renewal or overall release readiness.
+
+Session lifecycle integration requirements confirmed against official account
+and token documentation: retain issued client and host mapping on sign-out;
+keep registrations separate; serialize rotating refresh across processes; use
+only the saved issued client and resource on refresh; replace the complete token
+set; clear unusable refresh tokens and request reauthorization; stop requests on
+sign-out and report unconfirmed remote revocation accurately. These lifecycle
+items remain open, rather than being implied by passing storage tests.
+Sources:
+https://developers.openai.com/siwc/token-sharing-open-source/token-reference
+https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery
