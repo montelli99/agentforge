@@ -61,7 +61,7 @@ jobs:
       - name: Retain verified release package
         uses: actions/upload-artifact@v4
         with:
-          name: agentforge-${{ github.sha }}
+          name: agentforge-${{ github.event.pull_request.head.sha || github.sha }}
           path: release-output/
 
   test:

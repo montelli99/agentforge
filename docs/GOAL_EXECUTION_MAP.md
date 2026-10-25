@@ -355,3 +355,7 @@ Extracted a read-only eligibility check shared with rollback validation. Import 
 ### Registry preflight no longer treats network errors as availability
 
 The registry preflight now checks the exact package version using unauthenticated public npm metadata with a bounded deadline. A failed lookup or already-published version fails the gate; a public 404 is reported only as version-not-publicly-found, explicitly without account authentication or ownership verification. Packaging no longer invokes a shell and disables lifecycle scripts. The live check found no public agentforge@0.1.2 and packed 432 files; an injected lookup failure returned passed:false and exit 1. No publication occurred.
+
+### Hosted package identity matches checked-out source
+
+The retained artifact name now uses the same pull-request head SHA (or push SHA) as checkout, rather than the synthetic merge SHA. The archive still carries COMMIT.txt and SHA256SUMS.txt; this removes a misleading second identity from the download name, without claiming the new workflow has already run. npm whoami returned ENEEDAUTH, so registry publication remains blocked on account sign-in only; implementation and hosted verification continue independently.
