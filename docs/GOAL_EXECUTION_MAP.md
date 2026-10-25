@@ -333,3 +333,9 @@ Extended the existing migration integration case with real child processes using
 ### Migration authorization and dependency refusal coverage
 
 Extended existing API integration coverage across anonymous/viewer denials for prepare, commit and rollback; viewer history denial; cross-owner prepared-review refusal; and explicit-confirmation enforcement. A separate in-memory snapshot copy with a task assigned to an imported agent proves rollback refuses referenced records without deleting the agent. All 14 migration integration tests passed. Hosted runs 40221482665 (installed typed SDK) and 40221638926 (atomic import) completed successfully; later exact-build acceptance remains pending.
+
+### POSIX connection-worker timeout repair
+
+The command-line child runner previously sent SIGTERM only to the immediate process. A process ignoring that signal could leave the awaited close event unresolved indefinitely. POSIX invocations now own a process group; cancellation/deadline/output overflow signal that group and escalate to SIGKILL after one second. Cleanup clears the escalation timer. Windows tree termination remains unchanged.
+
+Direct reproduction in a network-disabled, read-only node:22-alpine container left the old runner hanging beyond the 15-second observation deadline; the specific reproduction container was then terminated. The same synthetic process with the repaired runner returned the timeout classification after 1513 ms, retained its ready output, and normal completion passed. Source and script type checking passed. This establishes the direct-child SIGTERM-resistance fix only; escaped process groups, descendant-specific acceptance, macOS runtime proof and complete subscription workflow acceptance remain open. Kane case generation failed with an opaque error, so no generated regression suite is claimed.
