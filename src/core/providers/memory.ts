@@ -41,6 +41,8 @@ export interface OperationalMemoryRecord {
 
 export interface MemoryQuery {
   namespace: string;
+  /** Stop work promptly when possible; callers also bound unresponsive adapters. */
+  signal?: AbortSignal;
   categories?: MemoryCategory[];
   queryText?: string;
   tags?: string[];

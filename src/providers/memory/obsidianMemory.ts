@@ -30,12 +30,13 @@ export class ObsidianMemoryProvider implements MemoryProvider {
     }finally{await handle.close();}
   }
   async query(query:MemoryQuery):Promise<MemorySearchResult[]>{
+    query.signal?.throwIfAborted();
     if(query.namespace!==this.namespace||query.projectId!==this.projectId||query.globalOnly)return [];
     if(query.categories&&!query.categories.includes('general_fact'))return [];
     if(query.tags?.length&&!query.tags.includes('chat-context'))return [];
     const terms=(query.queryText??'').toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const matches:MemorySearchResult[]=[];
-    for(const file of this.files){const record=await this.read(file),text=(record.title+'\n'+record.content).toLocaleLowerCase();const score=terms.filter(term=>text.includes(term)).length;if(!terms.length||score)matches.push({record,score});}
+    for(const file of this.files){query.signal?.throwIfAborted();const record=await this.read(file);query.signal?.throwIfAborted();const text=(record.title+'\n'+record.content).toLocaleLowerCase();const score=terms.filter(term=>text.includes(term)).length;if(!terms.length||score)matches.push({record,score});}
     return matches.sort((a,b)=>b.score-a.score).slice(0,Math.max(0,Math.min(query.limit??20,100)));
   }
   async get(namespace:string,id:string):Promise<OperationalMemoryRecord|null>{

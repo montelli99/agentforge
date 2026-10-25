@@ -107,6 +107,11 @@ describe("server-owned conversations", () => {
     await new ConversationRuntime(f.store, { provider: model, models: ["synthetic"],memoryNamespace:'synthetic-memory',memoryProvider:adapter }).respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
     expect(round).toBe(3);
     expect(query).toHaveBeenCalledWith(expect.objectContaining({namespace:'synthetic-memory',projectId:f.project.id,includeArchived:false}));
+    query.mockImplementationOnce(()=>new Promise(()=>{}));
+    const cancellation=new AbortController();
+    const pending=invokeConversationTool(f.store,undefined,f.thread.id,prompt.id,'search_project_memory','{"query":"original-decision"}',cancellation.signal,'synthetic-memory',adapter);
+    const stopped=expect(pending).rejects.toThrow('stopped or timed out');
+    cancellation.abort();await stopped;
     await expect(invokeConversationTool(f.store,undefined,f.thread.id,prompt.id,'search_project_memory','{"query":"original-decision"}',new AbortController().signal)).rejects.toThrow('not enabled');
     expect(f.store.listThreadMessages(f.thread.id)[0].content).toContain("original-decision");
   });
