@@ -34,6 +34,21 @@ describe("Setup Guide API", () => {
     const body = { profile:{id:'synthetic',provider:'openai',models:['synthetic-model']},apiKey:'synthetic-secret-never-export',passphrase:'synthetic vault passphrase' };
     expect((await request('/api/connections/save','',body)).status).toBe(401);
     expect((await request('/api/connections/save',viewer,body)).status).toBe(403);
+    // Apply the existing connection authorization contract to every subscription control.
+    for(const action of ['begin','restore','activate','cancel','signout']){
+      const route='/api/connections/chatgpt/'+action;
+      const anonymous=await request(route,'',{}),readOnly=await request(route,viewer,{});
+      expect(anonymous.status).toBe(401);expect(readOnly.status).toBe(403);
+      expect(anonymous.headers.get('cache-control')).toBe('no-store');
+    }
+    for(const [token,expected] of [['',401],[viewer,403]] as const){
+      const result=await fetch(base+'/api/connections/chatgpt/status',{headers:token?{Authorization:'Bearer '+token}:{}});
+      expect(result.status).toBe(expected);
+    }
+    // Invalid account selections must fail before any sign-in or provider request.
+    for(const action of ['restore','signout'])expect((await request('/api/connections/chatgpt/'+action,owner,{accountId:'../other-account'})).status).toBe(400);
+    expect((await request('/api/connections/chatgpt/activate',owner,{id:'unknown',model:'synthetic'})).status).toBe(400);
+    expect(fs.existsSync(path.join(dataDirectory,'subscription-accounts'))).toBe(false);
     const saved = await request('/api/connections/save',owner,body);
     expect(saved.status).toBe(200);
     const status = await saved.text(); expect(status).toContain('synthetic::synthetic-model');expect(status).not.toContain(body.apiKey);expect(status).not.toContain(body.passphrase);
