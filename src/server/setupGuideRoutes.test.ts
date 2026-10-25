@@ -94,6 +94,11 @@ describe("Setup Guide API", () => {
       expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
       expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
       expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
+      await server.stop();
+      server = new AgentForgeWebServer(store,0,undefined,undefined,options);
+      await server.start();base=server.getBaseUrl();
+      expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+      expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
       expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
       expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
       }
