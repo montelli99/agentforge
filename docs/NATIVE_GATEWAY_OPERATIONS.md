@@ -223,3 +223,19 @@ the saved receipt is retained. Remote cancellation, guided connection setup,
 chat-to-delegation review UI, actual model-backed task acceptance, artifact/result
 verification and Hermes integration remain open. No stable-release or comparative
 superiority claim follows from this checkpoint.
+
+### Run-scoped Stop checkpoint
+
+The transport, durable control plane, authenticated API and browser now support
+an explicit confirmed Stop request for the saved session/run. The attempt is
+persisted before the remote request and is never automatically replayed after
+uncertainty. Acknowledgement must name that run; it does not prove every partial
+side effect has ended. The browser acceptance verifies confirmation, persisted
+acknowledgement, and no repeated Stop after reload using a synthetic runtime.
+
+The current compiled transport was also tested against disposable OpenClaw
+2026.10.7. Stop for the synthetic unknown run returned acknowledged=false; no
+model call occurred and the container was stopped afterward. Transport SHA-256:
+ef4a0f36d9dc31528317ecf53d51f7a63a3b9034c2ac09bd7ee143c64a4b9e1e
+This establishes unknown-run behavior only. Stopping an active model-backed run
+and inspecting its partial results still need acceptance evidence.
