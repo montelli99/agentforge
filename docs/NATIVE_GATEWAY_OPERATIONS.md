@@ -336,3 +336,18 @@ they cannot silently adopt old receipts. This is configuration binding, not proo
 of remote identity. Eleven focused tests, full type checking and build passed.
 Guided credential setup, real model-backed task execution and verified results
 remain incomplete. The current published release does not contain these changes.
+
+### Real Hermes failure receipt and restart observation
+
+With the same isolated image, no network and no model credentials, the compiled
+adapter submitted one synthetic no-tools request to the existing synthetic API
+session. Request ID: agentforge-failure-probe-20261025. Hermes accepted run ID
+run_fdc947107c10460ca88eae4eaa386e35; its observed status was failed. After restart,
+an immediate observation raced startup and failed transport. A subsequent start
+with bounded read-only capability polling recovered the same run's failed status.
+No submission was replayed. The container was stopped afterward. This proves
+failed-run persistence/observation, not successful execution or its failure cause.
+
+The local integrated regression suite at b00b08f plus the delegation copy change
+passed 138 files: 818 tests passed, two skipped (820 total), in 78.48 seconds.
+This is local evidence; exact final-head hosted acceptance remains required.
