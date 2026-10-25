@@ -56,7 +56,7 @@ private or historical research snapshots are not release evidence.
    - Structured hierarchy: `Workspace` $\rightarrow$ `Space` $\rightarrow$ `Channel` $\rightarrow$ `Thread` $\rightarrow$ `Message`.
    - Agent records model roles, goals, routing policies, tool grants, execution bounds, and memory namespaces.
    - The vNext launcher persists canonical workspace state and operational memory to local versioned JSON snapshots with backup recovery. This is local-first staging storage, not a multi-node production database.
-   - Operational memory supports durable local records and retrieval; broad automatic task-history retrieval and semantic evaluation remain further work.
+   - Operational memory supports durable local records and retrieval; broad automatic task-history retrieval and semantic evaluation remain further work. Developers can add sources through the [memory provider SDK](docs/MEMORY_PROVIDER_SDK.md).
 
 2. **AgentForge Harness & Optional Execution Engines**
    - AgentForge owns the control plane, execution contracts, approvals, memory, routing, compute boundaries, and evidence lifecycle.

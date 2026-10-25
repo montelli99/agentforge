@@ -3,7 +3,7 @@ import {HindsightMemoryProvider} from './hindsightMemory.js';
 import { OperationalMemoryProvider } from "./operationalMemory.js";
 import {ObsidianMemoryProvider} from './obsidianMemory.js';
 import {CompositeMemoryProvider} from './compositeMemory.js';
-import {memorySourceIdentity} from '../../core/providers/memory.js';
+import {memorySourceIdentity,queryMemoryBounded} from '../../core/providers/memory.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -43,6 +43,15 @@ describe("OperationalMemoryProvider", () => {
     });
     expect(scoped.map(result => result.record.id)).toEqual([globalRule.id, projectRule.id]);
     expect(scoped.map(result => result.record.id)).not.toContain(betaRule.id);
+    const thirdParty = Object.assign(Object.create(memory), {
+      query: vi.fn(async () => [betaRule, globalRule, projectRule, { ...projectRule, id: 'archived', archived: true }]
+        .map(record => ({ record, score: 1 }))),
+    });
+    const guarded = await queryMemoryBounded(thirdParty, { namespace: 'workspace', projectId: 'alpha', tags: ['safety'], limit: 2 });
+    expect(guarded.map(item => item.record.id)).toEqual([globalRule.id, projectRule.id]);
+    expect(await queryMemoryBounded(thirdParty, { namespace: 'other', limit: 2 })).toEqual([]);
+    thirdParty.query.mockResolvedValueOnce([{ record: { ...projectRule, content: 'x'.repeat(65537) }, score: 1 }]);
+    await expect(queryMemoryBounded(thirdParty, { namespace: 'workspace' })).rejects.toThrow('Invalid memory provider');
     const globalOnly = await memory.query({ namespace: "workspace", globalOnly: true });
     expect(globalOnly.map(result => result.record.id)).toEqual([globalRule.id]);
     expect(await memory.getDoNotRepeatRules("workspace", "alpha")).toEqual([globalRule, projectRule]);

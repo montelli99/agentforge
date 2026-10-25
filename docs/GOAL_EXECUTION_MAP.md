@@ -200,3 +200,14 @@ The migration website guide was updated to explain uploaded previews and the
 unfinished import/rollback boundary; website checks passed across 42 pages.
 Hosted run `40219215991` for `1788689` was still running when checked; no final
 hosted result or rendered-browser acceptance is claimed here.
+
+The public memory SDK guide now documents custom adapter integration into both
+embedded chat and task runtimes, composition, persistence responsibilities and
+acceptance boundaries. ConversationRuntime is exported from the public package.
+The shared query helper validates response shape/size and filters scope, tags,
+categories and archives while preserving explicitly shared workspace records.
+It snapshots query filter arrays so an adapter cannot modify the caller's filter
+criteria. The focused memory/chat/worker suites passed 24 tests. Build and package
+import/privacy acceptance passed before the final category/filter-array guards;
+those final guards passed the focused suites. Custom plugin installation UI and
+live provider acceptance are not completed by this SDK work.

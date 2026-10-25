@@ -66,3 +66,4 @@ export {SubscriptionCliModelProvider,readSubscriptionCliConfiguration,type Subsc
 export {prepareChatGPTSignIn,chatgptDirectSignInEndpoint} from "./providers/models/chatgptDirectSignIn.js";
 export {exchangeDirectCallback,type DirectTokenExchangeTransport,type SessionCredentials} from "./providers/models/chatgptDirectExchange.js";
 export * from "./providers/memory/compositeMemory.js";
+export { ConversationRuntime, type ConversationConfiguration } from "./server/conversationRuntime.js";
