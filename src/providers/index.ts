@@ -12,6 +12,7 @@ export * from "./models/modelRouter.js";
 
 export * from "./decision/jevDecision.js";
 export * from "./memory/operationalMemory.js";
+export * from "./memory/obsidianMemory.js";
 
 export * from "./channels/telegramMirror.js";
 export * from "./channels/discordMirror.js";
