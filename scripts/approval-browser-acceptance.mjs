@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,readFile} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
+import http from 'node:http';
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
 
 const {ApprovedPlanProvider}=await builtModule('core/runtime/approvedPlanProvider.js');
@@ -15,6 +16,7 @@ const executable=process.env.AGENTFORGE_BROWSER_EXECUTABLE;
 if(!executable||!path.isAbsolute(executable))throw Error('Select an absolute Chromium executable');
 process.env.AGENTFORGE_AUTH_STRICT='1';
 const root=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-browser-'));
+const privateSettings=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-private-'));
 const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}).trim();
     git(root, ["init", "--initial-branch=main"]);
     await writeFile(path.join(root, "README.md"), "# AgentForge Docker E2E\n", "utf8");
@@ -32,10 +34,34 @@ const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecut
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
 assert.equal((await backend.initialize()).ready,true);
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
-let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(root,'settings.json')});let browser;
+let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(privateSettings,'settings.json')});let browser;
+let modelRequests=0;
+const plannedCommands=[{checkName:'unit_tests',command,timeoutMs:10000}];
+const provider=http.createServer(async(req,res)=>{
+ let raw='';for await(const chunk of req)raw+=chunk;
+ const body=JSON.parse(raw);modelRequests++;
+ assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
+ res.writeHead(200,{'Content-Type':'application/json'});
+ res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));
+});
+await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
+ if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();
+ await page.getByLabel('Models and routing',{exact:true}).click();
+ await page.getByRole('button',{name:'Continue',exact:true}).click();
+ await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');
+ await page.getByLabel('API base URL',{exact:true}).fill('http://127.0.0.1:'+provider.address().port+'/v1');
+ await page.getByLabel('Model name',{exact:true}).fill('synthetic-model');
+ await page.getByLabel('Dedicated API key',{exact:true}).fill('synthetic-not-a-provider-key');
+ await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic proof vault password');
+ const connectionSaved=page.waitForResponse(response=>response.url().endsWith('/api/connections/save')&&response.request().method()==='POST');
+ await page.getByRole('button',{name:'Save and connect',exact:true}).click();
+ const connectionResponse=await connectionSaved;
+ assert.equal(connectionResponse.status(),200,JSON.stringify(await connectionResponse.json()));
+ await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
+ assert.equal(modelRequests,0);
  await page.getByLabel('Tasks and runs',{exact:true}).click();
  await page.getByRole('button',{name:'Create your first task',exact:true}).click();
  await page.locator('#task-project').selectOption(project.id);
@@ -79,6 +105,12 @@ try{
  await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
  await page.locator('.task-proof-step').filter({hasText:'Plan'}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
+ await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption('compatible::synthetic-model');
+ await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
+ await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
+ assert.equal(modelRequests,1);
+ assert.deepEqual(store.getTask(taskId).executionPlanDraft.commands,plannedCommands);
+ assert.equal(store.getTask(taskId).planningAudits.at(-1).status,'completed');
  assert.match(await page.locator('.execution-command-list').innerText(),/verified.txt/);
  assert.equal(store.getTask(taskId).approvedExecutionPlan,undefined);
  await page.getByRole('button',{name:'Approve these commands',exact:true}).click();
@@ -94,7 +126,7 @@ try{
  const oldUrl=server.getBaseUrl();worker.stop();await server.stop();
  store=new WorkspaceStore(path.join(root,'state.json'));
  worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
- server=new AgentForgeWebServer(store,Number(new URL(oldUrl).port),undefined,worker,{settingsFilePath:path.join(root,'settings.json')});
+ server=new AgentForgeWebServer(store,Number(new URL(oldUrl).port),undefined,worker,{settingsFilePath:path.join(privateSettings,'settings.json')});
  await server.start();await page.reload();
  if(await page.locator('input[name=username]').isVisible()){
   await page.locator('input[name=username]').fill('owner');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Sign in',exact:true}).click();
@@ -117,6 +149,7 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
- console.log(JSON.stringify({passed:true,syntheticOnly:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
-}finally{await browser?.close();worker.stop();await server.stop();}
+ assert.equal(modelRequests,1);
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,syntheticModelDraft:true,oneModelRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+}finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
 
