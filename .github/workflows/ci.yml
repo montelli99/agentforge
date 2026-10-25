@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# A newer revision replaces the older verification request for the same PR.
+# Keep different pull requests and release branches independent.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   public-acceptance:
     name: Public package and isolated execution acceptance
