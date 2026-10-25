@@ -284,3 +284,27 @@ model call occurred and the container was stopped afterward. Transport SHA-256:
 ef4a0f36d9dc31528317ecf53d51f7a63a3b9034c2ac09bd7ee143c64a4b9e1e
 This establishes unknown-run behavior only. Stopping an active model-backed run
 and inspecting its partial results still need acceptance evidence.
+
+### Pinned Hermes runtime discovery (2026-10-25)
+
+The official Linux amd64 image was pulled by immutable manifest digest
+`sha256:648e4daf033bf2de209435fd9dd61ee3e11103c1f7e1ab469bffbfb99acc263f`.
+Its image revision label is `90194c64ff99933ec3b9ecfd9295b06e6c11e038`
+(not the newer repository revision inspected during preparation).
+The gateway ran as the image's hermes user, with Docker init, no network,
+no host mounts, a temporary HERMES_HOME and a synthetic API key. The initial
+root launch was refused by upstream; it was not overridden.
+
+Real HTTP discovery returned authenticated capabilities and an empty session
+list (200), anonymous denial (401), and unknown-run rejection (404).
+Capabilities explicitly report server-side tool execution. No run was submitted,
+no model credential was supplied and the probe container was stopped afterward.
+Evidence: `evidence/hermes-runtime-readonly-20261025.json`, SHA-256
+`463935b6d4178ef8f7f69473740e2bf9d74a189d3e0b0bf89c255656600b9faa`.
+This verifies discovery/authentication only, not model-backed delegation.
+
+Adapter review also found URL dot-segment normalization could redirect run
+observation/Stop to a parent API path. Dot-only identifiers are now rejected,
+including returned submission receipts. Seven adapter regressions and full
+source/script type checking passed. Registration, guided setup, real execution,
+and verified result recovery still require implementation and acceptance.

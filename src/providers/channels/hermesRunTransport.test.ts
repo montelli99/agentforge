@@ -61,3 +61,14 @@ it('rejects insecure origins and invalid submissions before network access',asyn
  await expect(client().submitSessionTurn('','task','request-123')).rejects.toThrow();
  await expect(client().submitSessionTurn('session','task','bad')).rejects.toThrow();expect(fetcher).not.toHaveBeenCalled();
 });
+it('rejects dot-segment receipts and never observes or stops a normalized parent route',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ for(const runId of ['.','..']){
+  await expect(client().inspectRun(runId)).rejects.toThrow('Invalid Hermes identifier');
+  await expect(client().requestRunStop('session',runId)).rejects.toThrow('Invalid Hermes identifier');
+ }
+ expect(fetcher).not.toHaveBeenCalled();
+ fetcher.mockResolvedValueOnce(Response.json({run_id:'..',status:'started'}));
+ await expect(client().submitSessionTurn('session','task','request-123')).rejects.toThrow('Invalid Hermes identifier');
+ expect(fetcher).toHaveBeenCalledTimes(1);
+});

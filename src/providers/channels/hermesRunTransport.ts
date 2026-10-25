@@ -10,7 +10,12 @@ export class HermesRunTransport {
     if(!token.trim()||/[\r\n]/.test(token))throw Error('Hermes API credential is required');
     this.origin=parsed.origin;
   }
-  private identifier(value:string){if(!value.trim()||value.length>512||/[\u0000-\u001f\u007f]/.test(value))throw Error('Invalid Hermes identifier');return encodeURIComponent(value);}
+  private identifier(value:string){
+    // URL parsers normalize dot segments even when percent-encoded. Never let
+    // a remote receipt redirect observation or Stop to a different API path.
+    if(!value.trim()||value==='.'||value==='..'||value.length>512||/[\u0000-\u001f\u007f]/.test(value))throw Error('Invalid Hermes identifier');
+    return encodeURIComponent(value);
+  }
   private async request(route:string,method='GET',body?:unknown,key?:string):Promise<Record<string,unknown>>{
     let response:Response;
     try{response=await fetch(this.origin+route,{method,redirect:'error',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+this.token,'Content-Type':'application/json',...(key?{'Idempotency-Key':key}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});}
