@@ -47,6 +47,11 @@ export function buildDockerRunArguments(
     "--pids-limit", "256",
     "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
   ];
+  // Bind-mounted outputs retain host ownership on Linux. Match that identity
+  // instead of requiring world-writable files or DAC override capabilities.
+  if (process.platform === "linux" && process.getuid && process.getgid) {
+    args.push("--user", `${process.getuid()}:${process.getgid()}`);
+  }
   if (options.maxMemoryBytes) args.push(`--memory=${options.maxMemoryBytes}b`);
   if (options.cpuQuota) args.push(`--cpus=${options.cpuQuota}`);
   args.push('-v', `${worktreePath}:/workspace:ro`);

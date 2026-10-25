@@ -104,6 +104,9 @@ describe("Compute Subsystem & Sandboxing (Section 36)", () => {
       expect(args).toContain("--cap-drop");
       expect(args).toContain("--security-opt");
       expect(args).toContain("no-new-privileges");
+      if (process.platform === "linux" && process.getuid && process.getgid) {
+        expect(args[args.indexOf("--user") + 1]).toBe(`${process.getuid()}:${process.getgid()}`);
+      }
       expect(args).toContain("C:/isolated/task:/workspace:ro");
       expect(args).not.toContain("C:/isolated/task:/workspace:rw");
       expect(args).not.toContain("sh -c pnpm test");
