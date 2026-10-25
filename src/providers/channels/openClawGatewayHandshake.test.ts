@@ -101,3 +101,14 @@ describe("current gateway protocol contract", () => {
     expect(socket.sent).toHaveLength(1); client.stop();
   });
 });
+
+it('reads only the selected session and preserves unknown active-run state', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const result = client.readSessionHistory('agent:main:synthetic-probe', 10);
+  expect(socket.sent[1]).toMatchObject({method: 'chat.history', params: {sessionKey: 'agent:main:synthetic-probe', limit: 10}});
+  socket.receive({type: 'res', id: socket.sent[1].id, ok: true, payload: {messages: [], sessionInfo: {hasActiveRun: true}}});
+  expect(await result).toEqual({messages: [], sessionInfo: {hasActiveRun: true}});
+  await expect(client.readSessionHistory('')).rejects.toThrow(/explicit/);
+  await expect(client.readSessionHistory('selected', 101)).rejects.toThrow(/limit/);
+  expect(socket.sent).toHaveLength(2); client.stop();
+});

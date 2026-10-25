@@ -108,6 +108,18 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return parsed;
   }
 
+  /** Read one explicitly bound session; never infer a session or replay a turn. */
+  async readSessionHistory(sessionKey: string, limit = 50): Promise<Record<string, unknown> & { messages: unknown[] }> {
+    if (!sessionKey.trim() || sessionKey.length > 512 || /[\u0000-\u001f]/.test(sessionKey)) throw new Error("An explicit valid gateway session key is required");
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error("History limit must be between 1 and 100");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!["operator.read", "operator.write", "operator.admin"].some(scope => this.grantedScopes.has(scope))) throw new Error("gateway did not grant history read permission");
+    const result = await this.request<Record<string, unknown>>("chat.history", { sessionKey, limit });
+    if (!result || !Array.isArray(result.messages)) throw new Error("gateway returned invalid session history");
+    // Preserve activity fields exactly. Missing activeRunIds is not proof of idle.
+    return result as Record<string, unknown> & { messages: unknown[] };
+  }
+
   private sendConnect(signedAt: number) {
     const scopes = ["operator.read", "operator.write"];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");

@@ -124,3 +124,12 @@ Disposable image ID:
 The initial host-to-container attempts failed to authenticate over the internal
 network; the successful probe ran in the gateway container's own network
 namespace. This is local backend authentication, not remote-device pairing.
+
+The next adapter revision also read `chat.history` successfully for the explicit
+synthetic session `agent:main:agentforge-synthetic-probe` in the same disposable
+2026.10.7 runtime. The response contained zero messages plus sessionInfo and
+pagination fields; no inference or outbound chat occurred. The read API requires
+an explicit key and negotiated read authority and preserves unknown activity
+fields rather than interpreting omission as idle. A pre-ready connection failed;
+retry after the runtime reported readiness succeeded. Automatic startup retry,
+UI session binding and task reconciliation are still unfinished.
