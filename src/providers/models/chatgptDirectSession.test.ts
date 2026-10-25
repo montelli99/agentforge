@@ -9,6 +9,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {DirectTokenStore} from './chatgptDirectTokenStore.js';
 import {WindowsDirectCredentialBackend} from './windowsDirectCredentialBackend.js';
 import {renewDirectSession} from './chatgptDirectSession.js';
+import {signOutDirectSession} from './chatgptDirectSignOut.js';
 import {renewStoredChatGPTSession} from './chatgptDirectSignInRuntime.js';
 import type {DirectCredentials} from './chatgptDirectOAuth.js';
 const credentials=():DirectCredentials=>({clientId:'synthetic-client',subject:'synthetic-subject',issuer:'https://auth.openai.com',resource:'https://api.openai.com/v1',accessToken:'synthetic-access',refreshToken:'synthetic-refresh',idToken:'synthetic-id',tokenType:'Bearer',scopes:['resource.invoke','chatgpt.tokens.use.direct'],expiresAt:Date.now()+10000});
@@ -50,6 +51,16 @@ describe.skipIf(process.platform!=='win32')('protected session renewal',()=>{
     await expect(renewDirectSession(reopened,original.clientId,original.subject,{refresh,verifier})).rejects.toThrow('sign-in required');expect(refresh).toHaveBeenCalledTimes(1);
     await reopened.replace({...original,expiresAt:Date.now()+3600000});
     await renewDirectSession(reopened,original.clientId,original.subject,{refresh,verifier});expect(refresh).toHaveBeenCalledTimes(1);
+    // Sign-out must still remove an unreadable local grant; no token can be
+    // sent remotely when decryption fails. Only this disposable fixture changes.
+    const files=(await fs.readdir(directory)).filter(name=>name.endsWith('.dpapi'));
+    expect(files).toHaveLength(1);
+    await fs.writeFile(path.join(directory,files[0]!),Buffer.from('synthetic-corrupt-record'));
+    const request=vi.fn<typeof fetch>();
+    expect(await signOutDirectSession(reopened,original.clientId,original.subject,request))
+      .toEqual({localCleared:true,remoteRevocation:'unconfirmed'});
+    expect(request).not.toHaveBeenCalled();
+    expect(await reopened.read(original.clientId,original.subject)).toBeUndefined();
   }),30000);
   it('excludes another process and releases the OS lock when its owner exits',async()=>temporary(async directory=>{
     const moduleUrl=pathToFileURL(fileURLToPath(new URL('./windowsDirectCredentialBackend.ts',import.meta.url))).href;

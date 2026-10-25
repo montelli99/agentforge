@@ -6,11 +6,11 @@ const discovery='https://auth.openai.com/.well-known/openid-configuration';
  * serialize revocation and removal against refresh of the same token record. */
 export async function signOutDirectSession(store:DirectTokenStore,clientId:string,subject:string,request:typeof fetch=fetch){
  return store.transaction(clientId,subject,async record=>{
-  const credentials=await record.read();
-  if(!credentials)return {localCleared:true,remoteRevocation:'no-local-session' as const};
   let confirmed=false;
   const signal=AbortSignal.timeout(12000);
   try{
+   const credentials=await record.read();
+   if(!credentials)return {localCleared:true,remoteRevocation:'no-local-session' as const};
    if(credentials.refreshToken){
     const response=await request(discovery,{signal,redirect:'error',headers:{Accept:'application/json'}});
     if(!response.ok)throw Error('Discovery unavailable');
