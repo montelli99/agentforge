@@ -95,6 +95,16 @@ const NO_EXECUTION_BACKEND: ExecutionReadiness = {
 export class TaskWorkerRuntime {
   private readonly runId = crypto.randomUUID();
   private activeWorkers = 0;
+  private projectMemory=new Map<string,{provider:MemoryProvider;namespace:string}>();
+  setProjectMemory(projectId:string,provider:MemoryProvider,namespace:string){
+    if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
+    if(!projectId||!namespace)throw Error('Explicit memory project and namespace required');
+    this.projectMemory.set(projectId,{provider,namespace});
+  }
+  clearSelectedProjectMemory(){
+    if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
+    this.projectMemory.clear();
+  }
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
   private readonly worktreeManager: WorktreeManager;
@@ -319,10 +329,11 @@ export class TaskWorkerRuntime {
 
   private async buildWorkerContext(task: Task): Promise<ContextPacket> {
     const sources: ContextSource[] = [{ id: task.id, kind: "goal", text: `${task.title}\n${task.description}` }];
-    const memory = this.options.memoryProvider;
+    const selected=task.projectId?this.projectMemory.get(task.projectId):undefined;
+    const memory = selected?.provider??this.options.memoryProvider;
     if (!memory) return buildContextPacket(sources);
     const queryText = `${task.title} ${task.description}`.slice(0, 2_000);
-    const scope = { namespace: this.options.memoryNamespace || "workspace",
+    const scope = { namespace: selected?.namespace??this.options.memoryNamespace??"workspace",
       projectId: task.projectId, globalOnly: !task.projectId };
     const [rules, topical] = await Promise.all([
       memory.query({ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
@@ -330,6 +341,7 @@ export class TaskWorkerRuntime {
     ]);
     const seen = new Set<string>();
     const records = [...rules, ...topical].filter(({ record }) => {
+      if(record.namespace!==scope.namespace||record.archived||(selected?record.projectId!==task.projectId:record.projectId&&record.projectId!==task.projectId))return false;
       if (seen.has(record.id)) return false;
       seen.add(record.id);
       return true;

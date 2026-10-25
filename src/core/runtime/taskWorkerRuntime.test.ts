@@ -427,6 +427,14 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(receivedContextText).not.toContain("Beta private note");
       expect(receivedSourceIds).toHaveLength(3);
       expect(store.listAuditEntries().some(entry => entry.action === "TASK_CONTEXT_PACKED" && entry.targetId === task.id)).toBe(true);
+      const selected=new OperationalMemoryProvider();
+      await selected.record({namespace:'selected',projectId:'project-alpha',category:'general_fact',title:'Selected release source',content:'Selected release evidence',tags:['chat-context']});
+      runtimeWithMemory.setProjectMemory('project-alpha',selected,'selected');
+      const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
+      expect(selectedContext.content).toContain('Selected release source');
+      expect(selectedContext.content).not.toContain('Alpha delivery rule');
+      runtimeWithMemory.clearSelectedProjectMemory();
+      expect((await runtimeWithMemory.getPlanningContext(task.id)).content).toContain('Alpha delivery rule');
 
       const projectless = store.createTask({
         id: "TASK-MEMORY-GLOBAL", title: "Review beta private note", priority: "medium", status: "ready",

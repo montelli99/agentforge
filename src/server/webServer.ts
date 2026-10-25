@@ -2900,12 +2900,14 @@ export class AgentForgeWebServer {
       try{
         const body=await this.readBody(req);
         await this.conversations.changeMemory(async()=>{
-          if(body.action==='disconnect')return {memoryNamespace:undefined,memoryProvider:undefined};
+          if(this.taskWorkerRuntime.getActiveTasksCount())throw Error('Finish active tasks before changing memory');
+          if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory();return {memoryNamespace:undefined,memoryProvider:undefined};}
           const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
           if((body.action==='restore'||body.action==='forget'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
           if(body.action==='forget'){
             await vault.unlock(body.passphrase as string);
             await vault.save({},body.passphrase as string);
+            this.taskWorkerRuntime.clearSelectedProjectMemory();
             return {memoryNamespace:undefined,memoryProvider:undefined};
           }
           const selection=body.action==='restore'?JSON.parse((await vault.unlock(body.passphrase as string)).AGENTFORGE_KEY_MEMORY_SELECTION||'null'):body;
@@ -2916,6 +2918,8 @@ export class AgentForgeWebServer {
             if(fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json')))await vault.unlock(body.passphrase as string);
             await vault.save({AGENTFORGE_KEY_MEMORY_SELECTION:JSON.stringify({action:'obsidian',confirmSharing:true,root:selection.root,namespace:selection.namespace.trim(),projectId:selection.projectId,files:selection.files})},body.passphrase as string);
           }
+          this.taskWorkerRuntime.clearSelectedProjectMemory();
+          this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());
           return {memoryNamespace:selection.namespace.trim(),memoryProvider};
         });
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
