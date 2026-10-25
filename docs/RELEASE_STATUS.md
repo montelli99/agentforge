@@ -1,3 +1,28 @@
+## Exact-build checkpoint — 2026-10-25
+
+Revision `3a6d259e881e117d3d6b80575ba0c7e431206b1e` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40225338010).
+The downloaded package was installed in a disposable directory; public SDK
+imports and starter initialization/validation passed. Its tarball SHA-256 is
+`02b92af5e44738aa08cef13554867a4a3194cf523ac5fa7a8758c33d7fa1021e`.
+This evidence applies to that revision, not automatically to later changes.
+
+A live synthetic planning/execution workflow reopened in a new process with
+matching artifact hashes, its observed receipt and pending final approval
+preserved, and zero additional backend executions. This is not a forced-kill
+test during execution or an end-user approval-screen acceptance test.
+
+Browser acceptance of the installed package remains incomplete. The isolated
+browser run ended with `Credits exhausted: insufficient credits`; its terminal
+session record SHA-256 is
+`dc6db984eda8d6c2690c986041d09d15b0b7bdcc8fb25bd48186b5f27ff90258`.
+An authenticated test-tool account did not establish available test credits.
+Do not report this run as a product failure or a passing UI check.
+
+Managed subscription routes, full onboarding/approval UI acceptance, broader
+recovery, comparative evidence and publication remain open as tracked in
+[the full release plan](RELEASE_COMPLETION_PLAN.md).
+
 ## Local release verification — 2026-10-25
 
 The public export was rebuilt and checked locally. Recovery now reconstructs the owned memory staging cache and index before serving after restart, validates durable state, and records replayable control receipts in the same database transaction. Control revision checks are serialized; source cohorts are checked again before ingestion. Continuous synthetic memory remains opt-in and requires a caller-supplied watcher; it is not automatic private-session discovery.
