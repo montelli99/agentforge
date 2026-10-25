@@ -27,11 +27,12 @@ function identity(filePath: string): DeviceIdentity {
   return created;
 }
 
-/** OpenClaw/Hermes-style gateway client. It never polls Telegram and never owns a Telegram token. */
+/** Experimental OpenClaw gateway client. It never polls Telegram and never owns a Telegram token. */
 export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private socket?: WebSocket;
   private connected = false;
   private nonce?: string;
+  private connectId?: string;
   private seq = 0;
   private readonly pending = new Map<string, Pending>();
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
@@ -45,17 +46,19 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     this.device = identity(options.identityPath);
   }
 
-  // Report a connecting socket as available so the relay can subscribe before
-  // the gateway handshake completes; a disconnected socket is false.
-  isConnected(): boolean { return Boolean(this.socket) && (this.connected || this.socket?.readyState === WebSocket.CONNECTING); }
+  // Only an authenticated handshake establishes connection authority.
+  isConnected(): boolean { return this.connected && this.socket?.readyState === WebSocket.OPEN; }
+  isConnecting(): boolean { return Boolean(this.socket) && !this.connected; }
 
   start(): void {
     if (this.socket) return;
+    this.nonce = undefined;
+    this.connectId = undefined;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
-    socket.addEventListener("open", () => this.sendConnect());
-    socket.addEventListener("message", event => this.handle(String(event.data)));
+    socket.addEventListener("message", event => { if (this.socket === socket) this.handle(String(event.data)); });
     socket.addEventListener("close", () => {
+      if (this.socket !== socket) return;
       this.connected = false;
       this.socket = undefined;
       for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected"));
@@ -63,7 +66,16 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     });
   }
 
-  stop(): void { this.socket?.close(); this.socket = undefined; this.connected = false; }
+  stop(): void {
+    const socket = this.socket;
+    this.socket = undefined;
+    this.connected = false;
+    this.connectId = undefined;
+    this.nonce = undefined;
+    for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected; delivery may be uncertain"));
+    this.pending.clear();
+    socket?.close();
+  }
 
   subscribe(handler: (update: TelegramBotUpdate) => Promise<void>): () => void {
     this.subscribers.add(handler);
@@ -85,7 +97,8 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
     const publicRaw = (crypto.createPublicKey(this.device.publicKeyPem).export({ type: "spki", format: "der" }) as Buffer).subarray(-32);
     const signature = b64url(crypto.sign(null, Buffer.from(payload), crypto.createPrivateKey(this.device.privateKeyPem)));
-    this.send({ type: "req", id: crypto.randomUUID(), method: "connect", params: {
+    this.connectId = crypto.randomUUID();
+    this.send({ type: "req", id: this.connectId, method: "connect", params: {
       minProtocol: 3, maxProtocol: 3,
       client: { id: "gateway-client", version: "agentforge", platform: process.platform, mode: "backend" },
       caps: [], role: "operator", scopes, auth: this.options.token ? { token: this.options.token } : undefined,
@@ -100,16 +113,21 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       const event = frame as unknown as GatewayEvent;
       if (event.event === "connect.challenge") {
         const nonce = (event.payload as { nonce?: unknown } | undefined)?.nonce;
-        if (typeof nonce === "string") { this.nonce = nonce; this.sendConnect(); }
-      } else if (event.event === "chat") this.emitChat(event.payload);
+        if (typeof nonce === "string" && nonce.length > 0 && !this.connectId && !this.connected) { this.nonce = nonce; this.sendConnect(); }
+      } else if (event.event === "chat" && this.connected) this.emitChat(event.payload);
       return;
     }
     if (frame.type === "res" && typeof frame.id === "string") {
+      if (frame.id === this.connectId) {
+        const payload = frame.payload as { type?: string } | undefined;
+        this.connectId = undefined;
+        if (frame.ok === true && payload?.type === "hello-ok") this.connected = true;
+        else this.stop();
+        return;
+      }
       const waiter = this.pending.get(frame.id); if (!waiter) return;
       this.pending.delete(frame.id);
       if (frame.ok === true) waiter.resolve(frame.payload); else waiter.reject(new Error(String((frame.error as { message?: unknown } | undefined)?.message ?? "gateway request failed")));
-      const payload = frame.payload as { type?: string } | undefined;
-      if (payload?.type === "hello-ok") this.connected = true;
     }
   }
 
@@ -125,7 +143,22 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
 
   private send(frame: unknown) { if (!this.socket || this.socket.readyState !== WebSocket.OPEN) throw new Error("gateway not connected"); this.socket.send(JSON.stringify(frame)); }
   private request<T>(method: string, params: unknown): Promise<T> {
+    if (!this.isConnected()) return Promise.reject(new Error("gateway authentication not complete"));
     const id = crypto.randomUUID();
-    return new Promise<T>((resolve, reject) => { this.pending.set(id, { resolve: value => resolve(value as T), reject }); this.send({ type: "req", id, method, params }); });
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error("gateway response timed out; delivery may be uncertain"));
+      }, 30_000);
+      this.pending.set(id, {
+        resolve: value => { clearTimeout(timer); resolve(value as T); },
+        reject: error => { clearTimeout(timer); reject(error); },
+      });
+      try { this.send({ type: "req", id, method, params }); }
+      catch (error) {
+        this.pending.get(id)?.reject(error instanceof Error ? error : new Error("gateway send failed"));
+        this.pending.delete(id);
+      }
+    });
   }
 }
