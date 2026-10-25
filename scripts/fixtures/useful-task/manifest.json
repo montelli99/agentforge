@@ -1,0 +1,18 @@
+{
+  "status": "frozen-before-provider-request",
+  "files": [
+    {
+      "file": "invoices.json",
+      "sha256": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5"
+    },
+    {
+      "file": "PROTOCOL.txt",
+      "sha256": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+    },
+    {
+      "file": "verify.mjs",
+      "sha256": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409"
+    }
+  ],
+  "requirement": "P02"
+}

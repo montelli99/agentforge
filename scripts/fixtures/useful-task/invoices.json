@@ -1,0 +1,11 @@
+[
+ {"id":"inv-01","revision":1,"customer":"Acme","currency":"USD","status":"paid","amountCents":1000},
+ {"id":"inv-02","revision":1,"customer":"Acme","currency":"USD","status":"refunded","amountCents":250},
+ {"id":"inv-03","revision":1,"customer":"Acme","currency":"EUR","status":"paid","amountCents":500},
+ {"id":"inv-01","revision":2,"customer":"Acme","currency":"USD","status":"paid","amountCents":1200},
+ {"id":"inv-04","revision":1,"customer":"Beta","currency":"USD","status":"void","amountCents":999},
+ {"id":"inv-05","revision":1,"customer":"Beta","currency":"USD","status":"paid","amountCents":300},
+ {"id":"inv-06","revision":3,"customer":"Beta","currency":"EUR","status":"refunded","amountCents":75},
+ {"id":"inv-06","revision":2,"customer":"Beta","currency":"EUR","status":"paid","amountCents":800},
+ {"id":"inv-07","revision":1,"customer":"Gamma","currency":"USD","status":"paid","amountCents":0}
+]
