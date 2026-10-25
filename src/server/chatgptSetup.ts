@@ -16,7 +16,9 @@ const accountPattern=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a
 /** Authenticated web handlers own authorization; actor-scoped storage owns account separation. */
 export class ChatGPTSetup {
  private attempts=new Map<string,Attempt>();
- private starting=new Set<string>();
+ private starting=new Map<string,AbortController>();
+ private closed=false;
+ private connections=new Set<ChatGPTActiveConnection>();
  private verifierDirectory=fileURLToPath(new URL('../providers/models/assets',import.meta.url));
  constructor(private root:string){}
  private actorRoot(actor:string){if(!actor||actor.length>512)throw Error('Invalid account owner');return path.join(this.root,createHash('sha256').update(actor).digest('hex'));}
@@ -41,8 +43,8 @@ export class ChatGPTSetup {
   return {supported:true,accounts,attempt:attempt?{id:attempt.id,accountId:attempt.accountId,state:attempt.state,models:[...attempt.models]}:null};
  }
  async begin(actor:string,existingId?:string){
-  if(this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Sign-in already in progress');
-  this.starting.add(actor);
+  if(this.closed||this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Sign-in already in progress');
+  const operation=new AbortController();this.starting.set(actor,operation);
   try{
    const status=await this.status(actor);if(!status.supported)throw Error('Protected subscription sign-in is currently available on Windows');
    if(existingId&&!status.accounts.some(account=>account.id===existingId))throw Error('Saved account not found');
@@ -56,7 +58,8 @@ export class ChatGPTSetup {
    const previous=metadata?await store.read(metadata.clientId,metadata.subject):undefined;
    const factory=await loadVerifiedSignInRuntime(this.verifierDirectory);
    const session=await prepareChatGPTSignIn({hostId:host.hostId,clientId:saved?.clientId,selectedSubject:metadata?.subject,idTokenHint:previous?.idToken});
-   const attempt:Attempt={id:randomUUID(),accountId,state:'waiting',models:[],session,abort:new AbortController()};
+   if(operation.signal.aborted||this.closed){await session.cancel();throw Error('Setup cancelled');}
+   const attempt:Attempt={id:randomUUID(),accountId,state:'waiting',models:[],session,abort:operation};
    this.attempts.set(actor,attempt);
    void (async()=>{
     let exchanged:Awaited<ReturnType<typeof exchangeDirectCallback>>|undefined;
@@ -71,23 +74,33 @@ export class ChatGPTSetup {
      signal.throwIfAborted();
      const credentials=exchanged.credentials;
      const connection=new ChatGPTActiveConnection(credentials,{
-      renew:()=>renewStoredChatGPTSession(store,credentials.clientId,credentials.subject,this.verifierDirectory),
-      catalog:(token,abort)=>createIsolatedCatalogTransport(abort).list(token),
+      renew:()=>renewStoredChatGPTSession(store,credentials.clientId,credentials.subject,this.verifierDirectory,operation.signal),
+      catalog:(token,abort)=>createIsolatedCatalogTransport(AbortSignal.any([operation.signal,abort])).list(token),
      });
+     this.connections.add(connection);attempt.connection=connection;
      const models=await connection.listModels();
      if(attempt.abort.signal.aborted){connection.deactivate();throw Error('Cancelled');}
      attempt.connection=connection;attempt.models=models;attempt.state='ready';
-    }catch{attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}
+    }catch{attempt.connection?.deactivate();attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}
     finally{exchanged?.discard();await session.cancel().catch(()=>{});}
    })();
    return {id:attempt.id,authorizationUrl:session.authorizationUrl};
   }finally{this.starting.delete(actor);}
  }
- async cancel(actor:string){const attempt=this.attempts.get(actor);if(!attempt)return;attempt.abort.abort();await attempt.session?.cancel();if(attempt.state!=='ready')attempt.state='cancelled';}
- async shutdown(){await Promise.all([...this.attempts.values()].map(async attempt=>{attempt.abort.abort();attempt.connection?.deactivate();await attempt.session?.cancel().catch(()=>{});}));this.attempts.clear();}
+ async cancel(actor:string){
+  this.starting.get(actor)?.abort();
+  const attempt=this.attempts.get(actor);if(!attempt)return;
+  if(attempt.state==='ready')throw Error('Completed setup cannot be cancelled; use account disconnection');
+  attempt.abort.abort();attempt.connection?.deactivate();attempt.state='cancelled';await attempt.session?.cancel();
+ }
+ async shutdown(){
+  this.closed=true;for(const operation of this.starting.values())operation.abort();
+  for(const connection of this.connections)connection.deactivate();this.connections.clear();
+  await Promise.all([...this.attempts.values()].map(async attempt=>{attempt.abort.abort();await attempt.session?.cancel().catch(()=>{});}));this.attempts.clear();
+ }
  async restore(actor:string,accountId:string){
-  if(this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Account setup already in progress');
-  this.starting.add(actor);
+  if(this.closed||this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Account setup already in progress');
+  const operation=new AbortController();this.starting.set(actor,operation);
   let attempt:Attempt|undefined;
   try{
    const status=await this.status(actor);
@@ -97,14 +110,15 @@ export class ChatGPTSetup {
    if(!metadata||metadata.clientId!==registration?.clientId)throw Error('Saved account mismatch');
    const credentials=await store.read(metadata.clientId,metadata.subject);
    if(!credentials||credentials.renewalPending)throw Error('Fresh sign-in required');
-   attempt={id:randomUUID(),accountId,state:'verifying',models:[],abort:new AbortController()};
+   operation.signal.throwIfAborted();if(this.closed)throw Error('Setup stopped');
+   attempt={id:randomUUID(),accountId,state:'verifying',models:[],abort:operation};
    this.attempts.set(actor,attempt);
    const signal=attempt.abort.signal;
    const connection=new ChatGPTActiveConnection(credentials,{
     renew:()=>renewStoredChatGPTSession(store,metadata.clientId,metadata.subject,this.verifierDirectory,signal),
     catalog:(token,abort)=>createIsolatedCatalogTransport(AbortSignal.any([signal,abort])).list(token),
    });
-   attempt.connection=connection;
+   this.connections.add(connection);attempt.connection=connection;
    attempt.models=await connection.listModels();signal.throwIfAborted();attempt.state='ready';
    return {id:attempt.id,models:[...attempt.models]};
   }catch{if(attempt){attempt.connection?.deactivate();attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}throw Error('Saved account could not be restored; sign in again');}
@@ -113,7 +127,8 @@ export class ChatGPTSetup {
  async activate(actor:string,id:string,model:string):Promise<ConversationConfiguration>{
   const attempt=this.attempts.get(actor);
   if(!attempt||attempt.id!==id||attempt.state!=='ready'||!attempt.connection||!attempt.models.includes(model))throw Error('Complete sign-in and select an available model');
-  const models=await attempt.connection.listModels();if(!models.includes(model))throw Error('Selected model is no longer available');
+  const models=await attempt.connection.listModels();
+  if(this.closed||attempt.abort.signal.aborted||this.attempts.get(actor)!==attempt||attempt.state!=='ready'||!models.includes(model))throw Error('Account selection changed or model is no longer available');
   return {provider:attempt.connection,models:[model],connections:[{model,connection:'ChatGPT account '+attempt.accountId.slice(0,8),billing:'ChatGPT plan usage',status:'connected'}]};
  }
 }
