@@ -180,6 +180,17 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return result as Record<string, unknown> & {runId: string; status: string};
   }
 
+  /** Request cancellation of exactly one saved run; never send session-wide Stop. */
+  async requestRunStop(sessionKey: string, runId: string): Promise<{acknowledged: boolean}> {
+    for (const value of [sessionKey,runId]) if (!value.trim() || value.length>512 || /[\u0000-\u001f]/.test(value)) throw new Error('An explicit session and run ID are required for Stop');
+    if (!this.isConnected()) throw new Error('gateway authentication not complete');
+    if (!this.grantedScopes.has('operator.write') && !this.grantedScopes.has('operator.admin')) throw new Error('gateway did not grant Stop permission');
+    const result=await this.request<Record<string,unknown>>('chat.abort',{sessionKey,runId,preserveSideRuns:true,discardPendingInput:false});
+    if (!result || result.ok!==true || typeof result.aborted!=='boolean' || !Array.isArray(result.runIds) || !result.runIds.every(id=>typeof id==='string')) throw new Error('Invalid Stop receipt; cancellation may be uncertain');
+    // Even acknowledgement is not evidence that every downstream effect ended.
+    return {acknowledged:result.aborted===true && result.runIds.includes(runId)};
+  }
+
   private sendConnect(signedAt: number) {
     const scopes = ["operator.read", "operator.write"];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");

@@ -162,3 +162,15 @@ it('observes only the saved run and never turns a timeout into completion or rep
   expect(socket.sent.slice(1).every(frame=>frame.method==='agent.wait')).toBe(true);
   expect(socket.sent).toHaveLength(3); client.stop();
 });
+
+it('scopes Stop to a saved session and run without claiming an unrelated receipt',async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const result=client.requestRunStop('selected-session','saved-run');
+ expect(socket.sent[1]).toMatchObject({method:'chat.abort',params:{sessionKey:'selected-session',runId:'saved-run',preserveSideRuns:true,discardPendingInput:false}});
+ socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{ok:true,aborted:true,runIds:['other-run']}});
+ await expect(result).resolves.toEqual({acknowledged:false});
+ await expect(client.requestRunStop('selected-session','')).rejects.toThrow(/explicit/);
+ const matched=client.requestRunStop('selected-session','saved-run');
+ socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{ok:true,aborted:true,runIds:['saved-run']}});
+ await expect(matched).resolves.toEqual({acknowledged:true});client.stop();
+});
