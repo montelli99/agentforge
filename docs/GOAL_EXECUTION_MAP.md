@@ -359,3 +359,7 @@ The registry preflight now checks the exact package version using unauthenticate
 ### Hosted package identity matches checked-out source
 
 The retained artifact name now uses the same pull-request head SHA (or push SHA) as checkout, rather than the synthetic merge SHA. The archive still carries COMMIT.txt and SHA256SUMS.txt; this removes a misleading second identity from the download name, without claiming the new workflow has already run. npm whoami returned ENEEDAUTH, so registry publication remains blocked on account sign-in only; implementation and hosted verification continue independently.
+
+### Consistent protected-record validation during renewal
+
+Both ordinary token saves and transaction replacements now validate issuer/resource, token type, nonempty string token fields, finite expiry and required string scopes. Transaction replacements copy the scope array before passing the record to the backend. Recovery intentionally may persist expired access tokens with renewal intent; the transaction path preserves that behavior and does not claim expiry validation is permission to use the token. Eight focused protected-storage/session tests passed with synthetic credentials, including Windows DPAPI and renewal recovery; source/script type checking passed. Mac/Linux protected storage and live-account lifecycle acceptance remain incomplete.

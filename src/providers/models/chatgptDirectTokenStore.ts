@@ -1,6 +1,15 @@
 import { createHash } from 'node:crypto';
 import type { DirectCredentials } from './chatgptDirectOAuth.js';
 
+function validateStoredRecord(credentials: DirectCredentials): void {
+  if (credentials.issuer !== 'https://auth.openai.com' || credentials.resource !== 'https://api.openai.com/v1'
+    || credentials.tokenType !== 'Bearer' || typeof credentials.accessToken !== 'string' || !credentials.accessToken
+    || typeof credentials.idToken !== 'string' || !credentials.idToken || !Number.isFinite(credentials.expiresAt)
+    || !Array.isArray(credentials.scopes) || credentials.scopes.some(scope => typeof scope !== 'string')
+    || !['resource.invoke', 'chatgpt.tokens.use.direct'].every(scope => credentials.scopes.includes(scope)))
+    throw Error('Invalid credential record');
+}
+
 export interface LockedCredentialRecord {
   read(): Promise<DirectCredentials | undefined>;
   replace(credentials: DirectCredentials): Promise<void>;
@@ -35,9 +44,8 @@ export class DirectTokenStore {
   }
   async replace(credentials: DirectCredentials): Promise<void> {
     const { backend, key } = this.target(credentials.clientId, credentials.subject);
-    if (credentials.issuer !== 'https://auth.openai.com' || credentials.resource !== 'https://api.openai.com/v1' || credentials.tokenType !== 'Bearer'
-      || !credentials.accessToken || !credentials.idToken || !Number.isFinite(credentials.expiresAt) || credentials.expiresAt <= Date.now()
-      || !['resource.invoke', 'chatgpt.tokens.use.direct'].every(s => credentials.scopes.includes(s))) throw Error('Invalid credential record');
+    validateStoredRecord(credentials);
+    if (credentials.expiresAt <= Date.now()) throw Error('Invalid credential record');
     await backend.replace(key, { ...credentials, scopes: [...credentials.scopes] });
   }
   async remove(clientId: string, subject: string): Promise<void> { const { backend, key } = this.target(clientId, subject); await backend.remove(key); }
@@ -46,7 +54,8 @@ export class DirectTokenStore {
     if(!backend.transaction)throw Error('Exclusive credential transactions unavailable');
     return backend.transaction(key,record=>operation({
       read:async()=>{const value=await record.read();if(value&&(value.clientId!==clientId||value.subject!==subject||value.issuer!=='https://auth.openai.com'||value.resource!=='https://api.openai.com/v1'))throw Error('Credential-store identity mismatch');return value;},
-      replace:async value=>{if(value.clientId!==clientId||value.subject!==subject)throw Error('Credential-store identity mismatch');await record.replace(value);},
+      // Expired access tokens may be retained with renewal intent; that is not a usable grant.
+      replace:async value=>{if(value.clientId!==clientId||value.subject!==subject)throw Error('Credential-store identity mismatch');validateStoredRecord(value);await record.replace({...value,scopes:[...value.scopes]});},
       remove:()=>record.remove(),
     }));
   }
