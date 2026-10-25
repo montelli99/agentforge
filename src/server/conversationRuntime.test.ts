@@ -104,7 +104,10 @@ describe("server-owned conversations", () => {
       else if(round===2){yield {id:'2',toolCalls:[{id:'memory1',type:'function',function:{name:'search_project_memory',arguments:'{"query":"original-decision"}'}}],finishReason:'tool_calls'};}
       else { expect(options.messages.at(-1)?.content).toContain('corrected-value from adapter');expect(options.messages.at(-1)?.content).toContain('providerId');expect(options.messages.at(-1)?.content).not.toContain('excluded-');yield { id: "3", deltaText: "Recovered the corrected decision.", finishReason: "stop" }; }
     });
-    await new ConversationRuntime(f.store, { provider: model, models: ["synthetic"],memoryNamespace:'synthetic-memory',memoryProvider:adapter }).respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
+    const runtime=new ConversationRuntime(f.store, { provider: model, models: ["synthetic"] });
+    await runtime.changeMemory(async()=>({projectId:f.project.id,memoryNamespace:'synthetic-memory',memoryProvider:adapter}));
+    await runtime.changeMemory(async()=>({projectId:'unrelated-project',memoryNamespace:'other',memoryProvider:new OperationalMemoryProvider()}));
+    await runtime.respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
     expect(round).toBe(3);
     expect(query).toHaveBeenCalledWith(expect.objectContaining({namespace:'synthetic-memory',projectId:f.project.id,includeArchived:false}));
     query.mockImplementationOnce(()=>new Promise(()=>{}));

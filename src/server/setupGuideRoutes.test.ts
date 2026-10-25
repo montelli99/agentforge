@@ -60,7 +60,7 @@ describe("Setup Guide API", () => {
     expect((await request('/api/memory/connection',owner,{...memorySelection,confirmSharing:false})).status).toBe(400);
     expect((await request('/api/memory/connection',owner,memorySelection)).status).toBe(200);
     expect(server.conversations.status().memoryProvider).toBe('obsidian');
-    expect((await request('/api/memory/connection',owner,{action:'disconnect'})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
     expect(server.conversations.status().projectMemoryEnabled).toBe(false);
     expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
     const status = await saved.text(); expect(status).toContain('synthetic::synthetic-model');expect(status).not.toContain(body.apiKey);expect(status).not.toContain(body.passphrase);
@@ -80,7 +80,7 @@ describe("Setup Guide API", () => {
     expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
     expect(server.conversations.status().memoryProvider).toBe('obsidian');
     expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
-    expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+    expect(server.conversations.status().projectMemoryConnections).toEqual([{projectId:secondProject.id,providerId:'obsidian'}]);
     expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(400);
     expect((await request('/api/memory/connection',owner,{action:'restore',projectId:secondProject.id,passphrase:memorySelection.passphrase})).status).toBe(200);
     expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
@@ -91,7 +91,7 @@ describe("Setup Guide API", () => {
       expect(cloud.status).toBe(200);expect(await cloud.text()).not.toContain('synthetic-hindsight-secret');
       expect(server.conversations.status().memoryProvider).toBe('hindsight');
       expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
-      expect((await request('/api/memory/connection',owner,{action:'disconnect'})).status).toBe(200);
+      expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
       expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
       expect(server.conversations.status().memoryProvider).toBe('hindsight');
     }finally{transport.mockRestore();}

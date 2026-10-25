@@ -22,10 +22,18 @@ export interface ConversationConfiguration {
 export class ConversationRuntime {
   private closed = false;
   private changingConnection = false;
-  async changeMemory(load:()=>Promise<{memoryNamespace?:string;memoryProvider?:MemoryProvider}>){
+  private projectMemory=new Map<string,{memoryNamespace:string;memoryProvider:MemoryProvider}>();
+  private lastMemoryProject?:string;
+  async changeMemory(load:()=>Promise<{projectId?:string;memoryNamespace?:string;memoryProvider?:MemoryProvider}>){
     return this.changeConnection(async()=>{
       if(!this.config?.models.length)throw Error('Connect a chat model first.');
-      const memory=await load();return {...this.config,...memory};
+      const memory=await load();
+      if(memory.projectId){
+        if(memory.memoryProvider&&memory.memoryNamespace){this.projectMemory.set(memory.projectId,{memoryNamespace:memory.memoryNamespace,memoryProvider:memory.memoryProvider});this.lastMemoryProject=memory.projectId;}
+        else{this.projectMemory.delete(memory.projectId);if(this.lastMemoryProject===memory.projectId)this.lastMemoryProject=[...this.projectMemory.keys()].at(-1);}
+        return this.config;
+      }
+      return {...this.config,...memory};
     });
   }
   async disconnectConnection<T>(providers: readonly GenerativeModelProvider[], remove:()=>Promise<T>):Promise<T> {
@@ -55,7 +63,8 @@ export class ConversationRuntime {
   status() {
     return { connectionCatalog: modelConnectionCatalog, subscriptionCatalog: subscriptionConnectionCatalog, connections: this.config?.connections || [], configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null,
       models: this.config?.models || [], activeThreads: [...this.active.keys()], supportsAttachments: true, attachmentFormats: ["text/plain", "text/markdown", "text/csv", "application/json"], execution: this.worker?.getExecutionReadiness(),
-      projectMemoryEnabled: Boolean(this.config?.memoryNamespace),memoryProvider:this.config?.memoryNamespace?(this.config.memoryProvider?.id??'agentforge_operational'):null };
+      projectMemoryEnabled: Boolean(this.config?.memoryNamespace||this.projectMemory.size),memoryProvider:this.lastMemoryProject?this.projectMemory.get(this.lastMemoryProject)?.memoryProvider.id:this.config?.memoryNamespace?(this.config.memoryProvider?.id??'agentforge_operational'):null,
+      projectMemoryConnections:[...this.projectMemory].map(([projectId,source])=>({projectId,providerId:source.memoryProvider.id})) };
   }
 
   modelConnection(model: string) {
@@ -75,7 +84,7 @@ export class ConversationRuntime {
   async respond(threadId: string, promptId: string, model: string, actorId: string, response: ServerResponse) {
     if (this.closed) throw Error('Conversation service has stopped.');
     if (this.changingConnection) throw Error('Connection setup is in progress. Try again shortly.');
-    const config = this.config;
+    let config = this.config;
     const thread = this.store.getThread(threadId);
     if (!config || !config.models.includes(model)) throw new Error("Choose a configured chat model.");
     if (!thread || thread.archived) throw new Error("This conversation is unavailable.");
@@ -86,6 +95,8 @@ export class ConversationRuntime {
 
     const channel = this.store.getChannel(thread.channelId);
     const project = channel ? this.store.getSpace(channel.spaceId) : undefined;
+    const selected=project?this.projectMemory.get(project.id):undefined;
+    if(selected)config={...config,...selected};
     const contextMemories = config.memoryNamespace && !config.memoryProvider && project ? this.store.listOperationalMemories(config.memoryNamespace)
       .filter(record => record.projectId === project.id && !record.archived && record.tags.includes("chat-context"))
       .sort((a, b) => (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt)).slice(0, 8) : [];

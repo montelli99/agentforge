@@ -2903,7 +2903,8 @@ export class AgentForgeWebServer {
         const body=await this.readBody(req);
         await this.taskWorkerRuntime.withMemoryChange(()=>this.conversations.changeMemory(async()=>{
           if(this.taskWorkerRuntime.getActiveTasksCount())throw Error('Finish active tasks before changing memory');
-          if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory();return {memoryNamespace:undefined,memoryProvider:undefined};}
+          if(typeof body.projectId!=='string'||!this.store.getSpace(body.projectId))throw Error('Select a project');
+          if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory(body.projectId);return {projectId:body.projectId,memoryNamespace:undefined,memoryProvider:undefined};}
           const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
           if(typeof body.projectId!=='string'||!this.store.getSpace(body.projectId))throw Error('Select a project');
           const key='AGENTFORGE_KEY_MEMORY_'+crypto.createHash('sha256').update(body.projectId).digest('hex').toUpperCase();
@@ -2913,8 +2914,8 @@ export class AgentForgeWebServer {
             delete values[key];
             if(values.AGENTFORGE_KEY_MEMORY_SELECTION&&JSON.parse(values.AGENTFORGE_KEY_MEMORY_SELECTION).projectId===body.projectId)delete values.AGENTFORGE_KEY_MEMORY_SELECTION;
             await vault.save(values,body.passphrase as string);
-            this.taskWorkerRuntime.clearSelectedProjectMemory();
-            return {memoryNamespace:undefined,memoryProvider:undefined};
+            this.taskWorkerRuntime.clearSelectedProjectMemory(body.projectId);
+            return {projectId:body.projectId,memoryNamespace:undefined,memoryProvider:undefined};
           }
           let selection=body;
           if(body.action==='restore'){
@@ -2942,9 +2943,8 @@ export class AgentForgeWebServer {
             if(Object.keys(values).length>20)throw Error('Saved memory project limit reached');
             await vault.save(values,body.passphrase as string);
           }
-          this.taskWorkerRuntime.clearSelectedProjectMemory();
           this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());
-          return {memoryNamespace:selection.namespace.trim(),memoryProvider};
+          return {projectId:selection.projectId,memoryNamespace:selection.namespace.trim(),memoryProvider};
         }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
       }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key.'}));}

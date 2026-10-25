@@ -108,9 +108,9 @@ export class TaskWorkerRuntime {
     if(!projectId||!namespace)throw Error('Explicit memory project and namespace required');
     this.projectMemory.set(projectId,{provider,namespace});
   }
-  clearSelectedProjectMemory(){
+  clearSelectedProjectMemory(projectId?:string){
     if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
-    this.projectMemory.clear();
+    if(projectId)this.projectMemory.delete(projectId);else this.projectMemory.clear();
   }
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
