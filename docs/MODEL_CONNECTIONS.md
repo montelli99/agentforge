@@ -135,3 +135,23 @@ still discards its tokens; use the web flow to configure chat. No imported brows
 session, unrelated application token, or automatic API-billing fallback is used.
 
 Protocol reference: [OpenAI accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions).
+
+## Managed Claude worker implementation requirements
+
+Status: researched, not implemented or accepted. Checked October 25, 2026.
+
+Use the unmodified official client with the user's own authentication. Do not collect or proxy subscription tokens, hide client authentication choices, or silently switch billing routes. The provider's commercial conditions apply to embedding the client. See [official integration and credential rules](https://code.claude.com/docs/en/legal-and-compliance).
+
+The [official CLI reference](https://code.claude.com/docs/en/cli-reference) distinguishes built-in tools from MCP tools: an empty built-in tool list does not disable MCP. Restricted/safe modes retain some managed policy behavior. Therefore these flags alone are not proof of isolation.
+
+AgentForge acceptance requirements:
+
+- Probe the installed executable's version and supported controls without inference; reject unsupported configurations before a paid request.
+- Keep planning separate from execution. A proposed command must pass AgentForge's existing approval and isolated execution path.
+- Verify empty built-in and external tool exposure, disabled customizations, and absence of unsolicited hooks using synthetic hostile configuration fixtures. Inspect effective managed configuration; refuse an unverified setup.
+- Preserve the official authentication flow outside AgentForge. Never copy credentials into workspaces, logs, fixtures, exports or packages.
+- Bound duration and output, propagate cancellation, retain durable invocation receipts, and treat lost responses as unknown outcomes without automatic retry.
+- Parse structured results and usage strictly; reject unexpected activity. Output inspection is evidence, not prevention of a side effect that already happened.
+- Prove restart recovery, account expiration, denied tools and the complete approval-to-verification workflow before advertising managed subscription execution.
+
+The existing external-client guidance remains the supported Claude subscription route until this acceptance is complete; API chat remains a separate connection.
