@@ -1,8 +1,61 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DirectTokenStore } from './chatgptDirectTokenStore.js';
 import type { DirectCredentials } from './chatgptDirectOAuth.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { WindowsDirectCredentialBackend } from './windowsDirectCredentialBackend.js';
 const mockCredentials = (): DirectCredentials => ({ clientId: 'mock-client', subject: 'mock-subject', issuer: 'https://auth.openai.com', resource: 'https://api.openai.com/v1', accessToken: 'mock-access', refreshToken: 'mock-refresh', idToken: 'mock-id', tokenType: 'Bearer', scopes: ['resource.invoke', 'chatgpt.tokens.use.direct'], expiresAt: Date.now() + 60000 });
-describe('platform token-store contract (mock backend only)', () => {
+describe('platform token-store contract and Windows persistence', () => {
+  it('rejects malformed recovered records on ordinary and transaction reads without mutating storage', async () => {
+    const invalid = [null, false, [], {}, ...[
+      {accessToken: ''}, {accessToken: 'token\nheader'}, {idToken: 7}, {refreshToken: false},
+      {authenticationNonce: ''}, {renewalPending: 'false'}, {expiresAt: 0}, {expiresAt: 1.5},
+      {scopes: ['resource.invoke']}, {scopes: ['resource.invoke', 'chatgpt.tokens.use.direct', null]},
+    ].map(change => ({...mockCredentials(), ...change}))];
+    for (const value of invalid) {
+      const record = {read: async () => value as DirectCredentials, replace: vi.fn(), remove: vi.fn()};
+      const backend = {protection: 'platform-user-protected' as const, ...record,
+        transaction: async <T>(_key: string, operation: (locked: typeof record) => Promise<T>) => operation(record)};
+      const store = new DirectTokenStore(backend);
+      await expect(store.read('mock-client', 'mock-subject')).rejects.toThrow('Invalid credential record');
+      await expect(store.transaction('mock-client', 'mock-subject', locked => locked.read())).rejects.toThrow('Invalid credential record');
+      expect(record.replace).not.toHaveBeenCalled();
+      expect(record.remove).not.toHaveBeenCalled();
+    }
+  });
+  it('retains expired records and interrupted renewal intent for explicit recovery', async () => {
+    const value = {...mockCredentials(), expiresAt: 1, renewalPending: true};
+    const record = {read: async () => value, replace: vi.fn(), remove: vi.fn()};
+    const store = new DirectTokenStore({protection: 'platform-user-protected', ...record,
+      transaction: async (_key, operation) => operation(record)});
+    expect(await store.read(value.clientId, value.subject)).toEqual(value);
+    expect(await store.transaction(value.clientId, value.subject, locked => locked.read())).toEqual(value);
+    await expect(store.replace(value)).rejects.toThrow('Invalid credential record');
+    expect(record.replace).not.toHaveBeenCalled();
+  });
+  it.skipIf(process.platform !== 'win32')('round-trips synthetic records through real Windows DPAPI and rejects tampering', async () => {
+    const directory=await fs.mkdtemp(path.join(os.tmpdir(),'af-dpapi-'));
+    try {
+      const store=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));
+      const credentials=mockCredentials();
+      await store.replace(credentials);
+      const files=await fs.readdir(directory);expect(files).toHaveLength(1);
+      const file=path.join(directory,files[0]);
+      expect((await fs.readFile(file)).includes(Buffer.from(credentials.accessToken))).toBe(false);
+      const reopened=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));
+      expect(await reopened.read(credentials.clientId,credentials.subject)).toEqual(credentials);
+      await reopened.replace({...credentials,refreshToken:'synthetic-rotated-token'});
+      expect((await store.read(credentials.clientId,credentials.subject))?.refreshToken).toBe('synthetic-rotated-token');
+      const damaged=await fs.readFile(file);damaged[Math.floor(damaged.length/2)]^=1;await fs.writeFile(file,damaged);
+      await expect(store.read(credentials.clientId,credentials.subject)).rejects.toThrow('protection failed');
+      await store.remove(credentials.clientId,credentials.subject);
+      expect(await store.read(credentials.clientId,credentials.subject)).toBeUndefined();
+    } finally {
+      if(path.dirname(directory)!==path.resolve(os.tmpdir())||!path.basename(directory).startsWith('af-dpapi-'))throw Error('Unexpected test directory');
+      await fs.rm(directory,{recursive:true,force:true});
+    }
+  },30000);
   it('has no default persistence or credential discovery', async () => {
     const store = new DirectTokenStore(); expect(store.isAvailable()).toBe(false);
     await expect(store.read('mock-client', 'mock-subject')).rejects.toThrow('unavailable');

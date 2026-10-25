@@ -1,3 +1,77 @@
+## Exact-build checkpoint — 2026-10-25
+
+Revision `2584e236f710322e95f977ef3dbc1d57c4775f51` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40231877867)
+and the exact-commit artifact verifier. The downloaded npm tarball SHA-256 is
+`179e4ce5b7b7bf3f82d8a5f2920a88dd806eee56b0203017c244f2ad17761b59`.
+A clean installation passed starter creation/validation and authenticated HTTP
+memory review/import, server-object restart with disk reload, revision-history
+preservation and duplicate-import prevention. This was not browser acceptance
+or an OS-process crash. Later changes need their own exact-build verification.
+
+A separate four-request live synthetic diagnostic on that revision scored 2/2
+for memory prefetch and 0/2 for recent-context-only, with valid JSON in all four
+responses and no provider failures. It did not reproduce the earlier failures;
+it does not replace the earlier held-out score or establish competitor superiority.
+Reported usage totaled 55,769 tokens; dollar cost remains unmeasured. The retained
+local diagnostic report SHA-256 is
+`71d88196686a42369d564f86b881fcecc03c0c3b2e4b87ed29cb7576741fe085`.
+
+## Latest verified package checkpoint — 2026-10-25
+
+Revision `c81a3826eeaf2eb38c4f07685f18b6a4c7fc060c` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40227194169),
+including Windows, macOS and Linux on Node 22/24 and public package acceptance.
+The downloaded artifact's commit record matches that revision. Its npm tarball
+SHA-256 is `a6466e0406ea70a5f53d6c4f8a442c2537fc5ddd209c333c041a937b38a7e0a1`.
+The installed package's starter initialization/validation and Gemini installation
+inspection passed in a disposable directory. This does not establish live
+Gemini authentication or a managed Gemini worker.
+
+Later revisions add shutdown admission protection, UTF-8 child-output decoding,
+Gemini transcript validation and prompt encoding. Their local component checks
+are not substitutes for exact-build hosted acceptance or a complete user journey.
+The Gemini helpers remain internal and are not an activated connection.
+
+Still required before claiming the full release goal is complete:
+
+- Clean-install rendered onboarding, explicit approval and first-task acceptance.
+- Live subscription lifecycle and isolation acceptance, completed managed workers
+  and supported protected storage on other advertised operating systems.
+- Broader recovery evidence and matched, repeated comparative evaluation.
+- Final tested-revision merge, distribution, demonstration and accurate launch
+  material; npm publication requires the publisher's registry authentication.
+
+Browser acceptance was blocked by exhausted external test-service credits, not
+by a demonstrated product failure. An alternative browser route is awaiting
+owner direction. Historical private-cache removal awaits hosting-provider
+confirmation separately from clean source/package verification.
+
+## Earlier exact-build checkpoint — 2026-10-25
+
+Revision `3a6d259e881e117d3d6b80575ba0c7e431206b1e` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40225338010).
+The downloaded package was installed in a disposable directory; public SDK
+imports and starter initialization/validation passed. Its tarball SHA-256 is
+`02b92af5e44738aa08cef13554867a4a3194cf523ac5fa7a8758c33d7fa1021e`.
+This evidence applies to that revision, not automatically to later changes.
+
+A live synthetic planning/execution workflow reopened in a new process with
+matching artifact hashes, its observed receipt and pending final approval
+preserved, and zero additional backend executions. This is not a forced-kill
+test during execution or an end-user approval-screen acceptance test.
+
+Browser acceptance of the installed package remains incomplete. The isolated
+browser run ended with `Credits exhausted: insufficient credits`; its terminal
+session record SHA-256 is
+`dc6db984eda8d6c2690c986041d09d15b0b7bdcc8fb25bd48186b5f27ff90258`.
+An authenticated test-tool account did not establish available test credits.
+Do not report this run as a product failure or a passing UI check.
+
+Managed subscription routes, full onboarding/approval UI acceptance, broader
+recovery, comparative evidence and publication remain open as tracked in
+[the full release plan](RELEASE_COMPLETION_PLAN.md).
+
 ## Local release verification — 2026-10-25
 
 The public export was rebuilt and checked locally. Recovery now reconstructs the owned memory staging cache and index before serving after restart, validates durable state, and records replayable control receipts in the same database transaction. Control revision checks are serialized; source cohorts are checked again before ingestion. Continuous synthetic memory remains opt-in and requires a caller-supplied watcher; it is not automatic private-session discovery.
@@ -231,3 +305,105 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 - September 27, 2026: focused native-channel verification passed 19 tests across Telegram BotFather, Telegram native-path selection, Telegram relay protection, Slack Socket Mode, and Discord Gateway transport.
 - The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
 
+
+
+## Connection setup browser regression — 2026-10-25
+
+Added a real Chromium regression using only synthetic credentials and an isolated
+workspace. It passes owner setup, guided API connection save, cleared password
+inputs, encrypted on-disk storage, server-object restart, owner sign-in, and
+explicit vault unlock restoring the selected route. It checks that the synthetic
+key and vault passphrase are absent from browser storage. Restart correctly
+leaves the route locked until unlock. No provider request is made: this is not
+live credential or model-response acceptance, nor an OS-process crash test.
+The regression is now required before hosted package creation; hosted results
+for this change remain pending.
+
+### Connection-to-conversation browser extension
+
+The connection browser regression now uses a loopback-only synthetic SSE provider.
+After restart and explicit unlock, it creates a conversation through the UI,
+selects the recovered model, sends a message, renders the streamed response,
+and reloads the saved transcript. The provider observes exactly one request,
+the expected model and credential, and no replay on reload. The local Chromium
+run passed. This proves the setup-to-response transport with a fixture, not
+live model quality, planning, or isolated task execution. Hosted CI remains the
+next verification gate for this extension.
+
+### Authenticated browser approval to Docker execution
+
+A new real-browser regression displays the exact synthetic task command and
+boundaries, approves through the authenticated UI, verifies approval creates
+no execution receipt, then selects Run task. The real Docker worker produces
+the expected artifact, passing evidence and an observed receipt. The task
+correctly remains waiting for final review. This local check passed and is
+now required in hosted acceptance. It seeds a fixed synthetic task; it does
+not establish a model-generated plan or the complete clean-install journey.
+The worker uses the supported manual-dispatch configuration. Initial fixture
+failures came from ambiguous selectors and a worker not started; the test was
+corrected without changing the product's approval or execution guards.
+
+### Final browser review and durable completion
+
+The approval regression now continues from verified Docker output into the
+Review Desk, reads the recorded verification result, selects Approve request,
+and confirms the decision. Before confirmation the task remains waiting for
+approval. Afterward it is completed; reopening the disk store preserves both
+completion and the authenticated reviewer's identity. The local run passed.
+This supersedes the prior fixture's final-review-pending limitation, but still
+uses a fixed synthetic plan and is not the clean-install live-model journey.
+
+### Browser disconnect during response
+
+The connection regression now streams a first chunk, reloads the browser before
+the delayed second chunk arrives, and waits for the complete recovered response.
+It then reloads again and observes exactly one provider request. The completed
+text is also present in the disk snapshot. The local Chromium check passed;
+this is a browser-connection interruption with a synthetic provider, not server
+process termination or a live provider transport failure.
+
+### Experimental Claude launch regression coverage
+
+Seven focused adapter tests pass: plan-only launch arguments and fresh-directory
+cleanup; API, signed-out and unknown authentication denial before inference;
+cancellation before authentication; unexpected tool transcript rejection with
+usage retained; and bounded-child failure with usage retained and no retry.
+Typechecking passed. The child process and account inspection are mocked in
+these tests. They do not prove official-client isolation or live subscription
+inference, which remain outstanding.
+
+### Guided local-model endpoint configuration
+
+The guide previously exposed a custom endpoint only for API-compatible providers.
+Local users can now enter their loopback model-server address and port directly,
+with the catalog endpoint prefilled. Downloaded profiles retain that address;
+validation allows HTTPS or loopback HTTP, rejects embedded credentials, queries
+and fragments, and requires loopback for local models. Server checks remain in
+place. Both local and API-compatible browser journeys passed against an isolated
+synthetic SSE endpoint, including restart/unlock and mid-response reload without
+replay. The build passed. Hosted acceptance now runs both connection modes.
+
+### Reviewed generic agent migration: browser acceptance
+
+Current source already supports explicit generic manifests, reviewed staging
+imports and durable rollback; older progress entries describing a fixture-only
+provider are superseded for this route. A fresh Chromium session passed owner
+setup, JSON entry, review before write, explicit confirmation, offline agent
+creation, source tool/permission stripping, disk reopen, separately confirmed
+rollback and persisted removal. The test is now in hosted acceptance. It uses
+synthetic agent records only, not third-party account access or arbitrary
+memory-format migration. Unsupported channels and tasks remain unsupported.
+
+### Clean installed archive: browser and execution acceptance
+
+Browser tests can now load the built modules from an explicitly selected installed
+package root. The clean-install runner installs the supplied tarball with lifecycle
+scripts disabled into a fresh temporary consumer, then exercises memory import,
+API and local connection recovery (including mid-response reload), browser plan
+approval through real Docker execution and final completion, and generic migration
+with rollback. All five journeys passed locally against archive SHA-256
+`059a26c5b318251f545bb5dd16918db839030317d60f4caec8d1bccd3d6eb43f`.
+This archive preceded this documentation addition; it is not a digest for a future
+CI artifact. Hosted CI now runs the installed-archive journeys after packaging and
+before retaining that exact archive. Model endpoints remain synthetic; this does
+not establish live subscription acceptance or competitive performance.

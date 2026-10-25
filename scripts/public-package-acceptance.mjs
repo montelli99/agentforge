@@ -4,7 +4,8 @@ import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-if (packageJson.main !== "dist/index.js" || packageJson.exports?.["."] !== "./dist/index.js") {
+if (packageJson.main !== "dist/index.js" || packageJson.exports?.["."]?.import !== "./dist/index.js"
+  || packageJson.types !== "dist/index.d.ts" || packageJson.exports?.["."]?.types !== "./dist/index.d.ts") {
   throw new Error("Package metadata does not point at the public AgentForge entrypoint.");
 }
 const entrypoint = path.join(root, "dist", "index.js");
@@ -14,7 +15,8 @@ const listFiles = directory => fs.readdirSync(directory, { withFileTypes: true }
   return entry.isDirectory() ? listFiles(target) : [path.relative(root, target).replaceAll(path.sep, "/")];
 });
 const generatedFiles = listFiles(path.join(root, "dist"));
-const staleBuildFiles = generatedFiles.filter(file => /(?:\.ts$|\.test\.[cm]?js$|\/tests?\/)/.test(file));
+const staleBuildFiles = generatedFiles.filter(file => (file.endsWith('.ts') && !file.endsWith('.d.ts'))
+  || /(?:\.test\.(?:[cm]?js|d\.ts)$|\/tests?\/)/.test(file));
 if (staleBuildFiles.length > 0) {
   throw new Error(`Public package build contains stale source or test artifacts: ${staleBuildFiles.join(", ")}`);
 }
@@ -24,6 +26,10 @@ if (privateTerms.some(term => source.toLowerCase().includes(term.toLowerCase()))
   throw new Error("Public entrypoint contains a private integration identifier.");
 }
 const module = await import(pathToFileURL(entrypoint).href);
+for (const name of ["MemoryConnectionRegistry", "CompositeMemoryProvider", "ObsidianMemoryProvider",
+  "HindsightMemoryProvider", "OperationalMemoryProvider", "queryMemoryBounded", "ConversationRuntime", "TaskWorkerRuntime"]) {
+  if (typeof module[name] !== "function") throw new Error(`Public memory SDK export is missing: ${name}`);
+}
 if (!Array.isArray(module.PUBLIC_SYSTEM_MANIFEST)
   || typeof module.WorkflowEngine !== "function"
   || typeof module.ProcessAgentBridge !== "function"

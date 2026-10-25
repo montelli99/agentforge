@@ -12,6 +12,8 @@ export * from "./models/modelRouter.js";
 
 export * from "./decision/jevDecision.js";
 export * from "./memory/operationalMemory.js";
+export * from "./memory/obsidianMemory.js";
+export * from "./memory/hindsightMemory.js";
 
 export * from "./channels/telegramMirror.js";
 export * from "./channels/discordMirror.js";
@@ -24,3 +26,4 @@ export * from "./voice/mockVoiceProvider.js";
 export * from "./voice/retellVoiceProvider.js";
 export * from "./marketplace/localPackageProvider.js";
 export * from "./benchmark/benchmarkRunner.js";
+export * from "./memory/compositeMemory.js";

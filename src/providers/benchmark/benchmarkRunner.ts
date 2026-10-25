@@ -6,6 +6,8 @@
  */
 
 import crypto from "node:crypto";
+import { performance } from "node:perf_hooks";
+import { isDeepStrictEqual } from "node:util";
 import type {
   BenchmarkSuite,
   BenchmarkResult,
@@ -53,30 +55,57 @@ export class BenchmarkRunner {
   async runSuite(
     suite: BenchmarkSuite,
     targetId: string,
-    executeCaseFn: (input: Record<string, unknown>) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    executeCaseFn: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }>,
   ): Promise<BenchmarkResult> {
+    if (!suite.cases.length) throw new Error('A benchmark requires at least one case');
+    if (suite.cases.some(item=>!Number.isSafeInteger(item.timeoutMs)||item.timeoutMs<1||item.timeoutMs>300000))
+      throw new Error('Benchmark case deadlines must be between 1 and 300000 ms');
+    // Snapshot before executing target code so the evaluated inputs/expectations cannot drift mid-run.
+    suite = structuredClone(suite);
+    const suiteSha256 = crypto.createHash('sha256').update(JSON.stringify(suite)).digest('hex');
+    const attempts: NonNullable<BenchmarkResult['attempts']> = [];
     const startTime = Date.now();
     let passedCases = 0;
     let failedCases = 0;
     let totalLatency = 0;
 
     for (const testCase of suite.cases) {
+      const attemptStarted = performance.now();
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let outcome: NonNullable<BenchmarkResult['attempts']>[number]['outcome'] = 'error';
+      let reportedCostUsd:number|null=null;
       try {
-        const res = await executeCaseFn(testCase.input);
-        totalLatency += res.latencyMs;
+        const deadline = new Promise<never>((_, reject)=>{
+          timer=setTimeout(()=>{outcome='timeout';controller.abort();reject(new Error('Benchmark case deadline exceeded'));},testCase.timeoutMs);
+        });
+        const res = await Promise.race([deadline,executeCaseFn(structuredClone(testCase.input),controller.signal)]);
 
+        if(res.costUsd!==undefined){
+          if(!Number.isFinite(res.costUsd)||res.costUsd<0)throw Error('Invalid reported benchmark cost');
+          reportedCostUsd=res.costUsd;
+        }
         // Structural equivalence check on expected output fields
         const passed = Object.keys(testCase.expectedOutput).every(
-          key => res.output[key] === testCase.expectedOutput[key]
+          key => isDeepStrictEqual(res.output[key], testCase.expectedOutput[key])
         );
 
         if (passed) {
+          outcome='passed';
           passedCases++;
         } else {
+          outcome='mismatch';
           failedCases++;
         }
       } catch {
         failedCases++;
+      } finally {
+        if(timer)clearTimeout(timer);
+        controller.abort();
+        // Include failed attempts; target-reported latency is not independent evidence.
+        const elapsedMs=performance.now() - attemptStarted;
+        totalLatency += elapsedMs;
+        attempts.push({caseId:testCase.id,outcome,elapsedMs,reportedCostUsd});
       }
     }
 
@@ -105,6 +134,10 @@ export class BenchmarkRunner {
     const passedOverall = passedCases === totalCases && metrics.every(m => m.passedThreshold !== false);
 
     return {
+      executionKind: 'executor',
+      suiteSha256,
+      attempts,
+      reportedCostUsd: attempts.every(item=>item.reportedCostUsd!==null) && Number.isFinite(attempts.reduce((sum,item)=>sum+(item.reportedCostUsd??0),0)) ? attempts.reduce((sum,item)=>sum+(item.reportedCostUsd??0),0) : null,
       id: `bench-${crypto.randomUUID().slice(0, 8)}`,
       suiteId: suite.id,
       targetType: suite.targetType,
@@ -113,12 +146,8 @@ export class BenchmarkRunner {
       passedCases,
       failedCases,
       metrics,
-      artifacts: [
-        {
-          name: "benchmark_summary.json",
-          url: `memory://benchmarks/${suite.id}/${targetId}/summary.json`,
-        },
-      ],
+      // No downloadable artifact has been created by this in-memory runner.
+      artifacts: [],
       passedOverall,
       executedAt: new Date().toISOString(),
       durationMs: Date.now() - startTime,
@@ -131,7 +160,7 @@ export class BenchmarkRunner {
   async executeBenchmark(
     suiteId: string,
     targetId: string,
-    customExecutor?: (input: Record<string, unknown>) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    customExecutor?: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }>,
   ): Promise<BenchmarkResult> {
     const suite = this.getSuite(suiteId);
     if (!suite) {
@@ -143,7 +172,7 @@ export class BenchmarkRunner {
     }
 
     // Default automated evaluators for standard targets
-    const defaultExecutor = async (input: Record<string, unknown>): Promise<{ output: Record<string, unknown>; latencyMs: number }> => {
+    const defaultExecutor = async (input: Record<string, unknown>): Promise<{ output: Record<string, unknown>; latencyMs: number; costUsd?: number }> => {
       const t0 = Date.now();
       if (suite.targetType === "HARNESS") {
         // Harness security & isolation evaluator
@@ -194,7 +223,8 @@ export class BenchmarkRunner {
       return { output: input, latencyMs: Date.now() - t0 + 5 };
     };
 
-    return this.runSuite(suite, targetId, defaultExecutor);
+    const result = await this.runSuite(suite, targetId, defaultExecutor);
+    return { ...result, executionKind: suite.targetType === 'PACKAGE' ? 'local-validation' : 'simulation' };
   }
 
   /**
@@ -205,7 +235,7 @@ export class BenchmarkRunner {
     targetId: string,
     benchResult: BenchmarkResult,
   ): CompatibilityResult {
-    const isCompatible = benchResult.totalCases > 0 && benchResult.passedOverall;
+    const isCompatible = benchResult.executionKind === 'executor' && benchResult.targetId === targetId && benchResult.targetType === targetType && benchResult.totalCases > 0 && benchResult.passedOverall;
 
     const supportedFeatures: string[] = [];
     const unsupportedFeatures: string[] = [];
@@ -224,7 +254,7 @@ export class BenchmarkRunner {
         supportedFeatures.push("manifest_validation", "permission_sandbox");
       }
     } else {
-      unsupportedFeatures.push(`failed_suite_${benchResult.suiteId}`);
+      unsupportedFeatures.push(benchResult.executionKind !== 'executor' ? 'target_execution_not_verified' : `failed_suite_${benchResult.suiteId}`);
     }
 
     return {

@@ -24,6 +24,8 @@ import type { GenerativeModelProvider } from "../src/core/providers/model.js";
 import type { Task } from "../src/core/types/task.js";
 import { MiMoModelProvider } from "../src/providers/models/mimoModel.js";
 import { createHash } from "node:crypto";
+import type {ModelResponseUsage} from '../src/core/providers/model.js';
+const requestUsage:Array<ModelResponseUsage|null>=[];
 
 const live = process.env.AGENTFORGE_LIVE_EXECUTION_PROOF === "1";
 if (live && !process.env.AGENTFORGE_PROOF_MODEL) throw Error("Choose an explicit model from the provider model list");
@@ -122,7 +124,7 @@ async function main(): Promise<void> {
     const model: GenerativeModelProvider = { id: "synthetic", name: "Scripted acceptance model", defaultTier: 1,
       isAvailable: async()=>true, listModels: async()=>["synthetic"], generate: async()=>{throw Error("unexpected");},
       async *stream() {
-        if (!round++) { response.emit("close"); response.destroyed = true;
+        if (!round++) { response.emit("close"); response.destroyed = true; proof.disconnected = true; proof.toolCalls.push("execute_task");
           yield { id: "1", toolCalls: [{ id: "run", type: "function" as const, function: { name: "execute_task", arguments: JSON.stringify({ taskId }) } }], finishReason: "tool_calls" };
         } else { yield { id: "2", deltaText: "Execution evidence is saved for review.", finishReason: "stop" }; }
       }
@@ -132,8 +134,10 @@ async function main(): Promise<void> {
       isAvailable: () => provider.isAvailable(), listModels: async () => [proof.model], generate: async () => { throw Error("Unexpected non-streaming request"); },
       async *stream(options) {
         if (++proof.requests > 4) throw Error("Live proof request limit reached; no retries");
+        const usageIndex=requestUsage.push(null)-1;
         if (!proof.disconnected) { response.emit("close"); response.destroyed = true; proof.disconnected = true; }
         try { for await (const chunk of provider.stream({ ...options, maxTokens: 768, thinking: "disabled", signal: AbortSignal.any([...(options.signal ? [options.signal] : []), AbortSignal.timeout(60000)]) })) {
+          if(chunk.usage)requestUsage[usageIndex]=chunk.usage;
           for (const call of chunk.toolCalls || []) if (call.function.name) proof.toolCalls.push(call.function.name);
           yield chunk;
         } } catch (error) { providerFailure ||= /MiMo stream error \d{3}/.exec(String(error))?.[0] || "Provider transport failure"; throw error; }
@@ -146,6 +150,11 @@ async function main(): Promise<void> {
     if (executed.executionReceipts?.at(-1)?.status !== "observed") throw Error("Missing observed execution receipt");
     const restored = new WorkspaceStore(path.join(root, "state.json"));
     if (restored.listThreadMessages(thread.id).at(-1)?.generation?.status !== "complete") throw Error("Disconnected response was not persisted");
+    if(live){
+      const savedUsage=restored.listThreadMessages(thread.id).at(-1)?.generation?.requestUsage;
+      const expected=requestUsage.map(item=>item?{promptTokens:item.promptTokens,completionTokens:item.completionTokens,totalTokens:item.totalTokens}:null);
+      if(JSON.stringify(savedUsage)!==JSON.stringify(expected))throw Error('Provider usage did not survive store reopening');
+    }
     const output = executed.evidencePack;
     const artifact = await readFile(path.join(worktree.worktreePath, "artifacts", "verified.txt"), "utf8");
     if (artifact !== "agentforge-docker-e2e") throw new Error("Sandbox artifact did not contain the expected value.");
@@ -167,4 +176,4 @@ async function main(): Promise<void> {
 }
 
 try { await main(); } catch (error) { proof.status = "failed"; process.exitCode = 1; console.error(error instanceof Error ? error.name : "Proof failed"); }
-finally { proof.elapsedMs = Date.now() - started; const report = JSON.stringify({ ...proof, providerFailure }, null, 2); if (process.env.AGENTFORGE_PROOF_OUTPUT) await writeFile(process.env.AGENTFORGE_PROOF_OUTPUT, report); console.log(report); }
+finally { proof.elapsedMs = Date.now() - started; proof.tokenUsage=live&&requestUsage.length===proof.requests&&requestUsage.every(Boolean)?'provider-reported per request':'unreported or incomplete; do not infer zero';const report = JSON.stringify({ ...proof, requestUsage, providerFailure }, null, 2); if (process.env.AGENTFORGE_PROOF_OUTPUT) await writeFile(process.env.AGENTFORGE_PROOF_OUTPUT, report); console.log(report); }

@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { WorkspaceStore } from "./core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./server/webServer.js";
 import { OpenClawMigrationProvider } from "./providers/migration/openclawMigrationProvider.js";
 import { HermesMigrationProvider } from "./providers/migration/hermesMigrationProvider.js";
 import { GrokBotMigrationProvider } from "./providers/migration/grokBotMigrationProvider.js";
 import { GenericMigrationProvider } from "./providers/migration/genericMigrationProvider.js";
+import { GENERIC_MIGRATION_FIXTURE } from "./providers/migration/fixtures/generic_manifest.fixture.js";
 import { PROVIDER_READINESS_REGISTRY } from "./core/types/providerReadiness.js";
 import { EmpiricalRouter } from "./core/router/empiricalRouter.js";
 import { TelegramMirrorProvider } from "./providers/channels/telegramMirror.js";
@@ -587,11 +591,200 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const gen = new GenericMigrationProvider();
       const insp = await gen.inspect();
       const plan = await gen.plan(insp);
-      expect(plan.readinessScore).toBe(100);
-      const res = await gen.importToStore(plan, store);
-      expect(res.importedCount).toBe(2);
-      const verify = await gen.verify(res.runId, store);
-      expect(verify.overallPassed).toBe(true);
+      expect(plan.readinessScore).toBe(33);
+      expect(plan.items.some(item => item.targetCategory === 'task' && item.status === 'UNSUPPORTED')).toBe(true);
+      const beforeImport = store.listAgents().length;
+      await expect(gen.importToStore(plan, store)).rejects.toThrow('unsupported or unreviewed');
+      expect(store.listAgents().length).toBe(beforeImport);
+      expect((await gen.verify('unknown-run', store)).overallPassed).toBe(false);
+      const supplied = structuredClone(GENERIC_MIGRATION_FIXTURE);
+      supplied.agents[0]!.id = 'custom-manifest-agent';
+      supplied.agents[0]!.name = 'Supplied agent';
+      const suppliedInspection = await gen.inspect(supplied);
+      supplied.agents[0]!.name = 'Changed after inspection';
+      const suppliedPlan = await gen.plan(suppliedInspection);
+      expect(suppliedPlan.items[0]!.sourceId).toBe('custom-manifest-agent');
+      expect(suppliedPlan.items[0]!.targetName).toBe('Supplied agent');
+      const collisionManifest = structuredClone(supplied);
+      collisionManifest.channels = [];
+      collisionManifest.tasks = [];
+      collisionManifest.agents.push({ ...structuredClone(supplied.agents[0]!), id: store.listAgents()[0]!.id });
+      const collisionPlan = await gen.plan(await gen.inspect(collisionManifest));
+      await expect(gen.importToStore(collisionPlan, store)).rejects.toThrow('already present');
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
+      const stagingManifest = structuredClone(supplied);
+      stagingManifest.channels = [];
+      stagingManifest.tasks = [];
+      const stagingPlan = await gen.plan(await gen.inspect(stagingManifest));
+      expect(stagingPlan.items[0]!.status).toBe('TRANSFORM');
+      const stagingStore = new WorkspaceStore();
+      const staged = await gen.importToStore(stagingPlan, stagingStore);
+      const stagedAgent = stagingStore.getAgent('custom-manifest-agent')!;
+      expect(stagedAgent.status).toBe('offline');
+      expect(stagedAgent.computePolicy.environment).toBe('none');
+      expect(stagedAgent.harnessPolicy.autoResume).toBe(false);
+      expect(stagedAgent.modelPolicy.allowCloudFallback).toBe(false);
+      expect(stagedAgent.tools).toEqual([]);
+      expect(stagedAgent.permissions).toEqual([]);
+      expect(stagedAgent.assignedChannelIds).toEqual([]);
+      expect((await gen.verify(staged.runId, stagingStore)).overallPassed).toBe(true);
+      expect((await gen.verify(staged.runId, store)).overallPassed).toBe(false);
+      stagingStore.updateAgent(stagedAgent.id, { permissions: ['workspace:write'] });
+      const changedVerification = await gen.verify(staged.runId, stagingStore);
+      expect(changedVerification.overallPassed).toBe(false);
+      expect(changedVerification.privilegeExpansionDetected).toBe(true);
+      const tamperedPlan = await gen.plan(await gen.inspect(stagingManifest));
+      tamperedPlan.items[0]!.canonicalPayload!.permissions = ['workspace:write'];
+      await expect(gen.importToStore(tamperedPlan, new WorkspaceStore())).rejects.toThrow('unknown or changed');
+      const receiptDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-migration-receipt-'));
+      try {
+        const file = path.join(receiptDirectory, 'workspace.json');
+        const durableStore = new WorkspaceStore(file);
+        const staleStore = new WorkspaceStore(file);
+        durableStore.recordAudit({ origin: 'system', actorId: 'synthetic', actorType: 'system', action: 'concurrent-write', targetType: 'system', targetId: 'test', details: {} });
+        const beforeAgents = staleStore.listAgents();
+        const beforeAudits = staleStore.listAuditEntries(10000);
+        const beforeDisk = fs.readFileSync(file, 'utf8');
+        const batchManifest = structuredClone(stagingManifest);
+        batchManifest.agents.push({ ...batchManifest.agents[0]!, id: 'second-batch-agent' });
+        await expect(gen.importToStore(await gen.plan(await gen.inspect(batchManifest)), staleStore)).rejects.toThrow('snapshot changed');
+        expect(staleStore.listAgents()).toEqual(beforeAgents);
+        expect(staleStore.listAuditEntries(10000)).toEqual(beforeAudits);
+        expect(fs.readFileSync(file, 'utf8')).toBe(beforeDisk);
+        expect(staleStore.verifyAuditChain().valid).toBe(true);
+        const durablePlan = await gen.plan(await gen.inspect(stagingManifest));
+        const durableRun = await gen.importToStore(durablePlan, durableStore);
+        const restoredStore = new WorkspaceStore(file);
+        const restoredProvider = new GenericMigrationProvider();
+        expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(true);
+        restoredStore.updateAgent('custom-manifest-agent', { description: 'Changed after restart' });
+        expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(false);
+        expect(() => restoredStore.rollbackAgentImport(durableRun.runId)).toThrow('changed or are missing');
+        const rollbackFile = path.join(receiptDirectory, 'rollback.json');
+        const rollbackStore = new WorkspaceStore(rollbackFile);
+        const rollbackRun = await gen.importToStore(await gen.plan(await gen.inspect(batchManifest)), rollbackStore);
+        const staleRollback = new WorkspaceStore(rollbackFile);
+        rollbackStore.recordAudit({ origin: 'system', actorId: 'synthetic', actorType: 'system', action: 'concurrent-write', targetType: 'system', targetId: 'test', details: {} });
+        const rollbackDisk = fs.readFileSync(rollbackFile, 'utf8');
+        await expect(Promise.resolve().then(() => staleRollback.rollbackAgentImport(rollbackRun.runId))).rejects.toThrow('snapshot changed');
+        expect(staleRollback.getAgent('custom-manifest-agent')).toBeDefined();
+        expect(staleRollback.getAgent('second-batch-agent')).toBeDefined();
+        expect(staleRollback.verifyAuditChain().valid).toBe(true);
+        expect(fs.readFileSync(rollbackFile, 'utf8')).toBe(rollbackDisk);
+        const reopened = new WorkspaceStore(rollbackFile);
+        const referenceStore = new WorkspaceStore();
+        referenceStore.loadFromFile(rollbackFile);
+        referenceStore.createTask({ title: 'Synthetic dependent work', priority: 'low', status: 'backlog', assignedAgentId: 'custom-manifest-agent' });
+        expect(() => referenceStore.rollbackAgentImport(rollbackRun.runId)).toThrow('referenced');
+        expect(referenceStore.getAgent('custom-manifest-agent')).toBeDefined();
+        // Use a separate in-memory copy to check reference refusal without changing the rollback fixture.
+        expect(reopened.rollbackAgentImport(rollbackRun.runId).removedIds).toEqual(['custom-manifest-agent', 'second-batch-agent']);
+        const afterRollback = new WorkspaceStore(rollbackFile);
+        expect(afterRollback.getAgent('custom-manifest-agent')).toBeUndefined();
+        expect(afterRollback.getAgent('second-batch-agent')).toBeUndefined();
+        expect(afterRollback.verifyAuditChain().valid).toBe(true);
+        expect(() => afterRollback.rollbackAgentImport(rollbackRun.runId)).toThrow('already rolled back');
+        expect((await new GenericMigrationProvider().verify(rollbackRun.runId, afterRollback)).overallPassed).toBe(false);
+        restoredStore.recordAudit({ origin: 'system', actorId: 'migration-generic', actorType: 'system',
+          action: 'generic_migration_started', targetType: 'system', targetId: 'unfinished-run',
+          details: { schema: 1, expectedIds: JSON.stringify(['custom-manifest-agent']) } });
+        expect((await restoredProvider.verify('unfinished-run', new WorkspaceStore(file))).overallPassed).toBe(false);
+        for (const boundary of ['before', 'after']) {
+          const crashFile = path.join(receiptDirectory, 'crash-'+boundary+'.json');
+          new WorkspaceStore(crashFile);
+          const childCode = `
+            import fs from 'node:fs';
+            import { WorkspaceStore } from ${JSON.stringify(pathToFileURL(path.resolve('src/core/store/workspaceStore.ts')).href)};
+            import { GenericMigrationProvider } from ${JSON.stringify(pathToFileURL(path.resolve('src/providers/migration/genericMigrationProvider.ts')).href)};
+            const file = ${JSON.stringify(crashFile)};
+            const store = new WorkspaceStore(file);
+            const provider = new GenericMigrationProvider();
+            const plan = await provider.plan(await provider.inspect(${JSON.stringify(batchManifest)}));
+            const rename = fs.renameSync;
+            fs.renameSync = function(from, to) {
+              if (to !== file) return rename(from, to);
+              if (${JSON.stringify(boundary)} === 'after') rename(from, to);
+              fs.writeSync(1, 'snapshot-boundary');
+              process.kill(process.pid, 'SIGKILL');
+            };
+            await provider.importToStore(plan, store);
+            throw Error('Expected process termination');
+          `;
+          const child = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', childCode], {
+            cwd: process.cwd(), encoding: 'utf8', timeout: 20000, windowsHide: true,
+          });
+          expect(child.error).toBeUndefined();
+          expect(child.stdout).toContain('snapshot-boundary');
+          expect(child.status).not.toBe(0);
+          const recovered = new WorkspaceStore(crashFile);
+          const importedIds = ['custom-manifest-agent', 'second-batch-agent'];
+          expect(importedIds.filter(id => recovered.getAgent(id))).toHaveLength(boundary === 'after' ? 2 : 0);
+          expect(recovered.verifyAuditChain().valid).toBe(true);
+          const completedReceipts = recovered.listAuditEntries({ actorId: 'migration-generic', limit: 100 })
+            .filter(entry => entry.action === 'generic_migration_completed');
+          expect(completedReceipts).toHaveLength(boundary === 'after' ? 1 : 0);
+          if (boundary === 'after') expect((await new GenericMigrationProvider().verify(completedReceipts[0].targetId, recovered)).overallPassed).toBe(true);
+        }
+      } finally { fs.rmSync(receiptDirectory, { recursive: true, force: true }); }
+      await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
+      await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
+      await expect(gen.inspect(null)).rejects.toThrow('Invalid generic');
+      const agentsBefore = store.listAgents().length;
+      for (const operation of ['inspect', 'plan', 'dry-run']) {
+        const response = await fetch(`${server.getBaseUrl()}/api/migration/${operation}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: 'GENERIC', manifest: supplied }),
+        });
+        expect(response.status).toBe(200);
+        const result = await response.json() as any;
+        if (operation === 'inspect') expect(result.discovered.agentsCount).toBe(1);
+        else expect((result.plan || result).items[0].sourceId).toBe('custom-manifest-agent');
+      }
+      const blockedImport = await fetch(`${server.getBaseUrl()}/api/migration/import`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'GENERIC', manifest: supplied }),
+      });
+      expect(blockedImport.status).toBe(409);
+      expect(store.listAgents().length).toBe(agentsBefore);
+      const migrationRequest = (action: string, body: object, token = '') => fetch(server.getBaseUrl()+'/api/migration/'+action, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer '+token } : {}) }, body: JSON.stringify(body),
+      });
+      expect((await migrationRequest('prepare-import', { source: 'GENERIC', manifest: stagingManifest })).status).toBe(401);
+      store.createUser({ username: 'migration-reviewer', displayName: 'Migration reviewer', role: 'owner', password: 'synthetic migration password' });
+      const login = await fetch(server.getBaseUrl()+'/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'migration-reviewer', password: 'synthetic migration password' }) });
+      const token = (await login.json()).token;
+      const loginMigrationUser = async (username: string, role: 'owner' | 'viewer') => {
+        store.createUser({ username, displayName: username, role, password: 'synthetic migration password' });
+        return (await (await fetch(server.getBaseUrl()+'/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password: 'synthetic migration password' }) })).json()).token;
+      };
+      const viewerToken = await loginMigrationUser('migration-viewer', 'viewer');
+      const otherOwnerToken = await loginMigrationUser('migration-other-owner', 'owner');
+      for (const action of ['prepare-import', 'commit-import', 'rollback-import']) {
+        expect((await migrationRequest(action, {}, viewerToken)).status).toBe(403);
+        expect((await migrationRequest(action, {})).status).toBe(401);
+      }
+      expect((await fetch(server.getBaseUrl()+'/api/migration/import-history', { headers: { Authorization: 'Bearer '+viewerToken } })).status).toBe(403);
+      const prepared = await migrationRequest('prepare-import', { source: 'GENERIC', manifest: stagingManifest }, token);
+      expect(prepared.status).toBe(200);
+      const review = await prepared.json();
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
+      expect((await migrationRequest('commit-import', { reviewId: review.reviewId, digest: 'changed', confirm: true }, token)).status).toBe(409);
+      const commit = { reviewId: review.reviewId, digest: review.digest, confirm: true };
+      expect((await migrationRequest('commit-import', commit, otherOwnerToken)).status).toBe(409);
+      expect((await migrationRequest('commit-import', { ...commit, confirm: false }, token)).status).toBe(409);
+      const imported = await migrationRequest('commit-import', commit, token);
+      expect(imported.status).toBe(200);
+      const importedResult = await imported.json();
+      expect(importedResult.verification.overallPassed).toBe(true);
+      const history = () => fetch(server.getBaseUrl()+'/api/migration/import-history', { headers: { Authorization: 'Bearer '+token } });
+      expect((await fetch(server.getBaseUrl()+'/api/migration/import-history')).status).toBe(401);
+      const importedHistory = await (await history()).json();
+      expect(importedHistory.runs.find((run: any) => run.runId === importedResult.result.runId).status).toBe('imported-unchanged');
+      expect((await migrationRequest('commit-import', commit, token)).status).toBe(409);
+      expect((await migrationRequest('rollback-import', { runId: importedResult.result.runId, confirm: true }, token)).status).toBe(200);
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
+      const rolledBackHistory = await (await history()).json();
+      expect(rolledBackHistory.runs.find((run: any) => run.runId === importedResult.result.runId).status).toBe('rolled-back');
     });
   });
 
@@ -599,6 +792,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
     it("should accurately distinguish API_COST vs POWER_COST_ESTIMATE and MEASURED vs CONFIGURED", () => {
       const router = new EmpiricalRouter();
       router.recordBenchmarkResult({
+        executionKind: 'executor',
         id: "bench-low-risk-ollama",
         suiteId: "suite-general-qa",
         targetType: "MODEL",
@@ -664,10 +858,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
   describe("Section 40 & 41: Persistence Durability & Crash Recovery", () => {
     it("should safely write atomically and recover from .bak file if primary file is corrupted", () => {
-      const tempDbPath = path.join(process.cwd(), ".artifacts", "test_store_durability.json");
-      if (!fs.existsSync(path.dirname(tempDbPath))) {
-        fs.mkdirSync(path.dirname(tempDbPath), { recursive: true });
-      }
+      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-durability-"));
+      const tempDbPath = path.join(scratch, "test_store_durability.json");
+      try {
 
       // 1. Save valid store
       store.saveToFile(tempDbPath);
@@ -689,11 +882,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       // Verify state was restored from backup
       expect(recoveredStore.listTasks().length).toBeGreaterThan(0);
 
-      // Clean up test file
-      try {
-        fs.unlinkSync(tempDbPath);
-        fs.unlinkSync(`${tempDbPath}.bak`);
-      } catch {}
+      } finally {
+        fs.rmSync(scratch, { recursive: true, force: true });
+      }
     });
   });
 });

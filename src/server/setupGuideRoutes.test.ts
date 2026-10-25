@@ -2,9 +2,11 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it,vi } from "vitest";
 import { WorkspaceStore } from "../core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./webServer.js";
+import { OperationalMemoryProvider } from '../providers/memory/operationalMemory.js';
+import type { MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
 
 async function availablePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -19,6 +21,117 @@ async function availablePort(): Promise<number> {
 }
 
 describe("Setup Guide API", () => {
+  it('protects saved connections and recovers them after a service restart without exposing keys', async () => {
+    dataDirectory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-connection-')));
+    const store = new WorkspaceStore();
+    store.createUser({ username: 'connection-owner', displayName: 'Owner', role: 'owner', password: 'synthetic login password' });
+    store.createUser({ username: 'connection-viewer', displayName: 'Viewer', role: 'viewer', password: 'synthetic login password' });
+    const definition: MemoryConnectionDefinition = { id: 'example-memory', version: '1', name: 'Example memory', description: 'Synthetic connection for acceptance.',
+      fields: [{ key: 'apiKey', label: 'API key', type: 'secret', required: true }],
+      create: ({ config }) => { if (config.apiKey !== 'synthetic-hindsight-secret') throw Error('Invalid synthetic key'); return new OperationalMemoryProvider(); } };
+    const options = { settingsFilePath: path.join(dataDirectory, 'settings.json'), memoryConnections: [definition] };
+    server = new AgentForgeWebServer(store, 0, undefined, undefined, options);
+    await server.start();
+    let base = server.getBaseUrl();
+    const login = async (username: string) => (await (await fetch(base+'/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password:'synthetic login password'})})).json()).token;
+    const owner = await login('connection-owner'), viewer = await login('connection-viewer');
+    const request = (route: string, token: string, body: object) => fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+    const body = { profile:{id:'synthetic',provider:'openai',models:['synthetic-model']},apiKey:'synthetic-secret-never-export',passphrase:'synthetic vault passphrase' };
+    expect((await request('/api/connections/save','',body)).status).toBe(401);
+    expect((await request('/api/connections/save',viewer,body)).status).toBe(403);
+    // Apply the existing connection authorization contract to every subscription control.
+    for(const action of ['begin','restore','activate','cancel','signout']){
+      const route='/api/connections/chatgpt/'+action;
+      const anonymous=await request(route,'',{}),readOnly=await request(route,viewer,{});
+      expect(anonymous.status).toBe(401);expect(readOnly.status).toBe(403);
+      expect(anonymous.headers.get('cache-control')).toBe('no-store');
+    }
+    for(const [token,expected] of [['',401],[viewer,403]] as const){
+      const result=await fetch(base+'/api/connections/chatgpt/status',{headers:token?{Authorization:'Bearer '+token}:{}});
+      expect(result.status).toBe(expected);
+    }
+    // Invalid account selections must fail before any sign-in or provider request.
+    for(const action of ['restore','signout'])expect((await request('/api/connections/chatgpt/'+action,owner,{accountId:'../other-account'})).status).toBe(400);
+    expect((await request('/api/connections/chatgpt/activate',owner,{id:'unknown',model:'synthetic'})).status).toBe(400);
+    expect(fs.existsSync(path.join(dataDirectory,'subscription-accounts'))).toBe(false);
+    const saved = await request('/api/connections/save',owner,body);
+    expect(saved.status).toBe(200);
+    const workspace=store.createWorkspace({name:'Synthetic notes'});
+    const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic notes',provider:'web'});
+    fs.writeFileSync(path.join(dataDirectory,'note.md'),'Synthetic selected memory');
+    const memorySelection={action:'obsidian',namespace:'synthetic',root:dataDirectory,projectId:project.id,files:['note.md'],confirmSharing:true,remember:true,passphrase:'synthetic memory unlock'};
+    expect((await request('/api/memory/connection','',memorySelection)).status).toBe(401);
+    expect((await request('/api/memory/connection',viewer,memorySelection)).status).toBe(403);
+    expect((await request('/api/memory/connection',owner,{...memorySelection,confirmSharing:false})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,memorySelection)).status).toBe(200);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
+    expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+    expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
+    const status = await saved.text(); expect(status).toContain('synthetic::synthetic-model');expect(status).not.toContain(body.apiKey);expect(status).not.toContain(body.passphrase);
+    const vault = fs.readFileSync(path.join(dataDirectory,'connections.encrypted.json'),'utf8');
+    expect(vault).not.toContain(body.apiKey);expect(vault).not.toContain(body.passphrase);
+    await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
+    expect(server.conversations.status().configured).toBe(false);
+    expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
+    expect(server.conversations.status().models).toEqual(['synthetic::synthetic-model']);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain(dataDirectory);
+    const secondProject=store.createSpace({workspaceId:workspace.id,name:'Second synthetic notes',provider:'web'});
+    expect((await request('/api/memory/connection',owner,{...memorySelection,projectId:secondProject.id})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect(server.conversations.status().projectMemoryConnections).toEqual([{projectId:secondProject.id,providerId:'obsidian'}]);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:secondProject.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
+    const originalFetch=globalThis.fetch;
+    const transport=vi.spyOn(globalThis,'fetch').mockImplementation((input,init)=>String(input).startsWith('https://api.hindsight.vectorize.io/')?Promise.resolve(Response.json({results:[]})):originalFetch(input,init));
+    try{
+      for(const action of ['hindsight','combined','custom']){
+      const expectedProvider=action==='custom'?'agentforge_operational':action==='combined'?'composite':'hindsight';
+      const custom={providerId:'example-memory',providerVersion:'1',config:{apiKey:'synthetic-hindsight-secret'}};
+      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action,bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret',...custom});
+      expect(cloud.status).toBe(200);expect(await cloud.text()).not.toContain('synthetic-hindsight-secret');
+      expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
+      expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
+      expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
+      await server.stop();
+      server = new AgentForgeWebServer(store,0,undefined,undefined,options);
+      await server.start();base=server.getBaseUrl();
+      expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+      expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
+      expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+      expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
+      }
+      const catalog=await fetch(base+'/api/memory/providers',{headers:{Authorization:'Bearer '+owner}});
+      expect(catalog.status).toBe(200);
+      const catalogText=await catalog.text();expect(catalogText).toContain('example-memory');expect(catalogText).not.toContain('synthetic-hindsight-secret');
+      expect((await request('/api/memory/connection',owner,{...memorySelection,action:'custom',providerId:'example-memory',providerVersion:'2',config:{apiKey:'synthetic-hindsight-secret'}})).status).toBe(400);
+      expect(server.conversations.status().memoryProvider).toBe('agentforge_operational');
+    }finally{transport.mockRestore();}
+    const savedMemoryVault=fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8');
+    for(const definitions of [[],[{...definition,version:'2'}]]){
+      await server.stop();
+      server=new AgentForgeWebServer(store,0,undefined,undefined,{...options,memoryConnections:definitions});
+      await server.start();base=server.getBaseUrl();
+      expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
+      const unavailable=await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase});
+      expect(unavailable.status).toBe(400);
+      expect(await unavailable.text()).toContain('missing or its setup version changed');
+      expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+      expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).toBe(savedMemoryVault);
+    }
+    // A wrong passphrase after restarting cannot replace a saved credential set.
+    await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
+    expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect(fs.readFileSync(path.join(dataDirectory,'connections.encrypted.json'),'utf8')).toBe(vault);
+    expect(server.conversations.status().configured).toBe(false);
+  });
   it("uses the inner JEv controller for natural-language intent", async () => {
     const port = await availablePort();
     server = new AgentForgeWebServer(new WorkspaceStore(), port);

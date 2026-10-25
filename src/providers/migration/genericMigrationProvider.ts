@@ -3,6 +3,8 @@
  * Sections 21 & 22: Generic Migration Manifest & Extensible SDK
  */
 
+import { createHash, randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { MigrationProvider } from "../../core/providers/migration.js";
 import type {
   MigrationSource,
@@ -17,9 +19,15 @@ import type {
   MigrationArtifact,
 } from "../../core/types/migration.js";
 import type { WorkspaceStore } from "../../core/store/workspaceStore.js";
+import type { AgentTeammate } from "../../core/types/agent.js";
 import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.js";
 
+const agentDigest = (agent: AgentTeammate) => createHash('sha256').update(JSON.stringify(agent)).digest('hex');
+
 export class GenericMigrationProvider implements MigrationProvider {
+  private inspections = new WeakMap<MigrationInspection, typeof GENERIC_MIGRATION_FIXTURE>();
+  private plans = new WeakMap<MigrationPlan, MigrationPlan>();
+  private runs = new Map<string, { agents: AgentTeammate[]; expected: number; store: WorkspaceStore }>();
   readonly id = "migration-generic";
   readonly source: MigrationSource = "GENERIC";
 
@@ -28,15 +36,25 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async inspect(manifestData?: unknown): Promise<MigrationInspection> {
-    const data = (manifestData as any) || GENERIC_MIGRATION_FIXTURE;
-    return {
+    const data = structuredClone(manifestData === undefined ? GENERIC_MIGRATION_FIXTURE : manifestData) as typeof GENERIC_MIGRATION_FIXTURE;
+    const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(entry => typeof entry === 'string');
+    if (!data || typeof data.version !== 'string' || typeof data.sourceSystem !== 'string'
+      || !Array.isArray(data.agents) || !Array.isArray(data.channels) || !Array.isArray(data.tasks)
+      || data.agents.some(agent => !agent || ![agent.id, agent.name, agent.role, agent.description].every(value => typeof value === 'string')
+        || !agent.id || !strings(agent.tools) || !strings(agent.permissions))
+      || new Set(data.agents.map(agent => agent.id)).size !== data.agents.length
+      || data.channels.some(channel => !channel || typeof channel.name !== 'string' || typeof channel.visibility !== 'string')
+      || data.tasks.some(task => !task || typeof task.title !== 'string' || typeof task.status !== 'string')) {
+      throw new Error('Invalid generic migration manifest');
+    }
+    const inspection: MigrationInspection = {
       source: "GENERIC",
       sourceVersion: data.version,
       inspectedAt: new Date().toISOString(),
       discovered: {
         agentsCount: data.agents?.length || 0,
         channelsCount: data.channels?.length || 0,
-        toolsCount: data.agents?.[0]?.tools?.length || 0,
+        toolsCount: new Set(data.agents.flatMap(agent => agent.tools)).size,
         modelsCount: 1,
         tasksCount: data.tasks?.length || 0,
         schedulesCount: 0,
@@ -45,14 +63,27 @@ export class GenericMigrationProvider implements MigrationProvider {
       secretRequirements: [],
       rawMetadata: { sourceSystem: data.sourceSystem },
     };
+    this.inspections.set(inspection, data);
+    return inspection;
   }
 
   async plan(inspection: MigrationInspection): Promise<MigrationPlan> {
-    const data = GENERIC_MIGRATION_FIXTURE;
+    const data = this.inspections.get(inspection);
+    if (!data) throw new Error('Inspect the manifest with this provider before planning');
     const items: MigrationItem[] = [];
 
     // Map agents
     for (const agent of data.agents) {
+      const payload = {
+        id: agent.id, name: agent.name, role: agent.role, description: agent.description,
+        status: 'offline',
+        harnessPolicy: { preferredHarnessId: 'native', autoResume: false },
+        modelPolicy: { preferredTier: 2, preferredModel: 'unconfigured', preferredProvider: 'unconfigured', allowCloudFallback: false },
+        decisionPolicy: { useSystem1Router: false },
+        computePolicy: { environment: 'none' },
+        memoryNamespace: `migration-${encodeURIComponent(agent.id)}`,
+        tools: [], permissions: [], assignedChannelIds: [],
+      } satisfies Omit<AgentTeammate, 'createdAt' | 'updatedAt'>;
       items.push({
         id: `item-gen-agent-${agent.id}`,
         sourceType: "generic_agent",
@@ -60,17 +91,10 @@ export class GenericMigrationProvider implements MigrationProvider {
         sourceName: agent.name,
         targetCategory: "agent",
         targetName: agent.name,
-        status: "DIRECT",
-        transformDetails: "Direct import from standard schema",
-        canonicalPayload: {
-          id: agent.id,
-          name: agent.name,
-          role: agent.role,
-          description: agent.description,
-          status: "idle",
-          tools: agent.tools,
-          permissions: agent.permissions,
-        },
+        status: "TRANSFORM",
+        transformDetails: "Offline staging profile. Reconnect the model, harness, prompt, channels and memory, then review tools and permissions before execution. Source permissions are not granted.",
+        warning: `Source requests ${agent.tools.length} tools and ${agent.permissions.length} permissions; neither is enabled in staging.`,
+        canonicalPayload: payload,
       });
     }
 
@@ -83,7 +107,7 @@ export class GenericMigrationProvider implements MigrationProvider {
         sourceName: ch.name,
         targetCategory: "channel",
         targetName: ch.name,
-        status: "DIRECT",
+        status: "UNSUPPORTED",
         canonicalPayload: {
           name: ch.name,
           visibility: ch.visibility,
@@ -92,49 +116,100 @@ export class GenericMigrationProvider implements MigrationProvider {
       });
     }
 
-    return {
+    for (const [index, task] of data.tasks.entries()) {
+      items.push({
+        id: `item-gen-task-${index}`, sourceType: 'generic_task', sourceId: String(index),
+        sourceName: task.title, targetCategory: 'task', targetName: task.title,
+        status: 'UNSUPPORTED', warning: 'Task history import is not implemented; this task will not be silently omitted.',
+      });
+    }
+
+    const plan: MigrationPlan = {
       id: `plan-generic-${Date.now()}`,
       source: "GENERIC",
       createdAt: new Date().toISOString(),
       items,
       conflicts: [],
       secretRequirements: [],
-      summary: { direct: items.length, transform: 0, manualReview: 0, unsupported: 0, secretRequired: 0, dangerous: 0 },
-      readinessScore: 100,
+      summary: { direct: 0, transform: data.agents.length, manualReview: 0, unsupported: data.channels.length + data.tasks.length, secretRequired: 0, dangerous: 0 },
+      readinessScore: items.length ? Math.round(100*data.agents.length/items.length) : 0,
     };
+    this.plans.set(plan, structuredClone(plan));
+    return plan;
   }
 
   async dryRun(plan: MigrationPlan): Promise<MigrationDryRun> {
+    const unsupported=plan.items.filter(item=>!['DIRECT','TRANSFORM'].includes(item.status)||item.targetCategory!=='agent'||!item.canonicalPayload);
     return {
       planId: plan.id,
       executedAt: new Date().toISOString(),
-      simulatedImportsCount: plan.items.length,
-      simulatedErrorsCount: 0,
-      validationWarnings: [],
+      simulatedImportsCount: plan.items.length-unsupported.length,
+      simulatedErrorsCount: unsupported.length,
+      validationWarnings: unsupported.map(item=>`Item ${item.id} has no implemented import handler`),
       wouldMutateProduction: false,
       wouldConnectExternalChannels: false,
-      dryRunPassed: true,
+      dryRunPassed: unsupported.length===0,
     };
   }
 
   async importToStore(plan: MigrationPlan, targetStore: WorkspaceStore) {
-    const runId = `run-generic-${Date.now()}`;
-    for (const item of plan.items) {
-      if (item.targetCategory === "agent" && item.canonicalPayload) {
-        targetStore.createAgent(item.canonicalPayload as any);
-      }
+    if (!isDeepStrictEqual(this.plans.get(plan), plan)) {
+      throw new Error('Migration plan is unknown or changed; regenerate it before import');
     }
-    return { runId, importedCount: plan.items.length };
+    plan = structuredClone(plan);
+    const preview = await this.dryRun(plan);
+    if (!plan.items.length || !preview.dryRunPassed) {
+      throw new Error('Migration plan contains unsupported or unreviewed items; nothing was imported');
+    }
+    const plannedIds = plan.items.map(item => item.canonicalPayload?.id);
+    if (plannedIds.some(id => typeof id !== 'string' || !id)
+      || new Set(plannedIds).size !== plannedIds.length
+      || plannedIds.some(id => targetStore.getAgent(id as string))) {
+      throw new Error('Migration agent identities are invalid, repeated or already present; nothing was imported');
+    }
+    const runId = `run-generic-${randomUUID()}`;
+    const agents = targetStore.importAgentBatch(plan.items.map(item => item.canonicalPayload as Omit<AgentTeammate, 'createdAt' | 'updatedAt'>), this.id, runId);
+    const importedCount = agents.length;
+    this.runs.set(runId,{agents,expected:plan.items.length,store:targetStore});
+    return { runId, importedCount };
   }
 
   async verify(runId: string, targetStore: WorkspaceStore): Promise<MigrationVerification> {
-    const hasAgent = targetStore.listAgents().some(a => a.id === "agent-doc-writer");
+    const run=this.runs.get(runId);
+    const sameStore = run?.store === targetStore;
+    let hasAgent = Boolean(run && sameStore && run.agents.length > 0 && run.agents.length === run.expected
+      && run.agents.every(agent => isDeepStrictEqual(targetStore.getAgent(agent.id), agent)));
+    // Persisted receipts verify records after provider/server restart. A started
+    // run without a completion receipt never verifies or automatically retries.
+    if (!run && targetStore.verifyAuditChain().valid) {
+      const receipts = targetStore.listAuditEntries({ actorId: this.id, targetType: 'system', targetId: runId, limit: 10 });
+      const started = receipts.find(entry => entry.action === 'generic_migration_started');
+      const completed = receipts.find(entry => entry.action === 'generic_migration_completed');
+      try {
+        const ids: unknown = JSON.parse(String(started?.details.expectedIds));
+        const hashes: unknown = JSON.parse(String(completed?.details.agentHashes));
+        hasAgent = started?.details.schema === 1 && completed?.details.schema === 1
+          && Array.isArray(ids) && ids.length > 0 && ids.every(id => typeof id === 'string')
+          && new Set(ids).size === ids.length && Array.isArray(hashes) && hashes.length === ids.length
+          && hashes.every((entry, index) => entry && entry.id === ids[index]
+            && typeof entry.sha256 === 'string' && /^[a-f0-9]{64}$/.test(entry.sha256)
+            && targetStore.getAgent(entry.id) && agentDigest(targetStore.getAgent(entry.id)!) === entry.sha256);
+      } catch { hasAgent = false; }
+    }
+    const privilegeExpansionDetected = Boolean(run && sameStore && run.agents.some(expected => {
+      const actual = targetStore.getAgent(expected.id);
+      return actual && (actual.permissions.some(permission => !expected.permissions.includes(permission))
+        || actual.tools.some(tool => !expected.tools.includes(tool))
+        || !isDeepStrictEqual(actual.computePolicy, expected.computePolicy)
+        || (!expected.modelPolicy.allowCloudFallback && actual.modelPolicy.allowCloudFallback)
+        || (!expected.harnessPolicy.autoResume && actual.harnessPolicy.autoResume));
+    }));
     return {
       migrationRunId: runId,
       verifiedAt: new Date().toISOString(),
-      checks: [{ name: "Generic Agent Imported", passed: hasAgent, details: "Verified in store" }],
+      checks: [{ name: "Generic staging records unchanged", passed: hasAgent, details: "Compares complete created records or durable record hashes; unknown, partial or changed runs do not pass. This does not verify runtime behavior." }],
       overallPassed: hasAgent,
-      privilegeExpansionDetected: false,
+      privilegeExpansionDetected: !run && !hasAgent ? null : privilegeExpansionDetected,
     };
   }
 

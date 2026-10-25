@@ -2,3 +2,4 @@
 # entire working-document tree in the npm archive: it contains internal build
 # plans and local development references that are not part of the runtime API.
 *
+!MEMORY_PROVIDER_SDK.md

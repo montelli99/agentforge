@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { performance } from 'node:perf_hooks';
 import { BenchmarkRunner } from "./benchmarkRunner.js";
 import {
   MODEL_INTENT_SUITE,
@@ -46,6 +47,9 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     expect(result.passedCases).toBe(3);
     expect(result.failedCases).toBe(0);
     expect(result.passedOverall).toBe(true);
+    expect(result.suiteSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.attempts?.map(item=>item.outcome)).toEqual(['passed','passed','passed']);
+    expect(result.artifacts).toEqual([]);
 
     const passRateMetric = result.metrics.find(m => m.name === "pass_rate");
     expect(passRateMetric?.value).toBe(100);
@@ -53,9 +57,26 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
 
     // Evaluate compatibility
     const compat = runner.evaluateCompatibility("HARNESS", "agentforge-native", result);
-    expect(compat.compatible).toBe(true);
-    expect(compat.supportedFeatures).toContain("git_worktree_isolation");
-    expect(compat.supportedFeatures).toContain("command_gating");
+    expect(compat.compatible).toBe(false);
+    expect(result.executionKind).toBe("simulation");
+    expect(compat.supportedFeatures).toEqual([]);
+    let clock=0;
+    const measured=vi.spyOn(performance,'now').mockImplementation(()=>{const value=clock;clock+=7;return value;});
+    try {
+      const failed=await runner.runSuite(HARNESS_ISOLATION_SUITE,'synthetic-failure',async()=>{throw Error('Synthetic target failure');});
+      expect(failed.failedCases).toBe(failed.totalCases);
+      expect(failed.metrics.find(metric=>metric.name==='avg_latency')?.value).toBe(7);
+      expect(failed.passedOverall).toBe(false);
+      await expect(runner.runSuite({...HARNESS_ISOLATION_SUITE,cases:[]},'empty',async()=>({output:{},latencyMs:0}))).rejects.toThrow('at least one case');
+    } finally { measured.mockRestore(); }
+    let stopSignal:AbortSignal|undefined;
+    const bounded=await runner.runSuite({...HARNESS_ISOLATION_SUITE,cases:[{...HARNESS_ISOLATION_SUITE.cases[0],timeoutMs:10}]},'stalled-fixture',async(_input,signal)=>{stopSignal=signal;return new Promise(()=>{});});
+    expect(bounded.failedCases).toBe(1);
+    expect(bounded.passedOverall).toBe(false);
+    expect(stopSignal?.aborted).toBe(true);
+    expect(bounded.attempts?.[0].outcome).toBe('timeout');
+    expect(bounded.reportedCostUsd).toBeNull();
+    expect(bounded.attempts?.[0].reportedCostUsd).toBeNull();
   });
 
   it("enforces empirical routing: unmeasured models cannot win critical tasks on reputation alone", () => {
@@ -76,6 +97,7 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
 
     // Now record measured benchmark for target-tier2-llama3-8b with 100% pass rate
     router.recordBenchmarkResult({
+        executionKind: 'executor',
       id: "bench-measured-01",
       suiteId: "suite-model-tools-v1",
       targetType: "MODEL",
@@ -95,6 +117,8 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     });
 
     // Re-route with same requirements
+    // Reloading the same run must not add weight or replace its original evidence.
+    router.recordBenchmarkResult({executionKind:'executor',id:'bench-measured-01',suiteId:'suite-model-tools-v1',targetType:'MODEL',targetId:'target-tier2-llama3-8b',totalCases:2,passedCases:0,failedCases:2,metrics:[],artifacts:[],passedOverall:false,executedAt:new Date().toISOString(),durationMs:1});
     const measuredDecision = router.route({
       taskType: "bug_fix",
       risk: "high",
@@ -156,7 +180,7 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
       expect(runRes.status).toBe(200);
       const runData = await runRes.json() as { result: any; compatibility: any };
       expect(runData.result.passedOverall).toBe(true);
-      expect(runData.compatibility.compatible).toBe(true);
+      expect(runData.compatibility.compatible).toBe(false);
 
       // Verify audit entry was recorded
       const audits = store.listAuditEntries({ targetType: "benchmark" });
@@ -179,8 +203,8 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
       });
       expect(routeRes.status).toBe(200);
       const routeData = await routeRes.json() as { selectedTargetId: string; qualityStatus: string };
-      expect(routeData.selectedTargetId).toBe("target-tier2-llama3-8b");
-      expect(routeData.qualityStatus).toBe("MEASURED");
+      expect(routeData.selectedTargetId).toBe("target-tier4-gpt4o");
+      expect(routeData.qualityStatus).toBe("UNKNOWN");
     });
   });
 });

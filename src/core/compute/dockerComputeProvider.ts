@@ -8,6 +8,7 @@
 
 import { execFile } from "node:child_process";
 import crypto from "node:crypto";
+import { realpath } from "node:fs/promises";
 import { validateWritableFiles } from "./nonDeletingFileMounts.js";
 import { prepareScopedWritableDirectories, checkDockerReadiness } from "./scopedDockerMounts.js";
 import { promisify } from "node:util";
@@ -19,6 +20,12 @@ import type {
 } from "../providers/compute.js";
 
 const execFileAsync = promisify(execFile);
+const operationIdPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+
+async function workspaceLabel(directory: string): Promise<string> {
+  const canonical = await realpath(directory);
+  return crypto.createHash('sha256').update(process.platform === 'win32' ? canonical.toLowerCase() : canonical).digest('hex');
+}
 
 export interface DockerProviderOptions {
   defaultImage?: string;
@@ -92,6 +99,25 @@ export class DockerComputeProvider implements ComputeProvider {
       return stdout;
     });
   }
+  /** Read-only discovery after restart. Labels identify candidates, not proof
+   * that a worker is dead or that an effect completed. Never replay or remove here.
+   */
+  async listWorkspaceContainers(worktreeDir: string, operationId?: string): Promise<Array<{id: string; state: string}>> {
+    if (operationId !== undefined && !operationIdPattern.test(operationId)) throw Error('Invalid execution operation identity');
+    const digest = await workspaceLabel(worktreeDir);
+    const {stdout} = await execFileAsync('docker', ['ps', '--all', '--no-trunc',
+      '--filter', 'label=io.agentforge.managed=1', '--filter', `label=io.agentforge.workspace=${digest}`,
+      ...(operationId ? ['--filter', `label=io.agentforge.operation=${operationId}`] : []),
+      '--format', '{{json .}}'], {timeout: 10000, maxBuffer: 1024 * 1024});
+    const lines = stdout.trim().split(/\r?\n/).filter(Boolean);
+    if (lines.length > 1000) throw Error('Too many workspace containers to reconcile');
+    return lines.map(line => {
+      const value = JSON.parse(line);
+      if (!/^[a-f0-9]{64}$/.test(value.ID) || !['created','running','paused','restarting','removing','exited','dead'].includes(value.State))
+        throw Error('Invalid Docker discovery response');
+      return {id: value.ID as string, state: value.State as string};
+    });
+  }
   async createEnvironment(config: { worktreeDir: string; agentId: string; writableDirectories?: string[]; writableFiles?: string[] }): Promise<SandboxEnvironment> {
     const availability = await this.isAvailable();
     if (!availability.available) {
@@ -129,6 +155,7 @@ export class DockerComputeProvider implements ComputeProvider {
     command: string,
     options: ExecutionCommandOptions = {},
   ): Promise<CommandExecutionResult> {
+    if (options.operationId !== undefined && !operationIdPattern.test(options.operationId)) throw Error('Invalid execution operation identity');
     const env = this.environments.get(environmentId);
     if (!env || env.status !== "running") {
       throw new Error(`Docker sandbox environment ${environmentId} not found or not running`);
@@ -149,9 +176,19 @@ export class DockerComputeProvider implements ComputeProvider {
     // Killing the Docker client alone does not stop a detached container. Give
     // every run a known name and remove it before releasing the environment.
     const containerName = `${env.containerName}-${crypto.randomUUID().slice(0, 8)}`;
-    dockerArgs.splice(1, 0, "--name", containerName);
+    dockerArgs.splice(1, 0, "--name", containerName,
+      '--label', 'io.agentforge.managed=1',
+      '--label', `io.agentforge.workspace=${await workspaceLabel(env.workingDirectory)}`,
+      '--label', `io.agentforge.environment=${environmentId}`);
+    if (options.operationId) dockerArgs.splice(1, 0, '--label', `io.agentforge.operation=${options.operationId}`);
     dockerArgs[0] = "create";
     dockerArgs.splice(dockerArgs.indexOf("--rm"), 1);
+    // Preparation above awaits filesystem work. Recheck immediately before
+    // reserving the environment; another caller or destroy may have won.
+    if (env.status !== 'running' || this.environments.get(environmentId) !== env)
+      throw new Error('Docker sandbox stopped during command preparation.');
+    if (this.activeCommands.has(environmentId)) throw new Error('A command is already running in this environment.');
+    if (options.signal?.aborted) throw new Error('Command was cancelled during preparation.');
     const controller = new AbortController();
     const cancel = () => controller.abort();
     options.signal?.addEventListener("abort", cancel, { once: true });

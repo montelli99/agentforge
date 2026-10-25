@@ -68,7 +68,7 @@ These results establish narrow live capabilities, not comparative product
 superiority. The task was pre-approved and fixed; autonomous planning was not
 evaluated. Reopening the store is not a process-crash experiment. The memory
 example was used during development, not a held-out benchmark. Monetary cost
-is unmeasured, and streaming token usage is not currently exposed. Broader
+is unmeasured. Provider-reported per-request token usage is now persisted and displayed when supplied; missing usage stays unknown. Broader
 held-out workloads and independently reproducible baselines are still needed.
 
 Reproduce with `scripts/conversation-execution-e2e.ts` using
@@ -77,3 +77,17 @@ Reproduce with `scripts/conversation-execution-e2e.ts` using
 `AGENTFORGE_PROOF_MODEL` and private `MIMO_API_KEY`. Set
 `AGENTFORGE_PROOF_OUTPUT` outside the project for the JSON result. Live runs
 consume provider quota; they are never enabled by normal CI.
+
+## Selectable project memory
+
+Chat recall and worker context accept the shared MemoryProvider interface. The Memory screen offers Connect memory for explicit Obsidian Markdown selections. An owner or administrator selects a project and files and acknowledges that their contents may reach the configured model and task workers. No vault scanning or note writes occur. Optional encrypted saving supports explicit restore after restart; forgetting clears the saved selection without modifying notes.
+
+Projects can keep separate selected sources active simultaneously. Disconnect or forget affects only the selected project; its task worker returns to its previously configured local memory. Up to 20 project selections can be saved encrypted and explicitly restored after restart. Hindsight Cloud read-only recall is available alongside Obsidian, using an explicit bank and API key and only facts tagged chat-context. Connection checking sends a fixed query and may use provider credits. The saved-memory list still shows local records, not a merged external browser. Composition, migration/export and live Hindsight acceptance remain unfinished. Lookup waiting is bounded to 15 seconds and supports cancellation; a provider ignoring cancellation may continue its own work. Browser acceptance is not yet demonstrated.
+
+The public package exports MemoryProvider, ObsidianMemoryProvider and HindsightMemoryProvider for programmatic integration. This is an adapter contract, not automatic plugin installation. External adapters currently provide read-only retrieval; they do not implement source writes or deletion.
+
+Programmatic source composition is available through `CompositeMemoryProvider(namespace, projectId, sources)`, where each source has a unique `alias` and `provider`. It implements the same chat/worker interface, bounds waiting for each source and filters project/namespace/category/tag boundaries again. Results use source-qualified IDs and retain original provider/record identity in `metadata.memorySource`. Sources are interleaved by rank because relevance scores from different engines are not comparable. Conflicting records remain separate; composition does not decide which is true. Any source failure fails the entire query rather than implying partial results are complete. Writes and direct lookup are deliberately unsupported. Guided setup supports the Obsidian + Hindsight pair; arbitrary source-set configuration and full retrieval behavioral acceptance remain pending.
+
+The setup dialog now also offers Obsidian + Hindsight together. Supply both the selected local files and remote bank connection, then acknowledge sharing. Validation must succeed for both before the project source changes. Optional encrypted saving stores both configurations for explicit restore. The existing synthetic setup check covers combined activation, encrypted saving, disconnect and explicit restore. Combined retrieval quality, process-restart restore and browser acceptance remain pending.
+
+Local memory portability: Export collection downloads the collection as JSON with format agentforge-memory and schemaVersion 1, including archived records and stored revision history. Download Markdown exports the selected record's current text and source/version/category/project fields as front matter, suitable for manual import into a notes app. The downloaded content may contain sensitive information entered in the note; store and share it accordingly. These exports do not enumerate external banks or vaults and do not include connection configuration. Automatic destination import and conflict-aware migration remain unfinished.

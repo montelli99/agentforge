@@ -155,6 +155,32 @@ try {
   assert.equal(installedStatus.status, 0, installedStatus.stderr);
   assert.match(installedStatus.stdout, /staging_not_release_ready/);
 
+  // Resolve the public contracts through the installed archive, never src/.
+  const consumerSource = path.join(consumerDirectory, "memory-consumer.mts");
+  fs.writeFileSync(consumerSource, `
+import { MemoryConnectionRegistry, OperationalMemoryProvider, CompositeMemoryProvider, queryMemoryBounded } from 'agentforge';
+import type { MemoryProvider, MemoryQuery, MemoryConnectionDefinition } from 'agentforge';
+const provider: MemoryProvider = new OperationalMemoryProvider();
+const definition: MemoryConnectionDefinition = {
+  id: 'example-memory', version: '1', name: 'Example', description: 'Synthetic local provider', fields: [],
+  create: () => provider,
+};
+const registry = new MemoryConnectionRegistry([definition]);
+const selected = registry.connect('example-memory', '1', {}, 'example', 'project');
+const combined: MemoryProvider = new CompositeMemoryProvider('example', 'project', [{ alias: 'local', provider: selected.provider }]);
+const query: MemoryQuery = { namespace: 'example', projectId: 'project', limit: 1 };
+await queryMemoryBounded(combined, query);
+`, "utf8");
+  const consumerTypes = spawnSync(process.execPath, [
+    path.join(repositoryRoot, "node_modules", "typescript", "bin", "tsc"),
+    "--ignoreConfig", "--noEmit", "--strict", "--target", "ES2022", "--module", "NodeNext",
+    "--moduleResolution", "NodeNext", "--types", "node", "--typeRoots",
+    path.join(repositoryRoot, "node_modules", "@types"), consumerSource,
+  ], { cwd: consumerDirectory, encoding: "utf8", timeout: 60_000 });
+  if (consumerTypes.error) throw consumerTypes.error;
+  assert.equal(consumerTypes.status, 0, consumerTypes.stdout + consumerTypes.stderr);
+  console.log("PASS: installed archive exposes usable typed memory-provider, registry and composition contracts.");
+
   console.log("PASS: published CLI installs as agentforge, initializes a least-privilege unlicensed package, validates manifests and ZIP archives, rejects archive traversal, performs package checks, and rejects unsafe package names.");
 } finally {
   fs.rmSync(tempDirectory, { recursive: true, force: true });

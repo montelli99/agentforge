@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ChatGPTDirectModel } from './chatgptDirectModel.js';
+import { DirectResponsesTransport } from './chatgptDirectTransport.js';
 import type { AuthorizedResponsesTransport, DirectCatalog, DirectGrant } from './chatgptDirectModel.js';
 
 const options = { model: 'mock-entitled-slug', messages: [{ role: 'system' as const, content: 'Plan only' }, { role: 'user' as const, content: 'Draft' }], responseFormat: 'json' as const };
@@ -12,6 +13,24 @@ function fixture(events: unknown[] = [{ type: 'response.output_text.delta', delt
   return { provider, open, setGrant: (value: DirectGrant | undefined) => { grant = value; }, setCatalog: (value: DirectCatalog | undefined) => { catalog = value; } };
 }
 describe('offline ChatGPT direct planning seam', () => {
+  it('uses only a matching session and parses bounded SSE without retry or token-bearing errors', async () => {
+    const grant:DirectGrant={accountId:'synthetic',grantId:'grant',resource:'https://api.openai.com/v1',scopes:['resource.invoke','chatgpt.tokens.use.direct'],expiresAt:Date.now()+60000};
+    const credentials={clientId:'client',subject:grant.accountId,issuer:'https://auth.openai.com' as const,resource:grant.resource,accessToken:'synthetic-secret',idToken:'synthetic-id',tokenType:'Bearer' as const,scopes:grant.scopes,expiresAt:grant.expiresAt};
+    const fetcher=vi.fn(async(_url: string | URL | Request,_init?:RequestInit)=>new Response('data: {"type":"response.completed"}\r\n\r\n',{headers:{'content-type':'text/event-stream'}}));
+    const transport=new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),fetcher);
+    const input={url:'https://api.openai.com/v1/responses' as const,body:{model:'model',input:[],store:false as const,stream:true as const},grant,signal:new AbortController().signal};
+    const collect=async (stream:AsyncIterable<unknown>)=>{const results=[];for await(const event of stream)results.push(event);return results;};
+    expect(await collect(transport.open(input))).toEqual([{type:'response.completed'}]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({redirect:'error'});
+    await expect(collect(transport.open({...input,grant:{...grant,grantId:'other'}}))).rejects.toThrow('unavailable');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const failing=vi.fn(async()=>{throw Error('synthetic-secret');});
+    await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),failing).open(input))).rejects.toThrow('no retry');
+    expect(failing).toHaveBeenCalledTimes(1);
+    const partial=async()=>new Response('data: {"type":"response.completed"}',{headers:{'content-type':'text/event-stream'}});
+    await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),partial).open(input))).rejects.toThrow('Incomplete');
+  });
   it('is opt-in and never opens transport without a valid grant/catalog', async () => {
     const f = fixture(undefined, false);
     expect(await f.provider.isAvailable()).toBe(false);

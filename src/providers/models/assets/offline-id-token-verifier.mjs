@@ -21,7 +21,8 @@ function audienceMatches(actual, expected) {
  * Creates an offline ID-token verifier backed only by an explicitly supplied,
  * trusted in-memory public JWK set. It has no package or network imports.
  */
-export function createOfflineIdTokenVerifier({ jwks, issuer, audience, nonce, algorithms = DEFAULT_ALGORITHMS, now = () => Date.now() }) {
+export function createOfflineIdTokenVerifier({ jwks, issuer, audience, nonce, purpose = 'sign-in', algorithms = DEFAULT_ALGORITHMS, now = () => Date.now() }) {
+  if (purpose !== 'sign-in' && purpose !== 'refresh') throw Error('Invalid verifier purpose');
   if (!jwks || !Array.isArray(jwks.keys) || jwks.keys.length === 0 || !safeText(issuer) || !safeText(audience) || !safeText(nonce, 256)) throw Error('Invalid offline verifier configuration');
   if (!Array.isArray(algorithms) || algorithms.length === 0 || new Set(algorithms).size !== algorithms.length || algorithms.some(alg => !DEFAULT_ALGORITHMS.includes(alg))) throw Error('Invalid offline verifier algorithm policy');
   const seenKids = new Set();
@@ -55,7 +56,7 @@ export function createOfflineIdTokenVerifier({ jwks, issuer, audience, nonce, al
           : signature.length === 64 && verifyBytes('sha256', signingInput, { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature);
         const currentTime = now();
         if (!verified || !Number.isFinite(currentTime) || payload.iss !== issuer || !audienceMatches(payload.aud, audience)
-          || !safeText(payload.sub, 256) || payload.nonce !== nonce || !Number.isSafeInteger(payload.exp)
+          || !safeText(payload.sub, 256) || ((purpose === 'sign-in' || payload.nonce !== undefined) && payload.nonce !== nonce) || !Number.isSafeInteger(payload.exp)
           || payload.exp * 1000 <= currentTime) throw Error('claims');
         if (payload.nbf !== undefined && (!Number.isSafeInteger(payload.nbf) || payload.nbf * 1000 > currentTime)) throw Error('not-before');
         return { iss: payload.iss, sub: payload.sub, aud: payload.aud, exp: payload.exp, nonce: payload.nonce };

@@ -1,0 +1,50 @@
+/** Execute an explicitly hash-selected synthetic draft; not an end-user approval UI test. */
+import { execFileSync } from 'node:child_process';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import path from 'node:path';
+import os from 'node:os';
+import { WorktreeManager } from '../src/core/worktree/worktreeManager.js';
+import { WorkspaceStore } from '../src/core/store/workspaceStore.js';
+import { DockerComputeProvider } from '../src/core/compute/dockerComputeProvider.js';
+import { ApprovedPlanProvider, executionContractDigest } from '../src/core/runtime/approvedPlanProvider.js';
+import { ContractedDockerExecutionBackend } from '../src/core/runtime/contractedDockerExecutionBackend.js';
+import { TaskWorkerRuntime } from '../src/core/runtime/taskWorkerRuntime.js';
+import { DurableEvaluationJournal } from '../src/durableEvaluationJournal.js';
+const input=process.env.AGENTFORGE_REVIEWED_PROOF_FILE, expected=process.env.AGENTFORGE_REVIEWED_PROOF_SHA;
+if(!input||!expected||!process.env.AGENTFORGE_PROOF_OUTPUT)throw Error('Explicit reviewed draft file, digest and evidence output required');
+const record=JSON.parse(await readFile(input,'utf8'));
+if(createHash('sha256').update(JSON.stringify(record.draft)).digest('hex')!==expected)throw Error('Draft differs from reviewed digest');
+const journal=await DurableEvaluationJournal.create(process.env.AGENTFORGE_PROOF_OUTPUT);
+let root:string|undefined;
+const git=(args:string[])=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
+const started=Date.now();
+try{
+ await journal.checkpoint({status:'started',draftSha256:expected},{status:'incomplete',draftSha256:expected});
+ root=await mkdtemp(path.join(os.tmpdir(),'agentforge-live-plan-execution-'));
+ await journal.checkpoint({status:'workspace-created',workspace:root},{status:'incomplete',draftSha256:expected,workspace:root});
+ git(['init','--initial-branch=main']);await writeFile(path.join(root,'README.md'),'# Disposable synthetic evaluation\n');git(['add','.']);git(['-c','user.name=Evaluation','-c','user.email=evaluation@example.invalid','commit','-m','fixture']);
+ const baseSha=git(['rev-parse','HEAD']);const task=record.task;
+ task.contract.repository.baseSha=baseSha;
+ const manager=new WorktreeManager(root);task.worktree=await manager.createWorktree({taskId:task.id,branchName:'worktree/'+task.id,baseBranch:baseSha});
+ const store=new WorkspaceStore(path.join(root,'state.json'));
+ const plan={...record.draft,source:'human_approved' as const};
+ const approval={plan,contractDigest:executionContractDigest(task),approvedBy:'evaluation-harness-under-owner-authorized-synthetic-test',approvedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+600000).toISOString()};
+ task.approvedExecutionPlan=approval;task.planningAudits=record.audits;store.createTask(task);
+ const plans=new ApprovedPlanProvider(async id=>id===task.id?approval:undefined);
+ const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
+ const ready=await backend.initialize();if(!ready.ready)throw Error('Isolated execution unavailable');
+ const worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,requireEffectReceipts:true,workspaceIdentity:'disposable-evaluation'});
+ await journal.checkpoint({status:'execution-starting',taskId:task.id},{status:'incomplete',draftSha256:expected,workspace:root,taskId:task.id});
+ await worker.executeTask(task.id);
+ const result=store.getTask(task.id)!;
+ const json=JSON.parse(await readFile(path.join(task.worktree.worktreePath,'artifacts/summary.json'),'utf8'));
+ const markdown=await readFile(path.join(task.worktree.worktreePath,'artifacts/summary.md'),'utf8');
+ const passed=json.paidOrderCount===2&&json.paidRevenue===125&&markdown.includes('125')&&result.evidencePack?.verifiedPassed===true&&result.executionReceipts?.at(-1)?.status==='observed';
+ const report={status:passed?'passed':'failed',model:record.model,draftSha256:expected,elapsedMs:Date.now()-started,summary:json,markdown,taskStatus:result.status,verified:result.evidencePack?.verifiedPassed,receiptStatus:result.executionReceipts?.at(-1)?.status,artifacts:result.evidencePack?.artifacts,approvalBoundary:'Agent-reviewed, hash-selected synthetic evaluation under owner-authorized testing; does not establish an end-user UI approval journey.'};
+ await journal.checkpoint({status:report.status},{...report,workspace:root,workspaceRetained:true});console.log(JSON.stringify({...report,workspace:root,workspaceRetained:true},null,2));if(!passed)process.exitCode=1;
+}catch(error){
+ const failure={status:'failed-or-uncertain',draftSha256:expected,elapsedMs:Date.now()-started,workspace:root,workspaceRetained:!!root,errorClass:error instanceof Error?error.name:'unknown',automaticRetry:false};
+ await journal.checkpoint(failure,failure);
+ console.log(JSON.stringify(failure,null,2));process.exitCode=1;
+}finally{await journal.close();}

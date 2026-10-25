@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach,vi } from "vitest";
 import { WorkspaceStore } from "../store/workspaceStore.js";
 import { TaskWorkerRuntime, type TaskExecutionBackend } from "./taskWorkerRuntime.js";
 import { AgentForgeWebServer } from "../../server/webServer.js";
 import type { Task } from "../types/task.js";
 import { OperationalMemoryProvider } from "../../providers/memory/operationalMemory.js";
+import { MemoryConnectionRegistry } from '../../providers/memory/memoryConnections.js';
 
 /** Explicit test double. Production never receives a fake executor. */
 function testExecutionBackend(): TaskExecutionBackend {
@@ -100,6 +101,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
+      requireEffectReceipts: true,
+      workspaceIdentity: 'synthetic-recovery',
     });
 
     try {
@@ -144,6 +147,21 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(ev.testResults.every(t => t.passed)).toBe(true);
       // The coordinator preserves what the executor reported; it invents no diff.
       expect(ev.filesChanged).toEqual([]);
+      const restartedBackend = testExecutionBackend();
+      restartedBackend.execute = vi.fn(restartedBackend.execute);
+      const restarted = new TaskWorkerRuntime(store, restartedBackend, {
+        repoRoot: process.cwd(), requireEffectReceipts: true, workspaceIdentity: 'synthetic-recovery',
+      });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('Finished tasks');
+      store.updateTask(task.id, { status: 'verification_running', planningAudits: [{
+        id: 'synthetic-audit', taskId: task.id, model: 'synthetic', requestDigest: 'synthetic', status: 'unknown',
+      }] });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('Planning usage unknown');
+      await expect(restarted.executeTask(task.id)).rejects.toThrow('Planning usage unknown');
+      expect(store.getTask(task.id)?.status).toBe('verification_running');
+      store.updateTask(task.id, { planningAudits: [] });
+      expect(restarted.reconcileObservedExecution(task.id).status).toBe('completed');
+      expect(restartedBackend.execute).not.toHaveBeenCalled();
     } finally {
       simRuntime.stop();
     }
@@ -153,6 +171,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     const approvalRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
+      requireEffectReceipts: true,
+      workspaceIdentity: 'approval-recovery',
     });
     try {
       const task = store.createTask({
@@ -178,6 +198,16 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(result.evidencePack?.verifiedPassed).toBe(true);
       expect(result.evidencePack?.approvalId).toBeDefined();
       expect(store.listApprovals().some(approval => approval.taskId === task.id && approval.status === "pending")).toBe(true);
+      store.updateTask(task.id, { status: 'verification_running' });
+      const restarted = new TaskWorkerRuntime(store, undefined, {
+        repoRoot: process.cwd(), requireEffectReceipts: true, workspaceIdentity: 'approval-recovery',
+      });
+      expect(restarted.reconcileObservedExecution(task.id).status).toBe('waiting_approval');
+      expect(store.listApprovals().filter(approval => approval.taskId === task.id)).toHaveLength(1);
+      store.updateTask(task.id, { status: 'verification_running' });
+      store.resolveApproval({ approvalId: result.evidencePack!.approvalId!, status: 'rejected', approverUserId: 'synthetic-reviewer', decisionOrigin: 'api' });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('original pending approval');
+      expect(store.getTask(task.id)?.status).toBe('verification_running');
     } finally {
       approvalRuntime.stop();
     }
@@ -427,6 +457,27 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(receivedContextText).not.toContain("Beta private note");
       expect(receivedSourceIds).toHaveLength(3);
       expect(store.listAuditEntries().some(entry => entry.action === "TASK_CONTEXT_PACKED" && entry.targetId === task.id)).toBe(true);
+      const selected=new OperationalMemoryProvider();
+      let finishChange!:()=>void;
+      const changing=runtimeWithMemory.withMemoryChange(()=>new Promise<void>(resolve=>{finishChange=resolve;}));
+      await expect(runtimeWithMemory.executeTask(task.id)).rejects.toThrow('Memory setup is in progress');
+      await expect(runtimeWithMemory.withMemoryChange(async()=>{})).rejects.toThrow('Finish active tasks or memory setup first');
+      finishChange();await changing;
+      await expect(runtimeWithMemory.withMemoryChange(async()=>{throw Error('synthetic failed setup');})).rejects.toThrow('synthetic failed setup');
+      await expect(runtimeWithMemory.withMemoryChange(async()=>true)).resolves.toBe(true);
+      await selected.record({namespace:'selected',projectId:'project-alpha',category:'general_fact',title:'Selected release source',content:'Selected release evidence',tags:['chat-context']});
+      const registry=new MemoryConnectionRegistry([{id:'example-memory',version:'1',name:'Example',description:'Synthetic provider',fields:[],create:()=>selected}]);
+      runtimeWithMemory.setProjectMemory('project-alpha',registry.connect('example-memory','1',{},'selected','project-alpha').provider,'selected');
+      const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
+      expect(selectedContext.content).toContain('Selected release source');
+      expect(selectedContext.content).not.toContain('Alpha delivery rule');
+      const stalled=vi.spyOn(selected,'query').mockImplementation(()=>new Promise(()=>{}));
+      const cancellation=new AbortController();
+      const waiting=runtimeWithMemory.getPlanningContext(task.id,cancellation.signal);
+      const stopped=expect(waiting).rejects.toThrow('stopped or timed out');
+      cancellation.abort();await stopped;stalled.mockRestore();
+      runtimeWithMemory.clearSelectedProjectMemory();
+      expect((await runtimeWithMemory.getPlanningContext(task.id)).content).toContain('Alpha delivery rule');
 
       const projectless = store.createTask({
         id: "TASK-MEMORY-GLOBAL", title: "Review beta private note", priority: "medium", status: "ready",

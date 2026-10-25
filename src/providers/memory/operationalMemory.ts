@@ -43,6 +43,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
   }
 
   async query(query: MemoryQuery): Promise<MemorySearchResult[]> {
+    query.signal?.throwIfAborted();
     const records = this.list(query.namespace);
     const results: MemorySearchResult[] = [];
 

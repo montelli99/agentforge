@@ -9,6 +9,7 @@
  */
 
 import crypto from "node:crypto";
+import {isDeepStrictEqual} from 'node:util';
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -479,9 +480,13 @@ export class WorkspaceStore {
   }
 
   /** Server-owned generation checkpoint; never exposed as a user message edit. */
-  checkpointGeneration(threadId: string, messageId: string, content: string, status: NonNullable<CanonicalMessage["generation"]>["status"]): CanonicalMessage {
+  checkpointGeneration(threadId: string, messageId: string, content: string, status: NonNullable<CanonicalMessage["generation"]>["status"], requestUsage?: NonNullable<CanonicalMessage['generation']>['requestUsage']): CanonicalMessage {
     const message = this.listThreadMessages(threadId).find(item => item.id === messageId);
     if (!message?.generation || message.authorType !== "agent") throw new Error("Generation checkpoint unavailable.");
+    if(requestUsage){
+      if(requestUsage.length>12||requestUsage.some(usage=>usage!==null&&(![usage.promptTokens,usage.completionTokens,usage.totalTokens].every(n=>Number.isSafeInteger(n)&&n>=0)||usage.totalTokens!==usage.promptTokens+usage.completionTokens)))throw Error('Invalid reported usage');
+      message.generation.requestUsage=requestUsage.map(usage=>usage?{promptTokens:usage.promptTokens,completionTokens:usage.completionTokens,totalTokens:usage.totalTokens}:null);
+    }
     message.content = content;
     message.generation.status = status;
     message.updatedAt = new Date().toISOString();
@@ -490,6 +495,92 @@ export class WorkspaceStore {
   }
 
   // --- Agents ---
+  /** Remove only an unchanged, unused generic staging batch identified by durable receipts. */
+  private validateAgentImportRollback(runId: string) {
+    if (!this.verifyAuditChain().valid) throw Error('Migration audit integrity failed');
+    const receipts = this.listAuditEntries({ actorId: 'migration-generic', targetType: 'system', targetId: runId, limit: 100 });
+    if (receipts.some(entry => entry.action === 'generic_migration_rolled_back')) throw Error('Migration already rolled back');
+    const starts = receipts.filter(entry => entry.action === 'generic_migration_started');
+    const completions = receipts.filter(entry => entry.action === 'generic_migration_completed');
+    if (starts.length !== 1 || completions.length !== 1 || starts[0].details.schema !== 1 || completions[0].details.schema !== 1)
+      throw Error('Complete migration receipts required');
+    const ids: unknown = JSON.parse(String(starts[0].details.expectedIds));
+    const hashes: unknown = JSON.parse(String(completions[0].details.agentHashes));
+    if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length
+      || !Array.isArray(hashes) || hashes.length !== ids.length) throw Error('Invalid migration receipts');
+    const agents = ids.map(id => this.agents.get(id));
+    if (agents.some((agent, index) => !agent || hashes[index]?.id !== ids[index]
+      || hashes[index]?.sha256 !== crypto.createHash('sha256').update(JSON.stringify(agent)).digest('hex')))
+      throw Error('Imported agents changed or are missing; rollback refused');
+    // Conservative reference check across operational records, excluding import audit receipts.
+    const references = JSON.stringify([...[this.workspaces, this.spaces, this.users, this.packages,
+      this.tasks, this.approvals, this.channels, this.threads, this.messages,
+      this.processes, this.processRevisionHistory, this.processRevisionProposals, this.processAgentBindings,
+      this.calls, this.installations, this.operationalMemories].map(collection => Array.from(collection.values() as Iterable<unknown>)),
+      Array.from(this.agents.values()).filter(agent => !ids.includes(agent.id)),
+      this.benchmarkResults, this.qualityBaselines, this.qualityAnalyses, this.qualityCorrections,
+      this.eventLedger.getAllEntries(), this.eventLedger.getAllBindings(),
+      this.auditEntries.filter(entry => !(entry.actorId === 'migration-generic'
+        && entry.targetType === 'system' && entry.targetId === runId
+        && ['generic_migration_started', 'generic_migration_completed'].includes(entry.action)))]);
+    if (ids.some(id => references.includes(JSON.stringify(id)))) throw Error('Imported agents are referenced; rollback refused');
+    return { ids: ids as string[], agents };
+  }
+
+  /** Read-only eligibility; the mutation repeats validation to reject intervening changes. */
+  inspectAgentImportRollback(runId: string): { eligible: boolean } {
+    try { this.validateAgentImportRollback(runId); return { eligible: true }; }
+    catch { return { eligible: false }; }
+  }
+
+  rollbackAgentImport(runId: string): { removedIds: string[] } {
+    const { ids, agents } = this.validateAgentImportRollback(runId);
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
+    try {
+      for (const id of ids) this.agents.delete(id);
+      this.appendAuditEntry({ origin: 'system', actorId: 'migration-generic', actorType: 'system', action: 'generic_migration_rolled_back',
+        targetType: 'system', targetId: runId, details: { schema: 1, removedIds: JSON.stringify(ids) } });
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const agent of agents) this.agents.set(agent!.id, agent!);
+      this.auditEntries = priorAudit; this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    for (const id of ids) for (const listener of this.realtimeListeners) {
+      try { listener({ type: 'agent_removed', entity: 'agent', data: { id } }); } catch { /* already committed */ }
+    }
+    return { removedIds: ids };
+  }
+
+  /** Commit an offline migration batch and its verification receipts in one snapshot. */
+  importAgentBatch(agents: Array<Omit<AgentTeammate, 'createdAt' | 'updatedAt'>>, actorId: string, runId: string): AgentTeammate[] {
+    if (!agents.length || !actorId || !runId || new Set(agents.map(agent => agent.id)).size !== agents.length
+      || agents.some(agent => !agent.id || this.agents.has(agent.id))) throw Error('Invalid or conflicting migration batch');
+    const now = new Date().toISOString();
+    const created = structuredClone(agents).map(agent => ({ ...agent, createdAt: now, updatedAt: now }));
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
+    try {
+      for (const agent of created) this.agents.set(agent.id, agent);
+      const common = { origin: 'system' as const, actorId, actorType: 'system' as const, targetType: 'system' as const, targetId: runId };
+      this.appendAuditEntry({ ...common, action: 'generic_migration_started', details: { schema: 1, expectedIds: JSON.stringify(created.map(agent => agent.id)) } });
+      this.appendAuditEntry({ ...common, action: 'generic_migration_completed', details: { schema: 1,
+        agentHashes: JSON.stringify(created.map(agent => ({ id: agent.id, sha256: crypto.createHash('sha256').update(JSON.stringify(agent)).digest('hex') }))) } });
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const agent of created) this.agents.delete(agent.id);
+      this.auditEntries = priorAudit;
+      this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    // Notify only after the single durable commit; observers never see a partial batch.
+    for (const agent of created) for (const listener of this.realtimeListeners) {
+      try { listener({ type: 'agent_created', entity: 'agent', data: structuredClone(agent) }); } catch { /* committed state is unchanged */ }
+    }
+    return structuredClone(created);
+  }
+
   createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt" | "id"> & { id?: string }): AgentTeammate {
     const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
     if (this.agents.has(id)) throw new Error(`Agent ${id} already exists`);
@@ -1136,6 +1227,43 @@ export class WorkspaceStore {
     this.persistIfConfigured();
   }
 
+  /** Internal migration primitive. The caller validates the archive and authority.
+   * Commit the entire reviewed batch and its audit receipt in one snapshot.
+   * IDs are never overwritten, and an identical replay is a no-op.
+   */
+  importOperationalMemoryBatch(records: OperationalMemoryRecord[], actorId: string): {imported: number; unchanged: number} {
+    if (!actorId || !Array.isArray(records) || !records.length || records.length > 100
+      || records.some(record => !record || typeof record.id !== 'string' || !record.id || typeof record.namespace !== 'string' || !record.namespace.trim())
+      || new Set(records.map(record => record.id)).size !== records.length) throw Error('Invalid memory import batch');
+    const owned = structuredClone(records);
+    if (Buffer.byteLength(JSON.stringify(owned)) > 1024 * 1024) throw Error('Memory import batch exceeds 1 MiB');
+    const additions: OperationalMemoryRecord[] = [];
+    for (const record of owned) {
+      const existing = this.operationalMemories.get(record.id);
+      if (existing && !isDeepStrictEqual(existing, record)) throw Error('Memory import conflicts with an existing record');
+      if (!existing) additions.push(record);
+    }
+    if (!additions.length) return {imported: 0, unchanged: owned.length};
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? {...this.auditPrunedCheckpoint} : undefined;
+    try {
+      for (const record of additions) this.operationalMemories.set(record.id, record);
+      this.appendAuditEntry({origin: 'web', actorId, actorType: 'user', action: 'memory_batch_imported',
+        targetType: 'memory', targetId: crypto.randomUUID(), details: {count: additions.length,
+          recordHashes: JSON.stringify(additions.map(record => ({id: record.id, sha256: crypto.createHash('sha256').update(JSON.stringify(record)).digest('hex')})))}});
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const record of additions) this.operationalMemories.delete(record.id);
+      this.auditEntries = priorAudit;
+      this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    for (const record of additions) for (const listener of this.realtimeListeners) {
+      try {listener({type: 'operational_memory_saved', entity: 'memory', data: {id: record.id, namespace: record.namespace, category: record.category, title: record.title}});} catch { /* Already committed. */ }
+    }
+    return {imported: additions.length, unchanged: owned.length - additions.length};
+  }
+
   deleteOperationalMemory(namespace: string, id: string): boolean {
     const record = this.operationalMemories.get(id);
     if (!record || record.namespace !== namespace) return false;
@@ -1553,44 +1681,57 @@ export class WorkspaceStore {
     const tempPath = `${filePath}.tmp.${process.pid}.${crypto.randomUUID()}`;
     const backupPath = `${filePath}.bak`;
     const lockPath = `${filePath}.lock`;
+    const lockCandidate = `${lockPath}.${process.pid}.${crypto.randomUUID()}.candidate`;
 
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    let lockFd: number | undefined;
+    let lockAcquired = false;
     try {
+      // Publish a complete owner record atomically. A crash while writing the
+      // candidate cannot leave an ownerless shared lock blocking startup.
+      const candidateFd = fs.openSync(lockCandidate, 'wx', 0o600);
+      try {
+        fs.writeFileSync(candidateFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+        fs.fsyncSync(candidateFd);
+      } finally { fs.closeSync(candidateFd); }
       // Serialize writers across launcher processes. The snapshot rename is
       // atomic, but without this lock two valid snapshots could race and one
       // writer could silently overwrite the other's state. A stale lock is
-      // recoverable after a bounded lease so a crashed writer cannot wedge the store.
+      // recoverable when its owner is confirmed dead. Age never revokes a live owner.
       const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
       // Snapshot writes can overlap during startup and crash-recovery. Allow a
       // bounded handoff window long enough for the active writer to finish,
       // while still failing instead of waiting forever on a broken lock.
       for (let attempt = 0; attempt < 2000; attempt += 1) {
         try {
-          lockFd = fs.openSync(lockPath, "wx");
-          fs.writeSync(lockFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+          fs.linkSync(lockCandidate, lockPath);
+          lockAcquired = true;
           break;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
           try {
             const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
             let ownerAlive = true;
+            let ownerKnown = false;
             try {
               const lock = JSON.parse(fs.readFileSync(lockPath, "utf8")) as { pid?: unknown };
-              if (typeof lock.pid === "number" && lock.pid !== process.pid) {
-                try { process.kill(lock.pid, 0); } catch { ownerAlive = false; }
+              if (Number.isSafeInteger(lock.pid) && (lock.pid as number) > 0) {
+                ownerKnown = true;
+                try { process.kill(lock.pid as number, 0); } catch (error) {
+                  // Permission errors do not establish that another process died.
+                  if ((error as NodeJS.ErrnoException).code === 'ESRCH') ownerAlive = false;
+                }
               }
             } catch {
               // A partially written lock is safe to recover once it is old.
             }
-            if (!ownerAlive || ageMs > 30_000) fs.unlinkSync(lockPath);
+            if (!ownerAlive || (!ownerKnown && ageMs > 30_000)) fs.unlinkSync(lockPath);
           } catch {
             // The competing writer may have released the lock between calls.
           }
           Atomics.wait(waitBuffer, 0, 0, 10);
         }
       }
-      if (lockFd === undefined) throw new Error("Timed out waiting for the workspace snapshot lock.");
+      if (!lockAcquired) throw new Error("Timed out waiting for the workspace snapshot lock.");
       const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : undefined;
       const expected = this.persistedSnapshotPath === filePath ? this.persistedSnapshotContent : undefined;
       if (current !== expected) {
@@ -1612,10 +1753,10 @@ export class WorkspaceStore {
       }
       throw error;
     } finally {
-      if (lockFd !== undefined) {
-        try { fs.closeSync(lockFd); } catch { /* preserve the write result */ }
+      if (lockAcquired) {
         try { fs.unlinkSync(lockPath); } catch { /* another recovery path may have removed it */ }
       }
+      try { fs.unlinkSync(lockCandidate); } catch { /* preserve the write result */ }
     }
   }
 

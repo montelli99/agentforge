@@ -27,7 +27,7 @@ for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
       ], temperature: 0, maxTokens: 400 });
       results.push({ model, promptIndex, elapsedMs: Math.round(performance.now() - started),
         status: response.content.trim() ? "completed" : "failed",
-        promptTokens: response.usage.promptTokens, completionTokens: response.usage.completionTokens,
+        promptTokens: response.usage?.promptTokens, completionTokens: response.usage?.completionTokens,
         finishReason: response.finishReason, outputCharacters: response.content.length });
     } catch (error) {
       results.push({ model, promptIndex, elapsedMs: Math.round(performance.now() - started),

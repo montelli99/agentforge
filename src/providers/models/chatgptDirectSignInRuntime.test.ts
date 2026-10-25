@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createIsolatedCatalogTransport, createIsolatedIdentityVerifier, createIsolatedTokenTransport, loadVerifiedSignInRuntime, openOfficialSignInBrowser } from './chatgptDirectSignInRuntime.js';
+import { createIsolatedCatalogTransport, createIsolatedIdentityVerifier, createIsolatedTokenTransport, createIsolatedRefreshTransport, loadVerifiedSignInRuntime, openOfficialSignInBrowser } from './chatgptDirectSignInRuntime.js';
 import type { ValidatedCallback } from './chatgptDirectOAuth.js';
 
 const callback: ValidatedCallback = { clientId: 'mock-client', code: 'mock-code', verifier: 'v'.repeat(43), redirectUri: 'http://127.0.0.1:1455/auth/callback', resource: 'https://api.openai.com/v1', nonce: 'n'.repeat(43), requestedScopes: [] };
@@ -44,6 +44,22 @@ describe('verifier runtime integrity', () => {
     const runtime = await createRuntimeCopy();
     await fs.appendFile(path.join(runtime, 'offline-id-token-verifier.mjs'), '\n// changed executable bytes\n');
     await expect(loadVerifiedSignInRuntime(runtime)).rejects.toThrow('integrity');
+  });
+  it('verifies refresh signatures with optional original nonce without weakening sign-in',async()=>{
+    const factory=await loadVerifiedSignInRuntime(await createRuntimeCopy());
+    const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+    const jwk={...publicKey.export({format:'jwk'}),kid:'renewal-key',alg:'RS256'};
+    const base={iss:'https://auth.openai.com',sub:'qa-subject',aud:'qa-client',exp:Math.floor(Date.now()/1000)+60};
+    const token=(claims:Record<string,unknown>)=>{const input=Buffer.from(JSON.stringify({alg:'RS256',kid:jwk.kid})).toString('base64url')+'.'+Buffer.from(JSON.stringify(claims)).toString('base64url');return input+'.'+sign('RSA-SHA256',Buffer.from(input),privateKey).toString('base64url');};
+    const options={jwks:{keys:[jwk]},issuer:base.iss,audience:base.aud,nonce:'original-nonce'};
+    const refresh=factory({...options,purpose:'refresh'});
+    await expect(refresh.verifySignature(token(base))).resolves.toMatchObject({sub:base.sub});
+    await expect(refresh.verifySignature(token({...base,nonce:'original-nonce'}))).resolves.toMatchObject({sub:base.sub});
+    await expect(refresh.verifySignature(token({...base,nonce:'different-nonce'}))).rejects.toThrow('validation failed');
+    await expect(factory(options).verifySignature(token(base))).rejects.toThrow('validation failed');
+    for(const change of [{aud:'other-client'},{iss:'other-issuer'},{exp:1}])await expect(refresh.verifySignature(token({...base,...change}))).rejects.toThrow('validation failed');
+    const signed=token(base).split('.');signed[1]=Buffer.from(JSON.stringify({...base,sub:'altered'})).toString('base64url');
+    await expect(refresh.verifySignature(signed.join('.'))).rejects.toThrow('validation failed');
   });
 
   it('rejects a symlinked or junction-substituted runtime path', async () => {
@@ -125,5 +141,25 @@ describe('isolated sign-in network boundary', () => {
   it('rejects untrusted runtime paths and browser destinations before launching', async () => {
     await expect(loadVerifiedSignInRuntime('relative-runtime')).rejects.toThrow('absolute');
     await expect(openOfficialSignInBrowser('https://example.com/login', new AbortController().signal)).rejects.toThrow('Unexpected');
+  });
+  it('renews once with the issued client and resource, without scope expansion or retry', async () => {
+    const request=vi.fn<typeof fetch>(async()=>Response.json({access_token:'synthetic-new',refresh_token:'synthetic-replacement'}));
+    const transport=createIsolatedRefreshTransport(new AbortController().signal,request);
+    await expect(transport.refresh('issued-client','synthetic-refresh')).resolves.toMatchObject({refresh_token:'synthetic-replacement'});
+    const [url,init]=request.mock.calls[0];
+    expect(url).toBe(endpoint);expect(init).toMatchObject({method:'POST',redirect:'error',cache:'no-store'});
+    expect(Object.fromEntries(new URLSearchParams(String(init?.body)))).toEqual({grant_type:'refresh_token',client_id:'issued-client',refresh_token:'synthetic-refresh',resource:'https://api.openai.com/v1'});
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow('already used');
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it('rejects invalid renewal identities and redacts network failures without retry',async()=>{
+    const request=vi.fn<typeof fetch>(async()=>{throw Error('synthetic-private-token');});
+    const transport=createIsolatedRefreshTransport(new AbortController().signal,request);
+    await expect(transport.refresh('dynamic_agent_client','synthetic-refresh')).rejects.toThrow('unavailable');
+    expect(request).not.toHaveBeenCalled();
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow(/^Token renewal failed; session recovery required$/);
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow('already used');
+    expect(request).toHaveBeenCalledTimes(1);
+    await expect(createIsolatedCatalogTransport(new AbortController().signal,request).list('synthetic-access')).rejects.toThrow(/^Model catalog request failed\.$/);
   });
 });

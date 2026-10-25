@@ -1,3 +1,8 @@
+import { ConnectionSetup } from './connectionSetup.js';
+import {reviewMemoryImport, MemoryImportValidationError} from './memoryImport.js';
+import { ChatGPTSetup } from './chatgptSetup.js';
+import { inspectClaudeCliAuthentication } from '../providers/models/claudeCliCapabilities.js';
+import { inspectGeminiCliCapabilities } from '../providers/models/geminiCliCapabilities.js';
 import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
@@ -49,6 +54,12 @@ import type { AgentTeammate, HarnessPolicy, ModelPolicy, DecisionPolicy, Compute
 import type { TaskPriority, TaskStatus } from "../core/types/task.js";
 import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
+import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
+import {HindsightMemoryProvider} from '../providers/memory/hindsightMemory.js';
+import { MemoryConnectionRegistry, MemoryConnectionUnavailable, type MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
+import {CompositeMemoryProvider} from '../providers/memory/compositeMemory.js';
+import {queryMemoryBounded,type MemoryProvider} from '../core/providers/memory.js';
+import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
 import type { MemoryCategory } from "../core/providers/memory.js";
 import { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider, executionContractDigest, type ApprovedPlanRecord } from "../core/runtime/approvedPlanProvider.js";
@@ -71,7 +82,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
-import type { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
+import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
 
@@ -359,6 +370,7 @@ export class AgentForgeWebServer {
   readonly hermesMigration = new HermesMigrationProvider();
   readonly grokMigration = new GrokBotMigrationProvider();
   readonly genericMigration = new GenericMigrationProvider();
+  private migrationReviews = new Map<string, { owner: string; digest: string; expires: number; plan: Awaited<ReturnType<GenericMigrationProvider['plan']>> }>();
   readonly taskWorkerRuntime: TaskWorkerRuntime;
   readonly driftMonitor: DriftMonitor;
   /** Human corrections are durable but this API exposes summaries, never expected output. */
@@ -374,12 +386,19 @@ export class AgentForgeWebServer {
   readonly localSandbox = new LocalSandboxComputeProvider();
   readonly dockerCompute = new DockerComputeProvider();
   private readonly planDraftProvider?: ModelPlanDraftProvider;
+  private readonly draftingTasks = new Set<string>();
   private readonly indexedMemory?: IndexedMemoryRuntime;
   readonly conversations: ConversationRuntime;
   private readonly host = process.env.AGENTFORGE_HOST || "127.0.0.1";
   /** Optional deployment credential; it is never returned by any status route. */
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
+  private readonly connectionSetup: ConnectionSetup;
+  private readonly chatgptSetup: ChatGPTSetup;
+  private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
+  private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
+  private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
+  private stopping = false;
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -389,15 +408,20 @@ export class AgentForgeWebServer {
   private readonly SSE_HEARTBEAT_INTERVAL_MS = 20_000;
   private sseRingBuffer: Array<{ id: number; data: string }> = [];
 
+  private readonly memoryConnections: MemoryConnectionRegistry;
   constructor(
     public readonly store: WorkspaceStore = globalStore,
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime } = {},
+    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
+    this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
+    this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
+    this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
+    this.claudeAccountConfiguration = options.claudeAccountConfiguration ? Object.freeze({...options.claudeAccountConfiguration}) : undefined;
     this.indexedMemory = options.indexedMemory;
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
@@ -753,6 +777,11 @@ export class AgentForgeWebServer {
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    if (this.stopping) {
+      res.writeHead(503, { "Content-Type": "application/json", "Connection": "close", "Cache-Control": "no-store" });
+      res.end(JSON.stringify({ error: "AgentForge is shutting down. Reconnect after it restarts." }));
+      return;
+    }
     const url = new URL(req.url || "/", `http://localhost:${this.port}`);
     const allowedOrigin = this.getAllowedLocalOrigin(req.headers.origin);
     if (!this.isAllowedLocalHost(req.headers.host) || (req.headers.origin && !allowedOrigin)) {
@@ -2742,7 +2771,7 @@ export class AgentForgeWebServer {
 
     if (req.method === "GET" && path === "/api/tasks") {
       res.writeHead(200);
-      res.end(JSON.stringify(this.store.listTasks()));
+      res.end(JSON.stringify(this.store.listTasks().map(task => this.taskWorkerRuntime?.presentTask(task) ?? task)));
       return;
     }
 
@@ -2884,6 +2913,96 @@ export class AgentForgeWebServer {
       return;
     }
 
+    if(path==='/api/memory/providers'&&req.method==='GET'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated||!['owner','admin'].includes(caller.role)){res.writeHead(403);res.end(JSON.stringify({error:'Owner or administrator sign-in required.'}));return;}
+      res.writeHead(200);res.end(JSON.stringify(this.memoryConnections.list()));return;
+    }
+    if(path==='/api/memory/connection'&&req.method==='POST'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end(JSON.stringify({error:'Sign in to manage memory connections.'}));return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')||!hasPermission(caller.permissions,'memory:write')){res.writeHead(403);res.end(JSON.stringify({error:'Memory connections require an owner or administrator.'}));return;}
+      try{
+        const body=await this.readBody(req);
+        await this.taskWorkerRuntime.withMemoryChange(()=>this.conversations.changeMemory(async()=>{
+          if(this.taskWorkerRuntime.getActiveTasksCount())throw Error('Finish active tasks before changing memory');
+          if(typeof body.projectId!=='string'||!this.store.getSpace(body.projectId))throw Error('Select a project');
+          if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory(body.projectId);return {projectId:body.projectId,memoryNamespace:undefined,memoryProvider:undefined};}
+          const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
+          if(typeof body.projectId!=='string'||!this.store.getSpace(body.projectId))throw Error('Select a project');
+          const key='AGENTFORGE_KEY_MEMORY_'+crypto.createHash('sha256').update(body.projectId).digest('hex').toUpperCase();
+          if((body.action==='restore'||body.action==='forget'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
+          if(body.action==='forget'){
+            const values=await vault.unlock(body.passphrase as string);
+            delete values[key];
+            if(values.AGENTFORGE_KEY_MEMORY_SELECTION&&JSON.parse(values.AGENTFORGE_KEY_MEMORY_SELECTION).projectId===body.projectId)delete values.AGENTFORGE_KEY_MEMORY_SELECTION;
+            await vault.save(values,body.passphrase as string);
+            this.taskWorkerRuntime.clearSelectedProjectMemory(body.projectId);
+            return {projectId:body.projectId,memoryNamespace:undefined,memoryProvider:undefined};
+          }
+          let selection=body;
+          if(body.action==='restore'){
+            const values=await vault.unlock(body.passphrase as string);
+            selection=JSON.parse(values[key]||values.AGENTFORGE_KEY_MEMORY_SELECTION||'null');
+            if(selection?.projectId!==body.projectId)throw Error('Saved project mismatch');
+          }
+          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight','combined','custom'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
+          let memoryProvider:MemoryProvider;
+          const selectedSources:Array<{alias:string;provider:MemoryProvider}>=[];
+          const savedSelection:Record<string,unknown>={action:selection.action,confirmSharing:true,namespace:selection.namespace.trim(),projectId:selection.projectId};
+          if(selection.action==='custom'){
+            const connected=this.memoryConnections.connect(String(selection.providerId),selection.providerVersion,selection.config,selection.namespace.trim(),selection.projectId);
+            selectedSources.push({alias:'custom',provider:connected.provider});
+            Object.assign(savedSelection,{providerId:selection.providerId,providerVersion:connected.version,config:connected.config});
+          }
+          if(selection.action==='obsidian'||selection.action==='combined'){
+            if(typeof selection.root!=='string'||selection.root.length>4096||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid note selection');
+            memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
+            selectedSources.push({alias: `notes`,provider:memoryProvider});
+            Object.assign(savedSelection,{root:selection.root,files:selection.files});
+          }
+          if(selection.action==='hindsight'||selection.action==='combined'){
+            if(typeof selection.bank!=='string'||typeof selection.apiKey!=='string')throw Error('Invalid bank connection');
+            memoryProvider=new HindsightMemoryProvider(selection.bank,selection.namespace.trim(),selection.projectId,selection.apiKey);
+            selectedSources.push({alias: `recall`,provider:memoryProvider});
+            Object.assign(savedSelection,{bank:selection.bank,apiKey:selection.apiKey});
+          }
+          memoryProvider=selection.action===`combined`?new CompositeMemoryProvider(selection.namespace.trim(),selection.projectId,selectedSources):selectedSources[0].provider;
+          await queryMemoryBounded(memoryProvider,{namespace:selection.namespace.trim(),projectId:selection.projectId,queryText:selection.action!=='obsidian'?'AgentForge connection check':undefined,limit:1});
+          if(body.remember===true){
+            const values=fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'))?await vault.unlock(body.passphrase as string):{};
+            values[key]=JSON.stringify(savedSelection);
+            if(values.AGENTFORGE_KEY_MEMORY_SELECTION&&JSON.parse(values.AGENTFORGE_KEY_MEMORY_SELECTION).projectId===selection.projectId)delete values.AGENTFORGE_KEY_MEMORY_SELECTION;
+            if(Object.keys(values).length>20)throw Error('Saved memory project limit reached');
+            await vault.save(values,body.passphrase as string);
+          }
+          this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());
+          return {projectId:selection.projectId,memoryNamespace:selection.namespace.trim(),memoryProvider};
+        }));
+        res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
+      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
+      return;
+    }
+
+    if (path === '/api/memory/import') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+      if (!hasPermission(caller.permissions, 'memory:write') || !hasPermission(caller.permissions, 'memory:read')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      const body = await this.readBody(req);
+      try {
+        if (typeof body.namespace !== 'string' || !['review','commit'].includes(String(body.action))) throw new MemoryImportValidationError('Choose review or commit and a collection.');
+        const review = reviewMemoryImport(body.archive, body.namespace, this.store, body.projectMap);
+        if (body.action === 'review') {
+          res.writeHead(200); res.end(JSON.stringify({digest: review.digest, items: review.items, imported: review.imported, unchanged: review.unchanged})); return;
+        }
+        if (body.confirm !== true || body.digest !== review.digest) throw new MemoryImportValidationError('The reviewed batch or saved collection changed. Choose the export again and review before confirming.');
+        const result = this.store.importOperationalMemoryBatch(review.records, caller.user?.id || 'local-owner');
+        res.writeHead(200); res.end(JSON.stringify(result));
+      } catch (error) { res.writeHead(409); res.end(JSON.stringify({error: error instanceof MemoryImportValidationError ? error.message : 'The import could not be saved. Reload the collection and review again. No existing records were overwritten.'})); }
+      return;
+    }
+
     if ((req.method === "POST" || req.method === "PATCH") && path === "/api/memory") {
       if (!hasPermission(caller.permissions, "memory:write")) { res.writeHead(403); res.end(JSON.stringify({ error: "Memory write permission required." })); return; }
       const body = await this.readBody(req);
@@ -2945,6 +3064,93 @@ export class AgentForgeWebServer {
 
     if (path === "/api/chat/status" && req.method === "GET") {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
+    }
+    if(path === '/api/connections/gemini/inspect') {
+      if (this.stopping) { res.writeHead(503); res.end(); return; }
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect client setup.'})); return; }
+      if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      const bundle = process.env.AGENTFORGE_GEMINI_BUNDLE;
+      if (!bundle) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferencePerformed:false})); return; }
+      if (this.geminiClientCheck) { res.writeHead(409); res.end(JSON.stringify({error:'A Gemini client check is already running.'})); return; }
+      const controller = new AbortController();
+      const check = {controller, result: inspectGeminiCliCapabilities(bundle, controller.signal)};
+      this.geminiClientCheck = check;
+      const disconnect = () => { if (!res.writableEnded) controller.abort(); };
+      res.once('close', disconnect);
+      try { const result = await check.result; res.writeHead(200); res.end(JSON.stringify({configured:true,...result})); }
+      catch { res.writeHead(400); res.end(JSON.stringify({error:'Gemini client inspection failed. Check the host-selected official client installation.'})); }
+      finally { res.removeListener('close', disconnect); if (this.geminiClientCheck === check) this.geminiClientCheck = undefined; }
+      return;
+    }
+    if(path === '/api/connections/claude/status') {
+      if (this.stopping) { res.writeHead(503); res.end(); return; }
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect subscription accounts.'})); return; }
+      if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      // Browser requests cannot select executables or account directories on the host.
+      const executable = this.claudeAccountConfiguration?.executablePath ?? process.env.AGENTFORGE_CLAUDE_EXECUTABLE;
+      const profile = this.claudeAccountConfiguration?.configurationDirectory ?? process.env.AGENTFORGE_CLAUDE_PROFILE_DIRECTORY;
+      if (!executable || !profile) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferenceVerified:false})); return; }
+      if (this.claudeStatusCheck) { res.writeHead(409); res.end(JSON.stringify({error:'An account check is already running.'})); return; }
+      const controller = new AbortController();
+      const check = {controller, result: inspectClaudeCliAuthentication(executable, profile, controller.signal)};
+      this.claudeStatusCheck = check;
+      const disconnect = () => { if (!res.writableEnded) controller.abort(); };
+      res.once('close', disconnect);
+      try {
+        const result = await check.result;
+        res.writeHead(200); res.end(JSON.stringify({configured:true,...result}));
+      } catch { res.writeHead(400); res.end(JSON.stringify({error:'The official Claude client could not verify account status. Check the host configuration and official client sign-in.'})); }
+      finally {
+        res.removeListener('close', disconnect);
+        if (this.claudeStatusCheck === check) this.claudeStatusCheck = undefined;
+      }
+      return;
+    }
+    if(path.startsWith('/api/connections/chatgpt/')){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end(JSON.stringify({error:'Sign in to AgentForge to manage subscription accounts.'}));return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end(JSON.stringify({error:'Account management requires an owner or administrator.'}));return;}
+      const actor=caller.user?.id||'authenticated-owner';
+      try{
+        if(path==='/api/connections/chatgpt/status'&&req.method==='GET'){const result=await this.chatgptSetup.status(actor);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+        const body=await this.readBody(req);
+        if(path==='/api/connections/chatgpt/signout'){if(typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.signOut(actor,body.accountId,(providers,remove)=>this.conversations.disconnectConnection(providers,remove));res.writeHead(200);res.end(JSON.stringify({...result,status:this.conversations.status()}));return;}
+        if(path==='/api/connections/chatgpt/restore'){if(typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.restore(actor,body.accountId);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(path==='/api/connections/chatgpt/begin'){if(body.accountId!==undefined&&typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.begin(actor,typeof body.accountId==='string'?body.accountId:undefined);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(path==='/api/connections/chatgpt/cancel'){await this.chatgptSetup.cancel(actor);res.writeHead(200);res.end(JSON.stringify({cancelled:true}));return;}
+        if(path==='/api/connections/chatgpt/activate'){
+          if(typeof body.id!=='string'||typeof body.model!=='string')throw Error('Invalid selection');
+          await this.conversations.changeConnection(()=>this.chatgptSetup.activate(actor,body.id as string,body.model as string));
+          res.writeHead(200);res.end(JSON.stringify(this.conversations.status()));return;
+        }
+        res.writeHead(404);res.end();
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Subscription setup could not finish. Complete or cancel any pending sign-in, finish active responses, and retry. Protected storage must be outside a repository.'}));}
+      return;
+    }
+    if (path === '/api/connections/save' || path === '/api/connections/unlock') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to AgentForge before saving or unlocking credentials.' })); return; }
+      if (!['owner', 'admin'].includes(caller.role) || !hasPermission(caller.permissions, 'settings:write')) { res.writeHead(403); res.end(JSON.stringify({ error: 'Connection management requires an owner or administrator.' })); return; }
+      try {
+        const body = await this.readBody(req);
+        if (typeof body.passphrase !== 'string' || body.passphrase.length < 16 || body.passphrase.length > 1024) throw Error('Use an unlock passphrase of 16–1024 characters.');
+        await this.conversations.changeConnection(async () => {
+          if (path.endsWith('/unlock')) return this.connectionSetup.unlock(body.passphrase as string);
+          if (!body.profile || typeof body.profile !== 'object' || Array.isArray(body.profile)) throw Error('Supply a connection profile.');
+          return this.connectionSetup.save(body.profile as any, typeof body.apiKey === 'string' ? body.apiKey : '', body.passphrase as string);
+        });
+        res.writeHead(200); res.end(JSON.stringify(this.conversations.status()));
+      } catch {
+        // Neither provider errors, submitted secrets nor filesystem paths are echoed.
+        res.writeHead(400); res.end(JSON.stringify({ error: 'Connection not changed. Check the profile and unlock passphrase, finish active responses, and wait three seconds before retrying. The private store must be outside a repository.' }));
+      }
+      return;
     }
     const responseRoute = path.match(/^\/api\/threads\/([^/]+)\/(respond|stop)$/);
     if (responseRoute && req.method === "POST") {
@@ -3784,6 +3990,18 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === 'survivors') {
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+        res.setHeader('Cache-Control', 'no-store');
+        try {
+          if (!this.taskWorkerRuntime) throw Error('Worker unavailable');
+          const result = await this.taskWorkerRuntime.inspectExecutionSurvivors(task.id);
+          res.writeHead(200); res.end(JSON.stringify(result));
+        } catch { res.writeHead(409); res.end(JSON.stringify({error:'Survivor discovery unavailable or task changed. No work was replayed or reconciled.'})); }
+        return;
+      }
       if (action === "receipt" || action === "resolve-receipt") {
         if (!hasPermission(caller.permissions, "tasks:read")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:read" })); return;
@@ -3830,7 +4048,7 @@ export class AgentForgeWebServer {
         res.writeHead(200, { "Cache-Control": "no-store" });
         res.end(JSON.stringify(action === "activity"
           ? { entries: this.store.listAuditEntries({ targetType: "task", targetId: task.id, limit: 200 }), limit: 200 }
-          : { ...task, executionContractDigest: executionContractDigest(task) }));
+          : { ...(this.taskWorkerRuntime?.presentTask(task) ?? task), executionContractDigest: executionContractDigest(task) }));
         return;
       }
 
@@ -3907,10 +4125,33 @@ export class AgentForgeWebServer {
         if (!hasPermission(caller.permissions, "tasks:execute")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:execute" })); return;
         }
-        if (!this.planDraftProvider) {
-          res.writeHead(503); res.end(JSON.stringify({ error: "No model plan-draft provider is configured." })); return;
-        }
+        if (this.draftingTasks.has(task.id)) { res.writeHead(409); res.end(JSON.stringify({ error: 'A plan request is already running for this task. No second request was sent.' })); return; }
+        this.draftingTasks.add(task.id);
+        const planningRevision = (value: typeof task) => JSON.stringify({ title: value.title, description: value.description, projectId: value.projectId, status: value.status, contract: value.contract, approval: value.approvedExecutionPlan, draft: value.executionPlanDraft });
+        const originalRevision = planningRevision(task);
+        const assertPlanningRevision = () => {
+          const current = this.store.getTask(task.id);
+          if (!current || planningRevision(current) !== originalRevision) throw Error('Task changed while preparing the plan. The result was not applied; review the current task before trying again.');
+        };
         try {
+          const body = await this.readBody(req);
+          let planner = this.planDraftProvider;
+          if (body.model !== undefined) {
+            if (typeof body.model !== 'string') throw Error('Select a configured model.');
+            const connection = this.conversations.modelConnection(body.model);
+            const directSubscription = connection.provider.id === 'chatgpt-direct';
+            planner = new ModelPlanDraftProvider(connection.provider, connection.model, ['sh', 'node'], directSubscription ? undefined : 4096, {
+              requireReportedUsage: true,
+              persist: async audit => {
+                const current = this.store.getTask(audit.taskId);
+                if (!current) throw Error('Planning task unavailable.');
+                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && item.status !== 'completed')) throw Error('Unresolved planning usage: inspect the audit before retrying.');
+                this.store.updateTask(current.id, { planningAudits: [...(current.planningAudits ?? []).filter(item => item.id !== audit.id), audit] });
+              },
+            }, directSubscription ? 'chatgpt-direct' : 'default');
+          }
+          if (!planner) { res.writeHead(503); res.end(JSON.stringify({ error: 'Connect and select a model before requesting a plan.' })); return; }
+          if (['in_progress', 'verification_running', 'completed', 'cancelled'].includes(task.status)) throw Error('This task cannot be replanned in its current state.');
           if(this.indexedMemory && (!caller.isAuthenticated || caller.user?.id!==this.indexedMemory.config.userId)) throw Error("Indexed planning user boundary denied");
           const planningInspection = await this.controller.inspect(`review execution plan for task: ${task.title}\n${task.description}`, {
             taskId: task.id,
@@ -3926,7 +4167,9 @@ export class AgentForgeWebServer {
             indexedPlanningContext,
             operationalPlanningContext,
           ]);
-          const draft = await this.planDraftProvider.draft(task, undefined, planningContext);
+          assertPlanningRevision();
+          const draft = await planner.draft(task, undefined, planningContext);
+          assertPlanningRevision();
           const updated = this.store.updateTask(task.id, { executionPlanDraft: draft });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "user-owner", actorType: "user", action: "EXECUTION_PLAN_DRAFTED", targetType: "task", targetId: task.id, details: {
             commandCount: draft.commands.length,
@@ -3941,6 +4184,8 @@ export class AgentForgeWebServer {
           res.writeHead(200); res.end(JSON.stringify({ draft, task: updated, message: "Model draft created and saved. Review it before approval; no execution was started." })); return;
         } catch (error) {
           res.writeHead(422); res.end(JSON.stringify({ error: redactRuntimeError(error, "Unable to draft an execution plan.") })); return;
+        } finally {
+          this.draftingTasks.delete(task.id);
         }
       }
 
@@ -4338,19 +4583,27 @@ export class AgentForgeWebServer {
         }
         const targetType = body.targetType || "model";
         const targetVersion = body.targetVersion || "1.0.0";
-        let passRatePct = 100;
+        let passRatePct = Number.NaN;
         if (typeof body.passRatePct === "number") {
           passRatePct = body.passRatePct;
         } else if (typeof body.measuredPassRate === "number") {
           passRatePct = body.measuredPassRate <= 1.0 ? body.measuredPassRate * 100 : body.measuredPassRate;
         }
         const avgLatencyMs = typeof body.avgLatencyMs === "number" ? body.avgLatencyMs
-          : typeof body.measuredLatencyMs === "number" ? body.measuredLatencyMs : 200;
+          : typeof body.measuredLatencyMs === "number" ? body.measuredLatencyMs : Number.NaN;
         const toolMisuseCount = typeof body.toolMisuseCount === "number" ? body.toolMisuseCount
-          : typeof body.unauthorizedToolAttempts === "number" ? body.unauthorizedToolAttempts : 0;
+          : typeof body.unauthorizedToolAttempts === "number" ? body.unauthorizedToolAttempts : Number.NaN;
         const hallucinatedClaimsCount = typeof body.hallucinatedClaimsCount === "number" ? body.hallucinatedClaimsCount
-          : typeof body.hallucinatedCapabilities === "number" ? body.hallucinatedCapabilities : 0;
-        const testCaseResults = body.testCaseResults || { "bench-code-1": true, "bench-sop-1": true };
+          : typeof body.hallucinatedCapabilities === "number" ? body.hallucinatedCapabilities : Number.NaN;
+        const testCaseResults = body.testCaseResults;
+        if (!Number.isFinite(passRatePct) || passRatePct < 0 || passRatePct > 100 ||
+            !Number.isFinite(avgLatencyMs) || avgLatencyMs < 0 ||
+            !Number.isSafeInteger(toolMisuseCount) || toolMisuseCount < 0 ||
+            !Number.isSafeInteger(hallucinatedClaimsCount) || hallucinatedClaimsCount < 0 ||
+            !testCaseResults || typeof testCaseResults !== 'object' || Array.isArray(testCaseResults) ||
+            !Object.keys(testCaseResults).length || Object.values(testCaseResults).some(value=>typeof value!=='boolean')) {
+          res.writeHead(400);res.end(JSON.stringify({error:'Supply measured pass rate, latency, safety counts and nonempty boolean case results. Missing measurements are not successes.'}));return;
+        }
 
         const analysis = this.driftMonitor.evaluate({
           runId: String(body.runId || `run-${Date.now()}`),
@@ -4495,6 +4748,55 @@ export class AgentForgeWebServer {
     }
 
     // --- Migration Center REST Endpoints (Sections 7-27) ---
+    if (req.method === 'GET' && path === '/api/migration/import-history') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to review migration history.' })); return; }
+      if (!['owner', 'admin'].includes(caller.user.role)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Owner or administrator review required.' })); return; }
+      const entries = this.store.listAuditEntries({ actorId: 'migration-generic', targetType: 'system', limit: 1000 });
+      const auditIntact = this.store.verifyAuditChain().valid;
+      const ids = [...new Set(entries.map(entry => entry.targetId))].reverse().slice(0, 100);
+      const runs = await Promise.all(ids.map(async runId => {
+        const records = entries.filter(entry => entry.targetId === runId);
+        const rolledBack = records.some(entry => entry.action === 'generic_migration_rolled_back');
+        const verified = !rolledBack && (await this.genericMigration.verify(runId, this.store)).overallPassed;
+        return { runId, rollbackEligible: verified && auditIntact && this.store.inspectAgentImportRollback(runId).eligible, recordedAt: records[0]?.timestamp, status: !auditIntact ? 'needs-review' : rolledBack ? 'rolled-back' : verified ? 'imported-unchanged' : 'needs-review' };
+      }));
+      res.writeHead(200); res.end(JSON.stringify({ runs, limit: 100, historyMayBePruned: true })); return;
+    }
+    if (req.method === 'POST' && ['/api/migration/prepare-import', '/api/migration/commit-import', '/api/migration/rollback-import'].includes(path)) {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to review migration changes.' })); return; }
+      if (!['owner', 'admin'].includes(caller.user.role)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Owner or administrator review required.' })); return; }
+      const body = await this.readBody(req);
+      for (const [id, review] of this.migrationReviews) if (review.expires < Date.now()) this.migrationReviews.delete(id);
+      try {
+        if (path.endsWith('/prepare-import')) {
+          if (body.source !== 'GENERIC' || body.manifest === undefined) throw Error('Provide an explicit generic manifest.');
+          if (this.migrationReviews.size >= 20) throw Error('Too many pending migration reviews; wait for expiry.');
+          const plan = await this.genericMigration.plan(await this.genericMigration.inspect(body.manifest));
+          const dryRun = await this.genericMigration.dryRun(plan);
+          if (!plan.items.length || !dryRun.dryRunPassed) throw Error('Only supported agent staging profiles can be imported; remove unsupported items before review.');
+          const reviewId = crypto.randomUUID(), expires = Date.now() + 600000;
+          const digest = crypto.createHash('sha256').update(JSON.stringify(plan)).digest('hex');
+          this.migrationReviews.set(reviewId, { owner: caller.user.id, digest, expires, plan });
+          res.writeHead(200); res.end(JSON.stringify({ reviewId, digest, expiresAt: new Date(expires).toISOString(), plan, dryRun })); return;
+        }
+        if (path.endsWith('/rollback-import')) {
+          if (typeof body.runId !== 'string' || body.confirm !== true) throw Error('Confirm the exact import run to roll back.');
+          const result = this.store.rollbackAgentImport(body.runId);
+          res.writeHead(200); res.end(JSON.stringify(result)); return;
+        }
+        const review = typeof body.reviewId === 'string' ? this.migrationReviews.get(body.reviewId) : undefined;
+        if (!review || review.owner !== caller.user.id || body.digest !== review.digest || body.confirm !== true)
+          throw Error('Review is missing, expired, changed or belongs to another user. Prepare and review again.');
+        // Consume before any await: concurrent requests cannot reuse this approval.
+        this.migrationReviews.delete(body.reviewId as string);
+        const result = await this.genericMigration.importToStore(review.plan, this.store);
+        const verification = await this.genericMigration.verify(result.runId, this.store);
+        res.writeHead(200); res.end(JSON.stringify({ result, verification }));
+      } catch { res.writeHead(409); res.end(JSON.stringify({ error: 'Migration could not be applied. Refresh the review; inspect existing agents and import receipts before retrying.' })); }
+      return;
+    }
     if (req.method === "GET" && path === "/api/migration/sources") {
       res.writeHead(200);
       res.end(JSON.stringify([
@@ -4508,12 +4810,15 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/inspect") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       let inspection;
       if (body.source === "OPENCLAW_CURRENT") inspection = await this.openclawCurrent.inspect();
       else if (body.source === "HERMES") inspection = await this.hermesMigration.inspect();
       else if (body.source === "GROK_BOT") inspection = await this.grokMigration.inspect();
-      else if (body.source === "GENERIC") inspection = await this.genericMigration.inspect();
+      else if (body.source === "GENERIC") {
+        try { inspection = await this.genericMigration.inspect(body.manifest); }
+        catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid generic migration manifest' })); return; }
+      }
       else inspection = await this.openclawLegacy.inspect();
 
       res.writeHead(200);
@@ -4522,7 +4827,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/plan") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       let plan;
       if (body.source === "OPENCLAW_CURRENT") {
         const insp = await this.openclawCurrent.inspect();
@@ -4534,7 +4839,9 @@ export class AgentForgeWebServer {
         const insp = await this.grokMigration.inspect();
         plan = await this.grokMigration.plan(insp);
       } else if (body.source === "GENERIC") {
-        const insp = await this.genericMigration.inspect();
+        let insp;
+        try { insp = await this.genericMigration.inspect(body.manifest); }
+        catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid generic migration manifest' })); return; }
         plan = await this.genericMigration.plan(insp);
       } else {
         const insp = await this.openclawLegacy.inspect();
@@ -4547,14 +4854,16 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/dry-run") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
         : body.source === "HERMES" ? this.hermesMigration
         : body.source === "GROK_BOT" ? this.grokMigration
         : body.source === "GENERIC" ? this.genericMigration
         : this.openclawLegacy;
 
-      const insp = await provider.inspect();
+      let insp;
+      try { insp = await provider.inspect(body.source === 'GENERIC' ? body.manifest : undefined); }
+      catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid migration input' })); return; }
       const plan = await provider.plan(insp);
       const dryRun = await provider.dryRun(plan);
 
@@ -4564,7 +4873,12 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/import") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
+      if (body.manifest !== undefined) {
+        res.writeHead(409);
+        res.end(JSON.stringify({ error: 'Uploaded manifests support inspection, planning and simulation only. Reviewed import and durable rollback are not yet available.' }));
+        return;
+      }
       const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
         : body.source === "HERMES" ? this.hermesMigration
         : body.source === "GROK_BOT" ? this.grokMigration
@@ -4573,6 +4887,11 @@ export class AgentForgeWebServer {
 
       const insp = await provider.inspect();
       const plan = await provider.plan(insp);
+      if (body.source === 'GENERIC' && !(await provider.dryRun(plan)).dryRunPassed) {
+        res.writeHead(409);
+        res.end(JSON.stringify({ error: 'This generic plan includes unsupported items. Nothing was imported.' }));
+        return;
+      }
       const result = await provider.importToStore(plan, this.store);
       const verification = await provider.verify(result.runId, this.store);
 
@@ -4616,8 +4935,17 @@ export class AgentForgeWebServer {
     return `http://${this.host}:${address.port}`;
   }
 
-  stop(): Promise<void> {
+  async stop(): Promise<void> {
+    this.stopping = true;
     this.conversations.shutdown();
+    const geminiCheck = this.geminiClientCheck;
+    if (geminiCheck) { geminiCheck.controller.abort(); await geminiCheck.result.catch(() => undefined); }
+    const claudeCheck = this.claudeStatusCheck;
+    if (claudeCheck) {
+      claudeCheck.controller.abort();
+      await claudeCheck.result.catch(() => undefined);
+    }
+    await this.chatgptSetup.shutdown();
     this.indexedMemory?.close();
     if (this.taskWorkerRuntime) {
       this.taskWorkerRuntime.stop();
@@ -4635,3 +4963,4 @@ export class AgentForgeWebServer {
     return renderWorkspaceApp();
   }
 }
+

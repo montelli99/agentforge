@@ -51,6 +51,28 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
+      - name: Verify Docker survivor discovery after worker death
+        run: pnpm test:execution:docker-crash
+
+      - name: Prepare isolated browser acceptance
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify memory setup and reload in Chromium
+        run: |
+          export AGENTFORGE_BROWSER_EXECUTABLE="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath());")"
+          pnpm test:memory:browser
+          pnpm test:connections:browser
+          AGENTFORGE_BROWSER_LOCAL=1 pnpm test:connections:browser
+          pnpm test:approval:browser
+          pnpm test:migration:browser
+
+      - name: Retain synthetic browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-browser-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/agentforge-memory-browser-*/memory-import.png
+          if-no-files-found: error
+
       - name: Package exact verified commit
         run: |
           mkdir -p release-output
@@ -58,10 +80,15 @@ jobs:
           git rev-parse HEAD > release-output/COMMIT.txt
           sha256sum release-output/*.tgz > release-output/SHA256SUMS.txt
 
+      - name: Verify installed release archive in Chromium
+        run: |
+          export AGENTFORGE_BROWSER_EXECUTABLE="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath());")"
+          node scripts/installed-browser-acceptance.mjs "$(realpath release-output/*.tgz)"
+
       - name: Retain verified release package
         uses: actions/upload-artifact@v4
         with:
-          name: agentforge-${{ github.sha }}
+          name: agentforge-${{ github.event.pull_request.head.sha || github.sha }}
           path: release-output/
 
   test:
@@ -103,6 +130,9 @@ jobs:
           OPENAI_API_KEY: ""
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
+
+      - name: Verify interrupted execution is not replayed
+        run: pnpm test:execution:crash
 
       - name: Verify built-launcher persistence across restart
         run: pnpm test:persistence:launcher

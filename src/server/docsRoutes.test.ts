@@ -113,6 +113,8 @@ describe("Documentation Explorer & Drift API Routes", () => {
     expect(modelIds).toContain("fixture-model-b");
 
     // Test drift evaluation endpoint
+    const incomplete=await fetch(`${base}/api/drift/evaluate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelId:'fixture-model-a'})});
+    expect(incomplete.status).toBe(400);
     const evalRes = await fetch(`${base}/api/drift/evaluate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -120,6 +122,7 @@ describe("Documentation Explorer & Drift API Routes", () => {
         modelId: "fixture-model-a",
         measuredPassRate: 0.96,
         measuredLatencyMs: 380,
+        testCaseResults: Object.fromEntries(Array.from({length:25},(_,i)=>[`fixture-case-${i}`,i<24])),
         unauthorizedToolAttempts: 0,
         hallucinatedCapabilities: 0,
       }),

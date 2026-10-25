@@ -262,8 +262,12 @@ export class AgentForgeCli {
    * Returns current AgentForge system status
    */
   status(): { version: string; status: "staging_not_release_ready"; components: string[] } {
+    const manifest = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    if (manifest.name !== 'agentforge' || typeof manifest.version !== 'string'
+      || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(manifest.version))
+      throw new Error('Installed AgentForge package version is unavailable.');
     return {
-      version: "vNext-0.1.0",
+      version: manifest.version,
       status: "staging_not_release_ready",
       components: [
         "Universal Mirror (Telegram/Discord/Web)",

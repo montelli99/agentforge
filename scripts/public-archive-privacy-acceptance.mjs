@@ -32,6 +32,18 @@ const [archive] = JSON.parse(output);
 assert.ok(archive && Array.isArray(archive.files), "npm pack did not return an archive file list.");
 
 const shippedFiles = archive.files.map(file => file.path);
+const requiredMemorySdkFiles = [
+  "dist/index.d.ts",
+  "dist/core/providers/memory.d.ts",
+  "docs/MEMORY_PROVIDER_SDK.md",
+  "dist/providers/memory/memoryConnections.js",
+  "dist/providers/memory/compositeMemory.js",
+  "dist/providers/memory/obsidianMemory.js",
+  "dist/providers/memory/hindsightMemory.js",
+];
+assert.deepEqual(requiredMemorySdkFiles.filter(file => !shippedFiles.includes(file)), [],
+  "npm archive is missing public memory SDK files.");
+assert.ok(!shippedFiles.includes("docs/GOAL_EXECUTION_MAP.md"), "Internal work log must not ship in npm archive.");
 const disallowedPaths = shippedFiles.filter(file => /(?:^|\/)(?:all_markdown_files|artifacts|\.agentforge|\.codex-worktrees|\.worktrees|requirements)\//i.test(file)
   || /(?:^|\/)TERRA_(?:COMPLETION_PLAN|START_PROMPT)\.md$/i.test(file));
 assert.deepEqual(disallowedPaths, [], `npm archive contains internal operational files:\n${disallowedPaths.join("\n")}`);

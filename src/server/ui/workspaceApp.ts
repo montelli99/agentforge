@@ -603,6 +603,7 @@ export function renderWorkspaceApp(): string {
     let activeWorkspaceExperience = null;
     let currentChannelId = 'chan-general';
     let currentMemoryNamespace = 'general';
+    try { const savedCollection = localStorage.getItem('agentforge-memory-collection'); if (savedCollection && savedCollection.trim() && savedCollection.length <= 120) currentMemoryNamespace = savedCollection; } catch {}
     let activeChatAgent = 'agent-orion';
     let activeChatAgentName = 'Orchestrator';
     let activeChatAgentRole = 'Lead Orchestrator';

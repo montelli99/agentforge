@@ -4,6 +4,8 @@
  */
 
 export interface ExecutionCommandOptions {
+  /** Durable coordinator receipt identity, when execution is receipt-governed. */
+  operationId?: string;
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;

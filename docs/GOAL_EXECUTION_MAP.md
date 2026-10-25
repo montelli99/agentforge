@@ -135,3 +135,289 @@ operator-approved release actions.
 
 No phase is marked complete from intent alone. Each phase must retain the
 evidence named above, and unresolved external evidence stays visible.
+
+### Generic manifest inspection correction — October 25, 2026
+
+The generic provider now snapshots and validates the supplied manifest at
+inspection and plans from that snapshot, rather than substituting the bundled
+example. Unknown inspections are rejected; later edits to the caller's input do
+not change the inspected plan. The existing migration regression covers custom
+agent identity, snapshot isolation, unknown inspection and malformed input.
+Validation: 14 migration-suite tests and the full TypeScript check passed.
+This is not complete migration acceptance: the HTTP flow still uses fixture
+inspection, unsupported entities are not imported, and run verification remains
+process-local. No private workspace or external memory service was imported.
+
+The subsequent UI/API change accepts pasted generic JSON for inspection,
+planning and simulation. HTTP integration verifies the supplied identity reaches
+the plan and preview leaves agent counts unchanged. Uploaded-manifest import
+returns 409 rather than ignoring the upload and importing the fixture. Null is
+invalid input, not an instruction to load example data. The production build and
+built browser-script syntax check passed; interactive browser acceptance is
+still outstanding. Reviewed import and durable rollback remain unfinished.
+
+Generic import preflight now rejects unsupported/unreviewed items, empty plans,
+duplicate or invalid identities, and collisions with existing agents before
+creating any agent. A regression with a collision in the second item verifies
+the first item is not written. The unsupported fixture import reports HTTP 409.
+The migration and end-to-end regression suites passed 25 tests. This preflight
+does not provide crash atomicity or durable rollback, nor does it complete the
+agent policy mapping; those are still required before enabling uploaded imports.
+
+Generic agent mapping now produces structurally complete, offline staging
+records using the public AgentTeammate type: no compute, auto-resume, cloud
+fallback, tools, permissions or channel bindings are enabled. The plan labels
+this as a transformation and explains that model, prompt, harness and authority
+must be reconnected/reviewed. Task history is explicitly unsupported in the plan
+rather than disappearing from it. Synthetic staging import verifies these policy
+values and run identity; 25 regression tests passed. This is staging only, not
+behavior-preserving migration or completed activation. Uploaded import remains
+disabled pending review and durable rollback.
+
+Staging verification now compares complete cloned agent records in the original
+store, rather than testing ID existence. Added permissions/tools and changes to
+execution policies are reported as authority changes; the verification type no
+longer hardcodes this result to false. Imports reject unknown or edited generated
+plans and snapshot accepted input before awaiting preflight. Regression checks
+cover changed permissions, another target store, tampered plans and collisions;
+25 tests passed. These receipts are still in memory and do not establish durable
+rollback, runtime equivalence or production migration acceptance.
+
+Staging import now writes a start receipt before creation and a completion
+receipt with record SHA-256 values through the existing durable audit store.
+A fresh provider/store instance verifies unchanged records against those
+receipts and the audit chain. Missing completion, changed records, invalid
+receipts and pruned receipts fail verification; no automatic retry occurs.
+Authority-change status is unknown when only an unverifiable durable receipt
+remains. The synthetic disk-reload regression passed within the 25-test suites;
+this is not an operating-system crash test or an atomic rollback implementation.
+
+Integration check after commit `1788689`: `pnpm check` passed full typechecking,
+product isolation, 111 test files (664 tests passed, two skipped), production
+build, browser-script syntax and package-surface acceptance. The npm archive
+privacy check inspected 217 files without matching private-data signatures.
+The migration website guide was updated to explain uploaded previews and the
+unfinished import/rollback boundary; website checks passed across 42 pages.
+Hosted run `40219215991` for `1788689` was still running when checked; no final
+hosted result or rendered-browser acceptance is claimed here.
+
+The public memory SDK guide now documents custom adapter integration into both
+embedded chat and task runtimes, composition, persistence responsibilities and
+acceptance boundaries. ConversationRuntime is exported from the public package.
+The shared query helper validates response shape/size and filters scope, tags,
+categories and archives while preserving explicitly shared workspace records.
+It snapshots query filter arrays so an adapter cannot modify the caller's filter
+criteria. The focused memory/chat/worker suites passed 24 tests. Build and package
+import/privacy acceptance passed before the final category/filter-array guards;
+those final guards passed the focused suites. Custom plugin installation UI and
+live provider acceptance are not completed by this SDK work.
+
+Host-registered memory connection definitions now drive additional guided setup
+fields, bounded connection checking and encrypted per-project save/restore.
+Definitions are trusted server code, not browser-supplied code. Saved definition
+versions must still match on restore. An extended setup API regression verifies
+custom connection, encrypted secret storage, service reconstruction/restore,
+credential-free catalog responses and rejected version mismatch preserving the
+active source. Ten setup tests and the production build/browser syntax check
+passed; actual browser interaction with generated fields remains unverified.
+
+Registered synthetic memory factories now participate in the existing chat
+tool-loop and worker-context tests: the chat receives the selected corrected
+record and provenance, while task context receives its selected project source.
+Cross-project/namespace exclusions and cancellation remain covered. Shared
+lookup handling now replaces raw adapter exceptions with a fixed error so
+third-party exception text cannot expose credentials. The 24 focused tests and
+full typecheck passed. This is synthetic integration evidence, not a live
+third-party service or browser journey result.
+
+Registered-provider restart failures now have a fixed, credential-free recovery
+message identifying a missing provider or changed setup version. Service
+reconstruction tests remove the definition and replace it with a newer version;
+both restore attempts fail, leave project memory disconnected, and preserve the
+encrypted selection byte-for-byte. Ten setup tests and typechecking passed.
+
+Memory-ablation evidence now has an exclusive append-only JSONL journal. Each
+started/completed/failed attempt is flushed before the summary is replaced using
+a same-directory rename; existing evaluation outputs cannot be overwritten by
+a new run. The local regression verifies retained start/failure events and
+overwrite refusal, and typechecking passed. No paid request or new competitive
+comparison was run. Power-loss durability and actual process-kill recovery of
+this journal remain unproven; the ablation is still only a recall experiment,
+not a full-agent superiority result.
+
+A real child-process termination now exercises the evaluation journal. The
+child flushes a started-attempt checkpoint, signals readiness, and is killed
+without closing its journal. The parent reads the intact incomplete report and
+started event, and verifies a fresh writer cannot overwrite that attempt.
+The local regression and full typecheck passed. This establishes this specific
+post-checkpoint process-termination case, not power-loss survival, termination
+during a write, or knowledge of an uncertain remote provider's billing/result.
+
+The live planning proof now journals its start and every planning/usage audit
+before proceeding, records failed/uncertain outcomes, and refuses to overwrite
+an earlier run. It still never approves or executes its draft. A dedicated
+TypeScript check covering the planning and ablation scripts (normally excluded
+by the source tsconfig) found a missing baseSha field in the planning-only
+fixture. The unbound revision is now explicitly empty until the separate
+execution harness supplies the disposable checkout revision. Both scripts pass
+their dedicated check. No paid request was repeated for this change.
+
+### Release-proof script coverage
+
+Added tsconfig.scripts.json covering all nine TypeScript scripts. typecheck:all now includes this check, so existing pnpm check and verify:public CI paths enforce it. The first run exposed a missing repository field in the disposable crash-proof contract and unsafe optional token-usage access in the latency diagnostic; both are corrected. The synthetic file backend has no Git revision (empty baseSha), and does not claim repository verification.
+
+Validation: pnpm typecheck:all passed. The actual child-process termination/restart proof passed: durable started receipt existed before termination, automatic retry was refused, and exactly one synthetic effect remained. This does not prove remote-provider reconciliation or Docker orphan cleanup. No live model requests or private integrations were used.
+
+### Hosted CI export omission corrected
+
+Hosted run 40220294456 failed the public link boundary because README linked to docs/MEMORY_PROVIDER_SDK.md without that document being in the explicit source-export allowlist. Added that public guide and tsconfig.scripts.json (required by the newly checked source-release commands) to the allowlist. No private directories were added. Validation: public-link acceptance passed all 2,619 local links across 92 allowlisted documents; repository-privacy acceptance passed its 27 cases and source scan. Hosted acceptance of the resulting commit remains pending.
+
+### Execution proof retains uncertain-run evidence
+
+The hash-selected synthetic execution runner now uses the exclusive durable evaluation journal before workspace creation and execution. It records failed-or-uncertain outcomes without raw exception contents, preserves the workspace and receipt store on failure, and retains successful artifacts rather than returning references to deleted files. Reusing an evidence output is refused; no automatic retry is added. Retained local evaluation workspaces require deliberate later cleanup.
+
+Validation: all TypeScript proof scripts passed type checking. A synthetic malformed-task subprocess failed before provider/backend execution, retained its workspace and failure report, and a second invocation refused to overwrite the original journal. Zero provider requests. This validates evidence retention, not a new successful Docker or end-user approval journey.
+
+### Execution crash proof is a release gate
+
+Added test:execution:crash to verify:public and to the Windows/macOS/Linux Node 22/24 CI matrix. The new package command passed locally: an actual child process was terminated after its effect and durable receipt, restart refused replay, exactly one effect remained, and the task was presented paused for reconciliation. Hosted cross-platform results remain pending. This gate covers the disposable backend; remote-provider reconciliation is still open.
+
+### Recovery guards apply to SDK and worker callers
+
+The web receipt-review route rejected unknown planning usage and finished-task restoration, but the public runtime reconciliation method did not. Moved equivalent enforcement into reconcileObservedExecution so direct SDK calls and executeTask's observed-result branch cannot bypass those checks. Extended the existing worker integration case: completed-task restoration is rejected, unknown planning usage blocks both direct reconciliation and executeTask without changing status, and an intact observed result with resolved usage restores completion without calling the backend. All 13 worker integration tests passed; typecheck:all passed. This is synthetic runtime recovery evidence, not live provider reconciliation or browser acceptance.
+
+### Restore retains the original human approval
+
+Observed-result recovery now requires the original pending approval for tasks whose contract requires human review. It rejects missing, mismatched, or already-decided approval records rather than presenting an impossible waiting-approval state or reopening a rejected decision. Extended worker coverage proves restart restores waiting_approval with exactly one original approval and refuses restoration after that approval is rejected. All 13 worker integration tests and typecheck:all passed; browser and hosted acceptance remain pending.
+
+### Hosted archive inspection found missing SDK guide
+
+Downloaded the package from successful public-acceptance job in run 40221028980. COMMIT.txt matches 66ea369d2213a340176dba7eb6f0eed95af44b24; package SHA-256 matches 0f998b1a10a947c2a6a62672c459264a621e5e4ba3821bd1d9fe801a7ed26409. Archive inspection found the runtime SDK modules but no memory SDK guide: docs/.npmignore excluded all documentation independently of the source-export allowlist. Added an exception for only MEMORY_PROVIDER_SDK.md. npm pack dry-run confirms the guide is included while the internal goal work log remains excluded. New exact-build hosted package acceptance is required; this entry does not claim the full release complete.
+
+### Publish usable TypeScript memory contracts
+
+Package acceptance now requires the public memory runtime exports, adapter modules and guide. Inspection also found that the SDK's documented TypeScript interfaces were erased without published declarations. Build now emits declarations and package exports explicitly map types to dist/index.d.ts while preserving JavaScript import/default entrypoints. The archive gate requires the entrypoint and memory contract declarations and continues excluding internal work logs and test/source files.
+
+Validation: build, all source/script type checks, strict checking of dist/index.d.ts and its declaration graph, public entrypoint import and archive privacy passed (432 shipped files). The package boundary now includes the types needed to implement third-party providers; live adapter compatibility and final release acceptance are not implied.
+
+### Installed-package memory SDK consumer passed
+
+Extended the existing installed-package CLI acceptance to compile a synthetic external TypeScript consumer against the npm archive installed in a fresh temporary project. It imports MemoryProvider, MemoryQuery and MemoryConnectionDefinition from agentforge, registers a provider, composes it, and uses bounded querying. The compiler and Node development types come from the test toolchain; AgentForge API resolution comes from the installed archive, not repository sources. Full package CLI acceptance passed locally, including the new strict consumer check. All seven hosted jobs for prior commit 66ea369 passed (run 40221028980); newer SDK changes require their own exact-build hosted evidence.
+
+### Generic migration writes one snapshot
+
+Added a store-level migration batch commit and routed generic imports through it. Agent records and both verification receipts are appended before one snapshot write; a failed write restores the prior in-memory agents/audit/checkpoint and emits no successful creation notifications. Successful notifications happen after the commit. The existing generic migration integration case now forces a real concurrent-snapshot conflict on a two-agent batch and verifies unchanged in-memory agents, audit history, disk content and a valid audit chain. All 14 migration/integration tests passed; all source/script type checks passed before the test extension. This closes partial per-agent writes for this path; reviewed uploaded import, explicit rollback and process-kill atomicity proof remain open.
+
+### Durable rollback for unchanged staging imports
+
+Added rollbackAgentImport using the original hash-verified import receipts. It removes only the complete unchanged batch, refuses missing/changed agents or operational references, writes the removal and rollback receipt in one snapshot, restores in-memory state on write failure, and refuses repeated rollback. Source manifests are untouched. Existing migration coverage now verifies restart rollback of two agents, durable absence after reopening, audit integrity, changed-agent refusal, repeated rollback refusal and concurrent-write failure preserving both agents and disk. All 14 integration tests and source/script type checks passed. The authenticated reviewed upload/rollback UI and crash-interruption proof remain unfinished.
+
+### Reviewed uploaded-agent import API
+
+Added authenticated owner/admin prepare-import, commit-import and rollback-import endpoints. Preparation accepts an explicit generic manifest, refuses unsupported items, returns the exact staging plan with a SHA-256 digest and ten-minute review expiry, and makes no import. Commit binds the review to its user and digest, requires explicit confirmation, and consumes it before awaiting the atomic import to prevent duplicate submissions. Rollback requires explicit run confirmation and the durable unchanged-batch checks. Pending reviews are bounded and intentionally do not survive restart; users must re-review.
+
+Existing API integration coverage proves anonymous denial, prepare without writes, changed-digest refusal, successful verified import, single-use refusal, and rollback. All 14 migration tests and typecheck:all passed. Browser controls still need wiring and acceptance; the old unreviewed upload route remains blocked.
+
+### Guided staging import and rollback controls
+
+Migration lab now offers Review uploaded import for generic manifests. Its dialog shows transformed records, authority limitations and review expiry, requires explicit confirmation, submits the exact review digest once, reports the run reference, and offers separately confirmed rollback. Uncertain network outcomes do not trigger retry. Build and generated-browser-script syntax passed; this is not browser acceptance (Kane credits remain exhausted). Website boundaries now describe the implemented limited path and outstanding proof. Earlier unreviewed import stays blocked.
+
+### Import history supports reconnect recovery
+
+Added authenticated owner/admin import-history lookup from retained audit receipts, with imported-unchanged, rolled-back and needs-review states. Audit corruption cannot produce a verified state; bounded/pruned history is disclosed. Migration lab now offers Saved imports / recovery with explicit rollback for unchanged runs, allowing users to inspect results after a lost response without resubmitting a manifest. Existing API coverage confirms anonymous denial and state transitions before/after rollback. All 14 migration tests, type checking and build/browser syntax passed. Browser interaction and process-kill migration proof remain open.
+
+### Actual process termination at migration snapshot replacement
+
+Extended the existing migration integration case with real child processes using synthetic two-agent manifests. The child terminates itself with SIGKILL immediately before or after the workspace snapshot rename. Reopening proves all-or-none agents and completion receipts: before replacement neither appears, after replacement both agents and the receipt survive and verify through a fresh provider. Audit chains remain valid. All 14 migration tests and typecheck:all passed locally. This tests process termination at the commit boundary, not filesystem power-loss durability or browser interaction; hosted cross-platform execution remains pending.
+
+### Migration authorization and dependency refusal coverage
+
+Extended existing API integration coverage across anonymous/viewer denials for prepare, commit and rollback; viewer history denial; cross-owner prepared-review refusal; and explicit-confirmation enforcement. A separate in-memory snapshot copy with a task assigned to an imported agent proves rollback refuses referenced records without deleting the agent. All 14 migration integration tests passed. Hosted runs 40221482665 (installed typed SDK) and 40221638926 (atomic import) completed successfully; later exact-build acceptance remains pending.
+
+### POSIX connection-worker timeout repair
+
+The command-line child runner previously sent SIGTERM only to the immediate process. A process ignoring that signal could leave the awaited close event unresolved indefinitely. POSIX invocations now own a process group; cancellation/deadline/output overflow signal that group and escalate to SIGKILL after one second. Cleanup clears the escalation timer. Windows tree termination remains unchanged.
+
+Direct reproduction in a network-disabled, read-only node:22-alpine container left the old runner hanging beyond the 15-second observation deadline; the specific reproduction container was then terminated. The same synthetic process with the repaired runner returned the timeout classification after 1513 ms, retained its ready output, and normal completion passed. Source and script type checking passed. This establishes the direct-child SIGTERM-resistance fix only; escaped process groups, descendant-specific acceptance, macOS runtime proof and complete subscription workflow acceptance remain open. Kane case generation failed with an opaque error, so no generated regression suite is claimed.
+
+### Termination escalation survives a cooperative leader exit
+
+A second isolated Linux reproduction exposed a remaining cancellation race: a leader terminated promptly while its descendant ignored SIGTERM and closed inherited pipes. The close event allowed cleanup to cancel the pending force timer, leaving the descendant sleeping/running. The POSIX stopping promise now resolves only after the scheduled group SIGKILL, so returning from the runner cannot cancel that escalation. With the identical synthetic descendant reproduction, /proc showed a terminated zombie (Z) after signal delivery instead of a live sleeping process (S). A zombie is terminated but awaits reaping; this is not proof of reaping or containment of a descendant that deliberately leaves the process group. Source/script type checks passed. No private accounts or network were used.
+
+### Broader staging rollback reference protection
+
+Expanded the conservative rollback check to workspace/space/user/package records, other agents, benchmark and quality records, event ledger entries and bindings, and audit activity other than the batch's own import receipts. This prevents removal of a supposedly unused profile whose use is recorded outside tasks or channels. A synthetic in-memory import followed by a benchmark referencing its agent refused rollback, retained the agent, and preserved audit validity. All 14 existing migration integration tests and source/script type checks passed. The 0b5b83d hosted run 40222182616 completed successfully across all seven jobs; current-head hosted proof remains pending.
+
+### Recovery UI reports actual rollback eligibility
+
+Extracted a read-only eligibility check shared with rollback validation. Import history now reports rollbackEligible separately from unchanged-record verification. The UI offers rollback only when that field is explicitly true, and explains unavailability for imports whose records remain unchanged but are referenced. Mutation repeats validation rather than trusting the earlier screen result. A synthetic check verified eligibility before use, no audit writes from inspection, and ineligibility after assigning a task. All 14 migration integration tests, source/script type checks and build/browser-script syntax passed. Rendered browser acceptance remains outstanding.
+
+### Registry preflight no longer treats network errors as availability
+
+The registry preflight now checks the exact package version using unauthenticated public npm metadata with a bounded deadline. A failed lookup or already-published version fails the gate; a public 404 is reported only as version-not-publicly-found, explicitly without account authentication or ownership verification. Packaging no longer invokes a shell and disables lifecycle scripts. The live check found no public agentforge@0.1.2 and packed 432 files; an injected lookup failure returned passed:false and exit 1. No publication occurred.
+
+### Hosted package identity matches checked-out source
+
+The retained artifact name now uses the same pull-request head SHA (or push SHA) as checkout, rather than the synthetic merge SHA. The archive still carries COMMIT.txt and SHA256SUMS.txt; this removes a misleading second identity from the download name, without claiming the new workflow has already run. npm whoami returned ENEEDAUTH, so registry publication remains blocked on account sign-in only; implementation and hosted verification continue independently.
+
+### Consistent protected-record validation during renewal
+
+Both ordinary token saves and transaction replacements now validate issuer/resource, token type, nonempty string token fields, finite expiry and required string scopes. Transaction replacements copy the scope array before passing the record to the backend. Recovery intentionally may persist expired access tokens with renewal intent; the transaction path preserves that behavior and does not claim expiry validation is permission to use the token. Eight focused protected-storage/session tests passed with synthetic credentials, including Windows DPAPI and renewal recovery; source/script type checking passed. Mac/Linux protected storage and live-account lifecycle acceptance remain incomplete.
+
+### Diagnose hosted forced-restart readiness failure without masking it
+
+Hosted run 40222928489 (a55f89f) failed during persistence-crash-recovery at the second startServer call with only 'Server did not become ready'; root cause is not established. The probe now reports elapsed time, attempt count, last HTTP status or connection error class, process exit/signal and bounded child output. Each HTTP probe is limited to one second within the existing 15-second overall deadline, response bodies are cancelled, and spawn errors are captured. The deadline was not increased and recovery behavior was not changed. The existing forced-launcher recovery command passed locally against the built app, retaining both committed workspace and goal session; this does not explain or erase the hosted failure.
+
+### Publish complete snapshot lock ownership atomically
+
+Snapshot locking previously created the shared lock and then wrote its PID, leaving a process-termination window with an empty shared lock. It now writes and fsyncs a unique same-directory owner candidate before atomically linking it to the shared lock name. A competing link fails without replacing the existing lock; normal cleanup removes the candidate. A crash before publication leaves only an unreferenced candidate, not a shared lock. Filesystems that cannot create hard links fail explicitly; no unsafe fallback was added. This closes a source-level crash window but is not established as the cause of run 40222928489.
+
+35 persistence/migration tests, source/script type checks, build/browser syntax, real two-process stale-writer acceptance, and forced-launcher crash recovery passed locally. Hosted filesystem/platform acceptance remains pending. Candidate files abandoned by abrupt process death may remain as small metadata files; they do not hold a shared lock.
+
+### Do not reclaim a live writer based on lock age
+
+Snapshot lock recovery no longer removes a valid live owner's lock merely because its timestamp is older than 30 seconds. Only ESRCH establishes a dead recorded owner; permission-denied and other process-probe failures preserve the lock. Age-based recovery remains limited to legacy locks without a valid owner. Corrected the existing stale-lock fixture to use an actually completed child process rather than PID 1. All 21 persistence tests and source/script type checks passed. A synthetic 60-second-old lock owned by the current process was retained through the acquisition timeout, with the on-disk snapshot unchanged. This does not establish cross-host/network-filesystem locking semantics.
+
+### Official Claude client capability probe
+
+Installed the official npm distribution into a disposable external directory with lifecycle scripts disabled, then invoked only --version and --help using an isolated configuration directory and environment without account/API credentials. Native Windows client 2.1.310 reports restricted mode, safe mode, explicit tools and disallowed tools, strict MCP configuration, setting-source selection, JSON schema output and disabled session persistence. This establishes availability of the implementation controls, not their enforcement or model execution. No sign-in or model request occurred; the client is not bundled into the public package. Next implementation must verify effective tool/customization isolation and durable cancellation before claiming an integrated subscription worker.
+
+### Reusable Claude client capability inspection
+
+Added a public capability-inspection function and CLI command using the bounded process runner, explicit regular executable paths, isolated temporary configuration, restricted environment, output limits and deadlines. Structured results never present advertised controls as verified authentication or isolation. The built command inspected official client 2.1.310 successfully with all required controls and no inference. Source/script type checks and build/browser syntax passed. Managed worker execution and GUI connection wiring remain unfinished.
+
+### Claude authentication status exposed through the CLI
+
+Added bounded official-client auth-status inspection and a CLI command using an explicitly selected configuration directory. Output is reduced to loggedIn and inferenceVerified:false; provider account fields are discarded. A real official 2.1.310 client with an isolated signed-out profile returned loggedIn:false and exit 1 through the built CLI. Source/script type checks and build/browser syntax passed. No credentials, sign-in, or inference were used. Authenticated model execution and GUI connection wiring remain incomplete.
+
+### Guided Claude account inspection
+
+Connected the subscription guide to an authenticated, owner/admin-only status endpoint. Executable and profile selection are host-only environment settings; browser input cannot select host programs or directories. Concurrent checks are refused and provider errors are sanitized. A temporary built server returned 401 for anonymous access, 403 for a viewer, and configured:false/inferenceVerified:false for an owner without host configuration. The first synthetic probe collided with the seeded owner username before starting its server; the corrected distinct-username probe produced the results above. Ten existing setup-route tests, type checks and build/browser-script syntax passed. Rendered UI acceptance and authenticated inference remain unverified; this feature does not activate a Claude worker.
+
+### Cancel account inspection on disconnect and shutdown
+
+The web account check now owns an AbortController and in-flight promise. Closing its response cancels the child process; service shutdown cancels and awaits the current check before closing. Concurrent checks remain refused. A temporary service using the real official client and an isolated signed-out profile observed an active check, then shutdown aborted it, cleared the pending state and completed in 149 ms. The response contained only the generic failure message. This measured cancellation of an account inspection, not authenticated inference or worker recovery. Ten existing setup-route tests and source/script type checks passed. Hosted runs for 459d823, 3cd6ecd, 9c27f2e and 6e9deca completed successfully; current-head hosted proof remains separate.
+
+### Distinguish official-client authentication routes
+
+Claude account inspection now returns a sanitized connectionKind alongside loggedIn. The documented claude.ai method is classified subscription; API-key/helper and third-party methods are labeled separately. OAuth-token and unknown methods remain unverified. Guided setup explains the distinction without enabling a model or changing billing. The real isolated client returned signed-out; source/script type checks and build/browser syntax passed. Signed-in branches have not been verified against live accounts. This closes a misleading status presentation gap, not the outstanding managed execution requirement.
+
+### Remove the single-model restriction from the Codex planner
+
+The existing subscription planner accepts explicit syntactically valid GPT model identifiers instead of requiring gpt-5.6-luna. It snapshots configuration at construction so caller mutation cannot change the chosen model or paths afterward. A synthetic injected runner verified selected-model forwarding and response attribution after caller mutation; empty, option-like and newline-containing identifiers were rejected. No child process, account or inference was used in that diagnostic. Source/script type checks passed. Model availability remains account-specific and unverified by listModels; existing request bounds, plan approval, isolation requests and no-fallback behavior remain unchanged.
+
+### Snapshot memory results before accepting context
+
+The shared memory lookup boundary previously returned provider-owned references. It now clones each result before validation so subsequent adapter mutation cannot alter accepted scope, content, tags or nested metadata. A synthetic adapter diagnostic verified all four remain unchanged after mutation and non-cloneable metadata receives a generic rejection. Both existing operational-memory tests and source/script type checks passed. This is a record-ownership fix, not proof of all conflicting-memory or live-provider recovery requirements. The preceding exact build d33d2ba passed 664 tests (two skipped), build and the privacy scan of 434 package files locally; its hosted public acceptance and four non-Windows matrix jobs passed while Windows jobs were still running at inspection.
+
+### Refuse observed conflicting memory revisions during planning
+
+A synthetic provider returned an old safety limit in the rule query and its correction in the topical query with the same record ID. Before the fix, worker context included the old limit and silently discarded the correction. Planning now compares duplicate record snapshots and refuses inconsistent context; identical duplicates still work. The same reproduction rejected the conflict after the change. All 13 existing task-worker tests and source/script type checks passed. This does not prove transactional consistency across remote stores or detect unreturned corrections, and no real model or account was used.
+
+### Detect duplicate conflicts before composition and truncation
+
+Moved the model-visible record fingerprint into the shared memory contract and applied it within each provider response as well as across worker lookups. Identical duplicate IDs collapse to one; differing snapshots reject the result before truncation. A synthetic direct and combined-provider diagnostic rejected a second conflicting record even with limit:1, and returned one record for identical duplicates. All 15 existing operational-memory/task-worker tests and source/script type checks passed. Conflicting meaning across different IDs or aliases remains distinct from this identity-consistency check.
+
+### Bind hosted evidence to named jobs and retained artifact
+
+The hosted verifier now requires the named public-acceptance job and all six named OS/Node combinations, not just any seven successful jobs. It refuses a dirty checkout and requires one unexpired artifact named for the exact commit, with matching workflow/run source and GitHub archive digest. Artifact metadata is explicitly not independent verification of downloaded package contents. The GitHub artifact API for completed run 40224658826 supplied the expected name, source and SHA-256 digest. Script syntax and script type checks passed; acceptance of this verifier against its own exact hosted build remains pending.

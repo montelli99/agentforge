@@ -18,6 +18,7 @@ import type { CompletionEngine } from "../completion/completionEngine.js";
 import { ProcessExecutionEngine, type ProcessExecutionTrace } from "../process/processExecutionEngine.js";
 import { buildContextPacket, type ContextPacket, type ContextSource } from "../../contextPacket.js";
 import type { MemoryProvider } from "../providers/memory.js";
+import {queryMemoryBounded,memorySourceIdentity,memoryContextFingerprint} from '../providers/memory.js';
 import type { ProcessStep } from "../types/process.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { ExecutionContract } from "../types/contract.js";
@@ -48,13 +49,14 @@ export interface TaskExecutionOutput {
  * execution, and evidence collection. The runtime never fabricates any of them.
  */
 export interface TaskExecutionBackend {
+  inspectSurvivors?(input: {worktreePath: string; operationId: string}): Promise<Array<{id: string; state: string}>>;
   getReadiness(): ExecutionReadiness;
   validateTask?(task: Task): Promise<void>;
   /** False when all effects must come exclusively from the approved command plan. */
   allowsGovernedProcesses?: boolean;
   /** Optional provider hook for executing an already-authorized process step. */
   executeProcessStep?(input: { step: ProcessStep; taskId: string; agent: AgentTeammate; contract: ExecutionContract; worktreePath: string }): Promise<{ output?: string }>;
-  execute(input: { task: Task; worktreePath: string; signal: AbortSignal; contextPacket?: ContextPacket }): Promise<TaskExecutionOutput>;
+  execute(input: { task: Task; worktreePath: string; signal: AbortSignal; contextPacket?: ContextPacket; operationId?: string }): Promise<TaskExecutionOutput>;
 }
 
 /** Backends throw this only after execution and resource cleanup have settled. */
@@ -95,6 +97,22 @@ const NO_EXECUTION_BACKEND: ExecutionReadiness = {
 export class TaskWorkerRuntime {
   private readonly runId = crypto.randomUUID();
   private activeWorkers = 0;
+  private changingMemory=false;
+  async withMemoryChange<T>(operation:()=>Promise<T>):Promise<T>{
+    if(this.changingMemory||this.activeTaskExecutions.size)throw Error('Finish active tasks or memory setup first');
+    this.changingMemory=true;
+    try{return await operation();}finally{this.changingMemory=false;}
+  }
+  private projectMemory=new Map<string,{provider:MemoryProvider;namespace:string}>();
+  setProjectMemory(projectId:string,provider:MemoryProvider,namespace:string){
+    if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
+    if(!projectId||!namespace)throw Error('Explicit memory project and namespace required');
+    this.projectMemory.set(projectId,{provider,namespace});
+  }
+  clearSelectedProjectMemory(projectId?:string){
+    if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
+    if(projectId)this.projectMemory.delete(projectId);else this.projectMemory.clear();
+  }
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
   private readonly worktreeManager: WorktreeManager;
@@ -135,6 +153,19 @@ export class TaskWorkerRuntime {
 
   canExecuteTasks(): boolean { return this.getExecutionReadiness().ready; }
   getActiveTaskIds(): string[] { return [...this.activeTaskExecutions.keys()]; }
+
+  /** Read-only presentation: an old receipt is not evidence of a live local worker. */
+  presentTask(task: Task): Task & { executionRecovery?: { recordedStatus: TaskStatus; message: string } } {
+    const receipt = task.executionReceipts?.at(-1);
+    if (!receipt || receipt.runId === this.runId || this.activeTaskExecutions.has(task.id)
+      || !["in_progress", "verification_running"].includes(task.status)) return task;
+    return { ...task, status: "paused", executionRecovery: {
+      recordedStatus: task.status,
+      message: receipt.status === "observed"
+        ? "A previous worker saved execution evidence. Review and reconcile its receipt before continuing; no work was replayed."
+        : "Execution is not owned by this service session. Check the original worker and reconcile the uncertain receipt before continuing. No retry is permitted automatically.",
+    } };
+  }
 
   start(): void {
     if (this.running) return;
@@ -188,6 +219,7 @@ export class TaskWorkerRuntime {
   }
 
   async executeTask(taskId: string): Promise<Task> {
+    if(this.changingMemory)throw Error('Memory setup is in progress; retry after it finishes');
     const task = this.requireTask(taskId);
     const blockReason = this.getExecutionBlockReason();
     if (blockReason) throw new Error(blockReason);
@@ -238,14 +270,17 @@ export class TaskWorkerRuntime {
 
       this.store.updateTask(taskId, { status: "verification_running" });
       const currentTask = this.requireTask(taskId);
-      const contextPacket = await this.buildWorkerContext(currentTask);
+      let contextPacket:ContextPacket;
+      try{contextPacket=await this.buildWorkerContext(currentTask,abortController.signal);}
+      catch(error){if(abortController.signal.aborted)throw new TaskExecutionCancelledError();throw error;}
+      if(abortController.signal.aborted)throw new TaskExecutionCancelledError();
       this.store.recordAudit({
         origin: "system", actorId: "system", actorType: "system", action: "TASK_CONTEXT_PACKED",
         targetType: "task", targetId: taskId,
         details: { packetId: contextPacket.id, sourceCount: contextPacket.sources.length, originalTokens: contextPacket.originalTokens, packedTokens: contextPacket.packedTokens },
       });
       if (receipt) validateReceipt(currentTask,receipt,this.options.workspaceIdentity??"",worktreePath);
-      const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket });
+      const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket, operationId: receipt?.operationId });
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
       const evidence = this.createEvidencePack(currentTask, output, processTrace);
       const verifiedPassed = requiredChecksPassedByEvidence(currentTask, output.testResults)
@@ -302,27 +337,34 @@ export class TaskWorkerRuntime {
     }
   }
 
-  async getPlanningContext(taskId: string): Promise<ContextPacket> { return this.buildWorkerContext(this.requireTask(taskId)); }
+  async getPlanningContext(taskId: string,signal?:AbortSignal): Promise<ContextPacket> { return this.buildWorkerContext(this.requireTask(taskId),signal); }
 
-  private async buildWorkerContext(task: Task): Promise<ContextPacket> {
+  private async buildWorkerContext(task: Task,signal?:AbortSignal): Promise<ContextPacket> {
     const sources: ContextSource[] = [{ id: task.id, kind: "goal", text: `${task.title}\n${task.description}` }];
-    const memory = this.options.memoryProvider;
+    const selected=task.projectId?this.projectMemory.get(task.projectId):undefined;
+    const memory = selected?.provider??this.options.memoryProvider;
     if (!memory) return buildContextPacket(sources);
     const queryText = `${task.title} ${task.description}`.slice(0, 2_000);
-    const scope = { namespace: this.options.memoryNamespace || "workspace",
-      projectId: task.projectId, globalOnly: !task.projectId };
+    const scope = { namespace: selected?.namespace??this.options.memoryNamespace??"workspace",
+      projectId: task.projectId, globalOnly: !task.projectId,signal };
     const [rules, topical] = await Promise.all([
-      memory.query({ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
-      memory.query({ ...scope, queryText, limit: 8 }),
+      queryMemoryBounded(memory,{ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
+      queryMemoryBounded(memory,{ ...scope, queryText, limit: 8 }),
     ]);
-    const seen = new Set<string>();
+    const seen = new Map<string, string>();
     const records = [...rules, ...topical].filter(({ record }) => {
-      if (seen.has(record.id)) return false;
-      seen.add(record.id);
+      if(record.namespace!==scope.namespace||record.archived||(selected?record.projectId!==task.projectId:record.projectId&&record.projectId!==task.projectId))return false;
+      const snapshot = memoryContextFingerprint(memory, record);
+      const previous = seen.get(record.id);
+      if (previous !== undefined) {
+        if (previous !== snapshot) throw Error('Memory changed or conflicted during planning; no consistent context is available');
+        return false;
+      }
+      seen.set(record.id, snapshot);
       return true;
     });
     for (const { record } of records) sources.push({
-      id: record.id,
+      id: record.id, memorySource: memorySourceIdentity(memory,record),
       kind: record.category === "approval" ? "decision" as const : record.category === "artifact" ? "evidence" as const : "memory" as const,
       updatedAt: record.updatedAt || record.createdAt,
       text: `${record.title}\n${record.content}`,
@@ -352,7 +394,22 @@ export class TaskWorkerRuntime {
   }
 
   private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
-  reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');const status:TaskStatus=task.contract.completion.requireHumanApproval?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
+  reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(['completed','cancelled'].includes(task.status))throw Error('Finished tasks cannot be resolved again');if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage unknown: reconcile audit before restoring execution');if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');if(task.contract.completion.requireHumanApproval){const approval=receipt.evidence.approvalId?this.store.getApproval(receipt.evidence.approvalId):undefined;if(!approval||approval.taskId!==task.id||approval.status!=='pending')throw Error('Recorded result requires its original pending approval; reconcile approval before restoring');}const status:TaskStatus=task.contract.completion.requireHumanApproval?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
+  async inspectExecutionSurvivors(taskId: string) {
+    const task = this.requireTask(taskId), receipt = task.executionReceipts?.at(-1);
+    if (!receipt) throw Error('No operation-bound receipt to inspect');
+    validateReceipt(task, receipt, this.options.workspaceIdentity ?? '', task.worktree?.worktreePath ?? this.options.repoRoot ?? process.cwd());
+    if (!this.executionBackend?.inspectSurvivors) throw Error('This backend does not support survivor discovery');
+    const containers = await this.executionBackend.inspectSurvivors({worktreePath: receipt.worktreePath, operationId: receipt.operationId});
+    const current = this.requireTask(taskId);
+    if (current.updatedAt !== task.updatedAt || current.executionReceipts?.at(-1)?.receiptDigest !== receipt.receiptDigest)
+      throw Error('Task changed during discovery; refresh before reviewing');
+    // Timestamp equality is not a revision check: two updates can share a tick.
+    // Revalidate the operation's contract and workspace after asynchronous discovery.
+    validateReceipt(current, receipt, this.options.workspaceIdentity ?? '', current.worktree?.worktreePath ?? this.options.repoRoot ?? process.cwd());
+    return {operationId: receipt.operationId, containers, replayed: false, reconciled: false};
+  }
+
   async cancelTask(taskId: string): Promise<Task> {
     const task = this.requireTask(taskId);
     if (task.status === "completed") throw new Error("Completed tasks cannot be cancelled.");

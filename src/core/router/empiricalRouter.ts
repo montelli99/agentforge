@@ -67,7 +67,7 @@ export interface EmpiricalRoutingDecision {
 
 export class EmpiricalRouter {
   private candidates: Map<string, CandidateTarget> = new Map();
-  private benchmarkHistory: BenchmarkResult[] = [];
+  private benchmarkHistory = new Map<string, BenchmarkResult>();
 
   constructor() {
     this.seedDefaultCandidates();
@@ -137,7 +137,11 @@ export class EmpiricalRouter {
   }
 
   recordBenchmarkResult(result: BenchmarkResult): void {
-    this.benchmarkHistory.push(result);
+    if (!result.id || this.benchmarkHistory.has(result.id)) return;
+    if (![result.totalCases,result.passedCases,result.failedCases].every(Number.isSafeInteger) ||
+        result.totalCases < 1 || result.passedCases < 0 || result.failedCases < 0 ||
+        result.passedCases + result.failedCases !== result.totalCases) return;
+    this.benchmarkHistory.set(result.id, structuredClone(result));
   }
 
   /**
@@ -168,8 +172,8 @@ export class EmpiricalRouter {
 
     // 3. Score against benchmark history
     const scored = capable.map(candidate => {
-      const results = this.benchmarkHistory.filter(b =>
-        (b.targetId === candidate.id || b.targetVersion === candidate.name) && b.totalCases > 0,
+      const results = [...this.benchmarkHistory.values()].filter(b =>
+        b.executionKind === 'executor' && b.targetType === candidate.targetType && b.targetId === candidate.id,
       );
       let measuredPassRate: number;
       let qualityStatus: QualityMeasurementStatus;
