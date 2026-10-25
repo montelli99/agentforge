@@ -361,3 +361,13 @@ It then reloads again and observes exactly one provider request. The completed
 text is also present in the disk snapshot. The local Chromium check passed;
 this is a browser-connection interruption with a synthetic provider, not server
 process termination or a live provider transport failure.
+
+### Experimental Claude launch regression coverage
+
+Seven focused adapter tests pass: plan-only launch arguments and fresh-directory
+cleanup; API, signed-out and unknown authentication denial before inference;
+cancellation before authentication; unexpected tool transcript rejection with
+usage retained; and bounded-child failure with usage retained and no retry.
+Typechecking passed. The child process and account inspection are mocked in
+these tests. They do not prove official-client isolation or live subscription
+inference, which remain outstanding.
