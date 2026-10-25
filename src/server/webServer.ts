@@ -4659,6 +4659,21 @@ export class AgentForgeWebServer {
     }
 
     // --- Migration Center REST Endpoints (Sections 7-27) ---
+    if (req.method === 'GET' && path === '/api/migration/import-history') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to review migration history.' })); return; }
+      if (!['owner', 'admin'].includes(caller.user.role)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Owner or administrator review required.' })); return; }
+      const entries = this.store.listAuditEntries({ actorId: 'migration-generic', targetType: 'system', limit: 1000 });
+      const auditIntact = this.store.verifyAuditChain().valid;
+      const ids = [...new Set(entries.map(entry => entry.targetId))].reverse().slice(0, 100);
+      const runs = await Promise.all(ids.map(async runId => {
+        const records = entries.filter(entry => entry.targetId === runId);
+        const rolledBack = records.some(entry => entry.action === 'generic_migration_rolled_back');
+        const verified = !rolledBack && (await this.genericMigration.verify(runId, this.store)).overallPassed;
+        return { runId, recordedAt: records[0]?.timestamp, status: !auditIntact ? 'needs-review' : rolledBack ? 'rolled-back' : verified ? 'imported-unchanged' : 'needs-review' };
+      }));
+      res.writeHead(200); res.end(JSON.stringify({ runs, limit: 100, historyMayBePruned: true })); return;
+    }
     if (req.method === 'POST' && ['/api/migration/prepare-import', '/api/migration/commit-import', '/api/migration/rollback-import'].includes(path)) {
       res.setHeader('Cache-Control', 'no-store');
       if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to review migration changes.' })); return; }

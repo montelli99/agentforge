@@ -719,9 +719,15 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(imported.status).toBe(200);
       const importedResult = await imported.json();
       expect(importedResult.verification.overallPassed).toBe(true);
+      const history = () => fetch(server.getBaseUrl()+'/api/migration/import-history', { headers: { Authorization: 'Bearer '+token } });
+      expect((await fetch(server.getBaseUrl()+'/api/migration/import-history')).status).toBe(401);
+      const importedHistory = await (await history()).json();
+      expect(importedHistory.runs.find((run: any) => run.runId === importedResult.result.runId).status).toBe('imported-unchanged');
       expect((await migrationRequest('commit-import', commit, token)).status).toBe(409);
       expect((await migrationRequest('rollback-import', { runId: importedResult.result.runId, confirm: true }, token)).status).toBe(200);
       expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
+      const rolledBackHistory = await (await history()).json();
+      expect(rolledBackHistory.runs.find((run: any) => run.runId === importedResult.result.runId).status).toBe('rolled-back');
     });
   });
 

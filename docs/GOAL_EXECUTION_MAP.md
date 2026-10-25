@@ -321,3 +321,7 @@ Existing API integration coverage proves anonymous denial, prepare without write
 ### Guided staging import and rollback controls
 
 Migration lab now offers Review uploaded import for generic manifests. Its dialog shows transformed records, authority limitations and review expiry, requires explicit confirmation, submits the exact review digest once, reports the run reference, and offers separately confirmed rollback. Uncertain network outcomes do not trigger retry. Build and generated-browser-script syntax passed; this is not browser acceptance (Kane credits remain exhausted). Website boundaries now describe the implemented limited path and outstanding proof. Earlier unreviewed import stays blocked.
+
+### Import history supports reconnect recovery
+
+Added authenticated owner/admin import-history lookup from retained audit receipts, with imported-unchanged, rolled-back and needs-review states. Audit corruption cannot produce a verified state; bounded/pruned history is disclosed. Migration lab now offers Saved imports / recovery with explicit rollback for unchanged runs, allowing users to inspect results after a lost response without resubmitting a manifest. Existing API coverage confirms anonymous denial and state transitions before/after rollback. All 14 migration tests, type checking and build/browser syntax passed. Browser interaction and process-kill migration proof remain open.
