@@ -8,6 +8,7 @@ import type { TelegramMirrorProvider } from "./telegramMirror.js";
  */
 export interface TelegramGatewayBridge {
   isConnected?(): boolean;
+  isConnecting?(): boolean;
   subscribe(handler: (update: TelegramBotUpdate) => Promise<void>): () => void;
   sendMessage(chatId: string | number, text: string, topicId?: number): Promise<number>;
 }
@@ -28,9 +29,9 @@ export class TelegramGatewayRelay {
   start(): void {
     if (this.unsubscribe) return;
     // A gateway client may still be completing its authenticated handshake;
-    // its connecting socket reports available. An explicitly disconnected
+    // subscribing does not authorize sends. An explicitly disconnected
     // bridge is still refused so configuration errors fail loudly.
-    if (this.status() === "disconnected") throw new Error("OpenClaw gateway is disconnected; relay not started.");
+    if (this.status() === "disconnected" && !this.bridge.isConnecting?.()) throw new Error("OpenClaw gateway is disconnected; relay not started.");
     this.unsubscribe = this.bridge.subscribe(async (update) => {
       const message = update.message;
       if (!message || !message.text || !message.from) return;

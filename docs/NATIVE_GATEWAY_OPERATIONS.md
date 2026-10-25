@@ -80,3 +80,29 @@ surface, Docker acceptance, typechecking, and the full automated suite are
 covered by the repository verification commands. Live provider acceptance must
 be run only with an operator-authorized provider session.
 
+
+## Experimental OpenClaw connection boundary
+
+The optional OpenClaw WebSocket adapter targets protocol 4 as documented at
+https://docs.openclaw.ai/gateway/protocol/handshake and
+https://docs.openclaw.ai/gateway/protocol/auth (reviewed October 25, 2026).
+It waits for a valid server challenge, signs its timestamp and nonce, checks the
+matching hello response and operator role, and uses the granted write scope for
+outbound sends. It does not downgrade to protocol 3. Login and request waits are
+bounded to 30 seconds. Interrupted sends and responses without a valid message
+receipt report uncertain delivery; they are never automatically replayed.
+
+Synthetic protocol tests cover these boundaries. No live OpenClaw installation,
+Hermes runtime, inbound Telegram mapping, task delegation, or guided pairing has
+been accepted. This transport must not be advertised as a complete integration.
+Further work requires a disposable upstream installation, source-verified event
+mapping, explicit task/session binding, and durable run reconciliation before
+chat delegation can be released. AgentForge does not inspect private runtime
+profiles or import their credentials automatically.
+
+A loopback WebSocket acceptance now verifies the actual signed challenge over
+Node's native client, interrupts a send by terminating the server connection,
+and confirms a fresh authenticated connection does not replay that send. A new
+explicit send receives the server's message ID. The server is a synthetic `ws`
+test fixture, not an installed OpenClaw runtime. Run the
+`openClawGatewayNetwork.test.ts` suite for this transport proof.
