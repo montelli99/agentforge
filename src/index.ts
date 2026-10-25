@@ -63,7 +63,7 @@ export {ExplicitIndexedMemory, type ExplicitIndexOptions, type IndexedEmbeddingP
 export {IndexedServerMode, configureIndexedServerMode, readIndexedServerConfiguration, type IndexedMemoryRuntime, type IndexedServerConfiguration} from "./memory/indexed/serverMode.js";
 export {ContinuousIndexedMemoryLifecycle, extractSyntheticMemorySnapshot, type ContinuousIndexedMemoryConfiguration, type ContinuousMemoryWatchEvent, type ContinuousMemoryWatcher} from "./memory/indexed/continuousLifecycle.js";
 export {SubscriptionCliModelProvider,readSubscriptionCliConfiguration,type SubscriptionCliConfiguration} from "./providers/models/subscriptionCliModel.js";
-export {inspectClaudeCliCapabilities,type ClaudeCliCapabilities} from "./providers/models/claudeCliCapabilities.js";
+export {inspectClaudeCliCapabilities,inspectClaudeCliAuthentication,type ClaudeCliCapabilities} from "./providers/models/claudeCliCapabilities.js";
 export {prepareChatGPTSignIn,chatgptDirectSignInEndpoint} from "./providers/models/chatgptDirectSignIn.js";
 export {exchangeDirectCallback,type DirectTokenExchangeTransport,type SessionCredentials} from "./providers/models/chatgptDirectExchange.js";
 export * from "./providers/memory/compositeMemory.js";

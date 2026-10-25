@@ -4,13 +4,20 @@
  */
 
 import { AgentForgeCli } from "./agentforge-cli.js";
-import { inspectClaudeCliCapabilities } from "../providers/models/claudeCliCapabilities.js";
+import { inspectClaudeCliCapabilities, inspectClaudeCliAuthentication } from "../providers/models/claudeCliCapabilities.js";
 
 const cli = new AgentForgeCli();
 const args = process.argv.slice(2);
 const cmd = args[0];
 
 async function main() {
+  if (cmd === "connections" && args[1] === "claude-status") {
+    if (!args[2] || !args[3] || args.length !== 4) throw new Error("Usage: agentforge connections claude-status <absolute-official-client-path> <absolute-profile-directory>");
+    const result = await inspectClaudeCliAuthentication(args[2], args[3]);
+    console.log(JSON.stringify(result, null, 2));
+    if (!result.loggedIn) process.exitCode = 1;
+    return;
+  }
   if (cmd === "connections" && args[1] === "inspect-claude") {
     if (!args[2] || args.length !== 3) throw new Error("Usage: agentforge connections inspect-claude <absolute-official-client-path>");
     const result = await inspectClaudeCliCapabilities(args[2]);
@@ -64,6 +71,7 @@ async function main() {
 
   console.log("Usage: agentforge [status | pack init <name> | pack validate <path> | pack inspect-archive <package-directory> <archive.zip> | pack test <path> | pack benchmark <path>]");
   console.log("Connection inspection: agentforge connections inspect-claude <absolute-official-client-path>");
+  console.log("Account status: agentforge connections claude-status <absolute-official-client-path> <absolute-profile-directory>");
 }
 
 main().catch(err => {

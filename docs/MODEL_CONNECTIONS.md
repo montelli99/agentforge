@@ -159,3 +159,7 @@ The existing external-client guidance remains the supported Claude subscription 
 ### Inspect an official Claude client without inference
 
 Run `agentforge connections inspect-claude <absolute-official-client-path>` to inspect a trusted, unmodified installed client. The check runs only version/help, with a fresh temporary configuration and no inherited account credentials, bounded output and deadlines. It reports required control flags and a version, explicitly separating advertised controls from authentication and isolation proof. It does not authenticate, configure a worker, or make a model request. Select the actual regular executable rather than a shell wrapper or symlink.
+
+### Explicit Claude account-status inspection
+
+Run `agentforge connections claude-status <absolute-official-client-path> <absolute-profile-directory>` to ask the selected official client whether that profile is signed in. The command returns only `loggedIn` and `inferenceVerified: false`; it never reads token files or returns account identifiers. A signed-out profile exits with code 1. This is an authentication-status check, not proof of model entitlement, inference, or execution isolation. Select only a trusted official executable and a profile you intend to inspect.

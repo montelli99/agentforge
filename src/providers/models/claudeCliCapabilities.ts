@@ -16,6 +16,32 @@ export interface ClaudeCliCapabilities {
   inferencePerformed: false;
 }
 
+/** Ask the official client about an explicitly selected profile; never read its token files.
+ * Authentication status alone does not prove model entitlement or safe execution.
+ */
+export async function inspectClaudeCliAuthentication(executable: string, configurationDirectory: string, signal?: AbortSignal): Promise<{loggedIn: boolean; inferenceVerified: false}> {
+  if (!path.isAbsolute(configurationDirectory)) throw Error('Select an absolute Claude configuration directory');
+  const configuration = await fs.lstat(configurationDirectory);
+  if (!configuration.isDirectory() || configuration.isSymbolicLink()) throw Error('Select a regular Claude configuration directory');
+  const capabilities = await inspectClaudeCliCapabilities(executable, signal);
+  if (!capabilities.controlsAvailable) throw Error('Required Claude client controls are unavailable');
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-claude-status-'));
+  const env: NodeJS.ProcessEnv = { USERPROFILE: directory, HOME: directory, TEMP: directory, TMP: directory,
+    CLAUDE_CONFIG_DIR: configurationDirectory, DISABLE_UPDATES: '1' };
+  for (const key of ['SystemRoot', 'WINDIR', 'PATH', 'Path']) if (process.env[key]) env[key] = process.env[key];
+  try {
+    const result = await runBoundedChild(executable, ['auth', 'status', '--json'],
+      {cwd: directory, env, signal, timeoutMs: 10000, maxOutputBytes: 32768});
+    const status = JSON.parse(result.stdout) as {loggedIn?: unknown};
+    if (typeof status?.loggedIn !== 'boolean' || (status.loggedIn ? result.code !== 0 : result.code !== 1 && result.code !== 0))
+      throw Error('Invalid authentication status');
+    // Drop account identifiers, paths and any additional provider fields.
+    return {loggedIn: status.loggedIn, inferenceVerified: false};
+  } catch {
+    throw Error('Claude account status unavailable; reconnect through the official client');
+  } finally { await fs.rm(directory, {recursive: true, force: true}); }
+}
+
 /** Inspect an explicitly selected trusted executable, never PATH-discovered account state.
  * Help output establishes advertised capabilities only, not executable authenticity or enforcement.
  */

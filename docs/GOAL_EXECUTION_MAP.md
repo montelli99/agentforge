@@ -385,3 +385,7 @@ Installed the official npm distribution into a disposable external directory wit
 ### Reusable Claude client capability inspection
 
 Added a public capability-inspection function and CLI command using the bounded process runner, explicit regular executable paths, isolated temporary configuration, restricted environment, output limits and deadlines. Structured results never present advertised controls as verified authentication or isolation. The built command inspected official client 2.1.310 successfully with all required controls and no inference. Source/script type checks and build/browser syntax passed. Managed worker execution and GUI connection wiring remain unfinished.
+
+### Claude authentication status exposed through the CLI
+
+Added bounded official-client auth-status inspection and a CLI command using an explicitly selected configuration directory. Output is reduced to loggedIn and inferenceVerified:false; provider account fields are discarded. A real official 2.1.310 client with an isolated signed-out profile returned loggedIn:false and exit 1 through the built CLI. Source/script type checks and build/browser syntax passed. No credentials, sign-in, or inference were used. Authenticated model execution and GUI connection wiring remain incomplete.
