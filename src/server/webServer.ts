@@ -2905,15 +2905,24 @@ export class AgentForgeWebServer {
           if(this.taskWorkerRuntime.getActiveTasksCount())throw Error('Finish active tasks before changing memory');
           if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory();return {memoryNamespace:undefined,memoryProvider:undefined};}
           const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
+          if(typeof body.projectId!=='string'||!this.store.getSpace(body.projectId))throw Error('Select a project');
+          const key='AGENTFORGE_KEY_MEMORY_'+crypto.createHash('sha256').update(body.projectId).digest('hex').toUpperCase();
           if((body.action==='restore'||body.action==='forget'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
           if(body.action==='forget'){
-            await vault.unlock(body.passphrase as string);
-            await vault.save({},body.passphrase as string);
+            const values=await vault.unlock(body.passphrase as string);
+            delete values[key];
+            if(values.AGENTFORGE_KEY_MEMORY_SELECTION&&JSON.parse(values.AGENTFORGE_KEY_MEMORY_SELECTION).projectId===body.projectId)delete values.AGENTFORGE_KEY_MEMORY_SELECTION;
+            await vault.save(values,body.passphrase as string);
             this.taskWorkerRuntime.clearSelectedProjectMemory();
             return {memoryNamespace:undefined,memoryProvider:undefined};
           }
-          const selection=body.action==='restore'?JSON.parse((await vault.unlock(body.passphrase as string)).AGENTFORGE_KEY_MEMORY_SELECTION||'null'):body;
-          if(!selection||!['obsidian','hindsight'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
+          let selection=body;
+          if(body.action==='restore'){
+            const values=await vault.unlock(body.passphrase as string);
+            selection=JSON.parse(values[key]||values.AGENTFORGE_KEY_MEMORY_SELECTION||'null');
+            if(selection?.projectId!==body.projectId)throw Error('Saved project mismatch');
+          }
+          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
           let memoryProvider:MemoryProvider;
           const savedSelection:Record<string,unknown>={action:selection.action,confirmSharing:true,namespace:selection.namespace.trim(),projectId:selection.projectId};
           if(selection.action==='obsidian'){
@@ -2927,8 +2936,11 @@ export class AgentForgeWebServer {
           }
           await queryMemoryBounded(memoryProvider,{namespace:selection.namespace.trim(),projectId:selection.projectId,queryText:selection.action==='hindsight'?'AgentForge connection check':undefined,limit:1});
           if(body.remember===true){
-            if(fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json')))await vault.unlock(body.passphrase as string);
-            await vault.save({AGENTFORGE_KEY_MEMORY_SELECTION:JSON.stringify(savedSelection)},body.passphrase as string);
+            const values=fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'))?await vault.unlock(body.passphrase as string):{};
+            values[key]=JSON.stringify(savedSelection);
+            if(values.AGENTFORGE_KEY_MEMORY_SELECTION&&JSON.parse(values.AGENTFORGE_KEY_MEMORY_SELECTION).projectId===selection.projectId)delete values.AGENTFORGE_KEY_MEMORY_SELECTION;
+            if(Object.keys(values).length>20)throw Error('Saved memory project limit reached');
+            await vault.save(values,body.passphrase as string);
           }
           this.taskWorkerRuntime.clearSelectedProjectMemory();
           this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());

@@ -70,15 +70,19 @@ describe("Setup Guide API", () => {
     expect(server.conversations.status().configured).toBe(false);
     expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
     expect(server.conversations.status().models).toEqual(['synthetic::synthetic-model']);
-    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:'wrong synthetic passphrase'})).status).toBe(400);
-    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
     expect(server.conversations.status().memoryProvider).toBe('obsidian');
     expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain(dataDirectory);
-    expect((await request('/api/memory/connection',owner,{action:'forget',passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    const secondProject=store.createSpace({workspaceId:workspace.id,name:'Second synthetic notes',provider:'web'});
+    expect((await request('/api/memory/connection',owner,{...memorySelection,projectId:secondProject.id})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
     expect(server.conversations.status().memoryProvider).toBe('obsidian');
-    expect((await request('/api/memory/connection',owner,{action:'forget',passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect((await request('/api/memory/connection',owner,{action:'forget',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
     expect(server.conversations.status().projectMemoryEnabled).toBe(false);
-    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',projectId:secondProject.id,passphrase:memorySelection.passphrase})).status).toBe(200);
     expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
     const originalFetch=globalThis.fetch;
     const transport=vi.spyOn(globalThis,'fetch').mockImplementation((input,init)=>String(input).startsWith('https://api.hindsight.vectorize.io/')?Promise.resolve(Response.json({results:[]})):originalFetch(input,init));
@@ -88,7 +92,7 @@ describe("Setup Guide API", () => {
       expect(server.conversations.status().memoryProvider).toBe('hindsight');
       expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
       expect((await request('/api/memory/connection',owner,{action:'disconnect'})).status).toBe(200);
-      expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(200);
+      expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
       expect(server.conversations.status().memoryProvider).toBe('hindsight');
     }finally{transport.mockRestore();}
     // A wrong passphrase after restarting cannot replace a saved credential set.
