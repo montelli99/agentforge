@@ -17,6 +17,13 @@ export interface ConversationConfiguration {
 
 /** Server-owned conversation with scoped tools; execution authority remains in approved task contracts. */
 export class ConversationRuntime {
+  private changingConnection = false;
+  async changeConnection(load: () => Promise<ConversationConfiguration>) {
+    if (this.active.size || this.changingConnection) throw Error('Finish or stop active responses before changing connections.');
+    this.changingConnection = true;
+    try { this.config = { ...this.config, ...await load() }; }
+    finally { this.changingConnection = false; }
+  }
   private active = new Map<string, { controller: AbortController; actorId: string }>();
   constructor(private store: WorkspaceStore, private config?: ConversationConfiguration, private worker?: TaskWorkerRuntime) {
     // A process restart must not silently replay an uncertain external action.
@@ -42,6 +49,7 @@ export class ConversationRuntime {
   shutdown() { for (const run of this.active.values()) run.controller.abort(); }
 
   async respond(threadId: string, promptId: string, model: string, actorId: string, response: ServerResponse) {
+    if (this.changingConnection) throw Error('Connection setup is in progress. Try again shortly.');
     const config = this.config;
     const thread = this.store.getThread(threadId);
     if (!config || !config.models.includes(model)) throw new Error("Choose a configured chat model.");

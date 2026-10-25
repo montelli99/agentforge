@@ -55,3 +55,13 @@ and does not assert that another worker has stopped. Repeating the actual crash
 check verified that presentation and that replay remains blocked. Remote-effect
 reconciliation and end-user recovery actions remain incomplete.
 Do not claim recovery is complete based on duplicate prevention alone.
+
+Authenticated guided connection setup now saves profiles and credentials together
+in an encrypted private store, hot-loads web chat routes, and unlocks them after
+a service restart. Owner/admin permission is required even in local unlocked mode.
+Setup API tests proved anonymous/viewer denial, encrypted persistence, restart
+unlock, and wrong-passphrase preservation. A concurrency check rejects responses
+while connections change and preserves the previous route on failure. No real
+credentials were used in these tests. Browser verification and live-provider
+first-task onboarding remain separate; subscription workers and planner/channel
+hot configuration are not completed by this change.

@@ -25,6 +25,18 @@ function provider(stream: (options: ModelRequestOptions) => AsyncIterable<Stream
   return { id: "synthetic", name: "Synthetic", defaultTier: 1, isAvailable: async () => true, listModels: async () => ["synthetic"], generate: async () => { throw Error("unexpected generate"); }, stream };
 }
 describe("server-owned conversations", () => {
+  it('excludes responses and concurrent changes while loading a connection, and preserves configuration after failure', async () => {
+    const f = fixture();
+    const model = provider(async function* () { yield { id:'1',deltaText:'ok',finishReason:'stop' }; });
+    const runtime = new ConversationRuntime(f.store,{provider:model,models:['synthetic']});
+    let reject!: (error: Error) => void;
+    const changing = runtime.changeConnection(() => new Promise((_,r)=>{reject=r;}));
+    await expect(runtime.respond(f.thread.id,f.prompt().id,'synthetic','owner',f.response)).rejects.toThrow('setup is in progress');
+    await expect(runtime.changeConnection(async()=>({provider:model,models:['other']}))).rejects.toThrow('active responses');
+    reject(Error('unlock failed'));await expect(changing).rejects.toThrow('unlock failed');
+    expect(runtime.status().models).toEqual(['synthetic']);
+    await runtime.respond(f.thread.id,f.prompt().id,'synthetic','owner',f.response);
+  });
   it("finishes and saves after the subscriber disconnects", async () => {
     const f = fixture(); const prompt = f.prompt();
     const model = provider(async function* (options) {

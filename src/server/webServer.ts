@@ -1,3 +1,4 @@
+import { ConnectionSetup } from './connectionSetup.js';
 import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
@@ -380,6 +381,7 @@ export class AgentForgeWebServer {
   /** Optional deployment credential; it is never returned by any status route. */
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
+  private readonly connectionSetup: ConnectionSetup;
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -397,6 +399,7 @@ export class AgentForgeWebServer {
     options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
+    this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
     this.planDraftProvider = options.planDraftProvider;
     this.indexedMemory = options.indexedMemory;
     this.completionEngine = completionEngine;
@@ -2946,6 +2949,26 @@ export class AgentForgeWebServer {
     if (path === "/api/chat/status" && req.method === "GET") {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
     }
+    if (path === '/api/connections/save' || path === '/api/connections/unlock') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to AgentForge before saving or unlocking credentials.' })); return; }
+      if (!['owner', 'admin'].includes(caller.role) || !hasPermission(caller.permissions, 'settings:write')) { res.writeHead(403); res.end(JSON.stringify({ error: 'Connection management requires an owner or administrator.' })); return; }
+      try {
+        const body = await this.readBody(req);
+        if (typeof body.passphrase !== 'string' || body.passphrase.length < 16 || body.passphrase.length > 1024) throw Error('Use an unlock passphrase of 16–1024 characters.');
+        await this.conversations.changeConnection(async () => {
+          if (path.endsWith('/unlock')) return this.connectionSetup.unlock(body.passphrase as string);
+          if (!body.profile || typeof body.profile !== 'object' || Array.isArray(body.profile)) throw Error('Supply a connection profile.');
+          return this.connectionSetup.save(body.profile as any, typeof body.apiKey === 'string' ? body.apiKey : '', body.passphrase as string);
+        });
+        res.writeHead(200); res.end(JSON.stringify(this.conversations.status()));
+      } catch {
+        // Neither provider errors, submitted secrets nor filesystem paths are echoed.
+        res.writeHead(400); res.end(JSON.stringify({ error: 'Connection not changed. Check the profile and unlock passphrase, finish active responses, and wait three seconds before retrying. The private store must be outside a repository.' }));
+      }
+      return;
+    }
     const responseRoute = path.match(/^\/api\/threads\/([^/]+)\/(respond|stop)$/);
     if (responseRoute && req.method === "POST") {
       if (!hasPermission(caller.permissions, "tasks:execute")) { res.writeHead(403); res.end(JSON.stringify({ error: "Chat generation requires execution permission." })); return; }
@@ -4635,3 +4658,4 @@ export class AgentForgeWebServer {
     return renderWorkspaceApp();
   }
 }
+

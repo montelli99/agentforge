@@ -19,6 +19,36 @@ async function availablePort(): Promise<number> {
 }
 
 describe("Setup Guide API", () => {
+  it('protects saved connections and recovers them after a service restart without exposing keys', async () => {
+    dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-connection-'));
+    const store = new WorkspaceStore();
+    store.createUser({ username: 'connection-owner', displayName: 'Owner', role: 'owner', password: 'synthetic login password' });
+    store.createUser({ username: 'connection-viewer', displayName: 'Viewer', role: 'viewer', password: 'synthetic login password' });
+    const options = { settingsFilePath: path.join(dataDirectory, 'settings.json') };
+    server = new AgentForgeWebServer(store, 0, undefined, undefined, options);
+    await server.start();
+    let base = server.getBaseUrl();
+    const login = async (username: string) => (await (await fetch(base+'/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password:'synthetic login password'})})).json()).token;
+    const owner = await login('connection-owner'), viewer = await login('connection-viewer');
+    const request = (route: string, token: string, body: object) => fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+    const body = { profile:{id:'synthetic',provider:'openai',models:['synthetic-model']},apiKey:'synthetic-secret-never-export',passphrase:'synthetic vault passphrase' };
+    expect((await request('/api/connections/save','',body)).status).toBe(401);
+    expect((await request('/api/connections/save',viewer,body)).status).toBe(403);
+    const saved = await request('/api/connections/save',owner,body);
+    expect(saved.status).toBe(200);
+    const status = await saved.text(); expect(status).toContain('synthetic::synthetic-model');expect(status).not.toContain(body.apiKey);expect(status).not.toContain(body.passphrase);
+    const vault = fs.readFileSync(path.join(dataDirectory,'connections.encrypted.json'),'utf8');
+    expect(vault).not.toContain(body.apiKey);expect(vault).not.toContain(body.passphrase);
+    await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
+    expect(server.conversations.status().configured).toBe(false);
+    expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
+    expect(server.conversations.status().models).toEqual(['synthetic::synthetic-model']);
+    // A wrong passphrase after restarting cannot replace a saved credential set.
+    await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
+    expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect(fs.readFileSync(path.join(dataDirectory,'connections.encrypted.json'),'utf8')).toBe(vault);
+    expect(server.conversations.status().configured).toBe(false);
+  });
   it("uses the inner JEv controller for natural-language intent", async () => {
     const port = await availablePort();
     server = new AgentForgeWebServer(new WorkspaceStore(), port);
