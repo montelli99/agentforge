@@ -65,3 +65,8 @@ while connections change and preserves the previous route on failure. No real
 credentials were used in these tests. Browser verification and live-provider
 first-task onboarding remain separate; subscription workers and planner/channel
 hot configuration are not completed by this change.
+
+The browser verification attempt reached the connection setup screen but stopped
+when the external test service exhausted its credits. It is incomplete, not a
+passing UI acceptance result. Typecheck, build, script parsing, focused tests,
+source privacy and npm archive privacy checks passed locally.

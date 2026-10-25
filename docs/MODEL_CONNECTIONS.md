@@ -6,7 +6,26 @@ never silently falls back to another provider or billing account.
 
 ## API and local connections: implemented
 
-Create a JSON file outside the repository. It contains routing metadata and
+In Models, choose **Connect your model**, enter an available model ID and a
+dedicated API key, and choose **Save and connect**. An authenticated AgentForge
+owner or administrator is required. Choose a private-store passphrase of 16–1024
+characters; it is never persisted and cannot be recovered. Connection profiles
+and keys are saved together with authenticated encryption next to the server
+settings file, outside any Git repository. Do not place the server settings
+directory inside a project repository. This portable store uses passphrase
+encryption, not an operating-system keychain.
+
+After a service restart, use **Unlock saved connections**. This activates the
+saved web-chat connection set without restarting. Active responses prevent
+connection changes. Failed unlocks preserve the current configuration and saved
+file. Saving adds/replaces a provider in the saved set; activation replaces any
+startup-only web-chat routes. Task-planning and external-channel routes remain
+separately configured. Save/unlock does not contact a model, validate quota, or
+prove live credentials. Send a short conversation message to check the selected
+provider, with its normal usage charges.
+
+For manual deployment configuration instead, create a JSON file outside the
+repository. It contains routing metadata and
 environment-variable names only, never secret values. Point
 `AGENTFORGE_MODEL_CONNECTIONS_FILE` at its absolute path and restart the server.
 
