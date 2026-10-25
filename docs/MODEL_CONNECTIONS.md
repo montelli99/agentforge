@@ -199,7 +199,13 @@ The inspected official 0.65.0 client also processes `@` file references before
 inference. Model tool denial does not prevent that preprocessing. Managed
 activation must prevent unintended prompt-driven file expansion and verify the
 effective input, rather than treating a zero-tool transcript as proof that no
-files were accessed. No automatic prompt rewrite or credential copying is enabled.
+files were accessed. The internal prompt encoder now places text messages in a
+JSON envelope with literal `@` characters represented as JSON Unicode escapes.
+Decoding the envelope preserves the original message data exactly. A direct
+check against the official 0.65.0 preprocessing function passed without path
+resolution or input transformation. This covers prompt-driven expansion only;
+it does not prove that settings, hooks or account startup cannot read files.
+The encoder is not yet connected to a managed worker, and no credentials are copied.
 See [Gemini configuration](https://geminicli.com/docs/reference/configuration/).
 Consume the documented initialization, message, tool, error and result events;
 retain usage and reject unexpected activity or uncertain outcomes without retry.
