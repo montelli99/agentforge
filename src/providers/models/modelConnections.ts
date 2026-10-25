@@ -40,6 +40,7 @@ export function configureModelConnections(profiles: ModelConnectionProfile[], en
     if (!preset) throw new Error("Unknown API connection provider; subscription credentials cannot be used as API keys.");
     if (!Array.isArray(profile.models) || !profile.models.length || profile.models.length > 50 || profile.models.some(model => typeof model !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(model))) throw new Error("Supply explicit model identifiers available to this account.");
     const base = profile.baseUrl || preset.baseUrl;
+    if (!["local", "compatible"].includes(preset.id) && base.replace(/\/$/, "") !== preset.baseUrl) throw new Error("Use a custom compatible profile for a different endpoint; provider billing labels must match the destination.");
     const url = new URL(base);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (url.username || url.password || url.search || url.hash || !(url.protocol === "https:" || (url.protocol === "http:" && loopback))) throw new Error("Use HTTPS or loopback HTTP without embedded credentials, query or fragment.");
