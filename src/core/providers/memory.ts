@@ -109,7 +109,12 @@ export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQue
     const results = await Promise.race([stopped,request]);
     if (!Array.isArray(results) || results.length > 1000) throw Error('Invalid memory provider response');
     const accepted: MemorySearchResult[] = [];
-    for (const result of results) {
+    for (const sourceResult of results) {
+      // Providers may retain and reuse their records. Validate an owned snapshot so
+      // later adapter mutation cannot change the scope or content already accepted.
+      let result: MemorySearchResult;
+      try { result = structuredClone(sourceResult); }
+      catch { throw Error('Invalid memory provider response'); }
       const record = result?.record;
       if (!record || typeof record.id !== 'string' || !record.id || record.id.length > 4096
         || typeof record.namespace !== 'string' || typeof record.title !== 'string' || record.title.length > 4096

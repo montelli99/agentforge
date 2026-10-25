@@ -77,3 +77,7 @@ same provider through chat and task context. Use synthetic data first, then a
 disposable account for live acceptance. Built-in tests and an exported interface
 do not prove a new remote service works. JEv is presently a decision/router
 integration, not a memory adapter.
+
+### Returned record ownership
+
+Return structured-cloneable data from memory queries, including metadata. The shared query boundary snapshots each result before validating its scope and content. Adapters may reuse their own records internally, but subsequent mutations do not update already-returned context. Functions and other non-cloneable values are rejected with a generic provider-response error. This protects snapshot consistency; provider plugins still execute as trusted host code and are not sandboxed by cloning.
