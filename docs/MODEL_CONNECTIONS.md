@@ -63,7 +63,9 @@ no multi-connection file is supplied. Existing MiMo configuration is unchanged.
 
 ## Subscription connections: separate integration tracks
 
-1. **ChatGPT / Codex:** sign in through official `codex login` using a dedicated
+1. **ChatGPT:** the guided Windows connection uses official OpenAI sign-in and
+   account-scoped models; see the setup and verification limits below.
+   **Codex CLI**, separately: sign in through official `codex login` using a dedicated
    `CODEX_HOME`. AgentForge's existing `codex-cli` adapter is a bounded plan-draft
    route configured with `AGENTFORGE_PLAN_PROVIDER` and
    `AGENTFORGE_PLAN_CLI_CONFIG`. It is not a general chat subscription bridge.
@@ -104,6 +106,32 @@ project configuration, workspace exports, or release artifacts.
 
 ## ChatGPT plan integration status
 
-The official [Sign in with ChatGPT integration guide](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) documents dynamic registration and authorized plan usage. AgentForge already contains isolated OAuth verification and a direct planner abstraction, but its sign-in command discards session tokens and never installs an active provider. The server has no completed owner-facing connection, refresh and model-selection lifecycle for this route. These components are not a working subscription-chat connection.
+The web setup now implements official sign-in, model selection, chat/tool requests,
+plan drafting, protected saved-account restoration, renewal, and sign-out on
+Windows. Live account lifecycle and clean-install browser acceptance remain
+unproven. This implementation status is not a claim of production readiness.
 
-The remaining integration must use the authorized grant and model catalog, preserve per-profile identity, handle renewal and revocation, and keep sign-in separate from consent to inference. Existing API connections must not be used as a fallback. No imported browser session, consumer cookie or unrelated application token is needed.
+1. Sign in to AgentForge as an owner or administrator. Open **Models**, choose
+   **Use a subscription**, and continue to **Connect your model**.
+2. Select **Set up subscription**, choose an account, and start secure sign-in.
+   Open **Continue to OpenAI**; complete authentication there. Never paste a
+   password or token into AgentForge chat.
+3. Return and select **Check sign-in**. Choose an account-provided model and
+   **Use this model**. This installs the route; send a short message to verify
+   an actual response. Inference uses your ChatGPT plan allowance.
+4. After a server restart, choose the saved account and **Restore saved account**.
+   Restoration checks protected credentials and the account catalog. If the
+   session cannot be safely renewed, start a fresh sign-in for that saved account.
+5. Finish or stop active responses before signing out. Sign-out disables the
+   selected account's local providers and removes its stored tokens. The UI
+   distinguishes confirmed revocation from unconfirmed remote removal. For the
+   latter, disconnect the app in ChatGPT Settings. Registration metadata remains
+   so returning sign-in can reuse the account/client mapping.
+
+Windows credentials use current-user DPAPI outside the repository; this does not
+isolate them from other processes running as that Windows user. Mac/Linux protected
+storage is not implemented. The older command-line sign-in verification command
+still discards its tokens; use the web flow to configure chat. No imported browser
+session, unrelated application token, or automatic API-billing fallback is used.
+
+Protocol reference: [OpenAI accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions).

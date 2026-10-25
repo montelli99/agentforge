@@ -6,7 +6,7 @@ function renderSubscriptionSetup(onActivated){
  const request=(action,method='GET',data)=>conversationRequest('/api/connections/chatgpt/'+action,method,data);
  const button=(label,action)=>{const b=connectionElement('button','btn btn-secondary',label);b.type='button';b.onclick=async()=>{b.disabled=true;try{await action();}catch(e){message.textContent=e.message;}finally{b.disabled=false;}};return b;};
  async function signOut(accountId){const result=await request('signout','POST',{accountId});onActivated(result.status);await refresh();message.textContent=result.remoteRevocation==='confirmed'?'Signed out. Saved credentials were removed and remote revocation was confirmed.':result.remoteRevocation==='no-local-session'?'No saved session remains.':'Signed out locally. Remote revocation was not confirmed; disconnect AgentForge in ChatGPT Settings to finish removing remote access.';}
- async function refresh(){
+ async function refresh(chooseAccount=false){
   const state=await request('status');controls.replaceChildren();
   if(!state.supported){message.textContent='Subscription sign-in is not available on this operating system yet. API and local connections remain available.';return;}
   const attempt=state.attempt;
@@ -14,9 +14,9 @@ function renderSubscriptionSetup(onActivated){
    message.textContent=attempt.state==='waiting'?'Complete sign-in in the OpenAI tab, then check again.':'Verifying your account and loading its available models…';
    controls.append(button('Check sign-in',refresh),button('Cancel sign-in',async()=>{await request('cancel','POST',{});await refresh();}));return;
   }
-  if(attempt&&attempt.state==='ready'){
+  if(attempt&&attempt.state==='ready'&&!chooseAccount){
    message.textContent='Account verified. Select the model to use for conversation and plan drafting. Requests count toward your ChatGPT plan usage.';
-   const label=connectionElement('label','','Available model'),select=document.createElement('select');for(const model of attempt.models){const option=connectionElement('option','',model);option.value=model;select.append(option);}label.append(select);controls.append(label,button('Use this model',async()=>{const status=await request('activate','POST',{id:attempt.id,model:select.value});onActivated(status);message.textContent='Model connected. Send a short conversation message to verify a complete response.';}),button('Sign out of this account',()=>signOut(attempt.accountId)));return;
+   const label=connectionElement('label','','Available model'),select=document.createElement('select');for(const model of attempt.models){const option=connectionElement('option','',model);option.value=model;select.append(option);}label.append(select);controls.append(label,button('Use this model',async()=>{const status=await request('activate','POST',{id:attempt.id,model:select.value});onActivated(status);message.textContent='Model connected. Send a short conversation message to verify a complete response.';}),button('Sign out of this account',()=>signOut(attempt.accountId)),button('Choose another account',()=>refresh(true)));return;
   }
   message.textContent=attempt&&attempt.state==='failed'?'Sign-in could not be completed. Start a fresh sign-in; no model was activated.':'Choose a saved account or add an account.';
   const label=connectionElement('label','','Account'),select=document.createElement('select'),fresh=connectionElement('option','','Add a ChatGPT account');fresh.value='';select.append(fresh);for(const account of state.accounts){const option=connectionElement('option','',account.label);option.value=account.id;select.append(option);}label.append(select);
