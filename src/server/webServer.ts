@@ -3945,7 +3945,8 @@ export class AgentForgeWebServer {
           if (body.model !== undefined) {
             if (typeof body.model !== 'string') throw Error('Select a configured model.');
             const connection = this.conversations.modelConnection(body.model);
-            planner = new ModelPlanDraftProvider(connection.provider, connection.model, ['sh', 'node'], 4096, {
+            const directSubscription = connection.provider.id === 'chatgpt-direct';
+            planner = new ModelPlanDraftProvider(connection.provider, connection.model, ['sh', 'node'], directSubscription ? undefined : 4096, {
               requireReportedUsage: true,
               persist: async audit => {
                 const current = this.store.getTask(audit.taskId);
@@ -3953,7 +3954,7 @@ export class AgentForgeWebServer {
                 if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && item.status !== 'completed')) throw Error('Unresolved planning usage: inspect the audit before retrying.');
                 this.store.updateTask(current.id, { planningAudits: [...(current.planningAudits ?? []).filter(item => item.id !== audit.id), audit] });
               },
-            });
+            }, directSubscription ? 'chatgpt-direct' : 'default');
           }
           if (!planner) { res.writeHead(503); res.end(JSON.stringify({ error: 'Connect and select a model before requesting a plan.' })); return; }
           if (['in_progress', 'verification_running', 'completed', 'cancelled'].includes(task.status)) throw Error('This task cannot be replanned in its current state.');

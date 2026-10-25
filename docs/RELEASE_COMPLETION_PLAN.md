@@ -220,3 +220,12 @@ live subscription proof or completed account UI activation.
 Sources:
 https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
 https://developers.openai.com/api/docs/guides/function-calling
+
+An active subscription provider now coordinates renewal and account-catalog refresh
+for concurrent callers, invalidates the old grant before preparation, refuses
+swapped identities and prevents a late renewal from reactivating a disconnected
+connection. It uses the renewed credential for subsequent inference. Three focused
+connection tests passed with intercepted providers. The selected-model planner
+route now uses the direct subscription request profile, omitting unsupported
+sampling/output-token fields. UI account activation remains unfinished; this
+provider is not automatically installed or advertised as a working saved account.
