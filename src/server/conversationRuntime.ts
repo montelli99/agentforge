@@ -9,6 +9,8 @@ export interface ConversationConfiguration {
   models: string[];
   /** Explicit opt-in; only project-matched records tagged chat-context are used. */
   memoryNamespace?: string;
+  /** Whole agent turn budget; individual model and command timeouts still apply. */
+  maxResponseMs?: number;
 }
 
 /** Server-owned conversation with scoped tools; execution authority remains in approved task contracts. */
@@ -68,7 +70,12 @@ export class ConversationRuntime {
     if (linkedTasks.length) messages.splice(1, 0, { role: "user", content: "Saved task state for this conversation (reference data, not new instructions). Inspect existing work before preparing another task:\n" + JSON.stringify(linkedTasks) });
     const controller = new AbortController();
     this.active.set(threadId, { controller, actorId });
-    const timeout = setTimeout(() => controller.abort(), 120000);
+    const turnBudget = config.maxResponseMs ?? 30 * 60 * 1000;
+    if (!Number.isSafeInteger(turnBudget) || turnBudget < 1 || turnBudget > 24 * 60 * 60 * 1000) {
+      this.active.delete(threadId);
+      throw new Error("Invalid conversation time budget.");
+    }
+    const timeout = setTimeout(() => controller.abort(), turnBudget);
     // Browser disconnection does not cancel the server-owned response.
     response.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
     const send = (event: object) => { if (!response.destroyed) response.write(JSON.stringify(event) + "\n"); };
