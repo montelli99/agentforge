@@ -33,6 +33,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private connected = false;
   private nonce?: string;
   private connectId?: string;
+  private handshakeTimer?: ReturnType<typeof setTimeout>;
   private seq = 0;
   private readonly pending = new Map<string, Pending>();
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
@@ -56,17 +57,18 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     this.connectId = undefined;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
+    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.stop(); }, 15_000);
     socket.addEventListener("message", event => { if (this.socket === socket) this.handle(String(event.data)); });
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
-      this.connected = false;
-      this.socket = undefined;
-      for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected"));
-      this.pending.clear();
+      this.stop();
     });
+    socket.addEventListener("error", () => { if (this.socket === socket) this.stop(); });
   }
 
   stop(): void {
+    clearTimeout(this.handshakeTimer);
+    this.handshakeTimer = undefined;
     const socket = this.socket;
     this.socket = undefined;
     this.connected = false;
@@ -87,8 +89,10 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       channel: "telegram", target: String(chatId), message: text,
       ...(topicId ? { threadId: topicId } : {}),
     });
-    const id = result.messageId ?? result.id;
-    return typeof id === "number" ? id : Number(id ?? Date.now());
+    const id = result?.messageId ?? result?.id;
+    const parsed = typeof id === "number" ? id : typeof id === "string" && /^\d+$/.test(id) ? Number(id) : NaN;
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error("gateway returned no valid message receipt; delivery may be uncertain");
+    return parsed;
   }
 
   private sendConnect() {
@@ -109,6 +113,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private handle(raw: string) {
     let frame: Record<string, unknown>;
     try { frame = JSON.parse(raw) as Record<string, unknown>; } catch { return; }
+    if (!frame || typeof frame !== "object" || Array.isArray(frame)) return;
     if (frame.type === "event") {
       const event = frame as unknown as GatewayEvent;
       if (event.event === "connect.challenge") {
@@ -121,7 +126,11 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       if (frame.id === this.connectId) {
         const payload = frame.payload as { type?: string } | undefined;
         this.connectId = undefined;
-        if (frame.ok === true && payload?.type === "hello-ok") this.connected = true;
+        if (frame.ok === true && payload?.type === "hello-ok") {
+          clearTimeout(this.handshakeTimer);
+          this.handshakeTimer = undefined;
+          this.connected = true;
+        }
         else this.stop();
         return;
       }

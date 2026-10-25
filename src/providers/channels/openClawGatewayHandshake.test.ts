@@ -54,3 +54,30 @@ describe("gateway authentication and interrupted delivery", () => {
     expect(socket.sent).toHaveLength(2); client.stop();
   });
 });
+
+describe("gateway failure boundaries", () => {
+  it("bounds missing challenge and failed authentication", async () => {
+    vi.useFakeTimers(); const { client, socket } = setup();
+    socket.receive(null); socket.receive([]);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(client.isConnecting()).toBe(false); expect(socket.sent).toHaveLength(0);
+    client.start(); const next = Socket.latest;
+    next.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test" } });
+    next.receive({ type: "res", id: next.sent[0].id, ok: false });
+    expect(client.isConnected()).toBe(false); expect(client.isConnecting()).toBe(false);
+  });
+  it("does not invent a receipt for an acknowledged send with no message ID", async () => {
+    const { client, socket } = setup(); authenticate(socket);
+    const sent = client.sendMessage(1, "test");
+    socket.receive({ type: "res", id: socket.sent[1].id, ok: true, payload: {} });
+    await expect(sent).rejects.toThrow(/no valid message receipt/); client.stop();
+  });
+  it("rejects pending sends on a network error and allows a fresh handshake", async () => {
+    const { client, socket } = setup(); authenticate(socket);
+    const sent = client.sendMessage(1, "test");
+    socket.dispatchEvent(new Event("error"));
+    await expect(sent).rejects.toThrow(/uncertain/);
+    expect(client.isConnected()).toBe(false);
+    client.start(); authenticate(Socket.latest); expect(client.isConnected()).toBe(true); client.stop();
+  });
+});
