@@ -1658,7 +1658,7 @@ export class WorkspaceStore {
       // Serialize writers across launcher processes. The snapshot rename is
       // atomic, but without this lock two valid snapshots could race and one
       // writer could silently overwrite the other's state. A stale lock is
-      // recoverable after a bounded lease so a crashed writer cannot wedge the store.
+      // recoverable when its owner is confirmed dead. Age never revokes a live owner.
       const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
       // Snapshot writes can overlap during startup and crash-recovery. Allow a
       // bounded handoff window long enough for the active writer to finish,
@@ -1673,15 +1673,20 @@ export class WorkspaceStore {
           try {
             const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
             let ownerAlive = true;
+            let ownerKnown = false;
             try {
               const lock = JSON.parse(fs.readFileSync(lockPath, "utf8")) as { pid?: unknown };
-              if (typeof lock.pid === "number" && lock.pid !== process.pid) {
-                try { process.kill(lock.pid, 0); } catch { ownerAlive = false; }
+              if (Number.isSafeInteger(lock.pid) && (lock.pid as number) > 0) {
+                ownerKnown = true;
+                try { process.kill(lock.pid as number, 0); } catch (error) {
+                  // Permission errors do not establish that another process died.
+                  if ((error as NodeJS.ErrnoException).code === 'ESRCH') ownerAlive = false;
+                }
               }
             } catch {
               // A partially written lock is safe to recover once it is old.
             }
-            if (!ownerAlive || ageMs > 30_000) fs.unlinkSync(lockPath);
+            if (!ownerAlive || (!ownerKnown && ageMs > 30_000)) fs.unlinkSync(lockPath);
           } catch {
             // The competing writer may have released the lock between calls.
           }

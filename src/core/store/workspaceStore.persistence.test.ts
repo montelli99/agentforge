@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -136,7 +137,10 @@ describe("WorkspaceStore file persistence", () => {
     const snapshotPath = createSnapshotPath();
     const store = new WorkspaceStore(snapshotPath);
     const lockPath = `${snapshotPath}.lock`;
-    fs.writeFileSync(lockPath, JSON.stringify({ pid: 1, createdAt: "old" }), "utf8");
+    const departed = spawnSync(process.execPath, ['-e', ''], { windowsHide: true });
+    expect(departed.status).toBe(0);
+    expect(departed.pid).toBeGreaterThan(0);
+    fs.writeFileSync(lockPath, JSON.stringify({ pid: departed.pid, createdAt: "old" }), "utf8");
     const stale = new Date(Date.now() - 60_000);
     fs.utimesSync(lockPath, stale, stale);
     store.createWorkspace({ name: "Recovered writer", description: "stale lock acceptance" });
