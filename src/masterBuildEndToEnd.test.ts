@@ -288,6 +288,7 @@ describe("AgentForge vNext Master Build End-to-End Suite", () => {
 
       // Record benchmark results for local llama3
       router.recordBenchmarkResult({
+        executionKind: 'executor',
         id: "bench-1",
         suiteId: "suite-coding",
         targetType: "MODEL",

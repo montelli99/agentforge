@@ -169,7 +169,7 @@ export class EmpiricalRouter {
     // 3. Score against benchmark history
     const scored = capable.map(candidate => {
       const results = this.benchmarkHistory.filter(b =>
-        (b.targetId === candidate.id || b.targetVersion === candidate.name) && b.totalCases > 0,
+        b.executionKind === 'executor' && (b.targetId === candidate.id || b.targetVersion === candidate.name) && b.totalCases > 0,
       );
       let measuredPassRate: number;
       let qualityStatus: QualityMeasurementStatus;

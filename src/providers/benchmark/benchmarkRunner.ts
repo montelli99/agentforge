@@ -111,6 +111,7 @@ export class BenchmarkRunner {
     const passedOverall = passedCases === totalCases && metrics.every(m => m.passedThreshold !== false);
 
     return {
+      executionKind: 'executor',
       id: `bench-${crypto.randomUUID().slice(0, 8)}`,
       suiteId: suite.id,
       targetType: suite.targetType,
@@ -200,7 +201,8 @@ export class BenchmarkRunner {
       return { output: input, latencyMs: Date.now() - t0 + 5 };
     };
 
-    return this.runSuite(suite, targetId, defaultExecutor);
+    const result = await this.runSuite(suite, targetId, defaultExecutor);
+    return { ...result, executionKind: suite.targetType === 'PACKAGE' ? 'local-validation' : 'simulation' };
   }
 
   /**
@@ -211,7 +213,7 @@ export class BenchmarkRunner {
     targetId: string,
     benchResult: BenchmarkResult,
   ): CompatibilityResult {
-    const isCompatible = benchResult.totalCases > 0 && benchResult.passedOverall;
+    const isCompatible = benchResult.executionKind === 'executor' && benchResult.targetId === targetId && benchResult.targetType === targetType && benchResult.totalCases > 0 && benchResult.passedOverall;
 
     const supportedFeatures: string[] = [];
     const unsupportedFeatures: string[] = [];
@@ -230,7 +232,7 @@ export class BenchmarkRunner {
         supportedFeatures.push("manifest_validation", "permission_sandbox");
       }
     } else {
-      unsupportedFeatures.push(`failed_suite_${benchResult.suiteId}`);
+      unsupportedFeatures.push(benchResult.executionKind !== 'executor' ? 'target_execution_not_verified' : `failed_suite_${benchResult.suiteId}`);
     }
 
     return {

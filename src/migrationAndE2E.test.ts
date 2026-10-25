@@ -600,6 +600,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
     it("should accurately distinguish API_COST vs POWER_COST_ESTIMATE and MEASURED vs CONFIGURED", () => {
       const router = new EmpiricalRouter();
       router.recordBenchmarkResult({
+        executionKind: 'executor',
         id: "bench-low-risk-ollama",
         suiteId: "suite-general-qa",
         targetType: "MODEL",

@@ -54,9 +54,9 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
 
     // Evaluate compatibility
     const compat = runner.evaluateCompatibility("HARNESS", "agentforge-native", result);
-    expect(compat.compatible).toBe(true);
-    expect(compat.supportedFeatures).toContain("git_worktree_isolation");
-    expect(compat.supportedFeatures).toContain("command_gating");
+    expect(compat.compatible).toBe(false);
+    expect(result.executionKind).toBe("simulation");
+    expect(compat.supportedFeatures).toEqual([]);
     let clock=0;
     const measured=vi.spyOn(performance,'now').mockImplementation(()=>{const value=clock;clock+=7;return value;});
     try {
@@ -86,6 +86,7 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
 
     // Now record measured benchmark for target-tier2-llama3-8b with 100% pass rate
     router.recordBenchmarkResult({
+        executionKind: 'executor',
       id: "bench-measured-01",
       suiteId: "suite-model-tools-v1",
       targetType: "MODEL",
@@ -166,7 +167,7 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
       expect(runRes.status).toBe(200);
       const runData = await runRes.json() as { result: any; compatibility: any };
       expect(runData.result.passedOverall).toBe(true);
-      expect(runData.compatibility.compatible).toBe(true);
+      expect(runData.compatibility.compatible).toBe(false);
 
       // Verify audit entry was recorded
       const audits = store.listAuditEntries({ targetType: "benchmark" });
@@ -189,8 +190,8 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
       });
       expect(routeRes.status).toBe(200);
       const routeData = await routeRes.json() as { selectedTargetId: string; qualityStatus: string };
-      expect(routeData.selectedTargetId).toBe("target-tier2-llama3-8b");
-      expect(routeData.qualityStatus).toBe("MEASURED");
+      expect(routeData.selectedTargetId).toBe("target-tier4-gpt4o");
+      expect(routeData.qualityStatus).toBe("UNKNOWN");
     });
   });
 });
