@@ -49,7 +49,11 @@ export async function loadVerifiedSignInRuntime(directory: string): Promise<Veri
 
 async function boundedJson(url: string, init: RequestInit, signal: AbortSignal, request: Request,
   failureMessage = 'Sign-in endpoint request failed.'): Promise<unknown> {
-  const response = await request(url, { ...init, redirect: 'error', signal });
+  let response: Response;
+  try {
+    signal.throwIfAborted();
+    response = await request(url, { ...init, redirect: 'error', signal });
+  } catch { throw Error(failureMessage); }
   try {
     if (!response.ok || !response.body || !/\bapplication\/(?:json|[a-z0-9.+-]+\+json)\b/i.test(response.headers.get('content-type') ?? '')) {
       throw Error('Sign-in endpoint response rejected.');
@@ -73,6 +77,26 @@ async function boundedJson(url: string, init: RequestInit, signal: AbortSignal, 
     await response.body?.cancel().catch(() => undefined);
     throw Error(failureMessage);
   }
+}
+
+/** One refresh attempt only. The caller must hold its session's cross-process
+ * lock, validate the returned identity/grant and persist the rotating token set
+ * before exposing it. A network failure must not trigger automatic token reuse. */
+export function createIsolatedRefreshTransport(signal: AbortSignal, request: Request = fetch) {
+  let used = false;
+  return { refresh: async (clientId: string, refreshToken: string): Promise<unknown> => {
+    if (used) throw Error('Token renewal attempt already used');
+    if (!clientId || clientId === 'dynamic_agent_client' || clientId.length > 256
+      || !refreshToken || refreshToken.length > 16384 || /[\x00-\x20\x7f]/.test(clientId + refreshToken)) {
+      throw Error('Token renewal credentials unavailable');
+    }
+    used = true;
+    return boundedJson(TOKEN_ENDPOINT, { method: 'POST', cache: 'no-store',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({ grant_type: 'refresh_token', client_id: clientId,
+        refresh_token: refreshToken, resource: 'https://api.openai.com/v1' }).toString(),
+    }, signal, request, 'Token renewal failed; session recovery required');
+  } };
 }
 
 export function createIsolatedTokenTransport(signal: AbortSignal, request: Request = fetch): DirectTokenExchangeTransport {

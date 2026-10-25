@@ -162,3 +162,11 @@ items remain open, rather than being implied by passing storage tests.
 Sources:
 https://developers.openai.com/siwc/token-sharing-open-source/token-reference
 https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery
+
+The sign-in runtime now exposes a one-attempt refresh transport using the issued
+client ID, saved refresh token and fixed resource, omitting scope and rejecting
+redirects. It refuses reuse even after network failure. Session-wide locking,
+response identity/grant validation, atomic token replacement and UI activation
+still need integration; this transport alone is not automatic renewal. The shared
+JSON helper now also redacts fetch exceptions, closing a network-error disclosure
+path in sign-in/catalog calls. Twelve runtime tests and full typechecking passed.

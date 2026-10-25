@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createIsolatedCatalogTransport, createIsolatedIdentityVerifier, createIsolatedTokenTransport, loadVerifiedSignInRuntime, openOfficialSignInBrowser } from './chatgptDirectSignInRuntime.js';
+import { createIsolatedCatalogTransport, createIsolatedIdentityVerifier, createIsolatedTokenTransport, createIsolatedRefreshTransport, loadVerifiedSignInRuntime, openOfficialSignInBrowser } from './chatgptDirectSignInRuntime.js';
 import type { ValidatedCallback } from './chatgptDirectOAuth.js';
 
 const callback: ValidatedCallback = { clientId: 'mock-client', code: 'mock-code', verifier: 'v'.repeat(43), redirectUri: 'http://127.0.0.1:1455/auth/callback', resource: 'https://api.openai.com/v1', nonce: 'n'.repeat(43), requestedScopes: [] };
@@ -125,5 +125,25 @@ describe('isolated sign-in network boundary', () => {
   it('rejects untrusted runtime paths and browser destinations before launching', async () => {
     await expect(loadVerifiedSignInRuntime('relative-runtime')).rejects.toThrow('absolute');
     await expect(openOfficialSignInBrowser('https://example.com/login', new AbortController().signal)).rejects.toThrow('Unexpected');
+  });
+  it('renews once with the issued client and resource, without scope expansion or retry', async () => {
+    const request=vi.fn<typeof fetch>(async()=>Response.json({access_token:'synthetic-new',refresh_token:'synthetic-replacement'}));
+    const transport=createIsolatedRefreshTransport(new AbortController().signal,request);
+    await expect(transport.refresh('issued-client','synthetic-refresh')).resolves.toMatchObject({refresh_token:'synthetic-replacement'});
+    const [url,init]=request.mock.calls[0];
+    expect(url).toBe(endpoint);expect(init).toMatchObject({method:'POST',redirect:'error',cache:'no-store'});
+    expect(Object.fromEntries(new URLSearchParams(String(init?.body)))).toEqual({grant_type:'refresh_token',client_id:'issued-client',refresh_token:'synthetic-refresh',resource:'https://api.openai.com/v1'});
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow('already used');
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it('rejects invalid renewal identities and redacts network failures without retry',async()=>{
+    const request=vi.fn<typeof fetch>(async()=>{throw Error('synthetic-private-token');});
+    const transport=createIsolatedRefreshTransport(new AbortController().signal,request);
+    await expect(transport.refresh('dynamic_agent_client','synthetic-refresh')).rejects.toThrow('unavailable');
+    expect(request).not.toHaveBeenCalled();
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow(/^Token renewal failed; session recovery required$/);
+    await expect(transport.refresh('issued-client','synthetic-refresh')).rejects.toThrow('already used');
+    expect(request).toHaveBeenCalledTimes(1);
+    await expect(createIsolatedCatalogTransport(new AbortController().signal,request).list('synthetic-access')).rejects.toThrow(/^Model catalog request failed\.$/);
   });
 });
