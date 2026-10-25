@@ -29,6 +29,86 @@ should block its dependent item. Continue independent work. Do not mark the goal
 complete until every row has direct current evidence. Historical private-cache
 removal remains a separate tracked request until the hosting provider confirms it.
 
+## Acceptance backlog — required work, not disclaimers
+
+Every item below is OPEN until its stated outcome is demonstrated. Codex owns
+implementation, execution, evidence collection and repair. A failed attempt stays
+in the record; fix the cause and repeat that case. Do not close a workflow from a
+component test, remove an advertised requirement to pass, or substitute fixtures
+for required live acceptance. Only owner authentication may require user action.
+
+For each attempt record: requirement ID, UTC time, exact source commit and package
+SHA-256, runtime/provider versions, synthetic input hashes, reproducible command
+or browser steps, expected and actual outcome, artifact/log hashes, request/run
+IDs, usage/cost (unknown when unavailable), and pass/fail with remaining scope.
+Store only sanitized public evidence; never credentials or personal profiles.
+An acceptance entry must identify its evidence file, not merely say tests passed.
+
+- [ ] **P01 Clean-install first task.** Install the candidate archive into a fresh
+  directory and browser profile. Follow guided owner/model setup, ask for a useful
+  artifact, review the actual plan, execute it, independently inspect output and
+  approve completion. Save setup screenshots, task journal and output hashes.
+  Next: extend the existing live approval journey beyond its predefined fixture.
+- [ ] **P02 Real chat execution.** Use a live model to create a useful artifact
+  from synthetic inputs with no embedded solution. Verify output with a separate
+  evaluator, record the actual commands and all model attempts, and show the
+  result in chat. Next: choose a bounded data-transformation task and freeze its
+  input and evaluator before execution. Existing fixed-file proof is supporting
+  evidence only and must not be reported as general task competence.
+- [ ] **P03 Recovery matrix.** On that workflow interrupt browser streaming,
+  service, worker, and the connection after a tool effect but before its receipt.
+  Also expire authentication and introduce conflicting memory. Reopen, recover
+  context, reconcile effects, and count executions to prove no duplicates.
+  Save before/after journals and independently counted outputs for every case.
+  Next: carry the real P02 artifact through service/worker restart.
+- [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
+  session, review/send one useful task, observe and verify its returned artifact,
+  disconnect/reconnect, and Stop an active run with partial-effect inspection.
+  Save upstream run IDs plus AgentForge receipts and result hashes. Next: run a
+  successful model-backed task; authentication and unknown-run probes do not close it.
+- [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
+  and the registered connector. Include selected API-session continuity and
+  credential-change refusal for existing receipts. Verify successful completion
+  and cancellation, not only failed-run persistence. Next: implement verified
+  output retrieval and run a successful task. Other Hermes session types require
+  a separate gateway path; do not present API-only discovery as universal pairing.
+- [ ] **P06 Model connection matrix.** Inventory every advertised API and official
+  subscription route. For EACH record sign-in/configuration, live chat, approved
+  tool execution, expiration, interruption, restore, cancellation and sign-out on
+  each advertised platform. Add missing implementations rather than counting
+  configuration validation as support. Next: complete the ChatGPT live lifecycle,
+  then Claude and Gemini managed execution; retain API/MiMo coverage separately.
+- [ ] **P07 Memory matrix.** For built-in memory, Obsidian, Hindsight and every
+  advertised adapter demonstrate chat and worker retrieval with provenance,
+  project isolation, simultaneous-provider composition, export/import migration,
+  deletion/forget, conflicting updates and outage recovery. Use synthetic vaults
+  and dedicated test accounts. Next: run the composed-provider workflow and
+  inspect retrieved source IDs; JEv's router is not proof of a memory adapter.
+- [ ] **P08 Guided browser experience.** Execute clean setup, connection selection,
+  missing/invalid credential, no sessions, interrupted task, recovered memory and
+  verified result flows in the rendered UI. Check keyboard navigation, labels,
+  focus and readable errors. Save screenshots and action/results log. Next:
+  replace server-only agent configuration with secure guided connection setup.
+- [ ] **P09 Held-out differentiation.** Freeze task set, versions, rubric, budgets
+  and repeat count BEFORE running AgentForge and matched baselines. Preserve every
+  failure/timeout and usage result. Publish reproducible completion, latency and
+  cost results with uncertainty; repair product weaknesses separately from the
+  frozen evaluation. Next: finish evaluator execution/cost capture, then run the
+  frozen suite. Development examples cannot establish competitive superiority.
+- [ ] **P10 Exact release and launch.** Once the above accepts the candidate,
+  run hosted matrix plus installed-archive/privacy checks on its exact commit;
+  reconcile package hashes, merge, publish matching GitHub assets, verify clean
+  downloads, hosted demo and documentation, and prepare evidence-backed marketing.
+  Include current-build soak and GitHub cache-removal confirmation. npm stays
+  deferred by user choice. Next: obtain exact integrated-build hosted results;
+  the published early-access archive is not the new candidate.
+
+Execution order: P02 then its P03 faults; P04/P05 successful remote execution and
+P08 guided setup; P06/P07 matrices; P01 full clean-install journey; P09; P10 final
+acceptance. Run independent hosted checks alongside implementation. Update each
+item with an evidence link and next concrete action; never park it merely because
+proof is missing. Previous phase summaries remain historical supporting evidence.
+
 ## October 25 progress
 
 ### Live planning and browser execution regression repair
