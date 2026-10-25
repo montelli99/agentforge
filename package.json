@@ -6,7 +6,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "bin": {
     "agentforge": "./dist/cli/bin.js"
@@ -33,6 +37,7 @@
     "cli": "node --import tsx src/cli/bin.ts",
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.vnext.json --noEmit false --declaration --rootDir src --outDir dist && node scripts/copy-public-assets.mjs && node scripts/validate-built-browser-code.mjs",
     "test": "vitest run src --maxWorkers=1",
+    "test:memory:browser": "node scripts/memory-browser-acceptance.mjs",
     "test:persistence:launcher": "node scripts/persistence-acceptance.mjs",
     "test:persistence:crash": "node scripts/persistence-crash-recovery.mjs",
     "test:execution:crash": "node --import tsx scripts/execution-crash-proof.ts",
@@ -66,6 +71,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.4",
+    "playwright": "1.64.1",
     "tsx": "^4.23.12",
     "typescript": "6.0.3",
     "vitest": "^4.1.11"
