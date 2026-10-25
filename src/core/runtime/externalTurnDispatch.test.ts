@@ -75,3 +75,23 @@ it('recovers a saved run observation without replay or claiming verified complet
   expect(inspect).toHaveBeenCalledWith('saved-run');
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+it('prepares a readable pending review of the exact destination and message without dispatch',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-external-review-'));
+ try{
+  const store=new WorkspaceStore(path.join(dir,'workspace.json'));
+  const task=store.createTask({title:'Synthetic review',priority:'medium',status:'ready'});
+  const request={connectionId:'selected-runtime',sessionKey:'selected-session',message:'Only this synthetic message'};
+  const {prepareExternalTurnApproval}=await import('./externalTurnDispatch.js');
+  const approval=prepareExternalTurnApproval(store,task.id,'synthetic-agent',request);
+  expect(approval.status).toBe('pending');
+  expect(approval.description).toContain(JSON.stringify(request,null,2));
+  expect(approval.description).toContain('own tools and permissions');
+  expect(approval.action).toBe(externalTurnApprovalAction(task,request));
+  expect(prepareExternalTurnApproval(store,task.id,'synthetic-agent',request).id).toBe(approval.id);
+  expect(store.listApprovals()).toHaveLength(1);
+  expect(store.getTask(task.id)?.externalTurnReceipts).toBeUndefined();
+  expect(()=>prepareExternalTurnApproval(store,task.id,'synthetic-agent',{...request,sessionKey:'invalid\nkey'})).toThrow(/invalid/);
+  expect(()=>prepareExternalTurnApproval(store,task.id,'synthetic-agent',{...request,message:'a'.repeat(32001)})).toThrow(/limits/);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
