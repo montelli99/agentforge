@@ -224,6 +224,16 @@ inference; all three remain unverified. Version 0.65.0 passed this inspection.
 Only select a trusted official bundle: this command executes that JavaScript
 file, and is not a code-authenticity scanner. No managed Gemini worker is enabled.
 
+The negative integration probe `scripts/gemini-auth-boundary-acceptance.ts`
+requires an explicit official bundle and uses only a synthetic empty profile.
+On Windows with official 0.65.0, it exposed a rejected configuration: system
+settings/defaults redirected to a user-owned temporary directory are ignored
+because the client requires trusted administrator ownership. That probe failed;
+it did not establish authentication enforcement. Do not activate a managed route
+on the assumption that these environment overrides are effective, and do not
+relax filesystem permissions or the client's ownership checks to make it pass.
+Account selection and effective policy still need a supported, verified route.
+
 ### Experimental Claude subscription planner
 
 The server launcher accepts `AGENTFORGE_PLAN_PROVIDER=claude-cli` together with
