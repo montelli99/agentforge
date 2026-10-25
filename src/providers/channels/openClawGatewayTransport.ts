@@ -14,16 +14,25 @@ function b64url(value: Buffer): string {
 type DeviceIdentity = { deviceId: string; publicKeyPem: string; privateKeyPem: string };
 function identity(filePath: string): DeviceIdentity {
   try {
-    const saved = JSON.parse(fs.readFileSync(filePath, "utf8")) as { deviceId?: string; publicKeyPem?: string; privateKeyPem?: string };
-    if (saved.deviceId && saved.publicKeyPem && saved.privateKeyPem) return { deviceId: saved.deviceId, publicKeyPem: saved.publicKeyPem, privateKeyPem: saved.privateKeyPem };
-  } catch { /* create below */ }
+    const saved = JSON.parse(fs.readFileSync(filePath, "utf8")) as DeviceIdentity;
+    if (!saved || typeof saved.deviceId !== "string" || typeof saved.publicKeyPem !== "string" || typeof saved.privateKeyPem !== "string") throw new Error("invalid identity");
+    const publicKey = crypto.createPublicKey(saved.publicKeyPem);
+    const privateKey = crypto.createPrivateKey(saved.privateKeyPem);
+    if (publicKey.asymmetricKeyType !== "ed25519" || privateKey.asymmetricKeyType !== "ed25519") throw new Error("invalid key type");
+    const encoded = publicKey.export({ type: "spki", format: "der" });
+    const derived = crypto.createPublicKey(privateKey).export({ type: "spki", format: "der" });
+    if (!encoded.equals(derived) || crypto.createHash("sha256").update(encoded.subarray(-32)).digest("hex") !== saved.deviceId) throw new Error("identity mismatch");
+    return { deviceId: saved.deviceId, publicKeyPem: saved.publicKeyPem, privateKeyPem: saved.privateKeyPem };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw new Error("Gateway identity could not be validated; existing file preserved. Restore its backup before reconnecting.");
+  }
   const pair = crypto.generateKeyPairSync("ed25519");
   const publicKeyPem = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
   const privateKeyPem = pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   const raw = (pair.publicKey.export({ type: "spki", format: "der" }) as Buffer).subarray(-32);
   const created = { deviceId: crypto.createHash("sha256").update(raw).digest("hex"), publicKeyPem, privateKeyPem };
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(created, null, 2)}\n`, { mode: 0o600 });
+  fs.writeFileSync(filePath, `${JSON.stringify(created, null, 2)}\n`, { mode: 0o600, flag: "wx" });
   return created;
 }
 
