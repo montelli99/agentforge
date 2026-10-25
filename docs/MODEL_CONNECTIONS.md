@@ -215,6 +215,15 @@ as other providers. They must not execute proposed commands in the CLI process.
 
 ### Inspect an official Gemini client without inference
 
+To prepare a dedicated profile, run
+`agentforge connections prepare-gemini <absolute-new-home-directory>`.
+The parent directory must already exist; the requested directory must not exist.
+This creates only Google-login settings with hooks and telemetry disabled. It
+does not import credentials, modify an existing profile, sign in, or enable the
+managed planner. Use the returned home as `GEMINI_CLI_HOME` for the official
+client's sign-in. The command reports authentication as false until separately
+verified. Filesystem mode requests do not establish Windows ACL protection.
+
 Run `agentforge connections inspect-gemini <absolute-official-client-bundle>`
 with the installed package's `bundle/gemini.js` file, not an npm command shim.
 AgentForge uses its current Node runtime and a fresh temporary home to inspect
@@ -223,6 +232,26 @@ The report separates advertised controls from authentication, isolation and
 inference; all three remain unverified. Version 0.65.0 passed this inspection.
 Only select a trusted official bundle: this command executes that JavaScript
 file, and is not a code-authenticity scanner. No managed Gemini worker is enabled.
+
+The negative integration probe `scripts/gemini-auth-boundary-acceptance.ts`
+requires an explicit official bundle and uses only a synthetic empty profile.
+On Windows with official 0.65.0, it exposed a rejected configuration: system
+settings/defaults redirected to a user-owned temporary directory are ignored
+because the client requires trusted administrator ownership. That probe failed;
+it did not establish authentication enforcement. Do not activate a managed route
+on the assumption that these environment overrides are effective, and do not
+relax filesystem permissions or the client's ownership checks to make it pass.
+Account selection and effective policy still need a supported, verified route.
+
+Run the same probe with a final `user` argument to test the documented user
+profile settings instead of administrative settings. With official 0.65.0 on
+Windows, this variant passed: `.gemini/settings.json` selected API-key auth
+while requiring `oauth-personal`, and the real headless client rejected that
+mismatch. It used an empty disposable home with no credentials. This proves
+that specific user-setting rejection, not login, paid subscription entitlement,
+tool denial, or successful inference. A dedicated AgentForge profile can use
+this supported setting location; it must not mutate an existing private profile
+or describe user-editable settings as an administrator-enforced security boundary.
 
 ### Experimental Claude subscription planner
 

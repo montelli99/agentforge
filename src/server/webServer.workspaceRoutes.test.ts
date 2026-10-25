@@ -262,6 +262,8 @@ describe("workspace hierarchy API", () => {
     const saved = store.getTask(task.id);
     expect(saved).toBeDefined();
     store.updateTask(task.id, {
+      contract: {...saved!.contract, completion: {...saved!.contract.completion,
+        requiredArtifacts: [{path: 'src/result.txt', sha256: 'b'.repeat(64)}]}},
       approvedExecutionPlan: {
         plan: { taskId: task.id, source: "human_approved", commands: [{ checkName: "unit_tests", command: "pnpm test" }] },
         contractDigest: executionContractDigest(saved!), approvedBy: "user-owner",
@@ -286,6 +288,22 @@ describe("workspace hierarchy API", () => {
     expect(updated.task.contract.version).toBe(task.contract.version + 1);
     expect(Object.values(updated.task.contract.authority).every(enabled => enabled === false)).toBe(true);
     expect(updated.task.approvedExecutionPlan).toBeUndefined();
+    expect(store.getTask(task.id)!.contract.completion.requiredArtifacts).toEqual([{path:'src/result.txt',sha256:'b'.repeat(64)}]);
+    const editOutputs = await fetch(`${base}/api/tasks/${encodeURIComponent(task.id)}/contract`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({...body,
+        expectedUpdatedAt: store.getTask(task.id)!.updatedAt, requiredOutputPaths:['src/result.txt','src/new.txt']}),
+    });
+    expect(editOutputs.status).toBe(200);
+    expect(store.getTask(task.id)!.contract.completion.requiredArtifacts).toEqual([
+      {path:'src/result.txt',sha256:'b'.repeat(64)}, {path:'src/new.txt'},
+    ]);
+    const beforeInvalid = store.getTask(task.id)!.updatedAt;
+    const invalidOutput = await fetch(`${base}/api/tasks/${encodeURIComponent(task.id)}/contract`, {
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,
+        expectedUpdatedAt:beforeInvalid,requiredOutputPaths:['../escape']}),
+    });
+    expect(invalidOutput.status).toBe(400);
+    expect(store.getTask(task.id)!.updatedAt).toBe(beforeInvalid);
 
     const invalid = await fetch(`${base}/api/tasks/${encodeURIComponent(task.id)}/contract`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, expectedUpdatedAt: store.getTask(task.id)!.updatedAt, baseSha: "short" }),

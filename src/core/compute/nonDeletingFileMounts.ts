@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { prepareScopedWritableDirectories } from './scopedDockerMounts.js';
+import {assertNoProtectedMountOverlap} from './protectedMountPaths.js';
 const safe = (p: string) => {
  if (!/^[a-zA-Z0-9_.][a-zA-Z0-9_./-]*$/.test(p) || p.split('/').some(x=>!x||x==='.'||x==='..') || /^(?:\.git|\.worktrees)(?:\/|$)/i.test(p)) throw new Error('Unsupported writable file path.');
  return p;
@@ -21,8 +22,7 @@ export async function validateWritableFiles(root: string, files: readonly string
 export async function prepareNonDeletingFileMounts(root: string, scope: {allowedPaths:string[];protectedPaths:string[]}, declarations: readonly string[]) {
  const directoryGrants=scope.allowedPaths.filter(p=>p.endsWith('/**'));
  const literalGrants=scope.allowedPaths.filter(p=>!p.endsWith('/**')).map(safe);
- const protectedPaths=scope.protectedPaths.map(p=>safe(p.endsWith('/**')?p.slice(0,-3):p));
- for(const file of literalGrants) for(const protectedPath of protectedPaths) {const f=file.toLowerCase(),p=protectedPath.toLowerCase();if(f===p||f.startsWith(p+'/')||p.startsWith(f+'/'))throw new Error('Writable file grant overlaps a protected path.');}
+ assertNoProtectedMountOverlap(literalGrants, scope.protectedPaths);
  const dirs=await prepareScopedWritableDirectories(root,{...scope,allowedPaths:directoryGrants});
  const validateParents=async(file:string)=>{let current=root;for(const [index,part] of file.split('/').entries()){current=path.join(current,part);let info;try{info=await fs.lstat(current);}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')break;throw e;}if(info.isSymbolicLink()||(info.isFile()&&info.nlink>1)|| (index===file.split('/').length-1?!info.isFile():!info.isDirectory()))throw new Error('Writable file grant has an unsafe parent or type.');}};
  for(const file of literalGrants) await validateParents(file);

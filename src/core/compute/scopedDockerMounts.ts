@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {assertNoProtectedMountOverlap} from './protectedMountPaths.js';
 
 function safeRelative(value: string): string {
   if (!/^[a-zA-Z0-9_.][a-zA-Z0-9_./-]*$/.test(value) || value.split('/').some(p => !p || p === '.' || p === '..') || /^(?:\.git|\.worktrees)(?:\/|$)/i.test(value)) throw new Error('Unsupported writable/protected path.');
@@ -12,11 +13,7 @@ export async function prepareScopedWritableDirectories(root: string, scope: { al
     if (!pattern.endsWith('/**')) throw new Error('Docker write isolation requires literal directory/** grants.');
     return safeRelative(pattern.slice(0, -3));
   }))];
-  const protectedRoots = scope.protectedPaths.map(pattern => safeRelative(pattern.endsWith('/**') ? pattern.slice(0, -3) : pattern));
-  for (const writable of roots) for (const protectedRoot of protectedRoots) {
-    const w = writable.toLowerCase(), p = protectedRoot.toLowerCase();
-    if (w === p || w.startsWith(p + '/') || p.startsWith(w + '/')) throw new Error('Writable mount overlaps a protected path.');
-  }
+  assertNoProtectedMountOverlap(roots, scope.protectedPaths);
   const canonicalRoot = await fs.realpath(root);
   let inspected = 0;
   const inspect = async (target: string): Promise<void> => {

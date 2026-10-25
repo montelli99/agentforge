@@ -6,12 +6,18 @@
 import { AgentForgeCli } from "./agentforge-cli.js";
 import { inspectClaudeCliCapabilities, inspectClaudeCliAuthentication } from "../providers/models/claudeCliCapabilities.js";
 import { inspectGeminiCliCapabilities } from "../providers/models/geminiCliCapabilities.js";
+import { prepareGeminiCliProfile } from "../providers/models/geminiCliProfile.js";
 
 const cli = new AgentForgeCli();
 const args = process.argv.slice(2);
 const cmd = args[0];
 
 async function main() {
+  if (cmd === "connections" && args[1] === "prepare-gemini") {
+    if (!args[2] || args.length !== 3) throw new Error("Usage: agentforge connections prepare-gemini <absolute-new-home-directory>");
+    console.log(JSON.stringify(await prepareGeminiCliProfile(args[2]), null, 2));
+    return;
+  }
   if (cmd === "connections" && args[1] === "inspect-gemini") {
     if (!args[2] || args.length !== 3) throw new Error("Usage: agentforge connections inspect-gemini <absolute-official-client-bundle>");
     const result = await inspectGeminiCliCapabilities(args[2]);
@@ -79,6 +85,7 @@ async function main() {
 
   console.log("Usage: agentforge [status | pack init <name> | pack validate <path> | pack inspect-archive <package-directory> <archive.zip> | pack test <path> | pack benchmark <path>]");
   console.log("Connection inspection: agentforge connections inspect-claude <absolute-official-client-path>");
+  console.log("Dedicated Gemini setup: agentforge connections prepare-gemini <absolute-new-home-directory>");
   console.log("Account status: agentforge connections claude-status <absolute-official-client-path> <absolute-profile-directory>");
 }
 
