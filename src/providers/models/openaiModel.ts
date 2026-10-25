@@ -10,6 +10,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 function toChatCompletionBody(options: ModelRequestOptions, stream: boolean): Record<string, unknown> {
@@ -24,6 +25,25 @@ function toChatCompletionBody(options: ModelRequestOptions, stream: boolean): Re
     stop: options.stop,
     stream,
   };
+}
+
+export function reportedChatCompletionUsage(value: unknown): ModelResponse["usage"] {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as Record<string, unknown>;
+  const counts = [raw.prompt_tokens, raw.completion_tokens, raw.total_tokens];
+  if (counts.some(count => typeof count !== "number" || !Number.isSafeInteger(count) || count < 0)) return undefined;
+  const [promptTokens, completionTokens, totalTokens] = counts as number[];
+  if (totalTokens !== promptTokens + completionTokens) return undefined;
+  const details=raw.prompt_tokens_details;
+  if(details!==undefined && (!details || typeof details!=="object" || Array.isArray(details))) return undefined;
+  const reported=details as Record<string,unknown>|undefined;
+  const cached=reported?.cached_tokens;
+  const written=reported?.cache_write_tokens;
+  for(const category of [cached,written]) if(category!==undefined && (!Number.isSafeInteger(category) || Number(category)<0 || Number(category)>promptTokens)) return undefined;
+  if(Number(cached??0)+Number(written??0)>promptTokens) return undefined;
+  return { promptTokens, completionTokens, totalTokens,
+    ...(cached===undefined?{}:{cachedInputTokens:Number(cached)}),
+    ...(written===undefined?{}:{cacheWriteInputTokens:Number(written)}) };
 }
 
 export class OpenAIModelProvider implements GenerativeModelProvider {
@@ -71,7 +91,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(toChatCompletionBody(options, false)),
+      body: this.auditGenerateBody(options),
       signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
 
@@ -82,6 +102,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
 
     const json = await res.json() as {
       id: string;
+      model?: string;
       choices: Array<{
         message: {
           content?: string | null;
@@ -99,17 +120,17 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
     return {
       id: json.id,
       model: options.model,
+      ...(isReportedModelId(json.model)?{reportedModel:json.model}:{}),
       content: json.choices?.[0]?.message?.content || "",
       toolCalls: json.choices?.[0]?.message?.tool_calls,
-      usage: {
-        promptTokens: json.usage?.prompt_tokens || 0,
-        completionTokens: json.usage?.completion_tokens || 0,
-        totalTokens: json.usage?.total_tokens || 0,
-        // A generic OpenAI-compatible gateway may price each provider/model differently.
-        // Leave cost unknown until model-specific pricing evidence is available.
-      },
+      // Missing or inconsistent counts are unknown, never a fabricated zero.
+      usage: reportedChatCompletionUsage(json.usage),
       finishReason: json.choices?.[0]?.finish_reason,
     };
+  }
+
+  auditGenerateBody(options: ModelRequestOptions): string {
+    return JSON.stringify(toChatCompletionBody(options, false));
   }
 
   async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {

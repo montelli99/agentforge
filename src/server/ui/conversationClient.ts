@@ -15,7 +15,12 @@ function conversationShortcutHint(){return conversationSendShortcut==='modifier-
 async function conversationRequest(url, method, body) {
   const response = await fetch(url, { method: method || 'GET', headers: {'Content-Type':'application/json'}, ...(body ? {body:JSON.stringify(body)} : {}) });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Request failed');
+  if (!response.ok) {
+    if(response.status===401&&!document.querySelector('.auth-gate')){
+      try{const identity=await fetch('/api/auth/me').then(reply=>reply.json());openAuthenticationGate(identity.ownerSetupRequired?'setup':'login');}catch{}
+    }
+    throw new Error(result.error || 'Request failed');
+  }
   return result;
 }
 function renderConversationLoading(root){

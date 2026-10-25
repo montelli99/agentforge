@@ -17,6 +17,7 @@ export class SemanticCache {
   private maxSize: number;
 
   constructor(ttlMs: number = DEFAULT_TTL_MS, maxSize: number = MAX_CACHE_SIZE) {
+    if (!Number.isFinite(ttlMs) || ttlMs < 0 || !Number.isSafeInteger(maxSize) || maxSize < 1) throw new Error("Invalid cache retention bounds");
     this.ttlMs = ttlMs;
     this.maxSize = maxSize;
   }
@@ -53,7 +54,9 @@ export class SemanticCache {
       }
     }
     if (oldestKey) {
+      const evicted = this.exactCache.get(oldestKey);
       this.exactCache.delete(oldestKey);
+      for (const [key, entry] of this.semanticCache) if (entry === evicted) this.semanticCache.delete(key);
     }
   }
 
@@ -74,7 +77,7 @@ export class SemanticCache {
   }
 
   private cacheKeyToString(key: CacheKey): string {
-    return `${key.tenantId}:${key.taskType}:${key.promptHash}:${key.modelFamily}:${key.policyConstraints.join(",")}`;
+    return JSON.stringify([key.tenantId, key.taskType, key.promptHash, key.modelFamily, key.policyConstraints]);
   }
 
   lookup(
@@ -109,11 +112,11 @@ export class SemanticCache {
       };
     }
 
-    if (exactEntry && this.isExpired(exactKeyStr as unknown as CacheEntry)) {
+    if (exactEntry && this.isExpired(exactEntry)) {
       this.exactCache.delete(exactKeyStr);
     }
 
-    const semanticKeyStr = this.semanticHash(prompt);
+    const semanticKeyStr = this.cacheKeyToString({ ...this.buildCacheKey(tenantId, taskType, prompt, modelFamily, policyConstraints), promptHash: this.semanticHash(prompt) });
     const semanticEntry = this.semanticCache.get(semanticKeyStr);
     if (semanticEntry && !this.isExpired(semanticEntry)) {
       semanticEntry.lastAccessed = Date.now();
@@ -129,6 +132,8 @@ export class SemanticCache {
         },
       };
     }
+
+    if (semanticEntry && this.isExpired(semanticEntry)) this.semanticCache.delete(semanticKeyStr);
 
     return {
       hit: false,
@@ -163,11 +168,11 @@ export class SemanticCache {
       accessCount: 1,
     };
 
-    this.evictOldest();
     this.exactCache.set(keyStr, entry);
 
-    const semanticKeyStr = this.semanticHash(prompt);
+    const semanticKeyStr = this.cacheKeyToString({ ...this.buildCacheKey(tenantId, taskType, prompt, modelFamily, policyConstraints), promptHash: this.semanticHash(prompt) });
     this.semanticCache.set(semanticKeyStr, entry);
+    while (this.exactCache.size > this.maxSize) this.evictOldest();
   }
 
   clear(): void {

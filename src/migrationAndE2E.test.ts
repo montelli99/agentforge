@@ -182,6 +182,8 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
   describe("Section 3: Complete Synthetic User Journey (No DB Shortcuts)", () => {
     it("should complete the end-to-end user journey across all systems", async () => {
+      const reviewerSession = store.createSession("user-owner");
+      const reviewHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${reviewerSession.token}` };
       // 1. Create native channel
       const chanRes = await fetch(`http://localhost:${testPort}/api/workspace`);
       expect(chanRes.status).toBe(200);
@@ -233,7 +235,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       const approvalRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${revisionData.proposal.id}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ status: "approved", approverUserId: "reviewer-1" }),
       });
       expect(approvalRes.status).toBe(200);
@@ -260,13 +262,13 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const concurrentData = await Promise.all(concurrentRevisions.map(response => response.json()));
       const concurrentApproval = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${concurrentData[0].proposal.id}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ status: "approved" }),
       });
       expect(concurrentApproval.status).toBe(200);
       const staleProposal = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/revisions/${concurrentData[1].proposal.id}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ status: "approved" }),
       });
       expect(staleProposal.status).toBe(409);
@@ -285,7 +287,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       const rollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ expectedVersion: 3, targetVersion: 1 }),
       });
       expect(rollbackRes.status).toBe(200);
@@ -302,7 +304,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
       const staleRollbackRes = await fetch(`http://localhost:${testPort}/api/processes/${procData.process.id}/rollback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ expectedVersion: 3, targetVersion: 2 }),
       });
       expect(staleRollbackRes.status).toBe(409);
@@ -361,7 +363,7 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       // Approve through Web API
       const approveRes = await fetch(`http://localhost:${testPort}/api/approvals/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reviewHeaders,
         body: JSON.stringify({ approvalId: app.id, status: "approved" }),
       });
       expect(approveRes.status).toBe(200);

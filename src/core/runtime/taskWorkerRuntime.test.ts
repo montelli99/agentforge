@@ -369,7 +369,7 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       namespace: "workspace",
       category: "do_not_repeat",
       title: "Shared safety rule",
-      content: "Keep verification evidence with every completed task.",
+      content: "Never skip a signed manifest.",
       tags: ["safety"],
     });
     await memory.record({
@@ -427,6 +427,16 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(receivedContextText).not.toContain("Beta private note");
       expect(receivedSourceIds).toHaveLength(3);
       expect(store.listAuditEntries().some(entry => entry.action === "TASK_CONTEXT_PACKED" && entry.targetId === task.id)).toBe(true);
+
+      const projectless = store.createTask({
+        id: "TASK-MEMORY-GLOBAL", title: "Review beta private note", priority: "medium", status: "ready",
+        contract: { ...task.contract, id: "contract-memory-global", taskId: "TASK-MEMORY-GLOBAL" },
+      });
+      await runtimeWithMemory.executeTask(projectless.id);
+      expect(receivedContextText).toContain("Shared safety rule");
+      expect(receivedContextText).not.toContain("Beta private note");
+      expect(receivedContextText).not.toContain("Alpha delivery rule");
+      expect(receivedSourceIds).toHaveLength(2);
     } finally {
       runtimeWithMemory.stop();
     }

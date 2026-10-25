@@ -691,8 +691,9 @@ ${chunkSummary}`;
       const optimizedPrompt = `[CACHED RESPONSE]\n${responseText}\n[END CACHED RESPONSE]\n\n${params.prompt}`;
 
       const originalTokens = estimateTokens(params.prompt);
-      const responseTokens = estimateTokens(responseText);
-      const tokensSaved = responseTokens;
+      // A cached answer is prepended to the prompt, so this operation usually
+      // adds input tokens. Preserve the signed delta instead of claiming savings.
+      const tokensSaved = originalTokens - estimateTokens(optimizedPrompt);
 
       return {
         optimizedPrompt,

@@ -4,13 +4,26 @@ This record separates verified evidence from deployment-specific gates. It must
 contain only reproducible results and must never contain credentials or private
 workspace data.
 
-## Hosted CI
+## Current local integration - 2026-10-03
+
+The current checkout is base revision
+`47467ba62ab1b2da1b10650e18acd5df04048db8` plus uncommitted integration
+changes. The local integration checkpoint reports 104 test files, 622 passed
+and 2 explicit live-test skips; typecheck, build, the 197-file package/archive
+gate, and 14 synthetic path/type privacy tests passed. See
+[the current build receipt](CURRENT_BUILD_RECEIPT_2026-10-03.md).
+
+No hosted CI run, live-provider proof, release commit, registry provenance, or
+independent privacy acceptance covers this exact source. Historical evidence
+below remains tied to its recorded commit and must not be presented as current.
+
+## Historical hosted CI
 
 - Run: https://github.com/montelli99/agentforge/actions/runs/36656026124
 - Commit: `dbea5f1a4b7398fb5cd9f6d50ab9103e14b5bd54`
 - Result: all seven jobs passed (public package acceptance plus Linux, macOS,
-  and Windows Node 22/24). This is the current hosted verification for the
-  provider-preflight release sequence.
+  and Windows Node 22/24). This is historical hosted verification for the
+  recorded commit, not the current uncommitted integration.
 
 - Run: https://github.com/montelli99/agentforge/actions/runs/36653357336
 - Commit: `bf7a18e637184ec5e1cc9a281321476b5721f76f`
@@ -33,7 +46,7 @@ workspace data.
 - Result: all seven jobs passed (public package acceptance plus Linux, macOS,
   and Windows Node 22/24).
 
-## Local public boundary
+## Historical local public boundary
 
 - `pnpm verify:public`: passed on the approved Docker acceptance path.
 - `pnpm release:audit`: passed with no local blockers.
@@ -46,7 +59,7 @@ workspace data.
   `4366fb77cdb6c0358cacb73024c997e5f9dec0f05024248643ebd8ef44a5a803`.
   Registry state remains unpublished; no publication was performed.
 
-## Deployment-specific evidence
+## Historical deployment-specific evidence
 
 - A read-only Telegram Bot API `getMe` check on 2026-09-30 accepted the
   existing private runtime credential. No polling, outbound message, or

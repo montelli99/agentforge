@@ -1836,7 +1836,7 @@ export function renderWorkspaceApp(): string {
         '<div style="font-size:0.85rem; font-weight:600;">' + escapeHtml(ap.action) + '</div>' +
         '<div style="font-size:0.8rem; color:var(--text-muted);">Unverified description: ' + escapeHtml(ap.description) + '</div>' +
         (ap.evidenceSummary ? '<div style="font-size:0.75rem; background:var(--bg-base); padding:0.4rem; border-radius:4px;">Unverified evidence summary · ' + escapeHtml(ap.evidenceSummary.filesCount) + ' files listed</div>' : '') +
-        (ap.status === 'pending' ? '<div style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button class="btn btn-sm" onclick="resolveApproval(' + safeJsString(ap.id) + ', \\'approved\\')">Approve</button><button class="btn btn-sm btn-danger" onclick="resolveApproval(' + safeJsString(ap.id) + ', \\'rejected\\')">Reject</button></div>' : '<div class="badge badge-green">Resolved: ' + escapeHtml(ap.status) + ' by ' + escapeHtml(ap.approverUserId) + '</div>') +
+        (ap.status === 'pending' ? '<div style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button class="btn btn-sm" onclick="resolveApproval(' + safeJsString(ap.id) + ', \\'approved\\')">Approve</button><button class="btn btn-sm btn-danger" onclick="resolveApproval(' + safeJsString(ap.id) + ', \\'rejected\\')">Reject</button></div>' : '<div class="badge badge-green">Resolved: ' + escapeHtml(ap.status) + ' by ' + escapeHtml(ap.approverUserId === 'local-unverified-web-client' ? 'local client (identity not verified)' : ap.approverUserId || 'unknown reviewer') + '</div>') +
       '</div>';
     }
 
@@ -2802,7 +2802,7 @@ ${goalClient}
         const response = await fetch('/api/auth/me');
         const identity = await response.json();
         if (!response.ok || identity.accessMode === 'authentication_required') {
-          openAuthenticationGate('setup');
+          openAuthenticationGate(identity.ownerSetupRequired ? 'setup' : 'login');
           return;
         }
       } catch {

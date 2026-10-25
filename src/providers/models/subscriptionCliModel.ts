@@ -1,0 +1,45 @@
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import crypto from 'node:crypto';
+import {runBoundedChild,BoundedChildFailure,type BoundedChildResult} from './boundedCliProcess.js';
+import {inspectCliEvents,persistCliFailure} from './cliFailureDiagnostics.js';
+import {ModelProviderError,type GenerativeModelProvider,type ModelRequestOptions,type ModelResponse,type ModelResponseUsage,type StreamChunk} from '../../core/providers/model.js';
+export interface SubscriptionCliConfiguration {executablePath:string;cliHomeDirectory:string;workDirectory:string;model:'gpt-5.6-luna';timeoutMs?:number}
+type Run=typeof runBoundedChild;
+const planSchema={type:'object',additionalProperties:false,required:['commands'],properties:{commands:{type:'array',minItems:1,maxItems:2,items:{type:'object',additionalProperties:false,required:['checkName','command','timeoutMs'],properties:{checkName:{type:'string',minLength:1,maxLength:80},command:{type:'string',minLength:1,maxLength:4000},timeoutMs:{type:'integer',minimum:1,maximum:10000}}}}}};
+export function decodeCliUsage(raw:unknown):ModelResponseUsage|undefined{const u=raw as {input_tokens?:unknown;output_tokens?:unknown;cached_input_tokens?:unknown}|undefined;if(!u||!Number.isSafeInteger(u.input_tokens)||!Number.isSafeInteger(u.output_tokens)||(u.input_tokens as number)<0||(u.output_tokens as number)<0)return undefined;const total=(u.input_tokens as number)+(u.output_tokens as number);if(!Number.isSafeInteger(total))return undefined;const cached=u.cached_input_tokens;if(cached!==undefined&&(!Number.isSafeInteger(cached)||(cached as number)<0||(cached as number)>(u.input_tokens as number)))return undefined;return{promptTokens:u.input_tokens as number,completionTokens:u.output_tokens as number,totalTokens:total,...(cached===undefined?{}:{cachedInputTokens:cached as number})};}
+export function validateCliPlan(content:string){const parsed=JSON.parse(content) as {commands?:unknown};if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)||Object.keys(parsed).some(k=>k!=='commands')||!Array.isArray(parsed.commands)||parsed.commands.length<1||parsed.commands.length>2)throw Error('Invalid bounded CLI plan');for(const entry of parsed.commands){if(!entry||typeof entry!=='object')throw Error('Invalid command');const item=entry as Record<string,unknown>;if(Object.keys(item).some(k=>!['checkName','command','timeoutMs'].includes(k))||typeof item.checkName!=='string'||!item.checkName.trim()||item.checkName.length>80||typeof item.command!=='string'||!item.command.trim()||item.command.length>4000||!Number.isSafeInteger(item.timeoutMs)||(item.timeoutMs as number)<1||(item.timeoutMs as number)>10000)throw Error('Invalid bounded command');}return parsed;}
+/** Subscription-only draft route: shell disabled, read-only sandbox requested; built-in tools are not globally removed. */
+export class SubscriptionCliModelProvider implements GenerativeModelProvider {
+ readonly id='codex-subscription-cli';readonly name='ChatGPT subscription CLI planner';readonly defaultTier=1 as const;
+ private readonly timeout:number;
+ constructor(private readonly config:SubscriptionCliConfiguration,private readonly run:Run=runBoundedChild){if(config.model!=='gpt-5.6-luna'||![config.executablePath,config.cliHomeDirectory,config.workDirectory].every(path.isAbsolute))throw Error('Explicit subscription CLI paths/model required');this.timeout=config.timeoutMs??120000;if(!Number.isSafeInteger(this.timeout)||this.timeout<1||this.timeout>120000)throw Error('Invalid bounded CLI deadline');fs.mkdirSync(config.workDirectory,{recursive:true});}
+ private env(){const env:NodeJS.ProcessEnv={CODEX_HOME:this.config.cliHomeDirectory,RUST_LOG:'error'};for(const key of ['SystemRoot','PATH','Path','TEMP','TMP','LOCALAPPDATA'])if(process.env[key])env[key]=process.env[key];return env;}
+ async isAvailable(){try{const result=await this.run(this.config.executablePath,['login','status'],{env:this.env(),cwd:this.config.workDirectory,input:'',timeoutMs:10000,maxOutputBytes:32768});return result.code===0&&/logged in.*chatgpt/i.test(result.stdout+'\n'+result.stderr)&&!/logged in.*api key/i.test(result.stdout+'\n'+result.stderr);}catch{return false;}}
+ async listModels(){return[this.config.model];}
+ auditGenerateBody(options:ModelRequestOptions){return JSON.stringify({model:options.model,messages:options.messages,route:'subscription-cli',tier:'default',capabilities:{shellExecution:'disabled-by-shell-tool-feature',sandboxRequested:'read-only',workspaceWriteGrants:[],globalToolList:'not-empty-or-verified',privateReadIsolation:'not-established-by-built-in-read-only',apiFallback:false,automaticRetry:false},deadlineMs:this.timeout});}
+ async generate(options:ModelRequestOptions):Promise<ModelResponse>{
+  if(options.signal?.aborted)throw Error('CLI planning cancelled before launch');if(options.model!==this.config.model||options.tools?.length||options.stream||options.responseFormat!=='json'||options.maxTokens!==undefined)throw Error('Unsupported CLI planner request; no hard token-cap claim');
+  const input='Return only a JSON execution-plan draft, max TWO commands each timeoutMs <=10000. No tools, shell, files, web, external actions or other agents. Use only the supplied request/reference data. Do not execute the proposed commands.\n'+JSON.stringify(options.messages);if(Buffer.byteLength(input)>32768)throw Error('CLI request envelope exceeds 32KiB; backend overhead is not token capped');
+  if(!await this.isAvailable())throw Error('Existing ChatGPT CLI login unavailable; no auth or API fallback');if(options.signal?.aborted)throw Error('CLI planning cancelled before launch');const work=fs.mkdtempSync(path.join(this.config.workDirectory,'invocation-')),schema=path.join(work,'schema.json'),output=path.join(work,'response.json');fs.writeFileSync(schema,JSON.stringify(planSchema));let usage:ModelResponseUsage|undefined,content='';
+  let childResult:BoundedChildResult|undefined;
+  try{const result=childResult=await this.run(this.config.executablePath,['--no-daemon','exec','--skip-git-repo-check','--ephemeral','--ignore-user-config','--cd',work,'--sandbox','read-only','--disable','shell_tool','--disable','unified_exec','--disable','multi_agent','--json','--output-schema',schema,'--output-last-message',output,'-m',this.config.model,'-c','service_tier="default"','-c','model_reasoning_effort="medium"','-'],{env:this.env(),cwd:work,input,signal:options.signal,timeoutMs:this.timeout,maxOutputBytes:2097152});
+   const {events,malformed}=inspectCliEvents(result.stdout);const completed=events.filter(e=>e.type==='turn.completed');usage=completed.length===1?decodeCliUsage(completed[0]?.usage):undefined;
+   if(result.code!==0)throw new ModelProviderError('CLI planner failed; no automatic retry',usage);
+   if(malformed)throw new ModelProviderError('CLI planner emitted malformed event output',usage);
+   if(events.some(e=>e.item?.type&&!['reasoning','agent_message'].includes(e.item.type)))throw new ModelProviderError('CLI planner emitted forbidden tool/activity event',usage);
+   if(fs.existsSync(output))content=fs.readFileSync(output,'utf8');else content=events.filter(e=>e.item?.type==='agent_message').at(-1)?.item?.text??'';
+   try{validateCliPlan(content);}catch{throw new ModelProviderError('CLI response failed strict JSON/plan validation',usage,crypto.createHash('sha256').update(content).digest('hex'));}
+   return {id:crypto.randomUUID(),model:this.config.model,content,usage,finishReason:'stop'};
+  }catch(error){
+   if(error instanceof BoundedChildFailure)childResult=error.result;
+   const completed=inspectCliEvents(childResult?.stdout??'').events.filter(e=>e.type==='turn.completed');
+   usage=completed.length===1?decodeCliUsage(completed[0]?.usage):usage;
+   const usageEvents=completed.slice(0,16).map(e=>({type:'turn.completed',usage:decodeCliUsage(e.usage)??'unknown'}));
+   const classification=error instanceof BoundedChildFailure?error.classification:childResult?.code!==undefined&&childResult.code!==0?'exit-nonzero':error instanceof ModelProviderError?'validation-failure':'adapter-error';
+   try{persistCliFailure(this.config.workDirectory,childResult,classification,usageEvents,[this.config.cliHomeDirectory,this.config.workDirectory,this.config.executablePath,input,...options.messages.map(m=>m.content)]);}catch{throw new ModelProviderError('CLI failure diagnostic persistence failed; no automatic retry',usage);}
+   if(error instanceof ModelProviderError)throw error;
+   throw new ModelProviderError('CLI planner failed or cancelled; no automatic retry',usage);
+  }finally{fs.rmSync(work,{recursive:true,force:true});}
+ }
+ async *stream(_options:ModelRequestOptions):AsyncIterable<StreamChunk>{throw Error('Subscription CLI adapter is planner-only; streaming chat unsupported');}
+}
+export function readSubscriptionCliConfiguration(file:string):SubscriptionCliConfiguration{if(!path.isAbsolute(file)||fs.lstatSync(file).isSymbolicLink()||fs.statSync(file).size>32768)throw Error('Explicit local CLI configuration required');return JSON.parse(fs.readFileSync(file,'utf8')) as SubscriptionCliConfiguration;}

@@ -1,0 +1,2 @@
+import {ExplicitIndexedMemory} from '../src/memory/indexed/explicitIndex.ts';
+const root=process.argv[2];const provider={identity:'synthetic-embedding-v1',dimensions:3,embed:async text=>[/orchard|apple/i.test(text)?1:0,/ocean|blue/i.test(text)?1:0,/correct|updated/i.test(text)?1:0]};const index=new ExplicitIndexedMemory({userId:'synthetic-a',projectRoot:root,indexPath:root+'/index.sqlite',inputFiles:['facts.md'],provider});try{console.log(JSON.stringify(await index.search('orchard')));}finally{index.close();}

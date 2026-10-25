@@ -133,6 +133,8 @@ export class WorkspaceStore {
   private realtimeListeners: RealtimeListener[] = [];
   private restoring = false;
   private loadedLegacySnapshot = false;
+  private persistedSnapshotPath?: string;
+  private persistedSnapshotContent?: string;
 
   get persistenceMode(): "local_json" | "in_memory" {
     return this.persistFilePath ? "local_json" : "in_memory";
@@ -1578,11 +1580,19 @@ export class WorkspaceStore {
         }
       }
       if (lockFd === undefined) throw new Error("Timed out waiting for the workspace snapshot lock.");
-      fs.writeFileSync(tempPath, json, { encoding: "utf-8", flag: "wx" });
+      const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : undefined;
+      const expected = this.persistedSnapshotPath === filePath ? this.persistedSnapshotContent : undefined;
+      if (current !== expected) {
+        throw new Error("Workspace snapshot changed since this store loaded. Reload before saving to avoid lost updates.");
+      }
+      const snapshotFd=fs.openSync(tempPath,"wx");
+      try{fs.writeFileSync(snapshotFd,json,{encoding:"utf-8"});fs.fsyncSync(snapshotFd);}finally{fs.closeSync(snapshotFd);}
       if (rotateBackup && fs.existsSync(filePath)) {
         fs.copyFileSync(filePath, backupPath);
       }
       fs.renameSync(tempPath, filePath);
+      this.persistedSnapshotPath = filePath;
+      this.persistedSnapshotContent = json;
     } catch (error) {
       try {
         if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
@@ -1604,14 +1614,21 @@ export class WorkspaceStore {
       { path: `${filePath}.bak`, source: "backup" as const },
     ];
     const errors: string[] = [];
+    let observedPrimaryContent: string | undefined;
     for (const candidate of candidates) {
       if (!fs.existsSync(candidate.path)) continue;
       try {
-        const parsed: unknown = JSON.parse(fs.readFileSync(candidate.path, "utf-8"));
+        const content = fs.readFileSync(candidate.path, "utf-8");
+        if (candidate.source === "primary") observedPrimaryContent = content;
+        const parsed: unknown = JSON.parse(content);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
           throw new Error("Snapshot root must be an object.");
         }
         this.restoreSnapshot(parsed as Partial<PersistedWorkspaceSnapshot> & Record<string, unknown>);
+        this.persistedSnapshotPath = filePath;
+        // Recovery may read a valid backup while the primary is corrupt. A
+        // later repair must compare against the observed primary, not backup.
+        this.persistedSnapshotContent = candidate.source === "primary" ? content : observedPrimaryContent;
         return candidate.source;
       } catch (error) {
         errors.push(`${candidate.source}: ${redactRuntimeError(error)}`);

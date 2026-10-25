@@ -1,5 +1,11 @@
 # AgentForge goal execution map
 
+This public map covers the public product and release gates. Owner-specific
+execution amendments remain private and are not release inputs. Slack and
+Discord acceptance are deferred; registry publication is a separate action.
+The app goal was last observed blocked; 'active' below is historical plan text,
+not evidence that the app goal has been resumed.
+
 This is the operator-facing map for the approved AgentForge public-release
 goal. It links the larger specifications to the evidence required before each
 phase can be called complete.
@@ -22,6 +28,11 @@ recorded run is `36654866625` for commit `759ec73`; all seven Ubuntu, macOS,
 and Windows Node 22/24 jobs passed. Registry publication remains a
 separate owner-approved action.
 
+**2026-09-30 local checkout recheck:** `pnpm verify:public` passed after the
+approved-Docker acceptance fixture declared its output artifact. The
+non-deleting sandbox continues to mount only declared output files writable.
+This local result does not supersede hosted CI for the current dirty checkout.
+
 ## Phase 2 — Canonical workspace and durable memory
 
 **Outcome:** projects, spaces, nested departments, channels, conversations,
@@ -31,8 +42,35 @@ record and survive restart.
 **Evidence:** persistence acceptance, workspace UI acceptance, migration tests,
 and the canonical workspace routes.
 
-**Current state:** local persistence and browser acceptance pass; concurrency,
-authenticated reviewer identity, and cross-provider parity remain open.
+**Current state:** local persistence and browser acceptance pass. The snapshot
+writer now rejects a stale second store instance under the file lock instead
+of silently overwriting the first instance's changes; the two-instance
+regression and backup-recovery race check, 21 persistence tests, type-check and
+crash recovery pass locally. A recovering backup reader also refuses to replace
+a primary snapshot that another writer repaired first. `pnpm verify:public`
+also passed on this local checkout after the persistence changes. The gate now
+includes a real two-process stale-writer acceptance: the second process is
+rejected and the first process's durable record survives. Broader concurrent
+operation and cross-provider parity remain unverified. Hosted CI still needs a
+committed revision before it can verify these changes.
+The public gate was rerun after the owner-login change and passed locally,
+including package privacy, crash recovery, concurrent writes, isolated Docker
+acceptance and approved-plan Docker execution.
+
+**Reviewer identity check:** approval resolution, process-revision decisions,
+rollback, task evidence approval, execution-plan approval/revocation and browser
+write approval now require an authenticated session even in local unlocked
+mode. The workspace can still be explored and configured locally before owner
+setup; a Review Desk decision attempt opens the owner setup or sign-in gate.
+Once the owner sets a password, the local workspace requires login for all API
+routes, including reads; strict mode also rejects anonymous approval and
+records the authenticated admin's user ID. The focused auth, browser and
+synthetic-journey suites pass 28/28; the full suite passes 549 tests with two
+skipped. Historical
+local decisions bearing `local-unverified-web-client` remain labeled in the
+Review Desk and task evidence views instead of being presented as signed human
+review. The assembled UI script parses and TypeScript passes; a rendered
+browser review of this copy is still outstanding.
 
 ## Phase 3 — Native channel runtime
 

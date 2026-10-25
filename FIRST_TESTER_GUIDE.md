@@ -26,7 +26,10 @@ Use synthetic information only. Do not connect a production provider account, ch
 
 ## Report your findings
 
-Use [TESTER_FEEDBACK.md](TESTER_FEEDBACK.md). Include the AgentForge commit, operating system, Node version, workflow, provider readiness label, and whether the provider was a mock or a real service. Attach sanitized logs or screenshots where useful. Never include tokens, passwords, private seller/customer data, or production account details.
+Record the AgentForge commit, operating system, Node version, workflow,
+provider readiness label, and whether the provider was a mock or a real
+service. Attach sanitized logs or screenshots where useful. Never include
+tokens, passwords, private customer data, or production account details.
 
 ## Current limits
 

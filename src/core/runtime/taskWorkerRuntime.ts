@@ -7,6 +7,7 @@
  */
 
 import crypto from "node:crypto";
+import {beginReceipt,observeReceipt,validateReceipt,type ExecutionReceipt} from "./executionReceipt.js";
 import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type { Task, TaskStatus } from "../types/task.js";
 import type { ArtifactRecord, CommandAuditRecord, EvidencePack, FileDiffRecord, TestResultRecord } from "../types/evidence.js";
@@ -70,6 +71,8 @@ interface ActiveTaskExecution {
 }
 
 export interface TaskWorkerOptions {
+  requireEffectReceipts?: boolean;
+  workspaceIdentity?: string;
   repoRoot?: string;
   concurrency?: number;
   pollIntervalMs?: number;
@@ -90,6 +93,7 @@ const NO_EXECUTION_BACKEND: ExecutionReadiness = {
 };
 
 export class TaskWorkerRuntime {
+  private readonly runId = crypto.randomUUID();
   private activeWorkers = 0;
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
@@ -168,6 +172,7 @@ export class TaskWorkerRuntime {
   isRunning(): boolean { return this.running; }
   getActiveWorkerCount(): number { return this.running && this.canExecuteTasks() ? this.activeWorkers : 0; }
   getActiveTasksCount(): number { return this.activeTaskExecutions.size; }
+  isTaskExecuting(taskId: string): boolean { return this.activeTaskExecutions.has(taskId); }
 
   async tick(): Promise<void> {
     if (this.options.automaticDispatch === false) return;
@@ -190,22 +195,29 @@ export class TaskWorkerRuntime {
     if (task.status === "completed" || task.status === "cancelled") return task;
     if (this.activeTaskExecutions.has(taskId)) throw new Error(`Task ${taskId} is already executing`);
 
+    if (this.options.requireEffectReceipts && task.executionReceipts?.at(-1)?.status === "observed") return this.reconcileObservedExecution(taskId);
+    if (this.options.requireEffectReceipts) this.assertReplaySafe(task);
+    let receipt: ExecutionReceipt | undefined;
     const abortController = new AbortController();
     let settle!: () => void;
     const execution: ActiveTaskExecution = { abortController, startedAt: Date.now(), settled: new Promise<void>(resolve => { settle = resolve; }) };
     this.activeTaskExecutions.set(taskId, execution);
+    try {
     this.store.updateTask(taskId, { status: "in_progress", startedAt: task.startedAt || new Date().toISOString() });
     this.store.recordAudit({
       origin: "system", actorId: "system", actorType: "system", action: "TASK_EXECUTION_STARTED",
       targetType: "task", targetId: taskId, details: { title: task.title, readiness: this.getExecutionReadiness() },
     });
 
-    try {
       await this.executionBackend.validateTask?.(this.requireTask(taskId));
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
       const assignedTask = this.assignFirstAvailableAgent(this.requireTask(taskId));
       const worktreePath = await this.resolveWorktree(assignedTask);
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
+      if (this.options.requireEffectReceipts) {
+        receipt = beginReceipt(this.requireTask(taskId),this.options.workspaceIdentity??"",worktreePath,this.runId);
+        this.store.updateTask(taskId,{executionReceipts:[...(this.requireTask(taskId).executionReceipts??[]),receipt]});
+      }
       const processTrace = this.executionBackend.allowsGovernedProcesses === false
         ? undefined : await this.runGovernedProcess(this.requireTask(taskId), worktreePath);
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
@@ -232,6 +244,7 @@ export class TaskWorkerRuntime {
         targetType: "task", targetId: taskId,
         details: { packetId: contextPacket.id, sourceCount: contextPacket.sources.length, originalTokens: contextPacket.originalTokens, packedTokens: contextPacket.packedTokens },
       });
+      if (receipt) validateReceipt(currentTask,receipt,this.options.workspaceIdentity??"",worktreePath);
       const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket });
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
       const evidence = this.createEvidencePack(currentTask, output, processTrace);
@@ -252,8 +265,10 @@ export class TaskWorkerRuntime {
         evidence.approvalId = approval.id;
       }
 
+      const finalEvidence = sealEvidencePack({...evidence,verifiedPassed});
+      if(receipt){receipt=observeReceipt(receipt,finalEvidence);this.store.updateTask(taskId,{executionReceipts:this.requireTask(taskId).executionReceipts!.map(item=>item.operationId===receipt!.operationId?receipt!:item)});}
       const updated = this.store.updateTask(taskId, {
-        status: finalStatus, evidencePack: { ...evidence, verifiedPassed },
+        status: finalStatus, evidencePack: finalEvidence,
         completedAt: finalStatus === "completed" ? new Date().toISOString() : undefined,
         error: verifiedPassed ? undefined : "A required verification check or artifact failed or was not returned by the executor.",
       });
@@ -287,22 +302,24 @@ export class TaskWorkerRuntime {
     }
   }
 
+  async getPlanningContext(taskId: string): Promise<ContextPacket> { return this.buildWorkerContext(this.requireTask(taskId)); }
+
   private async buildWorkerContext(task: Task): Promise<ContextPacket> {
     const sources: ContextSource[] = [{ id: task.id, kind: "goal", text: `${task.title}\n${task.description}` }];
     const memory = this.options.memoryProvider;
     if (!memory) return buildContextPacket(sources);
     const queryText = `${task.title} ${task.description}`.slice(0, 2_000);
-    let records = await memory.query({
-      namespace: this.options.memoryNamespace || "workspace",
-      queryText,
-      projectId: task.projectId,
-      limit: 12,
-    });
-    if (!records.length) records = await memory.query({
-      namespace: this.options.memoryNamespace || "workspace",
-      categories: ["do_not_repeat", "project_constraint", "test_failure"],
-      projectId: task.projectId,
-      limit: 8,
+    const scope = { namespace: this.options.memoryNamespace || "workspace",
+      projectId: task.projectId, globalOnly: !task.projectId };
+    const [rules, topical] = await Promise.all([
+      memory.query({ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
+      memory.query({ ...scope, queryText, limit: 8 }),
+    ]);
+    const seen = new Set<string>();
+    const records = [...rules, ...topical].filter(({ record }) => {
+      if (seen.has(record.id)) return false;
+      seen.add(record.id);
+      return true;
     });
     for (const { record } of records) sources.push({
       id: record.id,
@@ -328,11 +345,14 @@ export class TaskWorkerRuntime {
     if (task.status !== "paused") throw new Error("Only paused tasks can be resumed.");
     const reason = this.getExecutionBlockReason();
     if (reason) throw new Error(reason);
+    if(this.options.requireEffectReceipts)this.assertReplaySafe(task);
     this.store.updateTask(taskId, { status: "ready" });
     this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_RESUMED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return this.executeTask(taskId);
   }
 
+  private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
+  reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');const status:TaskStatus=task.contract.completion.requireHumanApproval?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
   async cancelTask(taskId: string): Promise<Task> {
     const task = this.requireTask(taskId);
     if (task.status === "completed") throw new Error("Completed tasks cannot be cancelled.");
@@ -349,6 +369,7 @@ export class TaskWorkerRuntime {
     if (!["failed", "cancelled"].includes(task.status)) throw new Error("Only failed or cancelled tasks can be retried.");
     const reason = this.getExecutionBlockReason();
     if (reason) throw new Error(reason);
+    if(this.options.requireEffectReceipts)this.assertReplaySafe(task);
     this.store.updateTask(taskId, { status: "ready", error: undefined, evidencePack: undefined, completedAt: undefined });
     this.store.recordAudit({ origin: "web", actorId: "operator", actorType: "user", action: "TASK_RETRIED", targetType: "task", targetId: taskId, details: { previousStatus: task.status } });
     return this.executeTask(taskId);

@@ -99,11 +99,13 @@ describe("Compute Subsystem & Sandboxing (Section 36)", () => {
       });
       expect(args).toContain("--network");
       expect(args[args.indexOf("--network") + 1]).toBe("none");
+      expect(args).toContain("--pull=never");
       expect(args).toContain("--read-only");
       expect(args).toContain("--cap-drop");
       expect(args).toContain("--security-opt");
       expect(args).toContain("no-new-privileges");
-      expect(args).toContain("C:/isolated/task:/workspace:rw");
+      expect(args).toContain("C:/isolated/task:/workspace:ro");
+      expect(args).not.toContain("C:/isolated/task:/workspace:rw");
       expect(args).not.toContain("sh -c pnpm test");
     });
 

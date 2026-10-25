@@ -7,6 +7,7 @@ export type RealEmbeddingProviderConfig = {
   baseUrl?: string;
   model?: string;
   fallbackToHash: boolean;
+  requestTimeoutMs?: number;
 };
 
 export type EmbeddingProviderStatus = {
@@ -59,12 +60,14 @@ async function callOllamaEmbeddings(
   baseUrl: string,
   model: string,
   input: string | string[],
+  timeoutMs: number = 15000,
 ): Promise<number[][]> {
   const prompts = Array.isArray(input) ? input : [input];
   const results: number[][] = [];
   for (const prompt of prompts) {
     const res = await fetch(`${baseUrl}/api/embeddings`, {
       method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, prompt }),
     });
@@ -81,6 +84,7 @@ async function callOllamaEmbeddings(
 export class RealEmbeddingProvider implements EmbeddingProvider {
   private provider: OpenClawEmbeddingProvider | null = null;
   private status: EmbeddingProviderStatus;
+  private readonly requestTimeoutMs: number;
   private fallbackToHash: boolean;
   dimension: number = 128;
   private ollamaBaseUrl: string | null = null;
@@ -88,6 +92,8 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
 
   constructor(config: RealEmbeddingProviderConfig) {
     this.fallbackToHash = config.fallbackToHash;
+    this.requestTimeoutMs = config.requestTimeoutMs ?? 15000;
+    if (!Number.isSafeInteger(this.requestTimeoutMs) || this.requestTimeoutMs < 1) throw new Error("invalid embedding request timeout");
     this.ollamaBaseUrl = config.baseUrl || null;
     this.status = {
       active: false,
@@ -109,6 +115,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
         const model = this.status.model || "text-embedding-3-small";
         const res = await fetch("https://api.openai.com/v1/embeddings", {
           method: "POST",
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
@@ -130,6 +137,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
               embedQuery: async (text: string) => {
                 const queryRes = await fetch("https://api.openai.com/v1/embeddings", {
                   method: "POST",
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
                   body: JSON.stringify({ model, input: text }),
                 });
@@ -139,6 +147,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
               embedBatch: async (texts: string[]) => {
                 const batchRes = await fetch("https://api.openai.com/v1/embeddings", {
                   method: "POST",
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
                   body: JSON.stringify({ model, input: texts }),
                 });
@@ -164,6 +173,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
     try {
       const probe = await fetch(`${baseUrl}/api/embeddings`, {
         method: "POST",
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model, prompt: "probe" }),
       });
@@ -190,7 +200,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
   async embed(text: string): Promise<Embedding> {
     if (this.ollamaBaseUrl && this.ollamaModel) {
       try {
-        const results = await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, text);
+        const results = await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, text, this.requestTimeoutMs);
         return results[0];
       } catch (error) {
         console.warn(`[AgentForge] Ollama embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
@@ -215,7 +225,7 @@ export class RealEmbeddingProvider implements EmbeddingProvider {
   async embedBatch(texts: string[]): Promise<Embedding[]> {
     if (this.ollamaBaseUrl && this.ollamaModel) {
       try {
-        return await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, texts);
+        return await callOllamaEmbeddings(this.ollamaBaseUrl, this.ollamaModel, texts, this.requestTimeoutMs);
       } catch (error) {
         console.warn(`[AgentForge] Ollama batch embedding failed, falling back to hash: ${redactRuntimeError(error)}`);
       }

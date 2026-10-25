@@ -36,6 +36,19 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
 });
 describe("WorkspaceStore file persistence", () => {
+  it("rejects a stale second writer instead of erasing a first writer's changes", () => {
+    const snapshotPath = createSnapshotPath();
+    const first = new WorkspaceStore(snapshotPath);
+    const second = new WorkspaceStore(snapshotPath);
+    const retained = first.createWorkspace({ name: "First writer", description: "must survive" });
+
+    expect(() => second.createWorkspace({ name: "Stale writer", description: "must not overwrite" }))
+      .toThrow(/snapshot changed since this store loaded/i);
+    const reloaded = new WorkspaceStore(snapshotPath);
+    expect(reloaded.getWorkspace(retained.id)?.name).toBe("First writer");
+    expect(reloaded.listWorkspaces().some(workspace => workspace.name === "Stale writer")).toBe(false);
+  });
+
   it("starts a durable workspace without a pre-made project or channel", () => {
     const store = new WorkspaceStore(createSnapshotPath());
     expect(store.listWorkspaces()).toHaveLength(1);
@@ -452,6 +465,20 @@ describe("WorkspaceStore file persistence", () => {
     expect(fs.readFileSync(`${snapshotPath}.bak`, "utf-8")).toBe(backupBeforeRecovery);
     expect(() => JSON.parse(fs.readFileSync(snapshotPath, "utf-8"))).not.toThrow();
     expect(new WorkspaceStore(snapshotPath).getWorkspace(saved.id)?.name).toBe("Backup survives");
+  });
+
+  it("does not overwrite a newer primary while preparing backup recovery", () => {
+    const snapshotPath = createSnapshotPath();
+    const original = new WorkspaceStore(snapshotPath);
+    original.createWorkspace({ name: "Backup source", description: "recovery race" });
+    const validBackup = fs.readFileSync(`${snapshotPath}.bak`, "utf8");
+    fs.writeFileSync(snapshotPath, "{ corrupt", "utf8");
+
+    const recovering = new WorkspaceStore();
+    expect(recovering.loadFromFile(snapshotPath)).toBe("backup");
+    fs.writeFileSync(snapshotPath, validBackup, "utf8");
+    expect(() => recovering.saveToFile(snapshotPath)).toThrow(/snapshot changed since this store loaded/i);
+    expect(fs.readFileSync(snapshotPath, "utf8")).toBe(validBackup);
   });
 
   it("rejects unsupported snapshot versions and falls back to a valid backup", () => {

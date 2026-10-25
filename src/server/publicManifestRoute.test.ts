@@ -57,7 +57,10 @@ describe("public system manifest route", () => {
     expect(malformed.status).toBe(400);
     const unseen = await fetch(`${base}/api/browser/sessions/session-1/request-write`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ observation, action: { operation: "CLICK", targetIndex: 99, observationId: "obs-1" } }) });
     expect(unseen.status).toBe(400);
-    const approve = await fetch(`${base}/api/browser/sessions/session-1/approve-write`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ observationId: "obs-1" }) });
+    const unsignedApproval = await fetch(`${base}/api/browser/sessions/session-1/approve-write`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ observationId: "obs-1" }) });
+    expect(unsignedApproval.status).toBe(401);
+    const reviewerSession = server.store.createSession("user-owner");
+    const approve = await fetch(`${base}/api/browser/sessions/session-1/approve-write`, { method: "POST", headers: { "content-type": "application/json", Authorization: `Bearer ${reviewerSession.token}` }, body: JSON.stringify({ observationId: "obs-1" }) });
     expect(approve.status).toBe(200);
     await expect(approve.json()).resolves.toMatchObject({ operation: "CLICK" });
     const takeover = await fetch(`${base}/api/browser/sessions/session-1/takeover`, { method: "POST" });

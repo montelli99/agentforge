@@ -43,7 +43,8 @@ paths requires OpenClaw or Hermes.
 For starting, backing up, restoring, upgrading, and keeping a local deployment
 within its execution boundary, see the generic [local operations runbook](docs/LOCAL_OPERATIONS.md).
 
-The dated competitive and release-gap audit is [`docs/MARKET_AUDIT_2026-09-25.md`](docs/MARKET_AUDIT_2026-09-25.md). It is a research snapshot and must be refreshed before claiming market leadership or public-release readiness.
+Market-leadership and public-release claims require current public evidence;
+private or historical research snapshots are not release evidence.
 
 ---
 
@@ -92,10 +93,11 @@ The dated competitive and release-gap audit is [`docs/MARKET_AUDIT_2026-09-25.md
 
 ## 🚀 Quickstart
 
-For the complete clean-install and provider connection walkthrough, see
-[`docs/INSTALLATION.md`](docs/INSTALLATION.md). It includes the BotFather
-Telegram setup, optional MTProto, Discord, Slack, verification, and credential
-safety steps.
+For a clean install, see [`QUICKSTART.md`](QUICKSTART.md). Provider-specific
+connection and credential-safety guidance is in
+[`docs/CHAT_SETUP.md`](docs/CHAT_SETUP.md),
+[`docs/DISCORD_SETUP.md`](docs/DISCORD_SETUP.md), and
+[`docs/SLACK_SETUP.md`](docs/SLACK_SETUP.md).
 
 Choose a runtime model with [`docs/DEPLOYMENT_OPTIONS.md`](docs/DEPLOYMENT_OPTIONS.md):
 local workstation, approved Docker execution, always-on self-hosting, or a
@@ -153,7 +155,7 @@ This staging checkout ships without connected provider credentials, accounts, wo
 
 ## 📜 License
 
-Licensed under [Apache License 2.0](LICENSE). Third-party dependencies retain their respective licenses. See [the licensing decision](docs/LICENSE_DECISION_MATRIX.md).
+Licensed under [Apache License 2.0](LICENSE). Third-party dependencies retain their respective licenses.
 ### Public release readiness
 
 Run `pnpm release:audit` after building to inspect the public package, privacy gates, and owner-controlled publishing blockers. Publishing remains an explicit owner action.

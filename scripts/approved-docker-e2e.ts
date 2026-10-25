@@ -22,6 +22,7 @@ function git(cwd: string, args: string[]): string {
 }
 
 async function main(): Promise<void> {
+  const image = process.env.AGENTFORGE_APPROVED_DOCKER_IMAGE?.trim() || "node:22-alpine";
   const root = await mkdtemp(path.join(os.tmpdir(), "agentforge-approved-docker-"));
   try {
     git(root, ["init", "--initial-branch=main"]);
@@ -37,7 +38,7 @@ async function main(): Promise<void> {
     // fixture writable without changing the production Docker sandbox policy.
     await chmod(worktree.worktreePath, 0o777);
     const now = Date.now();
-    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e');require('node:fs').chmodSync('artifacts',0o777)\"";
+    const command = "node -e \"require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
     const task: Task = {
       id: taskId,
       projectId: "local-acceptance",
@@ -56,7 +57,7 @@ async function main(): Promise<void> {
         scope: { allowedPaths: ["artifacts/**"], protectedPaths: [".env"], maxFilesChanged: 1 },
         authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
         requiredChecks: [{ type: "custom_script", command, required: true }],
-        completion: { requireEvidencePack: true, requireHumanApproval: true },
+        completion: { requireEvidencePack: true, requireHumanApproval: true, requiredArtifacts: [{ path: "artifacts/verified.txt" }] },
         createdAt: new Date(now).toISOString(),
       },
       worktree,
@@ -74,7 +75,7 @@ async function main(): Promise<void> {
       expiresAt: new Date(now + 60 * 60 * 1_000).toISOString(),
     } : undefined);
     const backend = new ContractedDockerExecutionBackend(
-      new DockerComputeProvider({ maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1 }),
+      new DockerComputeProvider({ defaultImage: image, maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1 }),
       planProvider,
       { agentId: "agentforge-e2e" },
     );
@@ -103,7 +104,7 @@ async function main(): Promise<void> {
     }
     if (output.finalSha !== baseSha) throw new Error("Execution evidence reported an unexpected repository revision.");
     await manager.removeWorktree(worktree.worktreePath, true);
-    console.log("PASS: approved plan, isolated worktree, network-disabled Docker execution, and observed evidence verified.");
+    console.log(`PASS: approved plan, isolated worktree, network-disabled Docker execution with ${image}, and observed evidence verified.`);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

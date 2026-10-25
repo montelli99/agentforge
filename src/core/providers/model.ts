@@ -36,11 +36,16 @@ export interface ModelResponseUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  /** Included in promptTokens; never add these categories to totalTokens again. */
+  cachedInputTokens?: number;
+  cacheWriteInputTokens?: number;
   estimatedCostUsd?: number;
 }
 
 export interface ModelResponse {
   id: string;
+  /** Requested route remains in model; this is only what the provider returned, if present. */
+  reportedModel?: string;
   model: string;
   content: string;
   toolCalls?: Array<{
@@ -48,8 +53,14 @@ export interface ModelResponse {
     type: "function";
     function: { name: string; arguments: string };
   }>;
-  usage: ModelResponseUsage;
+  /** Undefined means provider did not report valid token accounting; never infer zero. */
+  usage?: ModelResponseUsage;
   finishReason?: string;
+}
+
+/** Model identifiers are metadata; reject arbitrary provider text before persistence. */
+export function isReportedModelId(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(value);
 }
 
 export interface StreamChunk {
@@ -71,5 +82,8 @@ export interface GenerativeModelProvider {
   isAvailable(): Promise<boolean>;
   listModels(): Promise<string[]>;
   generate(options: ModelRequestOptions): Promise<ModelResponse>;
+  /** Exact credential-free body sent by generate, when the provider supports request auditing. */
+  auditGenerateBody?(options: ModelRequestOptions): string | undefined;
   stream(options: ModelRequestOptions): AsyncIterable<StreamChunk>;
 }
+export class ModelProviderError extends Error { constructor(message:string, readonly usage?:ModelResponseUsage, readonly responseDigest?:string){super(message);this.name="ModelProviderError";} }

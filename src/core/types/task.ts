@@ -31,6 +31,8 @@ export interface TaskWorktreeInfo {
 }
 
 export interface Task {
+  executionReceipts?: import("../runtime/executionReceipt.js").ExecutionReceipt[];
+  planningAudits?: import("../runtime/executionReceipt.js").PlanningAudit[];
   id: string;
   projectId: string;
   title: string;

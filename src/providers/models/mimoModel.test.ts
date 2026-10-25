@@ -8,12 +8,13 @@ describe("MiMoModelProvider thinking control", () => {
     const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
       const body = JSON.parse(String(init.body)) as { thinking?: { type: string } };
       expect(body.thinking).toEqual({ type: "disabled" });
-      return new Response(JSON.stringify({ id: "response-1", choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }), { status: 200 });
+      return new Response(JSON.stringify({ id: "response-1", model:"mimo-v2.5-pro-20260930", choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }), { status: 200 });
     });
     vi.stubGlobal("fetch", fetchMock);
     const response = await new MiMoModelProvider("test-key", "https://example.invalid/v1")
       .generate({ model: "mimo-v2.5-pro", messages: [], thinking: "disabled" });
     expect(response.content).toBe("{}");
+    expect(response.reportedModel).toBe("mimo-v2.5-pro-20260930");
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 

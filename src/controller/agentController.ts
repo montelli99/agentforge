@@ -33,17 +33,17 @@ export class AgentForgeController {
     const intent = decision.selectedCandidate as ControllerIntent;
     const requiresApproval = intent === "execute";
     const channelScope = typeof context?.channelId === "string" ? context.channelId : undefined;
-    const rememberedRaw = this.memory
-      ? await this.memory.query({ namespace: "agentforge-controller", projectId: channelScope, queryText: input.slice(0, 500), limit: 5 })
-      : [];
-    const remembered = channelScope ? rememberedRaw.filter(({ record }) => record.projectId === channelScope) : rememberedRaw;
-    // A short natural-language request often shares no literal token with a
-    // durable safety rule. In that case include the newest bounded controller
-    // rules rather than silently handing the decision engine an empty memory.
-    const fallbackRaw = remembered.length || !this.memory ? remembered : await this.memory.query({
-      namespace: "agentforge-controller", projectId: channelScope, categories: ["do_not_repeat", "project_constraint"], limit: 5,
+    const scope = { namespace: "agentforge-controller", projectId: channelScope, globalOnly: !channelScope };
+    const [rules, topical] = this.memory ? await Promise.all([
+      this.memory.query({ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 3 }),
+      this.memory.query({ ...scope, queryText: input.slice(0, 500), limit: 5 }),
+    ]) : [[], []];
+    const seen = new Set<string>();
+    const remembered = [...rules, ...topical].filter(({ record }) => {
+      if (seen.has(record.id)) return false;
+      seen.add(record.id);
+      return true;
     });
-    const fallbackMemory = channelScope ? fallbackRaw.filter(({ record }) => record.projectId === channelScope) : fallbackRaw;
     return {
       intent: candidates.includes(intent) ? intent : "route",
       decision,
@@ -54,7 +54,7 @@ export class AgentForgeController {
       contextPacket: buildContextPacket([
         { id: "controller-input", kind: "goal", text: input },
         { id: decision.requestId, kind: "decision", text: `${decision.selectedCandidate}: ${decision.rankings[0]?.reason || "JEv classification"}` },
-        ...fallbackMemory.map(({ record }) => ({ id: record.id, kind: "memory" as const, updatedAt: record.updatedAt || record.createdAt,
+        ...remembered.map(({ record }) => ({ id: record.id, kind: "memory" as const, updatedAt: record.updatedAt || record.createdAt,
           text: `${record.title}\n${record.content}` })),
       ]),
     };

@@ -35,6 +35,8 @@ export type SemanticResult = {
 export interface EmbeddingProvider {
   embed(text: string): Promise<Embedding>;
   dimension: number;
+  embedDocument?(text: string): Promise<Embedding>;
+  embedQuery?(text: string): Promise<Embedding>;
 }
 
 /** Optional durable boundary for semantic entries. Implementations must apply
@@ -99,6 +101,7 @@ export class SemanticMemory {
   }
 
   async store(params: {
+    id?: string;
     prompt: string;
     response: unknown;
     tenantId: string;
@@ -107,10 +110,10 @@ export class SemanticMemory {
     metadata?: Record<string, unknown>;
   }): Promise<SemanticEntry> {
     await this.ensureLoaded();
-    const embedding = await this.embeddingProvider.embed(params.prompt);
+    const embedding = await (this.embeddingProvider.embedDocument ? this.embeddingProvider.embedDocument(params.prompt) : this.embeddingProvider.embed(params.prompt));
 
     const entry: SemanticEntry = {
-      id: `sem_${hashText(params.prompt)}`,
+      id: params.id ?? `sem_${hashText(params.prompt)}`,
       prompt: params.prompt,
       response: params.response,
       embedding,
@@ -132,7 +135,7 @@ export class SemanticMemory {
 
   async query(query: SemanticQuery): Promise<SemanticResult> {
     await this.ensureLoaded();
-    const queryEmbedding = await this.embeddingProvider.embed(query.prompt);
+    const queryEmbedding = await (this.embeddingProvider.embedQuery ? this.embeddingProvider.embedQuery(query.prompt) : this.embeddingProvider.embed(query.prompt));
     const threshold = query.threshold || this.defaultThreshold;
     const topK = query.topK || 5;
 

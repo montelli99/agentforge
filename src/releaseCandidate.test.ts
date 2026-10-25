@@ -3,7 +3,7 @@
  * Sections 2 - 48: Real Integrations, Governance, Conflict Guards, and Hardening
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import path from "node:path";
 import { PROVIDER_READINESS_REGISTRY } from "./core/types/providerReadiness.js";
 import { PiHarnessProvider } from "./providers/harness/piHarness.js";
@@ -199,10 +199,17 @@ describe("AgentForge vNext — Release Candidate Verification Suite", () => {
 
   describe("Section 6 & 7: Model Provider Standards (Ollama & OpenAI-Compatible)", () => {
     it("should verify dynamic discovery in Ollama without assuming hardcoded models", async () => {
-      const ollama = new OllamaModelProvider("http://localhost:11434");
-      // listModels queries tags dynamically and does not throw even if daemon is offline
-      const models = await ollama.listModels();
-      expect(Array.isArray(models)).toBe(true);
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+        models: [{ name: "offline-fixture:latest" }],
+      }), { status: 200, headers: { "content-type": "application/json" } }));
+      try {
+        const ollama = new OllamaModelProvider("http://ollama.invalid");
+        const models = await ollama.listModels();
+        expect(models).toEqual(["offline-fixture:latest"]);
+        expect(fetchMock).toHaveBeenCalledWith("http://ollama.invalid/api/tags", expect.any(Object));
+      } finally {
+        fetchMock.mockRestore();
+      }
     });
 
     it("should support custom baseUrl for OpenAI-compatible gateway without hardcoded models", () => {

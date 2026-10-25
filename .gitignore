@@ -52,3 +52,14 @@ all_markdown_files/
 .playwright-mcp/
 reports/
 design/prototypes/
+# Offline ledgers and diagnostics can retain workspace paths and raw model output.
+# Publish only sanitized, reviewed summaries from docs/research.
+research/results/offline-*.json
+research/results/offline-*.json.af-memory/
+research/results/mechanics-20??-??-??T*/
+research/results/production-adapter-smoke.json
+
+# Local operator research notes and one-off visual experiments are not public docs.
+docs/research/APOLLO_*_20260930.md
+scratch-*
+research/results/staged-container-controls.json

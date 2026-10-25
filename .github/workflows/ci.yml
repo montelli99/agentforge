@@ -33,6 +33,11 @@ jobs:
       - name: Clean Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare isolated acceptance images
+        run: |
+          docker pull alpine:latest
+          docker pull node:22-alpine
+
       # This gate inspects the exact npm archive and exercises the approved
       # execution path in a network-disabled Docker container.
       - name: Verify public release boundary
@@ -43,6 +48,19 @@ jobs:
           OPENAI_API_KEY: ""
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
+
+      - name: Package exact verified commit
+        run: |
+          mkdir -p release-output
+          npm pack --pack-destination release-output
+          git rev-parse HEAD > release-output/COMMIT.txt
+          sha256sum release-output/*.tgz > release-output/SHA256SUMS.txt
+
+      - name: Retain verified release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentforge-${{ github.sha }}
+          path: release-output/
 
   test:
     name: Build & Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
