@@ -54,7 +54,19 @@ describe("server-owned conversations", () => {
     await expect(runtime.changeConnection(async()=>({provider:model,models:['other']}))).rejects.toThrow('active responses');
     reject(Error('unlock failed'));await expect(changing).rejects.toThrow('unlock failed');
     expect(runtime.status().models).toEqual(['synthetic']);
-    await runtime.respond(f.thread.id,f.prompt().id,'synthetic','owner',f.response);
+    const prompt=f.prompt();
+    const writeHead=vi.spyOn(f.response,'writeHead');
+    const save=vi.spyOn(f.store,'createMessage').mockImplementationOnce(()=>{throw Error('synthetic storage failure');});
+    await expect(runtime.respond(f.thread.id,prompt.id,'synthetic','owner',f.response)).rejects.toThrow('synthetic storage failure');
+    expect(runtime.status().activeThreads).toEqual([]);expect(writeHead).not.toHaveBeenCalled();save.mockRestore();
+    await runtime.respond(f.thread.id,prompt.id,'synthetic','owner',f.response);
+    expect(f.store.listThreadMessages(f.thread.id).at(-1)?.generation?.status).toBe('complete');
+    let finish!:(value:{provider:GenerativeModelProvider;models:string[]})=>void;
+    const late=runtime.changeConnection(()=>new Promise(resolve=>{finish=resolve;}));
+    runtime.shutdown();finish({provider:model,models:['late-model']});
+    await expect(late).rejects.toThrow('service has stopped');
+    expect(runtime.status().models).toEqual(['synthetic']);
+    expect(()=>runtime.modelConnection('synthetic')).toThrow('available model');
   });
   it("finishes and saves after the subscriber disconnects", async () => {
     const f = fixture(); const prompt = f.prompt();
