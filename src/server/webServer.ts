@@ -1,5 +1,5 @@
 import { ConnectionSetup } from './connectionSetup.js';
-import {reviewMemoryImport} from './memoryImport.js';
+import {reviewMemoryImport, MemoryImportValidationError} from './memoryImport.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
 import { inspectClaudeCliAuthentication } from '../providers/models/claudeCliCapabilities.js';
 import { inspectGeminiCliCapabilities } from '../providers/models/geminiCliCapabilities.js';
@@ -2989,15 +2989,15 @@ export class AgentForgeWebServer {
       if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
       const body = await this.readBody(req);
       try {
-        if (typeof body.namespace !== 'string' || !['review','commit'].includes(String(body.action))) throw Error('Choose review or commit and a collection.');
+        if (typeof body.namespace !== 'string' || !['review','commit'].includes(String(body.action))) throw new MemoryImportValidationError('Choose review or commit and a collection.');
         const review = reviewMemoryImport(body.archive, body.namespace, this.store);
         if (body.action === 'review') {
           res.writeHead(200); res.end(JSON.stringify({digest: review.digest, items: review.items, imported: review.imported, unchanged: review.unchanged})); return;
         }
-        if (body.confirm !== true || body.digest !== review.digest) throw Error('Review this exact batch again before confirming import.');
+        if (body.confirm !== true || body.digest !== review.digest) throw new MemoryImportValidationError('The reviewed batch or saved collection changed. Choose the export again and review before confirming.');
         const result = this.store.importOperationalMemoryBatch(review.records, caller.user?.id || 'local-owner');
         res.writeHead(200); res.end(JSON.stringify(result));
-      } catch { res.writeHead(409); res.end(JSON.stringify({error: 'Import could not proceed. Check the collection, active project identities, supported export format and conflicting records; review again. Nothing was overwritten.'})); }
+      } catch (error) { res.writeHead(409); res.end(JSON.stringify({error: error instanceof MemoryImportValidationError ? error.message : 'The import could not be saved. Reload the collection and review again. No existing records were overwritten.'})); }
       return;
     }
 

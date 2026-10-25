@@ -36,7 +36,9 @@ it('reviews without writing, requires authorized exact confirmation, and persist
     const replay=await(await request(body,writer)).json();expect(replay.unchanged).toBe(1);
     expect((await request({...body,action:'commit',digest:replay.digest,confirm:true},writer)).status).toBe(200);
     expect((await request({...body,archive:{...archive,records:[{...record,content:'conflict'}]}},writer)).status).toBe(409);
-    expect((await request({...body,archive:{...archive,records:[{...record,id:'other',projectId:'missing-project'}]}},writer)).status).toBe(409);
+    const missingProject=await request({...body,archive:{...archive,records:[{...record,id:'other',projectId:'missing-project'}]}},writer);
+    expect(missingProject.status).toBe(409);
+    expect((await missingProject.json()).error).toContain('project is missing or archived');
     expect((await request({...body,namespace:'different'},writer)).status).toBe(409);
     expect(new WorkspaceStore(file).listOperationalMemories('fixture')).toEqual([record]);
     expect(store.listAuditEntries().filter(entry=>entry.action==='memory_batch_imported')).toHaveLength(1);

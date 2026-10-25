@@ -1,3 +1,22 @@
+## Exact-build checkpoint — 2026-10-25
+
+Revision `2584e236f710322e95f977ef3dbc1d57c4775f51` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40231877867)
+and the exact-commit artifact verifier. The downloaded npm tarball SHA-256 is
+`179e4ce5b7b7bf3f82d8a5f2920a88dd806eee56b0203017c244f2ad17761b59`.
+A clean installation passed starter creation/validation and authenticated HTTP
+memory review/import, server-object restart with disk reload, revision-history
+preservation and duplicate-import prevention. This was not browser acceptance
+or an OS-process crash. Later changes need their own exact-build verification.
+
+A separate four-request live synthetic diagnostic on that revision scored 2/2
+for memory prefetch and 0/2 for recent-context-only, with valid JSON in all four
+responses and no provider failures. It did not reproduce the earlier failures;
+it does not replace the earlier held-out score or establish competitor superiority.
+Reported usage totaled 55,769 tokens; dollar cost remains unmeasured. The retained
+local diagnostic report SHA-256 is
+`71d88196686a42369d564f86b881fcecc03c0c3b2e4b87ed29cb7576741fe085`.
+
 ## Latest verified package checkpoint — 2026-10-25
 
 Revision `c81a3826eeaf2eb38c4f07685f18b6a4c7fc060c` passed all seven
@@ -285,4 +304,5 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 - September 27, 2026: `pnpm release:audit` passed all ten local public-release gates. It reports `packageReady: true`, with no local privacy, license, manifest, package-surface, or CLI blockers.
 - September 27, 2026: focused native-channel verification passed 19 tests across Telegram BotFather, Telegram native-path selection, Telegram relay protection, Slack Socket Mode, and Discord Gateway transport.
 - The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
+
 
