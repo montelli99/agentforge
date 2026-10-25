@@ -87,13 +87,16 @@ describe("Setup Guide API", () => {
     const originalFetch=globalThis.fetch;
     const transport=vi.spyOn(globalThis,'fetch').mockImplementation((input,init)=>String(input).startsWith('https://api.hindsight.vectorize.io/')?Promise.resolve(Response.json({results:[]})):originalFetch(input,init));
     try{
-      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action:'hindsight',bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret'});
+      for(const action of ['hindsight','combined']){
+      const expectedProvider=action==='combined'?'composite':'hindsight';
+      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action,bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret'});
       expect(cloud.status).toBe(200);expect(await cloud.text()).not.toContain('synthetic-hindsight-secret');
-      expect(server.conversations.status().memoryProvider).toBe('hindsight');
+      expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
       expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
       expect((await request('/api/memory/connection',owner,{action:'disconnect',projectId:project.id})).status).toBe(200);
       expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
-      expect(server.conversations.status().memoryProvider).toBe('hindsight');
+      expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
+      }
     }finally{transport.mockRestore();}
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
