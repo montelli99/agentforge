@@ -51,6 +51,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
+      - name: Verify Docker survivor discovery after worker death
+        run: pnpm test:execution:docker-crash
+
       - name: Package exact verified commit
         run: |
           mkdir -p release-output

@@ -31,6 +31,16 @@ removal remains a separate tracked request until the hosting provider confirms i
 
 ## October 25 progress
 
+The real Docker interruption proof now kills the AgentForge worker after an
+approved synthetic file effect, reopens the durable store with a new runtime,
+and finds the still-running container by workspace and operation labels. It
+rejects both replay and automatic completion of the uncertain receipt, presents
+the task as paused, and observes exactly one effect. A different operation ID
+finds no container. Fixture cleanup removes its own containers and worktree.
+Run `pnpm test:execution:docker-crash`; hosted public-package acceptance now runs
+this proof before retaining the release artifact. This covers discovery and
+duplicate prevention, not automatic effect reconciliation or recovery UI.
+
 Live MiMo V2.6 Flash generated a two-command plan for a synthetic sales summary
 in 8.457 seconds (458 input / 357 output tokens). After agent review and explicit
 digest selection under owner-authorized testing, the governed worker ran it in

@@ -7,6 +7,33 @@ import os from 'node:os';
 import { WindowsDirectCredentialBackend } from './windowsDirectCredentialBackend.js';
 const mockCredentials = (): DirectCredentials => ({ clientId: 'mock-client', subject: 'mock-subject', issuer: 'https://auth.openai.com', resource: 'https://api.openai.com/v1', accessToken: 'mock-access', refreshToken: 'mock-refresh', idToken: 'mock-id', tokenType: 'Bearer', scopes: ['resource.invoke', 'chatgpt.tokens.use.direct'], expiresAt: Date.now() + 60000 });
 describe('platform token-store contract and Windows persistence', () => {
+  it('rejects malformed recovered records on ordinary and transaction reads without mutating storage', async () => {
+    const invalid = [null, false, [], {}, ...[
+      {accessToken: ''}, {accessToken: 'token\nheader'}, {idToken: 7}, {refreshToken: false},
+      {authenticationNonce: ''}, {renewalPending: 'false'}, {expiresAt: 0}, {expiresAt: 1.5},
+      {scopes: ['resource.invoke']}, {scopes: ['resource.invoke', 'chatgpt.tokens.use.direct', null]},
+    ].map(change => ({...mockCredentials(), ...change}))];
+    for (const value of invalid) {
+      const record = {read: async () => value as DirectCredentials, replace: vi.fn(), remove: vi.fn()};
+      const backend = {protection: 'platform-user-protected' as const, ...record,
+        transaction: async <T>(_key: string, operation: (locked: typeof record) => Promise<T>) => operation(record)};
+      const store = new DirectTokenStore(backend);
+      await expect(store.read('mock-client', 'mock-subject')).rejects.toThrow('Invalid credential record');
+      await expect(store.transaction('mock-client', 'mock-subject', locked => locked.read())).rejects.toThrow('Invalid credential record');
+      expect(record.replace).not.toHaveBeenCalled();
+      expect(record.remove).not.toHaveBeenCalled();
+    }
+  });
+  it('retains expired records and interrupted renewal intent for explicit recovery', async () => {
+    const value = {...mockCredentials(), expiresAt: 1, renewalPending: true};
+    const record = {read: async () => value, replace: vi.fn(), remove: vi.fn()};
+    const store = new DirectTokenStore({protection: 'platform-user-protected', ...record,
+      transaction: async (_key, operation) => operation(record)});
+    expect(await store.read(value.clientId, value.subject)).toEqual(value);
+    expect(await store.transaction(value.clientId, value.subject, locked => locked.read())).toEqual(value);
+    await expect(store.replace(value)).rejects.toThrow('Invalid credential record');
+    expect(record.replace).not.toHaveBeenCalled();
+  });
   it.skipIf(process.platform !== 'win32')('round-trips synthetic records through real Windows DPAPI and rejects tampering', async () => {
     const directory=await fs.mkdtemp(path.join(os.tmpdir(),'af-dpapi-'));
     try {

@@ -36,6 +36,7 @@
     "test:persistence:launcher": "node scripts/persistence-acceptance.mjs",
     "test:persistence:crash": "node scripts/persistence-crash-recovery.mjs",
     "test:execution:crash": "node --import tsx scripts/execution-crash-proof.ts",
+    "test:execution:docker-crash": "node --import tsx scripts/docker-execution-crash-proof.ts",
     "test:persistence:concurrency": "node scripts/workspace-concurrency-acceptance.mjs",
     "test:package:cli": "node scripts/package-cli-acceptance.mjs",
     "test:package:surface": "node scripts/public-package-acceptance.mjs",
