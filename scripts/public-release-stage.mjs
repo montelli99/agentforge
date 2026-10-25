@@ -40,6 +40,7 @@ export const publicReleaseAllowlist = [
   "docs/APPROVAL_EXECUTION_MAP.md",
   "docs/BROWSER_OPERATIONS.md",
   "docs/CHAT_SETUP.md",
+  "docs/CONVERSATION_EXECUTION.md",
   "docs/COMPLETION_AUDIT_2026-09-27.md",
   "docs/CURRENT_BUILD_RECEIPT_2026-10-03.md",
   "docs/DEPLOYMENT_ACCEPTANCE_CHECKLIST.md",
