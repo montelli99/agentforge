@@ -100,3 +100,16 @@ Do not tune against these cases and then relabel them held-out.
 
 Report SHA-256: `5b11c9b5dc8b69f79e770dea5b5da1c1244c2ecd724a77b06c895b91c6430f7a`.
 Protocol SHA-256: `cd276efcb47aac72b48e922b651db43595f15cb1d4180c9f46e32f302134f561`.
+
+Diagnostic response retention reproduced a real UNKNOWN answer despite the correct
+retrieved value being present before roughly 95k characters of unrelated history.
+Retrieved passages now sit immediately before the current request, with source
+sequence numbers, chronological presentation and recent-first relevance ties.
+Fresh diagnostic instances scored 2/2 with prefetch and 0/2 without it after the
+change (previous diagnostic 1/2 versus 0/2). This small, unpaired diagnostic is
+not a causal proof or held-out release score. Original results remain intact.
+Eight conversation tests and full typechecking passed.
+
+`memory-diagnostic-v2.json: f9f5647b8c1a7b20bd2171317180975d2d4de71c65d8ef770ed176cb5b570b3c`
+
+`memory-diagnostic-v2-near-query.json: 83c04aeb0ed77f41a12cfbcbce431d5968fe737653d57c0fb7708b09b92aa62a`
