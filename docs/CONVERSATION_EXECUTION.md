@@ -68,7 +68,7 @@ These results establish narrow live capabilities, not comparative product
 superiority. The task was pre-approved and fixed; autonomous planning was not
 evaluated. Reopening the store is not a process-crash experiment. The memory
 example was used during development, not a held-out benchmark. Monetary cost
-is unmeasured, and streaming token usage is not currently exposed. Broader
+is unmeasured. Provider-reported per-request token usage is now persisted and displayed when supplied; missing usage stays unknown. Broader
 held-out workloads and independently reproducible baselines are still needed.
 
 Reproduce with `scripts/conversation-execution-e2e.ts` using
@@ -77,3 +77,9 @@ Reproduce with `scripts/conversation-execution-e2e.ts` using
 `AGENTFORGE_PROOF_MODEL` and private `MIMO_API_KEY`. Set
 `AGENTFORGE_PROOF_OUTPUT` outside the project for the JSON result. Live runs
 consume provider quota; they are never enabled by normal CI.
+
+## Selectable project memory
+
+Chat recall and worker context accept the shared MemoryProvider interface. The Memory screen offers Connect notes for explicit Obsidian Markdown selections. An owner or administrator selects a project and files and acknowledges that their contents may reach the configured model and task workers. No vault scanning or note writes occur. Optional encrypted saving supports explicit restore after restart; forgetting clears the saved selection without modifying notes.
+
+Currently one selected source is active through this setup flow. Chat disconnect disables its source; the task worker returns to its previously configured local memory. The saved-memory list still shows local records, not a merged vault browser. Multi-project saved configurations, composition and Hindsight remain unfinished. Lookup waiting is bounded to 15 seconds and supports cancellation; a provider ignoring cancellation may continue its own work. Browser acceptance is not yet demonstrated.
