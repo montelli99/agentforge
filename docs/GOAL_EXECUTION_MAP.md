@@ -252,3 +252,12 @@ started event, and verifies a fresh writer cannot overwrite that attempt.
 The local regression and full typecheck passed. This establishes this specific
 post-checkpoint process-termination case, not power-loss survival, termination
 during a write, or knowledge of an uncertain remote provider's billing/result.
+
+The live planning proof now journals its start and every planning/usage audit
+before proceeding, records failed/uncertain outcomes, and refuses to overwrite
+an earlier run. It still never approves or executes its draft. A dedicated
+TypeScript check covering the planning and ablation scripts (normally excluded
+by the source tsconfig) found a missing baseSha field in the planning-only
+fixture. The unbound revision is now explicitly empty until the separate
+execution harness supplies the disposable checkout revision. Both scripts pass
+their dedicated check. No paid request was repeated for this change.
