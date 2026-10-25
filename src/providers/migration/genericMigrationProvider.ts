@@ -168,21 +168,8 @@ export class GenericMigrationProvider implements MigrationProvider {
       throw new Error('Migration agent identities are invalid, repeated or already present; nothing was imported');
     }
     const runId = `run-generic-${randomUUID()}`;
-    targetStore.recordAudit({ origin: 'system', actorId: this.id, actorType: 'system',
-      action: 'generic_migration_started', targetType: 'system', targetId: runId,
-      details: { schema: 1, expectedIds: JSON.stringify(plannedIds) } });
-    let importedCount=0;
-    const agents: AgentTeammate[] = [];
-    for (const item of plan.items) {
-      if (item.targetCategory === "agent" && item.canonicalPayload) {
-        const created=targetStore.createAgent(item.canonicalPayload as any);
-        agents.push(structuredClone(created));
-        importedCount++;
-      }
-    }
-    targetStore.recordAudit({ origin: 'system', actorId: this.id, actorType: 'system',
-      action: 'generic_migration_completed', targetType: 'system', targetId: runId,
-      details: { schema: 1, agentHashes: JSON.stringify(agents.map(agent => ({ id: agent.id, sha256: agentDigest(agent) }))) } });
+    const agents = targetStore.importAgentBatch(plan.items.map(item => item.canonicalPayload as Omit<AgentTeammate, 'createdAt' | 'updatedAt'>), this.id, runId);
+    const importedCount = agents.length;
     this.runs.set(runId,{agents,expected:plan.items.length,store:targetStore});
     return { runId, importedCount };
   }

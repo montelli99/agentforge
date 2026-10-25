@@ -638,6 +638,18 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       try {
         const file = path.join(receiptDirectory, 'workspace.json');
         const durableStore = new WorkspaceStore(file);
+        const staleStore = new WorkspaceStore(file);
+        durableStore.recordAudit({ origin: 'system', actorId: 'synthetic', actorType: 'system', action: 'concurrent-write', targetType: 'system', targetId: 'test', details: {} });
+        const beforeAgents = staleStore.listAgents();
+        const beforeAudits = staleStore.listAuditEntries(10000);
+        const beforeDisk = fs.readFileSync(file, 'utf8');
+        const batchManifest = structuredClone(stagingManifest);
+        batchManifest.agents.push({ ...batchManifest.agents[0]!, id: 'second-batch-agent' });
+        await expect(gen.importToStore(await gen.plan(await gen.inspect(batchManifest)), staleStore)).rejects.toThrow('snapshot changed');
+        expect(staleStore.listAgents()).toEqual(beforeAgents);
+        expect(staleStore.listAuditEntries(10000)).toEqual(beforeAudits);
+        expect(fs.readFileSync(file, 'utf8')).toBe(beforeDisk);
+        expect(staleStore.verifyAuditChain().valid).toBe(true);
         const durablePlan = await gen.plan(await gen.inspect(stagingManifest));
         const durableRun = await gen.importToStore(durablePlan, durableStore);
         const restoredStore = new WorkspaceStore(file);

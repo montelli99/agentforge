@@ -494,6 +494,34 @@ export class WorkspaceStore {
   }
 
   // --- Agents ---
+  /** Commit an offline migration batch and its verification receipts in one snapshot. */
+  importAgentBatch(agents: Array<Omit<AgentTeammate, 'createdAt' | 'updatedAt'>>, actorId: string, runId: string): AgentTeammate[] {
+    if (!agents.length || !actorId || !runId || new Set(agents.map(agent => agent.id)).size !== agents.length
+      || agents.some(agent => !agent.id || this.agents.has(agent.id))) throw Error('Invalid or conflicting migration batch');
+    const now = new Date().toISOString();
+    const created = structuredClone(agents).map(agent => ({ ...agent, createdAt: now, updatedAt: now }));
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
+    try {
+      for (const agent of created) this.agents.set(agent.id, agent);
+      const common = { origin: 'system' as const, actorId, actorType: 'system' as const, targetType: 'system' as const, targetId: runId };
+      this.appendAuditEntry({ ...common, action: 'generic_migration_started', details: { schema: 1, expectedIds: JSON.stringify(created.map(agent => agent.id)) } });
+      this.appendAuditEntry({ ...common, action: 'generic_migration_completed', details: { schema: 1,
+        agentHashes: JSON.stringify(created.map(agent => ({ id: agent.id, sha256: crypto.createHash('sha256').update(JSON.stringify(agent)).digest('hex') }))) } });
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const agent of created) this.agents.delete(agent.id);
+      this.auditEntries = priorAudit;
+      this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    // Notify only after the single durable commit; observers never see a partial batch.
+    for (const agent of created) for (const listener of this.realtimeListeners) {
+      try { listener({ type: 'agent_created', entity: 'agent', data: structuredClone(agent) }); } catch { /* committed state is unchanged */ }
+    }
+    return structuredClone(created);
+  }
+
   createAgent(agent: Omit<AgentTeammate, "createdAt" | "updatedAt" | "id"> & { id?: string }): AgentTeammate {
     const id = agent.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
     if (this.agents.has(id)) throw new Error(`Agent ${id} already exists`);
