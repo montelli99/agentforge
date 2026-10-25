@@ -101,7 +101,7 @@ export interface MigrationVerification {
     details: string;
   }>;
   overallPassed: boolean;
-  privilegeExpansionDetected: boolean; // Verification must report observed authority changes.
+  privilegeExpansionDetected: boolean | null; // Null means the available receipt cannot establish authority changes.
 }
 
 export interface MigrationComparison {

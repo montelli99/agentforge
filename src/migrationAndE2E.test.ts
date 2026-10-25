@@ -634,6 +634,22 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const tamperedPlan = await gen.plan(await gen.inspect(stagingManifest));
       tamperedPlan.items[0]!.canonicalPayload!.permissions = ['workspace:write'];
       await expect(gen.importToStore(tamperedPlan, new WorkspaceStore())).rejects.toThrow('unknown or changed');
+      const receiptDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-migration-receipt-'));
+      try {
+        const file = path.join(receiptDirectory, 'workspace.json');
+        const durableStore = new WorkspaceStore(file);
+        const durablePlan = await gen.plan(await gen.inspect(stagingManifest));
+        const durableRun = await gen.importToStore(durablePlan, durableStore);
+        const restoredStore = new WorkspaceStore(file);
+        const restoredProvider = new GenericMigrationProvider();
+        expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(true);
+        restoredStore.updateAgent('custom-manifest-agent', { description: 'Changed after restart' });
+        expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(false);
+        restoredStore.recordAudit({ origin: 'system', actorId: 'migration-generic', actorType: 'system',
+          action: 'generic_migration_started', targetType: 'system', targetId: 'unfinished-run',
+          details: { schema: 1, expectedIds: JSON.stringify(['custom-manifest-agent']) } });
+        expect((await restoredProvider.verify('unfinished-run', new WorkspaceStore(file))).overallPassed).toBe(false);
+      } finally { fs.rmSync(receiptDirectory, { recursive: true, force: true }); }
       await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
       await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
       await expect(gen.inspect(null)).rejects.toThrow('Invalid generic');

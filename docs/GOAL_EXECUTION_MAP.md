@@ -182,3 +182,12 @@ plans and snapshot accepted input before awaiting preflight. Regression checks
 cover changed permissions, another target store, tampered plans and collisions;
 25 tests passed. These receipts are still in memory and do not establish durable
 rollback, runtime equivalence or production migration acceptance.
+
+Staging import now writes a start receipt before creation and a completion
+receipt with record SHA-256 values through the existing durable audit store.
+A fresh provider/store instance verifies unchanged records against those
+receipts and the audit chain. Missing completion, changed records, invalid
+receipts and pruned receipts fail verification; no automatic retry occurs.
+Authority-change status is unknown when only an unverifiable durable receipt
+remains. The synthetic disk-reload regression passed within the 25-test suites;
+this is not an operating-system crash test or an atomic rollback implementation.

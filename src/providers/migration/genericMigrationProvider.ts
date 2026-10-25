@@ -3,7 +3,7 @@
  * Sections 21 & 22: Generic Migration Manifest & Extensible SDK
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import type { MigrationProvider } from "../../core/providers/migration.js";
 import type {
@@ -21,6 +21,8 @@ import type {
 import type { WorkspaceStore } from "../../core/store/workspaceStore.js";
 import type { AgentTeammate } from "../../core/types/agent.js";
 import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.js";
+
+const agentDigest = (agent: AgentTeammate) => createHash('sha256').update(JSON.stringify(agent)).digest('hex');
 
 export class GenericMigrationProvider implements MigrationProvider {
   private inspections = new WeakMap<MigrationInspection, typeof GENERIC_MIGRATION_FIXTURE>();
@@ -166,6 +168,9 @@ export class GenericMigrationProvider implements MigrationProvider {
       throw new Error('Migration agent identities are invalid, repeated or already present; nothing was imported');
     }
     const runId = `run-generic-${randomUUID()}`;
+    targetStore.recordAudit({ origin: 'system', actorId: this.id, actorType: 'system',
+      action: 'generic_migration_started', targetType: 'system', targetId: runId,
+      details: { schema: 1, expectedIds: JSON.stringify(plannedIds) } });
     let importedCount=0;
     const agents: AgentTeammate[] = [];
     for (const item of plan.items) {
@@ -175,6 +180,9 @@ export class GenericMigrationProvider implements MigrationProvider {
         importedCount++;
       }
     }
+    targetStore.recordAudit({ origin: 'system', actorId: this.id, actorType: 'system',
+      action: 'generic_migration_completed', targetType: 'system', targetId: runId,
+      details: { schema: 1, agentHashes: JSON.stringify(agents.map(agent => ({ id: agent.id, sha256: agentDigest(agent) }))) } });
     this.runs.set(runId,{agents,expected:plan.items.length,store:targetStore});
     return { runId, importedCount };
   }
@@ -182,8 +190,25 @@ export class GenericMigrationProvider implements MigrationProvider {
   async verify(runId: string, targetStore: WorkspaceStore): Promise<MigrationVerification> {
     const run=this.runs.get(runId);
     const sameStore = run?.store === targetStore;
-    const hasAgent = Boolean(run && sameStore && run.agents.length > 0 && run.agents.length === run.expected
+    let hasAgent = Boolean(run && sameStore && run.agents.length > 0 && run.agents.length === run.expected
       && run.agents.every(agent => isDeepStrictEqual(targetStore.getAgent(agent.id), agent)));
+    // Persisted receipts verify records after provider/server restart. A started
+    // run without a completion receipt never verifies or automatically retries.
+    if (!run && targetStore.verifyAuditChain().valid) {
+      const receipts = targetStore.listAuditEntries({ actorId: this.id, targetType: 'system', targetId: runId, limit: 10 });
+      const started = receipts.find(entry => entry.action === 'generic_migration_started');
+      const completed = receipts.find(entry => entry.action === 'generic_migration_completed');
+      try {
+        const ids: unknown = JSON.parse(String(started?.details.expectedIds));
+        const hashes: unknown = JSON.parse(String(completed?.details.agentHashes));
+        hasAgent = started?.details.schema === 1 && completed?.details.schema === 1
+          && Array.isArray(ids) && ids.length > 0 && ids.every(id => typeof id === 'string')
+          && new Set(ids).size === ids.length && Array.isArray(hashes) && hashes.length === ids.length
+          && hashes.every((entry, index) => entry && entry.id === ids[index]
+            && typeof entry.sha256 === 'string' && /^[a-f0-9]{64}$/.test(entry.sha256)
+            && targetStore.getAgent(entry.id) && agentDigest(targetStore.getAgent(entry.id)!) === entry.sha256);
+      } catch { hasAgent = false; }
+    }
     const privilegeExpansionDetected = Boolean(run && sameStore && run.agents.some(expected => {
       const actual = targetStore.getAgent(expected.id);
       return actual && (actual.permissions.some(permission => !expected.permissions.includes(permission))
@@ -195,9 +220,9 @@ export class GenericMigrationProvider implements MigrationProvider {
     return {
       migrationRunId: runId,
       verifiedAt: new Date().toISOString(),
-      checks: [{ name: "Generic staging records unchanged", passed: hasAgent, details: "Compares complete created records in the original store; unknown, partial or changed runs do not pass. This does not verify runtime behavior." }],
+      checks: [{ name: "Generic staging records unchanged", passed: hasAgent, details: "Compares complete created records or durable record hashes; unknown, partial or changed runs do not pass. This does not verify runtime behavior." }],
       overallPassed: hasAgent,
-      privilegeExpansionDetected,
+      privilegeExpansionDetected: !run && !hasAgent ? null : privilegeExpansionDetected,
     };
   }
 
