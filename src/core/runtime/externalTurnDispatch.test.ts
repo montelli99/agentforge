@@ -95,3 +95,18 @@ it('prepares a readable pending review of the exact destination and message with
   expect(()=>prepareExternalTurnApproval(store,task.id,'synthetic-agent',{...request,message:'a'.repeat(32001)})).toThrow(/limits/);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+it('persists Stop before sending and preserves uncertainty across restart without replay',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-external-stop-'));
+ try{
+  const file=path.join(dir,'workspace.json'),store=new WorkspaceStore(file);
+  const task=store.createTask({title:'Synthetic stopping',priority:'medium',status:'paused'});
+  store.updateTask(task.id,{externalTurnReceipts:[{requestId:'request',requestDigest:'digest',approvalId:'approval',connectionId:'selected',sessionKey:'session',status:'accepted',runId:'run',createdAt:new Date().toISOString()}]});
+  const {stopExternalTurn}=await import('./externalTurnDispatch.js');
+  const requestRunStop=vi.fn(async(sessionKey:string,runId:string)=>{expect([sessionKey,runId]).toEqual(['session','run']);expect(new WorkspaceStore(file).getTask(task.id)?.externalTurnReceipts?.[0].stop?.status).toBe('requested');throw Error('response lost');});
+  await expect(stopExternalTurn(store,task.id,'synthetic-owner',{id:'selected',requestRunStop})).rejects.toThrow('response lost');
+  const reopened=new WorkspaceStore(file);
+  await expect(stopExternalTurn(reopened,task.id,'synthetic-owner',{id:'selected',requestRunStop})).rejects.toThrow(/already recorded/);
+  expect(requestRunStop).toHaveBeenCalledTimes(1);expect(reopened.getTask(task.id)?.status).toBe('paused');
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

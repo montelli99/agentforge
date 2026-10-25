@@ -4,7 +4,7 @@ import type {Task} from '../types/task.js';
 import {executionContractDigest} from './approvedPlanProvider.js';
 
 export interface ExternalTurnRequest { connectionId: string; sessionKey: string; message: string; }
-export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; }
+export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; stop?: {requestedAt:string; requestedBy:string; status:'requested'|'acknowledged'|'not_acknowledged'}; }
 function validateRequest(request: ExternalTurnRequest): void {
   for (const [value, maximum] of [[request.connectionId,512],[request.sessionKey,512],[request.message,32000]] as const) {
     if (typeof value !== 'string' || !value.trim() || value.length > maximum) throw Error('External destination and message must be explicit and within limits');
@@ -69,5 +69,23 @@ export async function observeExternalTurn(store: WorkspaceStore, taskId: string,
   // Retain only bounded status metadata, not unsolicited remote transcript content.
   // In particular, never revive a cancelled task or mark an unverified task complete.
   store.updateTask(taskId, {externalTurnReceipts: [observed]});
+  return observed;
+}
+
+/** Caller must authenticate and authorize the human requesting Stop. Never retries. */
+export async function stopExternalTurn(store: WorkspaceStore, taskId: string, requestedBy: string,
+  connection: {id:string;requestRunStop(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}):Promise<ExternalTurnReceipt> {
+  if(store.persistenceMode!=='local_json'||!requestedBy.trim())throw Error('Durable storage and an authenticated requester are required');
+  const receipt=store.getTask(taskId)?.externalTurnReceipts?.[0];
+  if(!receipt||receipt.connectionId!==connection.id||receipt.status!=='accepted'||!receipt.runId)throw Error('A matching saved run is required for Stop');
+  if(receipt.stop)throw Error('Stop already recorded; inspect the remote run before any further action');
+  const stopping:ExternalTurnReceipt={...receipt,stop:{requestedAt:new Date().toISOString(),requestedBy,status:'requested'}};
+  store.updateTask(taskId,{externalTurnReceipts:[stopping]});
+  const result=await connection.requestRunStop(receipt.sessionKey,receipt.runId);
+  if(typeof result.acknowledged!=='boolean')throw Error('Invalid Stop acknowledgement; outcome uncertain');
+  const current=store.getTask(taskId)?.externalTurnReceipts?.[0];
+  if(!current||current.requestId!==receipt.requestId||current.runId!==receipt.runId||current.connectionId!==connection.id||current.stop?.requestedAt!==stopping.stop!.requestedAt)throw Error('Receipt changed during Stop');
+  const observed:ExternalTurnReceipt={...current,stop:{...stopping.stop!,status:result.acknowledged?'acknowledged':'not_acknowledged'}};
+  store.updateTask(taskId,{externalTurnReceipts:[observed]});
   return observed;
 }
