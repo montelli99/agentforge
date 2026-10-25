@@ -182,3 +182,12 @@ with status `timeout`. No model call or task submission occurred. The container
 was stopped afterward. This proves unknown-run observation behavior, not recovery
 of a successfully completed real task; UI integration and result verification
 remain outstanding.
+
+The server now exposes POST /api/tasks/:id/external-observation for authenticated
+users with task-read and task-execution permissions. It uses only a startup-
+registered connection matching the saved receipt, never a caller-supplied URL or
+run ID. The optional OpenClaw startup connection is registered for this purpose.
+HTTP acceptance covers anonymous and restricted-user denial, method enforcement,
+saved-run selection, persisted timeout, unchanged task status, and provider-error
+redaction. The test and type checking passed. This is a recovery API; chat setup,
+approval creation, delegation UI and verified completion remain unfinished.

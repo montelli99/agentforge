@@ -153,7 +153,7 @@ if (!telegramSessionConfig && telegramBotToken) {
   server.telegram.attachLiveTransport(telegramBotTransport);
 }
 
-// Optional migration path: attach to an already-authenticated OpenClaw/Hermes
+// Optional migration path: attach to an OpenClaw gateway (Hermes is unverified).
 // gateway. This bridge is never required by the native MTProto path above.
 const gatewayUrl = process.env.AGENTFORGE_GATEWAY_URL?.trim();
 if (gatewayUrl) {
@@ -163,6 +163,8 @@ if (gatewayUrl) {
     identityPath: process.env.AGENTFORGE_GATEWAY_IDENTITY_PATH || path.join(path.dirname(workspaceFilePath), "gateway-device.json"),
   });
   gatewayRelay = server.telegram.createGatewayRelay(gatewayTransport);
+  const registeredGateway = gatewayTransport;
+  server.registerExternalRunConnection({id: 'configured-openclaw', inspectRun: runId => registeredGateway.inspectRun(runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
 

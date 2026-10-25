@@ -82,6 +82,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
+import { observeExternalTurn } from '../core/runtime/externalTurnDispatch.js';
 import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
@@ -399,6 +400,13 @@ export class AgentForgeWebServer {
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
+  private readonly externalRunConnections = new Map<string, {id: string; inspectRun(runId: string): Promise<{runId: string; status: string}>}>();
+
+  /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
+  registerExternalRunConnection(connection: {id: string; inspectRun(runId: string): Promise<{runId: string; status: string}>}): void {
+    if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
+    this.externalRunConnections.set(connection.id, connection);
+  }
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -3996,6 +4004,22 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === 'external-observation') {
+        res.setHeader('Cache-Control', 'no-store');
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+        const receipt = task.externalTurnReceipts?.[0];
+        const connection = receipt ? this.externalRunConnections.get(receipt.connectionId) : undefined;
+        if (!connection) { res.writeHead(409); res.end(JSON.stringify({error:'The saved external runtime is not connected.'})); return; }
+        try {
+          const observed = await observeExternalTurn(this.store, task.id, connection);
+          res.writeHead(200); res.end(JSON.stringify({requestId:observed.requestId, runId:observed.runId, observation:observed.observation, replayed:false, verified:false}));
+        } catch {
+          res.writeHead(409); res.end(JSON.stringify({error:'External observation unavailable. No task was replayed or marked verified.'}));
+        }
+        return;
+      }
       if (action === 'survivors') {
         if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
         if (!hasPermission(caller.permissions, 'tasks:read')) { res.writeHead(403); res.end(); return; }
