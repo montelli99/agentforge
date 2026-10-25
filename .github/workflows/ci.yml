@@ -71,6 +71,7 @@ jobs:
           AGENTFORGE_BROWSER_LOCAL=1 pnpm test:connections:browser
           pnpm test:approval:browser
           pnpm test:migration:browser
+          node scripts/external-recovery-browser-acceptance.mjs
 
       - name: Retain synthetic browser evidence
         uses: actions/upload-artifact@v4
