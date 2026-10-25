@@ -285,3 +285,7 @@ Added test:execution:crash to verify:public and to the Windows/macOS/Linux Node 
 ### Recovery guards apply to SDK and worker callers
 
 The web receipt-review route rejected unknown planning usage and finished-task restoration, but the public runtime reconciliation method did not. Moved equivalent enforcement into reconcileObservedExecution so direct SDK calls and executeTask's observed-result branch cannot bypass those checks. Extended the existing worker integration case: completed-task restoration is rejected, unknown planning usage blocks both direct reconciliation and executeTask without changing status, and an intact observed result with resolved usage restores completion without calling the backend. All 13 worker integration tests passed; typecheck:all passed. This is synthetic runtime recovery evidence, not live provider reconciliation or browser acceptance.
+
+### Restore retains the original human approval
+
+Observed-result recovery now requires the original pending approval for tasks whose contract requires human review. It rejects missing, mismatched, or already-decided approval records rather than presenting an impossible waiting-approval state or reopening a rejected decision. Extended worker coverage proves restart restores waiting_approval with exactly one original approval and refuses restoration after that approval is rejected. All 13 worker integration tests and typecheck:all passed; browser and hosted acceptance remain pending.

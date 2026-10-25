@@ -171,6 +171,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     const approvalRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
+      requireEffectReceipts: true,
+      workspaceIdentity: 'approval-recovery',
     });
     try {
       const task = store.createTask({
@@ -196,6 +198,16 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(result.evidencePack?.verifiedPassed).toBe(true);
       expect(result.evidencePack?.approvalId).toBeDefined();
       expect(store.listApprovals().some(approval => approval.taskId === task.id && approval.status === "pending")).toBe(true);
+      store.updateTask(task.id, { status: 'verification_running' });
+      const restarted = new TaskWorkerRuntime(store, undefined, {
+        repoRoot: process.cwd(), requireEffectReceipts: true, workspaceIdentity: 'approval-recovery',
+      });
+      expect(restarted.reconcileObservedExecution(task.id).status).toBe('waiting_approval');
+      expect(store.listApprovals().filter(approval => approval.taskId === task.id)).toHaveLength(1);
+      store.updateTask(task.id, { status: 'verification_running' });
+      store.resolveApproval({ approvalId: result.evidencePack!.approvalId!, status: 'rejected', approverUserId: 'synthetic-reviewer', decisionOrigin: 'api' });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('original pending approval');
+      expect(store.getTask(task.id)?.status).toBe('verification_running');
     } finally {
       approvalRuntime.stop();
     }
