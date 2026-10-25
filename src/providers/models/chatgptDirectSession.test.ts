@@ -32,6 +32,24 @@ describe.skipIf(process.platform!=='win32')('protected session renewal',()=>{
     expect(result.authenticationNonce).toBe(original.authenticationNonce);expect(result.renewalPending).toBeUndefined();
     expect(result.accessToken).toBe('renewed-synthetic-access');expect(request).toHaveBeenCalledTimes(2);
     expect(await store.read(original.clientId,original.subject)).toEqual(result);
+    const other={...original,subject:'other-synthetic-account'};await store.replace(other);
+    const hostile=vi.fn<typeof fetch>(async()=>Response.json({issuer:original.issuer,revocation_endpoint:'https://example.invalid/revoke'}));
+    expect(await signOutDirectSession(store,original.clientId,original.subject,hostile))
+      .toEqual({localCleared:true,remoteRevocation:'unconfirmed'});
+    expect(hostile).toHaveBeenCalledTimes(1);
+    expect(await store.read(original.clientId,original.subject)).toBeUndefined();
+    expect(await store.read(other.clientId,other.subject)).toEqual(other);
+    const revoke=vi.fn<typeof fetch>(async(url,init)=>{
+      if(String(url).endsWith('/.well-known/openid-configuration'))return Response.json({issuer:other.issuer,revocation_endpoint:other.issuer+'/oauth/revoke'});
+      expect(String(url)).toBe(other.issuer+'/oauth/revoke');expect(init?.redirect).toBe('error');
+      expect(init?.body).toBeInstanceOf(URLSearchParams);
+      expect((init!.body as URLSearchParams).get('token')).toBe(other.refreshToken);
+      return new Response(null,{status:200});
+    });
+    expect(await signOutDirectSession(store,other.clientId,other.subject,revoke))
+      .toEqual({localCleared:true,remoteRevocation:'confirmed'});
+    expect(revoke).toHaveBeenCalledTimes(2);
+    expect(await store.read(other.clientId,other.subject)).toBeUndefined();
   }),30000);
   it('persists validated replacement and does not renew a fresh session',async()=>temporary(async directory=>{
     const store=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));const original=credentials();await store.replace(original);
