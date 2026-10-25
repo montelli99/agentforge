@@ -271,3 +271,9 @@ Validation: pnpm typecheck:all passed. The actual child-process termination/rest
 ### Hosted CI export omission corrected
 
 Hosted run 40220294456 failed the public link boundary because README linked to docs/MEMORY_PROVIDER_SDK.md without that document being in the explicit source-export allowlist. Added that public guide and tsconfig.scripts.json (required by the newly checked source-release commands) to the allowlist. No private directories were added. Validation: public-link acceptance passed all 2,619 local links across 92 allowlisted documents; repository-privacy acceptance passed its 27 cases and source scan. Hosted acceptance of the resulting commit remains pending.
+
+### Execution proof retains uncertain-run evidence
+
+The hash-selected synthetic execution runner now uses the exclusive durable evaluation journal before workspace creation and execution. It records failed-or-uncertain outcomes without raw exception contents, preserves the workspace and receipt store on failure, and retains successful artifacts rather than returning references to deleted files. Reusing an evidence output is refused; no automatic retry is added. Retained local evaluation workspaces require deliberate later cleanup.
+
+Validation: all TypeScript proof scripts passed type checking. A synthetic malformed-task subprocess failed before provider/backend execution, retained its workspace and failure report, and a second invocation refused to overwrite the original journal. Zero provider requests. This validates evidence retention, not a new successful Docker or end-user approval journey.
