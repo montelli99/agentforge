@@ -1643,10 +1643,18 @@ export class WorkspaceStore {
     const tempPath = `${filePath}.tmp.${process.pid}.${crypto.randomUUID()}`;
     const backupPath = `${filePath}.bak`;
     const lockPath = `${filePath}.lock`;
+    const lockCandidate = `${lockPath}.${process.pid}.${crypto.randomUUID()}.candidate`;
 
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    let lockFd: number | undefined;
+    let lockAcquired = false;
     try {
+      // Publish a complete owner record atomically. A crash while writing the
+      // candidate cannot leave an ownerless shared lock blocking startup.
+      const candidateFd = fs.openSync(lockCandidate, 'wx', 0o600);
+      try {
+        fs.writeFileSync(candidateFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+        fs.fsyncSync(candidateFd);
+      } finally { fs.closeSync(candidateFd); }
       // Serialize writers across launcher processes. The snapshot rename is
       // atomic, but without this lock two valid snapshots could race and one
       // writer could silently overwrite the other's state. A stale lock is
@@ -1657,8 +1665,8 @@ export class WorkspaceStore {
       // while still failing instead of waiting forever on a broken lock.
       for (let attempt = 0; attempt < 2000; attempt += 1) {
         try {
-          lockFd = fs.openSync(lockPath, "wx");
-          fs.writeSync(lockFd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+          fs.linkSync(lockCandidate, lockPath);
+          lockAcquired = true;
           break;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
@@ -1680,7 +1688,7 @@ export class WorkspaceStore {
           Atomics.wait(waitBuffer, 0, 0, 10);
         }
       }
-      if (lockFd === undefined) throw new Error("Timed out waiting for the workspace snapshot lock.");
+      if (!lockAcquired) throw new Error("Timed out waiting for the workspace snapshot lock.");
       const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : undefined;
       const expected = this.persistedSnapshotPath === filePath ? this.persistedSnapshotContent : undefined;
       if (current !== expected) {
@@ -1702,10 +1710,10 @@ export class WorkspaceStore {
       }
       throw error;
     } finally {
-      if (lockFd !== undefined) {
-        try { fs.closeSync(lockFd); } catch { /* preserve the write result */ }
+      if (lockAcquired) {
         try { fs.unlinkSync(lockPath); } catch { /* another recovery path may have removed it */ }
       }
+      try { fs.unlinkSync(lockCandidate); } catch { /* preserve the write result */ }
     }
   }
 

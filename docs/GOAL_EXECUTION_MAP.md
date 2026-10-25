@@ -367,3 +367,9 @@ Both ordinary token saves and transaction replacements now validate issuer/resou
 ### Diagnose hosted forced-restart readiness failure without masking it
 
 Hosted run 40222928489 (a55f89f) failed during persistence-crash-recovery at the second startServer call with only 'Server did not become ready'; root cause is not established. The probe now reports elapsed time, attempt count, last HTTP status or connection error class, process exit/signal and bounded child output. Each HTTP probe is limited to one second within the existing 15-second overall deadline, response bodies are cancelled, and spawn errors are captured. The deadline was not increased and recovery behavior was not changed. The existing forced-launcher recovery command passed locally against the built app, retaining both committed workspace and goal session; this does not explain or erase the hosted failure.
+
+### Publish complete snapshot lock ownership atomically
+
+Snapshot locking previously created the shared lock and then wrote its PID, leaving a process-termination window with an empty shared lock. It now writes and fsyncs a unique same-directory owner candidate before atomically linking it to the shared lock name. A competing link fails without replacing the existing lock; normal cleanup removes the candidate. A crash before publication leaves only an unreferenced candidate, not a shared lock. Filesystems that cannot create hard links fail explicitly; no unsafe fallback was added. This closes a source-level crash window but is not established as the cause of run 40222928489.
+
+35 persistence/migration tests, source/script type checks, build/browser syntax, real two-process stale-writer acceptance, and forced-launcher crash recovery passed locally. Hosted filesystem/platform acceptance remains pending. Candidate files abandoned by abrupt process death may remain as small metadata files; they do not hold a shared lock.
