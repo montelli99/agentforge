@@ -24,7 +24,9 @@ const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  received.push({url:req.url,authorization:req.headers.authorization,body:JSON.parse(raw)});requests++;
  res.writeHead(200,{'Content-Type':'text/event-stream'});
- res.end('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response after vault recovery'},finish_reason:null}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
+ res.write('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response '},finish_reason:null}]})+'\n\n');
+ await new Promise(resolve=>setTimeout(resolve,1500));
+ res.end('data: '+JSON.stringify({choices:[{delta:{content:'after vault recovery'},finish_reason:null}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
 });
 await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
 try{
@@ -71,15 +73,15 @@ try{
  await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');
  await page.getByLabel('Message',{exact:true}).fill('Please reply to this synthetic recovery check.');
  await page.locator('.conversation-composer button[type=submit]').click();
+ await page.locator('#conversation-feed').getByText('Synthetic response',{exact:true}).waitFor();
+ await page.reload();
  await page.locator('#conversation-feed').getByText('Synthetic response after vault recovery',{exact:true}).waitFor();
  assert.equal(requests,1);assert.equal(received[0].url,'/v1/chat/completions');
  assert.equal(received[0].authorization,'Bearer '+key);assert.equal(received[0].body.model,'synthetic-model');
  await page.reload();await page.locator('#conversation-feed').getByText('Synthetic response after vault recovery',{exact:true}).waitFor();
  assert.equal(requests,1);
+ const snapshot=JSON.parse(fs.readFileSync(workspaceFile,'utf8'));
+ assert.ok(JSON.stringify(snapshot).includes('Synthetic response after vault recovery'));
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({passed:true,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,reloadWithoutReplay:true,liveProviderVerified:false}));
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,midStreamReload:true,reloadWithoutReplay:true,liveProviderVerified:false}));
 }finally{await browser?.close();await server.stop();await new Promise(resolve=>provider.close(resolve));}
-
-
-
-

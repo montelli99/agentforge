@@ -352,3 +352,12 @@ approval. Afterward it is completed; reopening the disk store preserves both
 completion and the authenticated reviewer's identity. The local run passed.
 This supersedes the prior fixture's final-review-pending limitation, but still
 uses a fixed synthetic plan and is not the clean-install live-model journey.
+
+### Browser disconnect during response
+
+The connection regression now streams a first chunk, reloads the browser before
+the delayed second chunk arrives, and waits for the complete recovered response.
+It then reloads again and observes exactly one provider request. The completed
+text is also present in the disk snapshot. The local Chromium check passed;
+this is a browser-connection interruption with a synthetic provider, not server
+process termination or a live provider transport failure.
