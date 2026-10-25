@@ -293,3 +293,9 @@ Observed-result recovery now requires the original pending approval for tasks wh
 ### Hosted archive inspection found missing SDK guide
 
 Downloaded the package from successful public-acceptance job in run 40221028980. COMMIT.txt matches 66ea369d2213a340176dba7eb6f0eed95af44b24; package SHA-256 matches 0f998b1a10a947c2a6a62672c459264a621e5e4ba3821bd1d9fe801a7ed26409. Archive inspection found the runtime SDK modules but no memory SDK guide: docs/.npmignore excluded all documentation independently of the source-export allowlist. Added an exception for only MEMORY_PROVIDER_SDK.md. npm pack dry-run confirms the guide is included while the internal goal work log remains excluded. New exact-build hosted package acceptance is required; this entry does not claim the full release complete.
+
+### Publish usable TypeScript memory contracts
+
+Package acceptance now requires the public memory runtime exports, adapter modules and guide. Inspection also found that the SDK's documented TypeScript interfaces were erased without published declarations. Build now emits declarations and package exports explicitly map types to dist/index.d.ts while preserving JavaScript import/default entrypoints. The archive gate requires the entrypoint and memory contract declarations and continues excluding internal work logs and test/source files.
+
+Validation: build, all source/script type checks, strict checking of dist/index.d.ts and its declaration graph, public entrypoint import and archive privacy passed (432 shipped files). The package boundary now includes the types needed to implement third-party providers; live adapter compatibility and final release acceptance are not implied.
