@@ -494,6 +494,46 @@ export class WorkspaceStore {
   }
 
   // --- Agents ---
+  /** Remove only an unchanged, unused generic staging batch identified by durable receipts. */
+  rollbackAgentImport(runId: string): { removedIds: string[] } {
+    if (!this.verifyAuditChain().valid) throw Error('Migration audit integrity failed');
+    const receipts = this.listAuditEntries({ actorId: 'migration-generic', targetType: 'system', targetId: runId, limit: 100 });
+    if (receipts.some(entry => entry.action === 'generic_migration_rolled_back')) throw Error('Migration already rolled back');
+    const starts = receipts.filter(entry => entry.action === 'generic_migration_started');
+    const completions = receipts.filter(entry => entry.action === 'generic_migration_completed');
+    if (starts.length !== 1 || completions.length !== 1 || starts[0].details.schema !== 1 || completions[0].details.schema !== 1)
+      throw Error('Complete migration receipts required');
+    const ids: unknown = JSON.parse(String(starts[0].details.expectedIds));
+    const hashes: unknown = JSON.parse(String(completions[0].details.agentHashes));
+    if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length
+      || !Array.isArray(hashes) || hashes.length !== ids.length) throw Error('Invalid migration receipts');
+    const agents = ids.map(id => this.agents.get(id));
+    if (agents.some((agent, index) => !agent || hashes[index]?.id !== ids[index]
+      || hashes[index]?.sha256 !== crypto.createHash('sha256').update(JSON.stringify(agent)).digest('hex')))
+      throw Error('Imported agents changed or are missing; rollback refused');
+    // Conservative reference check across operational records, excluding import audit receipts.
+    const references = JSON.stringify([...[this.tasks, this.approvals, this.channels, this.threads, this.messages,
+      this.processes, this.processRevisionHistory, this.processRevisionProposals, this.processAgentBindings,
+      this.calls, this.installations, this.operationalMemories].map(collection => Array.from(collection.values() as Iterable<unknown>))]);
+    if (ids.some(id => references.includes(JSON.stringify(id)))) throw Error('Imported agents are referenced; rollback refused');
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
+    try {
+      for (const id of ids) this.agents.delete(id);
+      this.appendAuditEntry({ origin: 'system', actorId: 'migration-generic', actorType: 'system', action: 'generic_migration_rolled_back',
+        targetType: 'system', targetId: runId, details: { schema: 1, removedIds: JSON.stringify(ids) } });
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const agent of agents) this.agents.set(agent!.id, agent!);
+      this.auditEntries = priorAudit; this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    for (const id of ids) for (const listener of this.realtimeListeners) {
+      try { listener({ type: 'agent_removed', entity: 'agent', data: { id } }); } catch { /* already committed */ }
+    }
+    return { removedIds: ids };
+  }
+
   /** Commit an offline migration batch and its verification receipts in one snapshot. */
   importAgentBatch(agents: Array<Omit<AgentTeammate, 'createdAt' | 'updatedAt'>>, actorId: string, runId: string): AgentTeammate[] {
     if (!agents.length || !actorId || !runId || new Set(agents.map(agent => agent.id)).size !== agents.length

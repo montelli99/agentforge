@@ -657,6 +657,26 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
         expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(true);
         restoredStore.updateAgent('custom-manifest-agent', { description: 'Changed after restart' });
         expect((await restoredProvider.verify(durableRun.runId, restoredStore)).overallPassed).toBe(false);
+        expect(() => restoredStore.rollbackAgentImport(durableRun.runId)).toThrow('changed or are missing');
+        const rollbackFile = path.join(receiptDirectory, 'rollback.json');
+        const rollbackStore = new WorkspaceStore(rollbackFile);
+        const rollbackRun = await gen.importToStore(await gen.plan(await gen.inspect(batchManifest)), rollbackStore);
+        const staleRollback = new WorkspaceStore(rollbackFile);
+        rollbackStore.recordAudit({ origin: 'system', actorId: 'synthetic', actorType: 'system', action: 'concurrent-write', targetType: 'system', targetId: 'test', details: {} });
+        const rollbackDisk = fs.readFileSync(rollbackFile, 'utf8');
+        await expect(Promise.resolve().then(() => staleRollback.rollbackAgentImport(rollbackRun.runId))).rejects.toThrow('snapshot changed');
+        expect(staleRollback.getAgent('custom-manifest-agent')).toBeDefined();
+        expect(staleRollback.getAgent('second-batch-agent')).toBeDefined();
+        expect(staleRollback.verifyAuditChain().valid).toBe(true);
+        expect(fs.readFileSync(rollbackFile, 'utf8')).toBe(rollbackDisk);
+        const reopened = new WorkspaceStore(rollbackFile);
+        expect(reopened.rollbackAgentImport(rollbackRun.runId).removedIds).toEqual(['custom-manifest-agent', 'second-batch-agent']);
+        const afterRollback = new WorkspaceStore(rollbackFile);
+        expect(afterRollback.getAgent('custom-manifest-agent')).toBeUndefined();
+        expect(afterRollback.getAgent('second-batch-agent')).toBeUndefined();
+        expect(afterRollback.verifyAuditChain().valid).toBe(true);
+        expect(() => afterRollback.rollbackAgentImport(rollbackRun.runId)).toThrow('already rolled back');
+        expect((await new GenericMigrationProvider().verify(rollbackRun.runId, afterRollback)).overallPassed).toBe(false);
         restoredStore.recordAudit({ origin: 'system', actorId: 'migration-generic', actorType: 'system',
           action: 'generic_migration_started', targetType: 'system', targetId: 'unfinished-run',
           details: { schema: 1, expectedIds: JSON.stringify(['custom-manifest-agent']) } });
