@@ -11,7 +11,7 @@ const tags = (value: unknown) => Array.isArray(value) && value.length <= 100 && 
 const version = (value: unknown) => Number.isSafeInteger(value) && Number(value) > 0;
 const optional = (value: unknown, check: (value: unknown) => boolean) => value === undefined || check(value);
 function fields(record: Record<string, unknown>) {
-  return text(record.title, 200) && text(record.content, 40000) && categories.has(String(record.category)) && tags(record.tags);
+  return text(record.title, 200) && text(record.content, 40000) && typeof record.category === 'string' && categories.has(record.category) && tags(record.tags);
 }
 
 /** Validate an exported collection without remapping its identities or dropping history. */

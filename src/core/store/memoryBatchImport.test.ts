@@ -60,3 +60,15 @@ it('owns imported values and tolerates failed notification after a durable commi
   expect(store.listOperationalMemories('synthetic')).toEqual([record('a')]);
   expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([record('a')]);
 });
+
+it('refuses a stale writer without erasing a concurrently saved batch', () => {
+  const {file, store} = fixture();
+  const stale = new WorkspaceStore(file);
+  const notices = vi.fn();
+  stale.subscribe(notices);
+  store.importOperationalMemoryBatch([record('first')], 'fixture-owner');
+  expect(() => stale.importOperationalMemoryBatch([record('second')], 'fixture-owner')).toThrow(/snapshot changed/i);
+  expect(stale.listOperationalMemories('synthetic')).toEqual([]);
+  expect(notices).not.toHaveBeenCalled();
+  expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([record('first')]);
+});
