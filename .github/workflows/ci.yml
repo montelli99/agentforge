@@ -104,6 +104,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
+      - name: Verify interrupted execution is not replayed
+        run: pnpm test:execution:crash
+
       - name: Verify built-launcher persistence across restart
         run: pnpm test:persistence:launcher
         env:

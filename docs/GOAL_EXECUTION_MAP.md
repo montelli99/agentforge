@@ -277,3 +277,7 @@ Hosted run 40220294456 failed the public link boundary because README linked to 
 The hash-selected synthetic execution runner now uses the exclusive durable evaluation journal before workspace creation and execution. It records failed-or-uncertain outcomes without raw exception contents, preserves the workspace and receipt store on failure, and retains successful artifacts rather than returning references to deleted files. Reusing an evidence output is refused; no automatic retry is added. Retained local evaluation workspaces require deliberate later cleanup.
 
 Validation: all TypeScript proof scripts passed type checking. A synthetic malformed-task subprocess failed before provider/backend execution, retained its workspace and failure report, and a second invocation refused to overwrite the original journal. Zero provider requests. This validates evidence retention, not a new successful Docker or end-user approval journey.
+
+### Execution crash proof is a release gate
+
+Added test:execution:crash to verify:public and to the Windows/macOS/Linux Node 22/24 CI matrix. The new package command passed locally: an actual child process was terminated after its effect and durable receipt, restart refused replay, exactly one effect remained, and the task was presented paused for reconciliation. Hosted cross-platform results remain pending. This gate covers the disposable backend; remote-provider reconciliation is still open.
