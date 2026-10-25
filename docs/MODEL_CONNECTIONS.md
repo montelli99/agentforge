@@ -215,6 +215,15 @@ as other providers. They must not execute proposed commands in the CLI process.
 
 ### Inspect an official Gemini client without inference
 
+To prepare a dedicated profile, run
+`agentforge connections prepare-gemini <absolute-new-home-directory>`.
+The parent directory must already exist; the requested directory must not exist.
+This creates only Google-login settings with hooks and telemetry disabled. It
+does not import credentials, modify an existing profile, sign in, or enable the
+managed planner. Use the returned home as `GEMINI_CLI_HOME` for the official
+client's sign-in. The command reports authentication as false until separately
+verified. Filesystem mode requests do not establish Windows ACL protection.
+
 Run `agentforge connections inspect-gemini <absolute-official-client-bundle>`
 with the installed package's `bundle/gemini.js` file, not an npm command shim.
 AgentForge uses its current Node runtime and a fresh temporary home to inspect
