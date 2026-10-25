@@ -1,5 +1,36 @@
 ## Current release status — 2026-10-25
 
+The full release goal remains incomplete. GitHub distribution is available as an
+[early-access prerelease v0.1.2](https://github.com/montelli99/agentforge/releases/tag/v0.1.2),
+not a stable-release acceptance claim. npm publication is deferred; installing
+from the GitHub archive does not require an npm account.
+
+Published source revision: `cfd876d0c497be489473476c6b24a874fbd13498`.
+Published archive SHA-256:
+`8f0ba13226eb617d7668e8bd1f6054586dac6c0964ddb62b6c4289bc14f76f91`.
+All seven [exact-revision CI jobs](https://github.com/montelli99/agentforge/actions/runs/40238565372)
+passed. The release includes its commit marker, checksums and verification record.
+The installed-archive browser journeys use synthetic model responses; they do
+not establish real-model quality or complete first-user onboarding.
+
+Subsequent gateway changes passed all seven
+[hosted jobs for 998bb6f](https://github.com/montelli99/agentforge/actions/runs/40239791266)
+and merged in [PR #10](https://github.com/montelli99/agentforge/pull/10).
+These changes are on vnext, not in the published v0.1.2 archive. They cover
+challenge authentication, bounded waits, interrupted-delivery uncertainty,
+identity preservation and no automatic send replay. A real loopback WebSocket
+fixture verifies signatures and reconnection; it is not an OpenClaw installation.
+Live OpenClaw/Hermes task delegation and guided connection remain unaccepted.
+
+Still open: clean first-user onboarding through a useful real-model task;
+live subscription lifecycle and managed workers; uncertain-effect reconciliation;
+live memory-provider acceptance and migration; held-out comparative evaluation;
+completed long-duration stability evidence; demonstration and launch reconciliation.
+Historical hosting-cache removal awaits provider confirmation. The remaining
+requirements in RELEASE_COMPLETION_PLAN.md remain part of the active goal.
+
+## Earlier release checkpoint — 2026-10-25
+
 The full release is not accepted. The automated-browser service blocker is
 resolved: direct regression tests are authorized and run in fresh synthetic
 browser profiles. Earlier blocked-browser entries below are historical.
