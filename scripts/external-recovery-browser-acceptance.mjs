@@ -12,9 +12,10 @@ const workspace=store.createWorkspace({name:'Synthetic external workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic project',provider:'web'});
 const task=store.createTask({projectId:project.id,title:'Synthetic delegated task',priority:'medium',status:'paused'});
 const newTask=store.createTask({projectId:project.id,title:'New synthetic delegation',priority:'medium',status:'ready'});
+const uncertainTask=store.createTask({projectId:project.id,title:'Interrupted synthetic delegation',priority:'medium',status:'ready'});
 store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString()}]});
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
-let reads=0,submissions=0;server.registerExternalRunConnection({id:'synthetic-runtime',inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');assert.equal(message,'Only the reviewed synthetic message');submissions++;return {runId:'new-synthetic-run'};}});
+let reads=0,submissions=0;server.registerExternalRunConnection({id:'synthetic-runtime',inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};}});
 let browser;
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:process.env.AGENTFORGE_BROWSER_EXECUTABLE});
@@ -45,5 +46,21 @@ try{
  await delegation.getByRole('button',{name:'Approve and send this message',exact:true}).click();
  await delegation.getByText('External agent accepted the request. Completion is not yet verified.',{exact:true}).waitFor();
  assert.equal(submissions,1);assert.equal(store.getTask(newTask.id).externalTurnReceipts[0].runId,'new-synthetic-run');
+ await delegation.getByRole('button',{name:'Close delegation',exact:true}).click();await page.getByRole('button',{name:'Close task',exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('Interrupted synthetic delegation',{exact:true})}).click();
+ await page.getByRole('button',{name:'Delegate to connected agent',exact:true}).click();
+ await delegation.getByLabel('Session key',{exact:true}).fill('selected-session');
+ await delegation.getByLabel('Exact message to send',{exact:true}).fill('Synthetic interrupted request');
+ await delegation.getByRole('button',{name:'Prepare delegation review',exact:true}).click();
+ await delegation.getByRole('button',{name:'Approve and send this message',exact:true}).click();
+ await delegation.getByText('Close this panel and inspect the task receipt before any further attempt.',{exact:false}).waitFor();
+ assert.equal(submissions,2);assert.equal(store.getTask(uncertainTask.id).externalTurnReceipts[0].status,'started');
+ await page.reload();await page.getByLabel('Tasks and runs',{exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('Interrupted synthetic delegation',{exact:true})}).click();
+ const uncertainDialog=page.getByRole('dialog',{name:'Task review',exact:true});
+ await uncertainDialog.getByText('External submission uncertain · completion not verified',{exact:true}).waitFor();
+ assert.equal(await uncertainDialog.getByRole('button',{name:'Delegate to connected agent',exact:true}).count(),0);
+ assert.equal(await uncertainDialog.getByRole('button',{name:'Resume',exact:true}).count(),0);
+ assert.equal(submissions,2);
  console.log(JSON.stringify({passed:true,runReads:reads,submissions,taskStatus:'paused',modelCalls:0}));
 }finally{await browser?.close();await server.stop();}
