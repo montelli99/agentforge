@@ -2,10 +2,18 @@ import { createHash } from 'node:crypto';
 import type { DirectCredentials } from './chatgptDirectOAuth.js';
 
 function validateStoredRecord(credentials: DirectCredentials): void {
-  if (credentials.issuer !== 'https://auth.openai.com' || credentials.resource !== 'https://api.openai.com/v1'
-    || credentials.tokenType !== 'Bearer' || typeof credentials.accessToken !== 'string' || !credentials.accessToken
-    || typeof credentials.idToken !== 'string' || !credentials.idToken || !Number.isFinite(credentials.expiresAt)
-    || !Array.isArray(credentials.scopes) || credentials.scopes.some(scope => typeof scope !== 'string')
+  const text = (value: unknown, max = 16384): value is string => typeof value === 'string'
+    && value.length > 0 && value.length <= max && !/[\x00-\x20\x7f]/.test(value);
+  if (!credentials || typeof credentials !== 'object' || Array.isArray(credentials)
+    || credentials.issuer !== 'https://auth.openai.com' || credentials.resource !== 'https://api.openai.com/v1'
+    || !text(credentials.clientId, 256) || credentials.clientId === 'dynamic_agent_client' || !text(credentials.subject, 256)
+    || credentials.tokenType !== 'Bearer' || !text(credentials.accessToken) || !text(credentials.idToken)
+    || (credentials.refreshToken !== undefined && !text(credentials.refreshToken))
+    || (credentials.authenticationNonce !== undefined && !text(credentials.authenticationNonce))
+    || (credentials.renewalPending !== undefined && typeof credentials.renewalPending !== 'boolean')
+    || !Number.isSafeInteger(credentials.expiresAt) || credentials.expiresAt <= 0
+    || !Array.isArray(credentials.scopes) || credentials.scopes.length > 100
+    || credentials.scopes.some(scope => !text(scope, 256))
     || !['resource.invoke', 'chatgpt.tokens.use.direct'].every(scope => credentials.scopes.includes(scope)))
     throw Error('Invalid credential record');
 }
@@ -38,6 +46,7 @@ export class DirectTokenStore {
   }
   async read(clientId: string, subject: string): Promise<DirectCredentials | undefined> {
     const { backend, key } = this.target(clientId, subject), record = await backend.read(key);
+    if (record !== undefined) validateStoredRecord(record);
     if (record && (record.clientId !== clientId || record.subject !== subject || record.issuer !== 'https://auth.openai.com' || record.resource !== 'https://api.openai.com/v1')) throw Error('Credential-store identity mismatch');
     // Retrieval is not grant validation: identity, expiry and scopes must be revalidated.
     return record;
@@ -53,7 +62,7 @@ export class DirectTokenStore {
     const {backend,key}=this.target(clientId,subject);
     if(!backend.transaction)throw Error('Exclusive credential transactions unavailable');
     return backend.transaction(key,record=>operation({
-      read:async()=>{const value=await record.read();if(value&&(value.clientId!==clientId||value.subject!==subject||value.issuer!=='https://auth.openai.com'||value.resource!=='https://api.openai.com/v1'))throw Error('Credential-store identity mismatch');return value;},
+      read:async()=>{const value=await record.read();if(value!==undefined)validateStoredRecord(value);if(value&&(value.clientId!==clientId||value.subject!==subject||value.issuer!=='https://auth.openai.com'||value.resource!=='https://api.openai.com/v1'))throw Error('Credential-store identity mismatch');return value;},
       // Expired access tokens may be retained with renewal intent; that is not a usable grant.
       replace:async value=>{if(value.clientId!==clientId||value.subject!==subject)throw Error('Credential-store identity mismatch');validateStoredRecord(value);await record.replace({...value,scopes:[...value.scopes]});},
       remove:()=>record.remove(),
