@@ -16,7 +16,7 @@ it('requires authenticated execution permission and observes only the saved runt
  const inspect=vi.fn(async()=>({runId:'saved-run',status:'timeout'}));
  const submit=vi.fn(async()=>({runId:'submitted-run'}));
  const stop=vi.fn(async()=>({acknowledged:true}));
- server.registerExternalRunConnection({id:'saved-connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop});
+ server.registerExternalRunConnection({id:'saved-connection',displayName:'OpenClaw test connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop});
  try{
   await server.start(); const base=server.getBaseUrl();
   const login=async(username:string)=>{const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'synthetic test password'})});expect(r.status).toBe(200);return (await r.json()).token as string;};
@@ -25,7 +25,7 @@ it('requires authenticated execution permission and observes only the saved runt
   expect((await connections()).status).toBe(401);
   expect((await connections(reader)).status).toBe(403);
   const listed=await connections(operator);expect(listed.status).toBe(200);
-  expect(await listed.json()).toEqual({connections:[{id:'saved-connection',canSubmit:true,readiness:'not_checked'}]});
+  expect(await listed.json()).toEqual({connections:[{id:'saved-connection',displayName:'OpenClaw test connection',canSubmit:true,readiness:'not_checked'}]});
   const reviewTask=store.createTask({title:'Synthetic review task',status:'ready',priority:'medium'});
   const review=(token:string,connectionId='saved-connection')=>fetch(base+'/api/tasks/'+reviewTask.id+'/external-review',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({connectionId,sessionKey:'selected-session',message:'Exact synthetic delegation'})});
   expect((await review(reader)).status).toBe(403);

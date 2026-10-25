@@ -400,12 +400,13 @@ export class AgentForgeWebServer {
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
-  private readonly externalRunConnections = new Map<string, {id: string; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
+  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
 
   /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
-  registerExternalRunConnection(connection: {id: string; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
+  registerExternalRunConnection(connection: {id: string; displayName?: string; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
     if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
-    this.externalRunConnections.set(connection.id, connection);
+    if (connection.displayName !== undefined && (!connection.displayName.trim() || connection.displayName.length > 100 || /[\u0000-\u001f\u007f]/.test(connection.displayName))) throw Error('Invalid external connection display name');
+    this.externalRunConnections.set(connection.id, {...connection});
   }
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
@@ -1473,7 +1474,7 @@ export class AgentForgeWebServer {
       if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
       if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
       res.writeHead(200);
-      res.end(JSON.stringify({connections: [...this.externalRunConnections.values()].map(connection=>({id:connection.id,canSubmit:typeof connection.submitSessionTurn==='function',readiness:'not_checked'}))}));
+      res.end(JSON.stringify({connections: [...this.externalRunConnections.values()].map(connection=>({id:connection.id,displayName:connection.displayName ?? connection.id,canSubmit:typeof connection.submitSessionTurn==='function',readiness:'not_checked'}))}));
       return;
     }
 
