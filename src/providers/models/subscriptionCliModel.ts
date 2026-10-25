@@ -27,6 +27,7 @@ export class SubscriptionCliModelProvider implements GenerativeModelProvider {
    const {events,malformed}=inspectCliEvents(result.stdout);const completed=events.filter(e=>e.type==='turn.completed');usage=completed.length===1?decodeCliUsage(completed[0]?.usage):undefined;
    if(result.code!==0)throw new ModelProviderError('CLI planner failed; no automatic retry',usage);
    if(malformed)throw new ModelProviderError('CLI planner emitted malformed event output',usage);
+   if(completed.length!==1||events.at(-1)!==completed[0]||events.some(e=>!['thread.started','turn.started','item.started','item.updated','item.completed','turn.completed'].includes(e.type??'')))throw new ModelProviderError('CLI planner did not finish one successful bounded turn',usage);
    if(events.some(e=>e.item?.type&&!['reasoning','agent_message'].includes(e.item.type)))throw new ModelProviderError('CLI planner emitted forbidden tool/activity event',usage);
    if(fs.existsSync(output))content=fs.readFileSync(output,'utf8');else content=events.filter(e=>e.item?.type==='agent_message').at(-1)?.item?.text??'';
    try{validateCliPlan(content);}catch{throw new ModelProviderError('CLI response failed strict JSON/plan validation',usage,crypto.createHash('sha256').update(content).digest('hex'));}
