@@ -38,9 +38,13 @@ describe("server-owned conversations", () => {
   it("uses tools, bounds long context, and preserves originals for retrieval", async () => {
     const f = fixture();
     for (let i = 0; i < 8; i++) f.store.createMessage({ channelId: f.channel.id, threadId: f.thread.id, authorId: "owner", authorType: "user", content: (i === 0 ? "original-decision " : "") + "x".repeat(20000) });
-    const prompt = f.prompt(); let round = 0;
+    const other=f.store.createThread(f.channel.id,'Separate conversation');
+    f.store.createMessage({channelId:f.channel.id,threadId:other.id,authorId:'owner',authorType:'user',content:'original-decision other-thread-private'});
+    const prompt = f.store.createMessage({channelId:f.channel.id,threadId:f.thread.id,authorId:'owner',authorType:'user',content:'Recall the earlier original-decision'}); let round = 0;
     const model = provider(async function* (options) {
       expect(options.messages.reduce((n, m) => n + m.content.length, 0)).toBeLessThan(120000);
+      expect(options.messages.some(m=>m.content.startsWith('Retrieved earlier conversation passages')&&m.content.includes('original-decision'))).toBe(true);
+      expect(JSON.stringify(options.messages)).not.toContain('other-thread-private');
       if (!round++) { expect(options.messages.at(-1)?.content).toBe(prompt.content); yield { id: "1", toolCalls: [{ id: "tool1", type: "function", function: { name: "search_history", arguments: '{"query":"original-decision"}' } }], finishReason: "tool_calls" }; }
       else { expect(options.messages.at(-1)?.content).toContain("original-decision"); yield { id: "2", deltaText: "Recovered the original decision.", finishReason: "stop" }; }
     });

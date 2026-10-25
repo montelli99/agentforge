@@ -22,6 +22,27 @@ import { TaskWorkerRuntime } from "../src/core/runtime/taskWorkerRuntime.js";
 import { ConversationRuntime } from "../src/server/conversationRuntime.js";
 import type { GenerativeModelProvider } from "../src/core/providers/model.js";
 import type { Task } from "../src/core/types/task.js";
+import { MiMoModelProvider } from "../src/providers/models/mimoModel.js";
+import { createHash } from "node:crypto";
+
+const live = process.env.AGENTFORGE_LIVE_EXECUTION_PROOF === "1";
+if (live && !process.env.AGENTFORGE_PROOF_MODEL) throw Error("Choose an explicit model from the provider model list");
+const started = Date.now();
+let providerFailure: string | undefined;
+// Diagnostic metadata only; never persist provider bodies or request content.
+if (live) {
+ const originalFetch = globalThis.fetch;
+ globalThis.fetch = async (...args) => {
+  const response = await originalFetch(...args);
+  if (!response.ok) {
+   const data = await response.clone().json().catch(() => ({})) as { error?: { message?: string; code?: string } };
+   const message = String(data.error?.message || "");
+   providerFailure = `HTTP ${response.status}: ` + message.replaceAll(process.env.MIMO_API_KEY || "__none__", "[credential]").slice(0, 400);
+  }
+  return response;
+ };
+}
+const proof = { live, model: live ? process.env.AGENTFORGE_PROOF_MODEL! : "synthetic", requests: 0, toolCalls: [] as string[], disconnected: false, status: "running", elapsedMs: 0, artifactSha256: "", costUsd: "unmeasured", tokenUsage: "not exposed by streaming adapter", limitation: "Pre-approved fixed task; does not prove autonomous planning, process-crash recovery, or competitor superiority." };
 
 function git(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8", stdio: "pipe" }).trim();
@@ -91,7 +112,7 @@ async function main(): Promise<void> {
     const project = store.createSpace({ workspaceId: workspace.id, name: "Synthetic", provider: "web" });
     const channel = store.createChannel({ workspaceId: workspace.id, spaceId: project.id, name: "Acceptance", visibility: "private", archived: false, provider: "web" });
     const thread = store.createThread(channel.id, "Approved synthetic execution");
-    const prompt = store.createMessage({ channelId: channel.id, threadId: thread.id, authorId: "synthetic-owner", authorType: "user", content: "Run the approved synthetic task." });
+    const prompt = store.createMessage({ channelId: channel.id, threadId: thread.id, authorId: "synthetic-owner", authorType: "user", content: "Run the already-approved task approved-docker-e2e using execute_task. Inspect its result and briefly report only what the tool evidence proves. Do not prepare a replacement task." });
     task.projectId = project.id; task.originChannelId = channel.id; task.originThreadId = thread.id;
     store.createTask(task);
     store.updateTask(taskId, { worktree, approvedExecutionPlan: { plan, contractDigest: executionContractDigest(task), approvedBy: "synthetic-owner", approvedAt: new Date(now-60000).toISOString(), expiresAt: new Date(now+3600000).toISOString() } });
@@ -106,7 +127,20 @@ async function main(): Promise<void> {
         } else { yield { id: "2", deltaText: "Execution evidence is saved for review.", finishReason: "stop" }; }
       }
     };
-    await new ConversationRuntime(store, { provider: model, models: ["synthetic"] }, worker).respond(thread.id, prompt.id, "synthetic", "synthetic-owner", response);
+    const provider = new MiMoModelProvider();
+    const liveModel: GenerativeModelProvider = { id: "bounded-live-proof", name: "Bounded live MiMo proof", defaultTier: 4,
+      isAvailable: () => provider.isAvailable(), listModels: async () => [proof.model], generate: async () => { throw Error("Unexpected non-streaming request"); },
+      async *stream(options) {
+        if (++proof.requests > 4) throw Error("Live proof request limit reached; no retries");
+        if (!proof.disconnected) { response.emit("close"); response.destroyed = true; proof.disconnected = true; }
+        try { for await (const chunk of provider.stream({ ...options, maxTokens: 768, thinking: "disabled", signal: AbortSignal.any([...(options.signal ? [options.signal] : []), AbortSignal.timeout(60000)]) })) {
+          for (const call of chunk.toolCalls || []) if (call.function.name) proof.toolCalls.push(call.function.name);
+          yield chunk;
+        } } catch (error) { providerFailure ||= /MiMo stream error \d{3}/.exec(String(error))?.[0] || "Provider transport failure"; throw error; }
+      }
+    };
+    if (live && !process.env.MIMO_API_KEY) throw Error("Explicit MiMo credential required for live proof");
+    await new ConversationRuntime(store, { provider: live ? liveModel : model, models: [proof.model] }, worker).respond(thread.id, prompt.id, proof.model, "synthetic-owner", response);
     const executed = store.getTask(taskId)!;
     if (executed.status !== "waiting_approval" || !executed.evidencePack?.verifiedPassed) throw Error("Governed execution did not produce verified evidence: " + executed.error);
     if (executed.executionReceipts?.at(-1)?.status !== "observed") throw Error("Missing observed execution receipt");
@@ -115,6 +149,7 @@ async function main(): Promise<void> {
     const output = executed.evidencePack;
     const artifact = await readFile(path.join(worktree.worktreePath, "artifacts", "verified.txt"), "utf8");
     if (artifact !== "agentforge-docker-e2e") throw new Error("Sandbox artifact did not contain the expected value.");
+    proof.artifactSha256 = createHash("sha256").update(artifact).digest("hex");
     if (output.filesChanged.length !== 1 || output.filesChanged[0]?.filePath !== "artifacts/verified.txt") {
       throw new Error("Execution evidence did not report the expected constrained file change.");
     }
@@ -124,10 +159,12 @@ async function main(): Promise<void> {
     }
     if (output.finalSha !== baseSha) throw new Error("Execution evidence reported an unexpected repository revision.");
     await manager.removeWorktree(worktree.worktreePath, true);
+    proof.status = "passed";
     console.log(`PASS: conversation tool loop, disconnected subscriber, persisted response, governed worker, observed receipt, isolated network-disabled Docker execution with ${image}, and observed evidence verified.`);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 }
 
-await main();
+try { await main(); } catch (error) { proof.status = "failed"; process.exitCode = 1; console.error(error instanceof Error ? error.name : "Proof failed"); }
+finally { proof.elapsedMs = Date.now() - started; const report = JSON.stringify({ ...proof, providerFailure }, null, 2); if (process.env.AGENTFORGE_PROOF_OUTPUT) await writeFile(process.env.AGENTFORGE_PROOF_OUTPUT, report); console.log(report); }

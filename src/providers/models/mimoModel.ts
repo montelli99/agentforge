@@ -16,6 +16,7 @@ import type {
 } from "../../core/providers/model.js";
 import { isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
+import { chatCompletionMessages } from "./openaiModel.js";
 
 export type MiMoCapability =
   | "text"
@@ -170,7 +171,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
   auditGenerateBody(options: ModelRequestOptions): string {
     return JSON.stringify({
       model: options.model,
-      messages: options.messages,
+      messages: chatCompletionMessages(options.messages),
       temperature: options.temperature,
       max_tokens: options.maxTokens,
       tools: options.tools,
@@ -193,7 +194,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
       },
       body: JSON.stringify({
         model: options.model,
-        messages: options.messages,
+        messages: chatCompletionMessages(options.messages),
         temperature: options.temperature,
         max_tokens: options.maxTokens,
         ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
