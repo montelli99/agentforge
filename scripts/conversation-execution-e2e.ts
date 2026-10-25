@@ -150,6 +150,11 @@ async function main(): Promise<void> {
     if (executed.executionReceipts?.at(-1)?.status !== "observed") throw Error("Missing observed execution receipt");
     const restored = new WorkspaceStore(path.join(root, "state.json"));
     if (restored.listThreadMessages(thread.id).at(-1)?.generation?.status !== "complete") throw Error("Disconnected response was not persisted");
+    if(live){
+      const savedUsage=restored.listThreadMessages(thread.id).at(-1)?.generation?.requestUsage;
+      const expected=requestUsage.map(item=>item?{promptTokens:item.promptTokens,completionTokens:item.completionTokens,totalTokens:item.totalTokens}:null);
+      if(JSON.stringify(savedUsage)!==JSON.stringify(expected))throw Error('Provider usage did not survive store reopening');
+    }
     const output = executed.evidencePack;
     const artifact = await readFile(path.join(worktree.worktreePath, "artifacts", "verified.txt"), "utf8");
     if (artifact !== "agentforge-docker-e2e") throw new Error("Sandbox artifact did not contain the expected value.");

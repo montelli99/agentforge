@@ -125,6 +125,7 @@ export class ConversationRuntime {
     let content = "";
     let finished = false;
     let status: "complete" | "stopped" | "failed" = "complete";
+    const requestUsage:Array<{promptTokens:number;completionTokens:number;totalTokens:number}|null>=[];
     try {
       response.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
       send({ type: "started", model });
@@ -133,8 +134,17 @@ export class ConversationRuntime {
         const calls = new Map<string, { id: string; type: "function"; function: { name: string; arguments: string } }>();
         let turnText = "";
         let reason = "";
+        requestUsage.push(null);
+        this.store.checkpointGeneration(threadId,saved.id,content,'running',requestUsage);
         for await (const chunk of config.provider.stream({ model, messages, tools: conversationTools, signal: controller.signal })) {
           controller.signal.throwIfAborted();
+          if(chunk.usage){
+            const {promptTokens,completionTokens,totalTokens}=chunk.usage;
+            if([promptTokens,completionTokens,totalTokens].every(n=>Number.isSafeInteger(n)&&n>=0)&&totalTokens===promptTokens+completionTokens){
+              requestUsage[round]={promptTokens,completionTokens,totalTokens};
+              this.store.checkpointGeneration(threadId,saved.id,content,'running',requestUsage);
+            }
+          }
           for (const fragment of chunk.toolCalls || []) {
             if (!fragment.id) throw new Error("Tool call lacks an identity.");
             const call = calls.get(fragment.id) || { id: fragment.id, type: "function" as const, function: { name: "", arguments: "" } };
@@ -173,7 +183,7 @@ export class ConversationRuntime {
 
       this.active.delete(threadId);
     }
-    this.store.checkpointGeneration(threadId, saved.id, content || "[No complete response returned.]", status);
+    this.store.checkpointGeneration(threadId, saved.id, content || "[No complete response returned.]", status,requestUsage);
     send({ type: "saved", messageId: saved.id });
     send({ type: "finished", status, ...(status === "failed" ? { error: "The model response failed. Any partial text is marked incomplete." } : {}) });
     if (!response.destroyed) response.end();

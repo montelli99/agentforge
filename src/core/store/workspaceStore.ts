@@ -479,9 +479,13 @@ export class WorkspaceStore {
   }
 
   /** Server-owned generation checkpoint; never exposed as a user message edit. */
-  checkpointGeneration(threadId: string, messageId: string, content: string, status: NonNullable<CanonicalMessage["generation"]>["status"]): CanonicalMessage {
+  checkpointGeneration(threadId: string, messageId: string, content: string, status: NonNullable<CanonicalMessage["generation"]>["status"], requestUsage?: NonNullable<CanonicalMessage['generation']>['requestUsage']): CanonicalMessage {
     const message = this.listThreadMessages(threadId).find(item => item.id === messageId);
     if (!message?.generation || message.authorType !== "agent") throw new Error("Generation checkpoint unavailable.");
+    if(requestUsage){
+      if(requestUsage.length>12||requestUsage.some(usage=>usage!==null&&(![usage.promptTokens,usage.completionTokens,usage.totalTokens].every(n=>Number.isSafeInteger(n)&&n>=0)||usage.totalTokens!==usage.promptTokens+usage.completionTokens)))throw Error('Invalid reported usage');
+      message.generation.requestUsage=requestUsage.map(usage=>usage?{promptTokens:usage.promptTokens,completionTokens:usage.completionTokens,totalTokens:usage.totalTokens}:null);
+    }
     message.content = content;
     message.generation.status = status;
     message.updatedAt = new Date().toISOString();
