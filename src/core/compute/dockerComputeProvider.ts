@@ -183,6 +183,12 @@ export class DockerComputeProvider implements ComputeProvider {
     if (options.operationId) dockerArgs.splice(1, 0, '--label', `io.agentforge.operation=${options.operationId}`);
     dockerArgs[0] = "create";
     dockerArgs.splice(dockerArgs.indexOf("--rm"), 1);
+    // Preparation above awaits filesystem work. Recheck immediately before
+    // reserving the environment; another caller or destroy may have won.
+    if (env.status !== 'running' || this.environments.get(environmentId) !== env)
+      throw new Error('Docker sandbox stopped during command preparation.');
+    if (this.activeCommands.has(environmentId)) throw new Error('A command is already running in this environment.');
+    if (options.signal?.aborted) throw new Error('Command was cancelled during preparation.');
     const controller = new AbortController();
     const cancel = () => controller.abort();
     options.signal?.addEventListener("abort", cancel, { once: true });
