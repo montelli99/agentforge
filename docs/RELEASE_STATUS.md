@@ -306,3 +306,15 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 - The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
 
 
+
+## Connection setup browser regression — 2026-10-25
+
+Added a real Chromium regression using only synthetic credentials and an isolated
+workspace. It passes owner setup, guided API connection save, cleared password
+inputs, encrypted on-disk storage, server-object restart, owner sign-in, and
+explicit vault unlock restoring the selected route. It checks that the synthetic
+key and vault passphrase are absent from browser storage. Restart correctly
+leaves the route locked until unlock. No provider request is made: this is not
+live credential or model-response acceptance, nor an OS-process crash test.
+The regression is now required before hosted package creation; hosted results
+for this change remain pending.

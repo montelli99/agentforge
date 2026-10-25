@@ -38,6 +38,7 @@
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.vnext.json --noEmit false --declaration --rootDir src --outDir dist && node scripts/copy-public-assets.mjs && node scripts/validate-built-browser-code.mjs",
     "test": "vitest run src --maxWorkers=1",
     "test:memory:browser": "node scripts/memory-browser-acceptance.mjs",
+    "test:connections:browser": "node scripts/connection-browser-acceptance.mjs",
     "test:persistence:launcher": "node scripts/persistence-acceptance.mjs",
     "test:persistence:crash": "node scripts/persistence-crash-recovery.mjs",
     "test:execution:crash": "node --import tsx scripts/execution-crash-proof.ts",
