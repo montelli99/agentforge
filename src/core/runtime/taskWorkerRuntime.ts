@@ -222,6 +222,7 @@ export class TaskWorkerRuntime {
   async executeTask(taskId: string): Promise<Task> {
     if(this.changingMemory)throw Error('Memory setup is in progress; retry after it finishes');
     const task = this.requireTask(taskId);
+    if (task.externalTurnReceipts?.length) throw Error("External execution already recorded; reconcile it before local execution");
     const blockReason = this.getExecutionBlockReason();
     if (blockReason) throw new Error(blockReason);
     if (!this.executionBackend) throw new Error("Task execution backend is unavailable.");

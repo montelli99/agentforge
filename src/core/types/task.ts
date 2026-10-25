@@ -31,6 +31,7 @@ export interface TaskWorktreeInfo {
 }
 
 export interface Task {
+  externalTurnReceipts?: import("../runtime/externalTurnDispatch.js").ExternalTurnReceipt[];
   executionReceipts?: import("../runtime/executionReceipt.js").ExecutionReceipt[];
   planningAudits?: import("../runtime/executionReceipt.js").PlanningAudit[];
   id: string;
