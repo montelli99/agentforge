@@ -81,3 +81,7 @@ integration, not a memory adapter.
 ### Returned record ownership
 
 Return structured-cloneable data from memory queries, including metadata. The shared query boundary snapshots each result before validating its scope and content. Adapters may reuse their own records internally, but subsequent mutations do not update already-returned context. Functions and other non-cloneable values are rejected with a generic provider-response error. This protects snapshot consistency; provider plugins still execute as trusted host code and are not sandboxed by cloning.
+
+### Conflicting records during planning
+
+Planning retrieves safety rules and topical memories separately. If those lookups return the same record ID with different model-visible content, scope, source identity, category, tags or revision timestamps, context construction fails rather than silently choosing one. Identical duplicates are included once. Resolve or refresh the source before requesting a new plan. This detects observed conflicts; it does not establish a transactional snapshot across independent remote stores or detect corrections absent from all returned results.

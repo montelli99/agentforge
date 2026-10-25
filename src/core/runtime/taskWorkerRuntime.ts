@@ -350,11 +350,18 @@ export class TaskWorkerRuntime {
       queryMemoryBounded(memory,{ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
       queryMemoryBounded(memory,{ ...scope, queryText, limit: 8 }),
     ]);
-    const seen = new Set<string>();
+    const seen = new Map<string, string>();
     const records = [...rules, ...topical].filter(({ record }) => {
       if(record.namespace!==scope.namespace||record.archived||(selected?record.projectId!==task.projectId:record.projectId&&record.projectId!==task.projectId))return false;
-      if (seen.has(record.id)) return false;
-      seen.add(record.id);
+      const snapshot = JSON.stringify([record.namespace, record.projectId, record.category,
+        record.title, record.content, [...record.tags].sort(), record.version,
+        record.createdAt, record.updatedAt, memorySourceIdentity(memory, record)]);
+      const previous = seen.get(record.id);
+      if (previous !== undefined) {
+        if (previous !== snapshot) throw Error('Memory changed or conflicted during planning; no consistent context is available');
+        return false;
+      }
+      seen.set(record.id, snapshot);
       return true;
     });
     for (const { record } of records) sources.push({
