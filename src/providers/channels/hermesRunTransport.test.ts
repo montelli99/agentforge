@@ -1,6 +1,34 @@
 import {it,expect,vi} from 'vitest';
 import {HermesRunTransport} from './hermesRunTransport.js';
+import http from 'node:http';
+import {once} from 'node:events';
 const client=()=>new HermesRunTransport('http://127.0.0.1:8642','synthetic-secret');
+it('uses real HTTP without following a credential-bearing redirect or replaying a lost response',async()=>{
+ vi.unstubAllGlobals();
+ const requests:Array<{path:string;key?:string;body:string}>=[];
+ let redirected=0;
+ const target=http.createServer((_req,res)=>{redirected++;res.end('{}');});
+ target.listen(0,'127.0.0.1');await once(target,'listening');
+ const targetPort=(target.address() as {port:number}).port;
+ const server=http.createServer(async(req,res)=>{
+  let body='';for await(const part of req)body+=part;
+  requests.push({path:req.url!,key:req.headers['idempotency-key'] as string|undefined,body});
+  if(req.url==='/v1/runs/redirect'){res.writeHead(307,{Location:'http://127.0.0.1:'+targetPort});res.end();return;}
+  if(req.url==='/v1/runs'&&JSON.parse(body).input==='lose response'){req.socket.destroy();return;}
+  res.setHeader('Content-Type','application/json');
+  res.end(JSON.stringify(req.method==='POST'?{run_id:'run-http',status:'started'}:{run_id:'run-http',status:'unknown'}));
+ });
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ try{
+  const adapter=new HermesRunTransport('http://127.0.0.1:'+(server.address() as {port:number}).port,'synthetic-secret');
+  expect(await adapter.submitSessionTurn('chosen','test','request-http')).toEqual({runId:'run-http'});
+  expect(requests[0]).toEqual({path:'/v1/runs',key:'request-http',body:JSON.stringify({input:'test',session_id:'chosen'})});
+  expect(await adapter.inspectRun('run-http')).toEqual({runId:'run-http',status:'unknown'});
+  await expect(adapter.inspectRun('redirect')).rejects.toThrow('interrupted');expect(redirected).toBe(0);
+  await expect(adapter.submitSessionTurn('chosen','lose response','request-lost')).rejects.toThrow('interrupted');
+  expect(requests.filter(r=>r.key==='request-lost')).toHaveLength(1);
+ }finally{server.closeAllConnections();target.closeAllConnections();await Promise.all([new Promise<void>(resolve=>server.close(()=>resolve())),new Promise<void>(resolve=>target.close(()=>resolve()))]);}
+});
 it('submits an explicit session once with the durable request key',async()=>{
  const fetcher=vi.fn(async()=>Response.json({run_id:'run-test',status:'started'}));vi.stubGlobal('fetch',fetcher);
  expect(await client().submitSessionTurn('selected-session','Synthetic task','request-123')).toEqual({runId:'run-test'});
