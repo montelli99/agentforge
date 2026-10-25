@@ -1,6 +1,7 @@
 import { ConnectionSetup } from './connectionSetup.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
 import { inspectClaudeCliAuthentication } from '../providers/models/claudeCliCapabilities.js';
+import { inspectGeminiCliCapabilities } from '../providers/models/geminiCliCapabilities.js';
 import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
@@ -394,6 +395,7 @@ export class AgentForgeWebServer {
   private readonly connectionSetup: ConnectionSetup;
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
+  private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -3035,6 +3037,24 @@ export class AgentForgeWebServer {
     if (path === "/api/chat/status" && req.method === "GET") {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
     }
+    if(path === '/api/connections/gemini/inspect') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect client setup.'})); return; }
+      if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      const bundle = process.env.AGENTFORGE_GEMINI_BUNDLE;
+      if (!bundle) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferencePerformed:false})); return; }
+      if (this.geminiClientCheck) { res.writeHead(409); res.end(JSON.stringify({error:'A Gemini client check is already running.'})); return; }
+      const controller = new AbortController();
+      const check = {controller, result: inspectGeminiCliCapabilities(bundle, controller.signal)};
+      this.geminiClientCheck = check;
+      const disconnect = () => { if (!res.writableEnded) controller.abort(); };
+      res.once('close', disconnect);
+      try { const result = await check.result; res.writeHead(200); res.end(JSON.stringify({configured:true,...result})); }
+      catch { res.writeHead(400); res.end(JSON.stringify({error:'Gemini client inspection failed. Check the host-selected official client installation.'})); }
+      finally { res.removeListener('close', disconnect); if (this.geminiClientCheck === check) this.geminiClientCheck = undefined; }
+      return;
+    }
     if(path === '/api/connections/claude/status') {
       res.setHeader('Cache-Control', 'no-store');
       if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect subscription accounts.'})); return; }
@@ -4875,6 +4895,8 @@ export class AgentForgeWebServer {
 
   async stop(): Promise<void> {
     this.conversations.shutdown();
+    const geminiCheck = this.geminiClientCheck;
+    if (geminiCheck) { geminiCheck.controller.abort(); await geminiCheck.result.catch(() => undefined); }
     const claudeCheck = this.claudeStatusCheck;
     if (claudeCheck) {
       claudeCheck.controller.abort();
