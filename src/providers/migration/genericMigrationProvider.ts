@@ -18,6 +18,7 @@ import type {
   MigrationArtifact,
 } from "../../core/types/migration.js";
 import type { WorkspaceStore } from "../../core/store/workspaceStore.js";
+import type { AgentTeammate } from "../../core/types/agent.js";
 import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.js";
 
 export class GenericMigrationProvider implements MigrationProvider {
@@ -38,7 +39,8 @@ export class GenericMigrationProvider implements MigrationProvider {
       || data.agents.some(agent => !agent || ![agent.id, agent.name, agent.role, agent.description].every(value => typeof value === 'string')
         || !agent.id || !strings(agent.tools) || !strings(agent.permissions))
       || new Set(data.agents.map(agent => agent.id)).size !== data.agents.length
-      || data.channels.some(channel => !channel || typeof channel.name !== 'string' || typeof channel.visibility !== 'string')) {
+      || data.channels.some(channel => !channel || typeof channel.name !== 'string' || typeof channel.visibility !== 'string')
+      || data.tasks.some(task => !task || typeof task.title !== 'string' || typeof task.status !== 'string')) {
       throw new Error('Invalid generic migration manifest');
     }
     const inspection: MigrationInspection = {
@@ -68,6 +70,16 @@ export class GenericMigrationProvider implements MigrationProvider {
 
     // Map agents
     for (const agent of data.agents) {
+      const payload = {
+        id: agent.id, name: agent.name, role: agent.role, description: agent.description,
+        status: 'offline',
+        harnessPolicy: { preferredHarnessId: 'native', autoResume: false },
+        modelPolicy: { preferredTier: 2, preferredModel: 'unconfigured', preferredProvider: 'unconfigured', allowCloudFallback: false },
+        decisionPolicy: { useSystem1Router: false },
+        computePolicy: { environment: 'none' },
+        memoryNamespace: `migration-${encodeURIComponent(agent.id)}`,
+        tools: [], permissions: [], assignedChannelIds: [],
+      } satisfies Omit<AgentTeammate, 'createdAt' | 'updatedAt'>;
       items.push({
         id: `item-gen-agent-${agent.id}`,
         sourceType: "generic_agent",
@@ -75,17 +87,10 @@ export class GenericMigrationProvider implements MigrationProvider {
         sourceName: agent.name,
         targetCategory: "agent",
         targetName: agent.name,
-        status: "DIRECT",
-        transformDetails: "Direct import from standard schema",
-        canonicalPayload: {
-          id: agent.id,
-          name: agent.name,
-          role: agent.role,
-          description: agent.description,
-          status: "idle",
-          tools: agent.tools,
-          permissions: agent.permissions,
-        },
+        status: "TRANSFORM",
+        transformDetails: "Offline staging profile. Reconnect the model, harness, prompt, channels and memory, then review tools and permissions before execution. Source permissions are not granted.",
+        warning: `Source requests ${agent.tools.length} tools and ${agent.permissions.length} permissions; neither is enabled in staging.`,
+        canonicalPayload: payload,
       });
     }
 
@@ -107,6 +112,14 @@ export class GenericMigrationProvider implements MigrationProvider {
       });
     }
 
+    for (const [index, task] of data.tasks.entries()) {
+      items.push({
+        id: `item-gen-task-${index}`, sourceType: 'generic_task', sourceId: String(index),
+        sourceName: task.title, targetCategory: 'task', targetName: task.title,
+        status: 'UNSUPPORTED', warning: 'Task history import is not implemented; this task will not be silently omitted.',
+      });
+    }
+
     return {
       id: `plan-generic-${Date.now()}`,
       source: "GENERIC",
@@ -114,13 +127,13 @@ export class GenericMigrationProvider implements MigrationProvider {
       items,
       conflicts: [],
       secretRequirements: [],
-      summary: { direct: data.agents.length, transform: 0, manualReview: 0, unsupported: data.channels.length, secretRequired: 0, dangerous: 0 },
+      summary: { direct: 0, transform: data.agents.length, manualReview: 0, unsupported: data.channels.length + data.tasks.length, secretRequired: 0, dangerous: 0 },
       readinessScore: items.length ? Math.round(100*data.agents.length/items.length) : 0,
     };
   }
 
   async dryRun(plan: MigrationPlan): Promise<MigrationDryRun> {
-    const unsupported=plan.items.filter(item=>item.status!=='DIRECT'||item.targetCategory!=='agent'||!item.canonicalPayload);
+    const unsupported=plan.items.filter(item=>!['DIRECT','TRANSFORM'].includes(item.status)||item.targetCategory!=='agent'||!item.canonicalPayload);
     return {
       planId: plan.id,
       executedAt: new Date().toISOString(),

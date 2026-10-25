@@ -163,3 +163,13 @@ the first item is not written. The unsupported fixture import reports HTTP 409.
 The migration and end-to-end regression suites passed 25 tests. This preflight
 does not provide crash atomicity or durable rollback, nor does it complete the
 agent policy mapping; those are still required before enabling uploaded imports.
+
+Generic agent mapping now produces structurally complete, offline staging
+records using the public AgentTeammate type: no compute, auto-resume, cloud
+fallback, tools, permissions or channel bindings are enabled. The plan labels
+this as a transformation and explains that model, prompt, harness and authority
+must be reconnected/reviewed. Task history is explicitly unsupported in the plan
+rather than disappearing from it. Synthetic staging import verifies these policy
+values and run identity; 25 regression tests passed. This is staging only, not
+behavior-preserving migration or completed activation. Uploaded import remains
+disabled pending review and durable rollback.
