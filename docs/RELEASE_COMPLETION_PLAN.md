@@ -33,6 +33,19 @@ removal remains a separate tracked request until the hosting provider confirms i
 
 ### Live planning and browser execution regression repair
 
+A fresh post-repair MiMo V2.6 Flash request subsequently passed the complete
+browser journey: draft, inspected exact commands, test-authorized browser
+approval, network-disabled Docker execution, verified file, service restart,
+receipt-preserving recovery, final approval and durable completion. One paid
+request reported 751 input and 162 output tokens (913 total); monetary cost was
+not measured. The task used synthetic data and a predefined required check,
+with the real credential mediated by a local proxy. It does not prove arbitrary
+task competence, direct credential setup or external-agent execution.
+Raw synthetic provider response SHA-256:
+`424338dd1350a7300e36a59fd5fb974c7a787c9dcf39993a78c53f3420e9cf24`.
+Reviewed command-array SHA-256:
+`c55a4cba22a5e09e8adb7e3e26037bc25ddb218117a801d50ad7d98061842c9a`.
+
 The live compatible-provider probe exposed valid token totals being rejected
 when `prompt_tokens_details` was null. Optional null breakdowns now preserve
 reported totals without inventing cache counts; malformed breakdowns still fail.

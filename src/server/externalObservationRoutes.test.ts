@@ -16,7 +16,12 @@ it('requires authenticated execution permission and observes only the saved runt
  const inspect=vi.fn(async()=>({runId:'saved-run',status:'timeout'}));
  const submit=vi.fn(async()=>({runId:'submitted-run'}));
  const stop=vi.fn(async()=>({acknowledged:true}));
- server.registerExternalRunConnection({id:'saved-connection',displayName:'OpenClaw test connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop});
+ for(const displayName of ['', ' ', 'bad\nname', 'x'.repeat(101)]){
+  expect(()=>server.registerExternalRunConnection({id:'invalid-name',displayName,inspectRun:inspect})).toThrow('Invalid external connection display name');
+ }
+ const registered={id:'saved-connection',displayName:'OpenClaw test connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop};
+ server.registerExternalRunConnection(registered);
+ registered.id='changed-after-registration';registered.displayName='Changed name';
  try{
   await server.start(); const base=server.getBaseUrl();
   const login=async(username:string)=>{const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'synthetic test password'})});expect(r.status).toBe(200);return (await r.json()).token as string;};
