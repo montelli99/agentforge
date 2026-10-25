@@ -15,6 +15,7 @@ export const publicReleaseAllowlist = [
   "website",
   ".env.example",
   ".gitignore",
+  ".gitattributes",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
   "Dockerfile",

@@ -8,7 +8,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DockerComputeProvider } from "../src/core/compute/dockerComputeProvider.js";
@@ -37,6 +37,9 @@ async function main(): Promise<void> {
     // The portable node image runs as an unprivileged user. Make the disposable
     // fixture writable without changing the production Docker sandbox policy.
     await chmod(worktree.worktreePath, 0o777);
+    const writableFixture = path.join(worktree.worktreePath, "artifacts");
+    await mkdir(writableFixture);
+    await chmod(writableFixture, 0o777);
     const now = Date.now();
     const command = "node -e \"require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
     const task: Task = {
@@ -81,10 +84,6 @@ async function main(): Promise<void> {
     );
     const readiness = await backend.initialize();
     if (!readiness.ready) {
-      if (process.env.CI === "true") {
-        console.warn(`SKIP: approved Docker acceptance unavailable in this hosted runner: ${readiness.blockers.join(" ")}`);
-        return;
-      }
       throw new Error(`Approved Docker backend unavailable: ${readiness.blockers.join(" ")}`);
     }
     await backend.validateTask(task);
