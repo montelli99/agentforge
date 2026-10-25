@@ -417,3 +417,7 @@ A synthetic provider returned an old safety limit in the rule query and its corr
 ### Detect duplicate conflicts before composition and truncation
 
 Moved the model-visible record fingerprint into the shared memory contract and applied it within each provider response as well as across worker lookups. Identical duplicate IDs collapse to one; differing snapshots reject the result before truncation. A synthetic direct and combined-provider diagnostic rejected a second conflicting record even with limit:1, and returned one record for identical duplicates. All 15 existing operational-memory/task-worker tests and source/script type checks passed. Conflicting meaning across different IDs or aliases remains distinct from this identity-consistency check.
+
+### Bind hosted evidence to named jobs and retained artifact
+
+The hosted verifier now requires the named public-acceptance job and all six named OS/Node combinations, not just any seven successful jobs. It refuses a dirty checkout and requires one unexpired artifact named for the exact commit, with matching workflow/run source and GitHub archive digest. Artifact metadata is explicitly not independent verification of downloaded package contents. The GitHub artifact API for completed run 40224658826 supplied the expected name, source and SHA-256 digest. Script syntax and script type checks passed; acceptance of this verifier against its own exact hosted build remains pending.
