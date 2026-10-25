@@ -18,6 +18,7 @@ import type { CompletionEngine } from "../completion/completionEngine.js";
 import { ProcessExecutionEngine, type ProcessExecutionTrace } from "../process/processExecutionEngine.js";
 import { buildContextPacket, type ContextPacket, type ContextSource } from "../../contextPacket.js";
 import type { MemoryProvider } from "../providers/memory.js";
+import {queryMemoryBounded} from '../providers/memory.js';
 import type { ProcessStep } from "../types/process.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { ExecutionContract } from "../types/contract.js";
@@ -261,7 +262,10 @@ export class TaskWorkerRuntime {
 
       this.store.updateTask(taskId, { status: "verification_running" });
       const currentTask = this.requireTask(taskId);
-      const contextPacket = await this.buildWorkerContext(currentTask);
+      let contextPacket:ContextPacket;
+      try{contextPacket=await this.buildWorkerContext(currentTask,abortController.signal);}
+      catch(error){if(abortController.signal.aborted)throw new TaskExecutionCancelledError();throw error;}
+      if(abortController.signal.aborted)throw new TaskExecutionCancelledError();
       this.store.recordAudit({
         origin: "system", actorId: "system", actorType: "system", action: "TASK_CONTEXT_PACKED",
         targetType: "task", targetId: taskId,
@@ -325,19 +329,19 @@ export class TaskWorkerRuntime {
     }
   }
 
-  async getPlanningContext(taskId: string): Promise<ContextPacket> { return this.buildWorkerContext(this.requireTask(taskId)); }
+  async getPlanningContext(taskId: string,signal?:AbortSignal): Promise<ContextPacket> { return this.buildWorkerContext(this.requireTask(taskId),signal); }
 
-  private async buildWorkerContext(task: Task): Promise<ContextPacket> {
+  private async buildWorkerContext(task: Task,signal?:AbortSignal): Promise<ContextPacket> {
     const sources: ContextSource[] = [{ id: task.id, kind: "goal", text: `${task.title}\n${task.description}` }];
     const selected=task.projectId?this.projectMemory.get(task.projectId):undefined;
     const memory = selected?.provider??this.options.memoryProvider;
     if (!memory) return buildContextPacket(sources);
     const queryText = `${task.title} ${task.description}`.slice(0, 2_000);
     const scope = { namespace: selected?.namespace??this.options.memoryNamespace??"workspace",
-      projectId: task.projectId, globalOnly: !task.projectId };
+      projectId: task.projectId, globalOnly: !task.projectId,signal };
     const [rules, topical] = await Promise.all([
-      memory.query({ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
-      memory.query({ ...scope, queryText, limit: 8 }),
+      queryMemoryBounded(memory,{ ...scope, categories: ["do_not_repeat", "project_constraint"], limit: 4 }),
+      queryMemoryBounded(memory,{ ...scope, queryText, limit: 8 }),
     ]);
     const seen = new Set<string>();
     const records = [...rules, ...topical].filter(({ record }) => {

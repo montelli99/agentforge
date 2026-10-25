@@ -75,3 +75,13 @@ export interface OperationalMemoryRepository {
   saveOperationalMemory(record: OperationalMemoryRecord): void;
   deleteOperationalMemory(namespace: string, id: string): boolean;
 }
+
+/** Bound waiting even when an adapter ignores cancellation. Never retry implicitly. */
+export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQuery):Promise<MemorySearchResult[]>{
+  const signal=AbortSignal.any([AbortSignal.timeout(15000),...(query.signal?[query.signal]:[])]);
+  signal.throwIfAborted();
+  let interrupt:()=>void=()=>{};
+  const stopped=new Promise<never>((_,reject)=>{interrupt=()=>reject(Error('Memory lookup stopped or timed out'));signal.addEventListener('abort',interrupt,{once:true});if(signal.aborted)interrupt();});
+  try{return await Promise.race([stopped,provider.query({...query,signal})]);}
+  finally{signal.removeEventListener('abort',interrupt);}
+}

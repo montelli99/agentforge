@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "../core/store/workspaceStore.js";
 import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider } from "../core/runtime/approvedPlanProvider.js";
 import type { MemoryProvider } from '../core/providers/memory.js';
+import {queryMemoryBounded} from '../core/providers/memory.js';
 import { OperationalMemoryProvider } from '../providers/memory/operationalMemory.js';
 
 export const conversationTools = [
@@ -28,12 +29,7 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
     if(typeof args.query!=='string'||!args.query.trim()||args.query.length>200)throw Error('Supply a search phrase under 200 characters.');
     const query=args.query.trim().toLocaleLowerCase();
     const provider=memoryProvider??new OperationalMemoryProvider(store);
-    const memorySignal=AbortSignal.any([signal,AbortSignal.timeout(15000)]);
-    let interrupted:()=>void=()=>{};
-    const stopped=new Promise<never>((_,reject)=>{interrupted=()=>reject(Error('Memory lookup stopped or timed out'));memorySignal.addEventListener('abort',interrupted,{once:true});if(memorySignal.aborted)interrupted();});
-    let results;
-    try{results=await Promise.race([stopped,provider.query({namespace:memoryNamespace,projectId:project.id,tags:['chat-context'],queryText:query,includeArchived:false,limit:24,signal:memorySignal})]);}
-    finally{memorySignal.removeEventListener('abort',interrupted);}
+    const results=await queryMemoryBounded(provider,{namespace:memoryNamespace,projectId:project.id,tags:['chat-context'],queryText:query,includeArchived:false,limit:24,signal});
     signal.throwIfAborted();
     // An adapter's filtering is not a privacy boundary. Enforce scope here too.
     return results.map(result=>result.record)

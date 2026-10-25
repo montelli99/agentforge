@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach,vi } from "vitest";
 import { WorkspaceStore } from "../store/workspaceStore.js";
 import { TaskWorkerRuntime, type TaskExecutionBackend } from "./taskWorkerRuntime.js";
 import { AgentForgeWebServer } from "../../server/webServer.js";
@@ -433,6 +433,11 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
       expect(selectedContext.content).toContain('Selected release source');
       expect(selectedContext.content).not.toContain('Alpha delivery rule');
+      const stalled=vi.spyOn(selected,'query').mockImplementation(()=>new Promise(()=>{}));
+      const cancellation=new AbortController();
+      const waiting=runtimeWithMemory.getPlanningContext(task.id,cancellation.signal);
+      const stopped=expect(waiting).rejects.toThrow('stopped or timed out');
+      cancellation.abort();await stopped;stalled.mockRestore();
       runtimeWithMemory.clearSelectedProjectMemory();
       expect((await runtimeWithMemory.getPlanningContext(task.id)).content).toContain('Alpha delivery rule');
 
