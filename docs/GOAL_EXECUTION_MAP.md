@@ -281,3 +281,7 @@ Validation: all TypeScript proof scripts passed type checking. A synthetic malfo
 ### Execution crash proof is a release gate
 
 Added test:execution:crash to verify:public and to the Windows/macOS/Linux Node 22/24 CI matrix. The new package command passed locally: an actual child process was terminated after its effect and durable receipt, restart refused replay, exactly one effect remained, and the task was presented paused for reconciliation. Hosted cross-platform results remain pending. This gate covers the disposable backend; remote-provider reconciliation is still open.
+
+### Recovery guards apply to SDK and worker callers
+
+The web receipt-review route rejected unknown planning usage and finished-task restoration, but the public runtime reconciliation method did not. Moved equivalent enforcement into reconcileObservedExecution so direct SDK calls and executeTask's observed-result branch cannot bypass those checks. Extended the existing worker integration case: completed-task restoration is rejected, unknown planning usage blocks both direct reconciliation and executeTask without changing status, and an intact observed result with resolved usage restores completion without calling the backend. All 13 worker integration tests passed; typecheck:all passed. This is synthetic runtime recovery evidence, not live provider reconciliation or browser acceptance.

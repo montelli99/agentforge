@@ -101,6 +101,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
       repoRoot: process.cwd(),
       autoStart: false,
+      requireEffectReceipts: true,
+      workspaceIdentity: 'synthetic-recovery',
     });
 
     try {
@@ -145,6 +147,21 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(ev.testResults.every(t => t.passed)).toBe(true);
       // The coordinator preserves what the executor reported; it invents no diff.
       expect(ev.filesChanged).toEqual([]);
+      const restartedBackend = testExecutionBackend();
+      restartedBackend.execute = vi.fn(restartedBackend.execute);
+      const restarted = new TaskWorkerRuntime(store, restartedBackend, {
+        repoRoot: process.cwd(), requireEffectReceipts: true, workspaceIdentity: 'synthetic-recovery',
+      });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('Finished tasks');
+      store.updateTask(task.id, { status: 'verification_running', planningAudits: [{
+        id: 'synthetic-audit', taskId: task.id, model: 'synthetic', requestDigest: 'synthetic', status: 'unknown',
+      }] });
+      expect(() => restarted.reconcileObservedExecution(task.id)).toThrow('Planning usage unknown');
+      await expect(restarted.executeTask(task.id)).rejects.toThrow('Planning usage unknown');
+      expect(store.getTask(task.id)?.status).toBe('verification_running');
+      store.updateTask(task.id, { planningAudits: [] });
+      expect(restarted.reconcileObservedExecution(task.id).status).toBe('completed');
+      expect(restartedBackend.execute).not.toHaveBeenCalled();
     } finally {
       simRuntime.stop();
     }
