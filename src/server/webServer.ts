@@ -1467,6 +1467,16 @@ export class AgentForgeWebServer {
       return;
     }
 
+    if (path === '/api/runtime-connections') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+      if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+      res.writeHead(200);
+      res.end(JSON.stringify({connections: [...this.externalRunConnections.values()].map(connection=>({id:connection.id,canSubmit:typeof connection.submitSessionTurn==='function',readiness:'not_checked'}))}));
+      return;
+    }
+
     // Settings Endpoints (Sections 31, 32, 42)
     if (req.method === "GET" && path === "/api/settings") {
       res.writeHead(200);
