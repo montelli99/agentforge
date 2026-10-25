@@ -37,3 +37,43 @@ Unit coverage includes disconnect survival, original-history retrieval, task
 deduplication, conversation boundaries, stored text attachment restrictions and
 checkpoint recovery from disk. Provider quality and unattended performance must
 be evaluated separately with explicit provider configuration.
+
+## Live development evidence — October 25, 2026
+
+MiMo's authenticated model inventory returned `mimo-v2.6-flash` and
+`mimo-v2.6-pro`; the previously selected `mimo-v2.5` was rejected. These runs
+used Flash and synthetic disposable data, with no private workspace material.
+
+- Before repair, a real tool follow-up failed with HTTP 400. Internal
+  `toolCalls` / `toolCallId` fields were being sent without translation to
+  `tool_calls` / `tool_call_id`. Both compatible and MiMo adapters now translate
+  those fields.
+- After repair, live conversation-driven execution passed in 16.724 seconds,
+  using two model requests. The approved fixed task ran in a network-disabled
+  Docker worktree. The actual artifact, observed receipt and saved response
+  after subscriber disconnection were verified. Artifact SHA-256:
+  `008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9`.
+- The first memory ablation recovered 0/3 random facts both with AgentForge
+  tools and with recent context alone. Requesting a history tool call did not
+  improve the next development run. The implementation now prefetches up to
+  three relevant omitted passages for explicit English recall requests,
+  constrained to the same conversation and marked as reference data.
+- With that repair, one fresh-random-fact development ablation recovered 3/3
+  facts versus 0/3 for the same model with the retrieved passages removed and
+  no retrieval tools. Recent context was 96,245 characters; the targets were
+  absent from that context. The persisted store was reopened before answering.
+  The paired run took 15.175 seconds. The three facts are not independent trials.
+
+These results establish narrow live capabilities, not comparative product
+superiority. The task was pre-approved and fixed; autonomous planning was not
+evaluated. Reopening the store is not a process-crash experiment. The memory
+example was used during development, not a held-out benchmark. Monetary cost
+is unmeasured, and streaming token usage is not currently exposed. Broader
+held-out workloads and independently reproducible baselines are still needed.
+
+Reproduce with `scripts/conversation-execution-e2e.ts` using
+`AGENTFORGE_LIVE_EXECUTION_PROOF=1`, or `scripts/live-memory-proof.ts` using
+`AGENTFORGE_LIVE_MEMORY_PROOF=1`. Both require an explicit
+`AGENTFORGE_PROOF_MODEL` and private `MIMO_API_KEY`. Set
+`AGENTFORGE_PROOF_OUTPUT` outside the project for the JSON result. Live runs
+consume provider quota; they are never enabled by normal CI.

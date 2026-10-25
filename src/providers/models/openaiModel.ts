@@ -13,10 +13,19 @@ import type {
 import { isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
+/** Convert internal conversation fields to the Chat Completions wire schema. */
+export function chatCompletionMessages(messages: ModelRequestOptions["messages"]) {
+  return messages.map(({ toolCalls, toolCallId, ...message }) => ({
+    ...message,
+    ...(toolCalls ? { tool_calls: toolCalls } : {}),
+    ...(toolCallId ? { tool_call_id: toolCallId } : {}),
+  }));
+}
+
 function toChatCompletionBody(options: ModelRequestOptions, stream: boolean): Record<string, unknown> {
   return {
     model: options.model,
-    messages: options.messages,
+    messages: chatCompletionMessages(options.messages),
     temperature: options.temperature,
     max_tokens: options.maxTokens,
     tools: options.tools,
