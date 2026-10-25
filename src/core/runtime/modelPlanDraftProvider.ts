@@ -57,9 +57,10 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
     const fenced = /^```(?:json)?\s*\r?\n([\s\S]*?)\r?\n```$/.exec(content);
     try { parsed = JSON.parse(fenced ? fenced[1] : content); } catch { throw new Error("Model returned an invalid execution-plan draft."); }
     const commands = (parsed as { commands?: unknown })?.commands;
-    if (!Array.isArray(commands) || commands.length === 0 || commands.some(command => {
+    if (!Array.isArray(commands) || commands.length === 0 || commands.length > 100 || commands.some(command => {
+      if (!command || typeof command !== 'object' || Array.isArray(command)) return true;
       const item = command as { checkName?: unknown; command?: unknown; timeoutMs?: unknown };
-      return typeof item.checkName !== "string" || !item.checkName.trim() || typeof item.command !== "string" || !item.command.trim()
+      return typeof item.checkName !== "string" || !item.checkName.trim() || item.checkName.length > 200 || typeof item.command !== "string" || !item.command.trim() || item.command.length > 20000
         || (item.timeoutMs !== undefined && (typeof item.timeoutMs !== "number" || !Number.isSafeInteger(item.timeoutMs) || item.timeoutMs < 1 || item.timeoutMs > 3_600_000));
     })) throw new Error("Model execution-plan draft failed schema validation.");
     if (this.sandboxTools.length) {

@@ -18,6 +18,15 @@ describe("ModelPlanDraftProvider", () => {
     const model = { generate: async () => ({ content: "not-json" }) } as never;
     await expect(new ModelPlanDraftProvider(model, "test").draft(task)).rejects.toThrow(/invalid execution-plan/i);
   });
+  it.each([
+    [null], [false], [[]],
+    [{checkName: 'tests', command: 'x'.repeat(20001)}],
+    [{checkName: 'x'.repeat(201), command: 'node -v'}],
+    Array.from({length: 101}, () => ({checkName: 'tests', command: 'node -v'})),
+  ].map(commands => ({commands})))('rejects malformed or unapprovable command batches', async ({commands}) => {
+    const model = {generate: async () => ({content: JSON.stringify({commands})})} as never;
+    await expect(new ModelPlanDraftProvider(model, 'test').draft(task)).rejects.toThrow(/schema validation/);
+  });
   it("accepts a JSON fenced plan without loosening schema validation", async () => {
     const model = { generate: async () => ({ content: "```json\n{\"commands\":[{\"checkName\":\"custom_script\",\"command\":\"node -v\"}]}\n```" }) } as never;
     const draft = await new ModelPlanDraftProvider(model, "test").draft(task);
