@@ -199,6 +199,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
             });
             yield {
               id: data.id,
+              usage: reportedChatCompletionUsage(data.usage),
               deltaText: delta?.content,
               toolCalls: toolCalls?.length ? toolCalls : undefined,
               finishReason: data.choices?.[0]?.finish_reason,

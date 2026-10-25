@@ -216,7 +216,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
     let buffer = "";
     const toolIds = new Map<number, string>();
 
-    while (true) {
+    try { while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -246,6 +246,6 @@ export class MiMoModelProvider implements GenerativeModelProvider {
           }
         }
       }
-    }
+    } } finally { await reader.cancel().catch(()=>{}); reader.releaseLock(); }
   }
 }
