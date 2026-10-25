@@ -10,6 +10,7 @@ import {exchangeDirectCallback} from '../providers/models/chatgptDirectExchange.
 import {loadVerifiedSignInRuntime,createIsolatedIdentityVerifier,createIsolatedTokenTransport,createIsolatedCatalogTransport,renewStoredChatGPTSession} from '../providers/models/chatgptDirectSignInRuntime.js';
 import {ChatGPTActiveConnection} from '../providers/models/chatgptActiveConnection.js';
 import type {ConversationConfiguration} from './conversationRuntime.js';
+import {signOutDirectSession} from '../providers/models/chatgptDirectSignOut.js';
 
 type Attempt={id:string;accountId:string;state:'waiting'|'verifying'|'ready'|'failed'|'cancelled';models:string[];session?:DirectSignInSession;abort:AbortController;connection?:ChatGPTActiveConnection};
 const accountPattern=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
@@ -18,7 +19,7 @@ export class ChatGPTSetup {
  private attempts=new Map<string,Attempt>();
  private starting=new Map<string,AbortController>();
  private closed=false;
- private connections=new Set<ChatGPTActiveConnection>();
+ private connections=new Map<ChatGPTActiveConnection,string>();
  private verifierDirectory=fileURLToPath(new URL('../providers/models/assets',import.meta.url));
  constructor(private root:string){}
  private actorRoot(actor:string){if(!actor||actor.length>512)throw Error('Invalid account owner');return path.join(this.root,createHash('sha256').update(actor).digest('hex'));}
@@ -77,7 +78,7 @@ export class ChatGPTSetup {
       renew:()=>renewStoredChatGPTSession(store,credentials.clientId,credentials.subject,this.verifierDirectory,operation.signal),
       catalog:(token,abort)=>createIsolatedCatalogTransport(AbortSignal.any([operation.signal,abort])).list(token),
      });
-     this.connections.add(connection);attempt.connection=connection;
+     this.connections.set(connection,this.accountRoot(actor,accountId));attempt.connection=connection;
      const models=await connection.listModels();
      if(attempt.abort.signal.aborted){connection.deactivate();throw Error('Cancelled');}
      attempt.connection=connection;attempt.models=models;attempt.state='ready';
@@ -95,7 +96,7 @@ export class ChatGPTSetup {
  }
  async shutdown(){
   this.closed=true;for(const operation of this.starting.values())operation.abort();
-  for(const connection of this.connections)connection.deactivate();this.connections.clear();
+  for(const connection of this.connections.keys())connection.deactivate();this.connections.clear();
   await Promise.all([...this.attempts.values()].map(async attempt=>{attempt.abort.abort();await attempt.session?.cancel().catch(()=>{});}));this.attempts.clear();
  }
  async restore(actor:string,accountId:string){
@@ -118,11 +119,27 @@ export class ChatGPTSetup {
     renew:()=>renewStoredChatGPTSession(store,metadata.clientId,metadata.subject,this.verifierDirectory,signal),
     catalog:(token,abort)=>createIsolatedCatalogTransport(AbortSignal.any([signal,abort])).list(token),
    });
-   this.connections.add(connection);attempt.connection=connection;
+   this.connections.set(connection,this.accountRoot(actor,accountId));attempt.connection=connection;
    attempt.models=await connection.listModels();signal.throwIfAborted();attempt.state='ready';
    return {id:attempt.id,models:[...attempt.models]};
   }catch{if(attempt){attempt.connection?.deactivate();attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}throw Error('Saved account could not be restored; sign in again');}
   finally{this.starting.delete(actor);}
+ }
+ async signOut<T>(actor:string,accountId:string,disconnect:(providers:ChatGPTActiveConnection[],remove:()=>Promise<Awaited<ReturnType<typeof signOutDirectSession>>>)=>Promise<T>){
+  if(this.closed||this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Finish or cancel account setup first');
+  this.starting.set(actor,new AbortController());
+  try{
+   const status=await this.status(actor);if(!status.supported||!status.accounts.some(account=>account.id===accountId))throw Error('Saved account not found');
+   const directory=this.accountRoot(actor,accountId),metadata=await this.metadata(directory);
+   const registration=await new FileChatGPTDirectRegistrationStore(directory).load();
+   if(!metadata||metadata.clientId!==registration?.clientId)throw Error('Saved account mismatch');
+   const providers=[...this.connections].filter(([,owner])=>owner===directory).map(([provider])=>provider);
+   return await disconnect(providers,async()=>{
+    for(const provider of providers){provider.deactivate();this.connections.delete(provider);}
+    const attempt=this.attempts.get(actor);if(attempt?.accountId===accountId){attempt.abort.abort();this.attempts.delete(actor);}
+    return signOutDirectSession(this.store(directory),metadata.clientId,metadata.subject);
+   });
+  }finally{this.starting.delete(actor);}
  }
  async activate(actor:string,id:string,model:string):Promise<ConversationConfiguration>{
   const attempt=this.attempts.get(actor);

@@ -2962,6 +2962,7 @@ export class AgentForgeWebServer {
         if(path==='/api/connections/chatgpt/status'&&req.method==='GET'){const result=await this.chatgptSetup.status(actor);res.writeHead(200);res.end(JSON.stringify(result));return;}
         if(req.method!=='POST'){res.writeHead(405);res.end();return;}
         const body=await this.readBody(req);
+        if(path==='/api/connections/chatgpt/signout'){if(typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.signOut(actor,body.accountId,(providers,remove)=>this.conversations.disconnectConnection(providers,remove));res.writeHead(200);res.end(JSON.stringify({...result,status:this.conversations.status()}));return;}
         if(path==='/api/connections/chatgpt/restore'){if(typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.restore(actor,body.accountId);res.writeHead(200);res.end(JSON.stringify(result));return;}
         if(path==='/api/connections/chatgpt/begin'){if(body.accountId!==undefined&&typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.begin(actor,typeof body.accountId==='string'?body.accountId:undefined);res.writeHead(200);res.end(JSON.stringify(result));return;}
         if(path==='/api/connections/chatgpt/cancel'){await this.chatgptSetup.cancel(actor);res.writeHead(200);res.end(JSON.stringify({cancelled:true}));return;}

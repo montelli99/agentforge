@@ -19,6 +19,14 @@ export interface ConversationConfiguration {
 export class ConversationRuntime {
   private closed = false;
   private changingConnection = false;
+  async disconnectConnection<T>(providers: readonly GenerativeModelProvider[], remove:()=>Promise<T>):Promise<T> {
+    if(this.closed||this.active.size||this.changingConnection)throw Error('Finish or stop active responses before disconnecting.');
+    this.changingConnection=true;
+    try{
+      if(this.config&&providers.includes(this.config.provider))this.config={...this.config,models:[],connections:[]};
+      return await remove();
+    }finally{this.changingConnection=false;}
+  }
   async changeConnection(load: () => Promise<ConversationConfiguration>) {
     if (this.closed) throw Error('Conversation service has stopped.');
     if (this.active.size || this.changingConnection) throw Error('Finish or stop active responses before changing connections.');
