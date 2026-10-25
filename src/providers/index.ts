@@ -26,3 +26,4 @@ export * from "./voice/mockVoiceProvider.js";
 export * from "./voice/retellVoiceProvider.js";
 export * from "./marketplace/localPackageProvider.js";
 export * from "./benchmark/benchmarkRunner.js";
+export * from "./memory/compositeMemory.js";
