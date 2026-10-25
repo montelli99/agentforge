@@ -83,6 +83,20 @@ be run only with an operator-authorized provider session.
 
 ## Experimental OpenClaw connection boundary
 
+### Hermes integration boundary
+
+Reviewed the official [Hermes API server reference](https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server)
+on October 25. Its compatible chat endpoint invokes the agent's tools; it is
+not merely a text-model endpoint. Therefore treating it as a planning-only model
+would not establish AgentForge's review-before-effects boundary. Implement it
+as an external runtime with explicit delegation approval and durable receipts.
+The reference offers Runs, session APIs and terminal status reporting; replay
+guarantees depend on endpoint and mode. Preserve uncertain dispatch without
+automatic retry, verify capabilities against a pinned disposable installation,
+and require exact session identity and explicit cancellation evidence. Current
+AgentForge Hermes migration fixtures are not a live connector or proof of these
+semantics. Do not advertise them as such.
+
 Session-picker implementation boundary (October 25): the installed disposable
 OpenClaw 2026.10.7 schema in `dist/src-BaGOtYrI.mjs` defines `sessions.list`
 parameters `rowMode: "compact"`, positive integer `limit`, and nonnegative
