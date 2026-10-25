@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { WorkspaceStore } from "./core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./server/webServer.js";
 import { OpenClawMigrationProvider } from "./providers/migration/openclawMigrationProvider.js";
@@ -664,10 +665,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
 
   describe("Section 40 & 41: Persistence Durability & Crash Recovery", () => {
     it("should safely write atomically and recover from .bak file if primary file is corrupted", () => {
-      const tempDbPath = path.join(process.cwd(), ".artifacts", "test_store_durability.json");
-      if (!fs.existsSync(path.dirname(tempDbPath))) {
-        fs.mkdirSync(path.dirname(tempDbPath), { recursive: true });
-      }
+      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-durability-"));
+      const tempDbPath = path.join(scratch, "test_store_durability.json");
+      try {
 
       // 1. Save valid store
       store.saveToFile(tempDbPath);
@@ -689,11 +689,9 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       // Verify state was restored from backup
       expect(recoveredStore.listTasks().length).toBeGreaterThan(0);
 
-      // Clean up test file
-      try {
-        fs.unlinkSync(tempDbPath);
-        fs.unlinkSync(`${tempDbPath}.bak`);
-      } catch {}
+      } finally {
+        fs.rmSync(scratch, { recursive: true, force: true });
+      }
     });
   });
 });
