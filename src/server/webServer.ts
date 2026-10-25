@@ -52,6 +52,8 @@ import type { TaskPriority, TaskStatus } from "../core/types/task.js";
 import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
+import {HindsightMemoryProvider} from '../providers/memory/hindsightMemory.js';
+import {queryMemoryBounded,type MemoryProvider} from '../core/providers/memory.js';
 import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
 import type { MemoryCategory } from "../core/providers/memory.js";
 import { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
@@ -2911,19 +2913,29 @@ export class AgentForgeWebServer {
             return {memoryNamespace:undefined,memoryProvider:undefined};
           }
           const selection=body.action==='restore'?JSON.parse((await vault.unlock(body.passphrase as string)).AGENTFORGE_KEY_MEMORY_SELECTION||'null'):body;
-          if(!selection||selection.action!=='obsidian'||selection.confirmSharing!==true||typeof selection.root!=='string'||selection.root.length>4096||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid memory selection');
-          const memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
-          await memoryProvider.query({namespace:selection.namespace.trim(),projectId:selection.projectId,limit:1});
+          if(!selection||!['obsidian','hindsight'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
+          let memoryProvider:MemoryProvider;
+          const savedSelection:Record<string,unknown>={action:selection.action,confirmSharing:true,namespace:selection.namespace.trim(),projectId:selection.projectId};
+          if(selection.action==='obsidian'){
+            if(typeof selection.root!=='string'||selection.root.length>4096||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid note selection');
+            memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
+            Object.assign(savedSelection,{root:selection.root,files:selection.files});
+          }else{
+            if(typeof selection.bank!=='string'||typeof selection.apiKey!=='string')throw Error('Invalid bank connection');
+            memoryProvider=new HindsightMemoryProvider(selection.bank,selection.namespace.trim(),selection.projectId,selection.apiKey);
+            Object.assign(savedSelection,{bank:selection.bank,apiKey:selection.apiKey});
+          }
+          await queryMemoryBounded(memoryProvider,{namespace:selection.namespace.trim(),projectId:selection.projectId,queryText:selection.action==='hindsight'?'AgentForge connection check':undefined,limit:1});
           if(body.remember===true){
             if(fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json')))await vault.unlock(body.passphrase as string);
-            await vault.save({AGENTFORGE_KEY_MEMORY_SELECTION:JSON.stringify({action:'obsidian',confirmSharing:true,root:selection.root,namespace:selection.namespace.trim(),projectId:selection.projectId,files:selection.files})},body.passphrase as string);
+            await vault.save({AGENTFORGE_KEY_MEMORY_SELECTION:JSON.stringify(savedSelection)},body.passphrase as string);
           }
           this.taskWorkerRuntime.clearSelectedProjectMemory();
           this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());
           return {memoryNamespace:selection.namespace.trim(),memoryProvider};
         });
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
-      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active responses, and check the selected project, vault and Markdown paths. Notes must be regular files under 64 KB; linked paths are not supported.'}));}
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key.'}));}
       return;
     }
 

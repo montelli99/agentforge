@@ -2,7 +2,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it,vi } from "vitest";
 import { WorkspaceStore } from "../core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./webServer.js";
 
@@ -80,6 +80,17 @@ describe("Setup Guide API", () => {
     expect(server.conversations.status().projectMemoryEnabled).toBe(false);
     expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(400);
     expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
+    const originalFetch=globalThis.fetch;
+    const transport=vi.spyOn(globalThis,'fetch').mockImplementation((input,init)=>String(input).startsWith('https://api.hindsight.vectorize.io/')?Promise.resolve(Response.json({results:[]})):originalFetch(input,init));
+    try{
+      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action:'hindsight',bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret'});
+      expect(cloud.status).toBe(200);expect(await cloud.text()).not.toContain('synthetic-hindsight-secret');
+      expect(server.conversations.status().memoryProvider).toBe('hindsight');
+      expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
+      expect((await request('/api/memory/connection',owner,{action:'disconnect'})).status).toBe(200);
+      expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(200);
+      expect(server.conversations.status().memoryProvider).toBe('hindsight');
+    }finally{transport.mockRestore();}
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
     expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
