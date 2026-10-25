@@ -351,3 +351,7 @@ Expanded the conservative rollback check to workspace/space/user/package records
 ### Recovery UI reports actual rollback eligibility
 
 Extracted a read-only eligibility check shared with rollback validation. Import history now reports rollbackEligible separately from unchanged-record verification. The UI offers rollback only when that field is explicitly true, and explains unavailability for imports whose records remain unchanged but are referenced. Mutation repeats validation rather than trusting the earlier screen result. A synthetic check verified eligibility before use, no audit writes from inspection, and ineligibility after assigning a task. All 14 migration integration tests, source/script type checks and build/browser-script syntax passed. Rendered browser acceptance remains outstanding.
+
+### Registry preflight no longer treats network errors as availability
+
+The registry preflight now checks the exact package version using unauthenticated public npm metadata with a bounded deadline. A failed lookup or already-published version fails the gate; a public 404 is reported only as version-not-publicly-found, explicitly without account authentication or ownership verification. Packaging no longer invokes a shell and disables lifecycle scripts. The live check found no public agentforge@0.1.2 and packed 432 files; an injected lookup failure returned passed:false and exit 1. No publication occurred.
