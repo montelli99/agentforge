@@ -28,6 +28,15 @@ describe('offline OAuth state/PKCE/callback validation', () => {
     }
     expect(() => new DirectOAuthAttempt({ ...input(), clientId: 'original' }, () => timestamp).validateCallback(callback())).toThrow('client');
   });
+  it('binds returning identity hints to an explicitly selected registration', () => {
+    const returning={...input(),clientId:'mock-issued-client',selectedSubject:'mock-subject',idTokenHint:'synthetic-retained-id'};
+    const attempt=new DirectOAuthAttempt(returning,()=>timestamp);
+    expect(attempt.authorizationParameters()).toMatchObject({client_id:'mock-issued-client',id_token_hint:'synthetic-retained-id'});
+    expect(attempt.validateCallback(callback())).toMatchObject({selectedSubject:'mock-subject'});
+    for(const changes of [{clientId:undefined},{selectedSubject:undefined},{idTokenHint:'bad\nvalue'}]) {
+      expect(()=>new DirectOAuthAttempt({...returning,...changes},()=>timestamp)).toThrow('Invalid pending');
+    }
+  });
   it('consumes denied, expired and malformed attempts without returning an exchange', () => {
     const a = new DirectOAuthAttempt(input(), () => timestamp);
     expect(() => a.validateCallback(callback({ error: 'access_denied' }))).toThrow('denied');

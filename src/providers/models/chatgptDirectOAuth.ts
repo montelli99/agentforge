@@ -13,6 +13,8 @@ export interface OAuthAttemptInput {
   /** Must be supplied only after user approval; no entropy is generated here. */
   state: string; nonce: string; verifier: string; redirectUri: string;
   hostId: string; clientId?: string; selectedSubject?: string;
+  /** Retained identity hint for the selected registration; never log authorization URLs. */
+  idTokenHint?: string;
   requestedScopes: readonly string[]; expiresAt: number;
 }
 export interface ValidatedCallback {
@@ -40,15 +42,18 @@ export class DirectOAuthAttempt {
       || !Number.isFinite(input.expiresAt) || input.expiresAt <= now() || input.expiresAt > now() + 600000
       || (input.clientId !== undefined && (!text(input.clientId, 256) || input.clientId === 'dynamic_agent_client'))
       || (input.selectedSubject !== undefined && (!input.clientId || !text(input.selectedSubject, 256)))
-      || new Set(input.requestedScopes).size !== input.requestedScopes.length || input.requestedScopes.some(s => !directOAuthScopes.includes(s))
+      || (input.idTokenHint !== undefined && (!input.clientId || !input.selectedSubject || !text(input.idTokenHint)))) throw Error('Invalid pending OAuth attempt');
+    if (
+      new Set(input.requestedScopes).size !== input.requestedScopes.length || input.requestedScopes.some(s => !directOAuthScopes.includes(s))
       || !directOAuthScopes.every(s => input.requestedScopes.includes(s))) throw Error('Invalid pending OAuth attempt');
     this.input = Object.freeze({ ...input, requestedScopes: Object.freeze([...input.requestedScopes]) });
   }
-  /** Reviewable parameters only; no credentials or authorization request generated. */
+  /** Authorization parameters may contain an ID-token hint. Never log this object. */
   authorizationParameters(): Readonly<Record<string, string>> {
     if (this.consumed || this.now() >= this.input.expiresAt) throw Error('OAuth attempt expired or consumed');
     return Object.freeze({ client_id: this.input.clientId ?? 'dynamic_agent_client',
       ...(this.input.clientId ? {} : { agent_name_hint: 'AgentForge' }), ext_agent_host_id: this.input.hostId,
+      ...(this.input.idTokenHint ? { id_token_hint: this.input.idTokenHint } : {}),
       response_type: 'code', redirect_uri: this.input.redirectUri, scope: this.input.requestedScopes.join(' '), resource,
       state: this.input.state, nonce: this.input.nonce, code_challenge_method: 'S256', code_challenge: pkceS256(this.input.verifier) });
   }

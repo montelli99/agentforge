@@ -27,6 +27,7 @@ export async function prepareChatGPTSignIn(options: {
   hostId: string;
   clientId?: string;
   selectedSubject?: string;
+  idTokenHint?: string;
   agentName?: string;
   port?: number;
   now?: () => number;
@@ -35,6 +36,7 @@ export async function prepareChatGPTSignIn(options: {
   const prepared = {
     state: entropy(32), nonce: entropy(32), verifier: entropy(32),
     hostId: options.hostId, clientId: options.clientId, selectedSubject: options.selectedSubject,
+    idTokenHint: options.idTokenHint,
     requestedScopes: [...directOAuthScopes], expiresAt: preparedAt + 600000,
   };
   // Validate every caller-controlled option before allocating a listener. The

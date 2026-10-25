@@ -137,3 +137,11 @@ System.Security assembly directly, without Add-Type. The 15-second deadline,
 CurrentUser protection, namespace entropy and secret-free errors remain intact.
 Six focused tests passed locally, including real DPAPI round-trip/rotation/tamper
 checks and error-output privacy. Hosted confirmation of this fix remains pending.
+
+Returning sign-in now accepts a retained ID-token hint only with an explicit
+issued client ID and selected subject. Fresh callback and verified identity checks
+still apply. The shared preparation helper forwards this hint to the official
+authorization endpoint; callers must not log the resulting authorization URL.
+Fifteen OAuth/listener tests and full typechecking passed. This is preparation
+support, not completed account UI, refresh, revocation or provider activation.
+Source: https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions
