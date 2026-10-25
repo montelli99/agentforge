@@ -5,6 +5,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it,vi } from "vitest";
 import { WorkspaceStore } from "../core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./webServer.js";
+import { OperationalMemoryProvider } from '../providers/memory/operationalMemory.js';
+import type { MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
 
 async function availablePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -24,7 +26,10 @@ describe("Setup Guide API", () => {
     const store = new WorkspaceStore();
     store.createUser({ username: 'connection-owner', displayName: 'Owner', role: 'owner', password: 'synthetic login password' });
     store.createUser({ username: 'connection-viewer', displayName: 'Viewer', role: 'viewer', password: 'synthetic login password' });
-    const options = { settingsFilePath: path.join(dataDirectory, 'settings.json') };
+    const definition: MemoryConnectionDefinition = { id: 'example-memory', version: '1', name: 'Example memory', description: 'Synthetic connection for acceptance.',
+      fields: [{ key: 'apiKey', label: 'API key', type: 'secret', required: true }],
+      create: ({ config }) => { if (config.apiKey !== 'synthetic-hindsight-secret') throw Error('Invalid synthetic key'); return new OperationalMemoryProvider(); } };
+    const options = { settingsFilePath: path.join(dataDirectory, 'settings.json'), memoryConnections: [definition] };
     server = new AgentForgeWebServer(store, 0, undefined, undefined, options);
     await server.start();
     let base = server.getBaseUrl();
@@ -87,9 +92,10 @@ describe("Setup Guide API", () => {
     const originalFetch=globalThis.fetch;
     const transport=vi.spyOn(globalThis,'fetch').mockImplementation((input,init)=>String(input).startsWith('https://api.hindsight.vectorize.io/')?Promise.resolve(Response.json({results:[]})):originalFetch(input,init));
     try{
-      for(const action of ['hindsight','combined']){
-      const expectedProvider=action==='combined'?'composite':'hindsight';
-      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action,bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret'});
+      for(const action of ['hindsight','combined','custom']){
+      const expectedProvider=action==='custom'?'agentforge_operational':action==='combined'?'composite':'hindsight';
+      const custom={providerId:'example-memory',providerVersion:'1',config:{apiKey:'synthetic-hindsight-secret'}};
+      const cloud=await request('/api/memory/connection',owner,{...memorySelection,action,bank:'synthetic-bank',apiKey:'synthetic-hindsight-secret',...custom});
       expect(cloud.status).toBe(200);expect(await cloud.text()).not.toContain('synthetic-hindsight-secret');
       expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
       expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain('synthetic-hindsight-secret');
@@ -102,6 +108,11 @@ describe("Setup Guide API", () => {
       expect((await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase})).status).toBe(200);
       expect(server.conversations.status().memoryProvider).toBe(expectedProvider);
       }
+      const catalog=await fetch(base+'/api/memory/providers',{headers:{Authorization:'Bearer '+owner}});
+      expect(catalog.status).toBe(200);
+      const catalogText=await catalog.text();expect(catalogText).toContain('example-memory');expect(catalogText).not.toContain('synthetic-hindsight-secret');
+      expect((await request('/api/memory/connection',owner,{...memorySelection,action:'custom',providerId:'example-memory',providerVersion:'2',config:{apiKey:'synthetic-hindsight-secret'}})).status).toBe(400);
+      expect(server.conversations.status().memoryProvider).toBe('agentforge_operational');
     }finally{transport.mockRestore();}
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();

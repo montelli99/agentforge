@@ -53,6 +53,7 @@ import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
 import {HindsightMemoryProvider} from '../providers/memory/hindsightMemory.js';
+import { MemoryConnectionRegistry, type MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
 import {CompositeMemoryProvider} from '../providers/memory/compositeMemory.js';
 import {queryMemoryBounded,type MemoryProvider} from '../core/providers/memory.js';
 import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
@@ -399,14 +400,16 @@ export class AgentForgeWebServer {
   private readonly SSE_HEARTBEAT_INTERVAL_MS = 20_000;
   private sseRingBuffer: Array<{ id: number; data: string }> = [];
 
+  private readonly memoryConnections: MemoryConnectionRegistry;
   constructor(
     public readonly store: WorkspaceStore = globalStore,
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime } = {},
+    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
+    this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
     this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
@@ -2896,6 +2899,11 @@ export class AgentForgeWebServer {
       return;
     }
 
+    if(path==='/api/memory/providers'&&req.method==='GET'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated||!['owner','admin'].includes(caller.role)){res.writeHead(403);res.end(JSON.stringify({error:'Owner or administrator sign-in required.'}));return;}
+      res.writeHead(200);res.end(JSON.stringify(this.memoryConnections.list()));return;
+    }
     if(path==='/api/memory/connection'&&req.method==='POST'){
       res.setHeader('Cache-Control','no-store');
       if(!caller.isAuthenticated){res.writeHead(401);res.end(JSON.stringify({error:'Sign in to manage memory connections.'}));return;}
@@ -2924,10 +2932,15 @@ export class AgentForgeWebServer {
             selection=JSON.parse(values[key]||values.AGENTFORGE_KEY_MEMORY_SELECTION||'null');
             if(selection?.projectId!==body.projectId)throw Error('Saved project mismatch');
           }
-          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight','combined'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
+          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight','combined','custom'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
           let memoryProvider:MemoryProvider;
           const selectedSources:Array<{alias:string;provider:MemoryProvider}>=[];
           const savedSelection:Record<string,unknown>={action:selection.action,confirmSharing:true,namespace:selection.namespace.trim(),projectId:selection.projectId};
+          if(selection.action==='custom'){
+            const connected=this.memoryConnections.connect(String(selection.providerId),selection.providerVersion,selection.config,selection.namespace.trim(),selection.projectId);
+            selectedSources.push({alias:'custom',provider:connected.provider});
+            Object.assign(savedSelection,{providerId:selection.providerId,providerVersion:connected.version,config:connected.config});
+          }
           if(selection.action==='obsidian'||selection.action==='combined'){
             if(typeof selection.root!=='string'||selection.root.length>4096||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid note selection');
             memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);

@@ -67,3 +67,5 @@ export {prepareChatGPTSignIn,chatgptDirectSignInEndpoint} from "./providers/mode
 export {exchangeDirectCallback,type DirectTokenExchangeTransport,type SessionCredentials} from "./providers/models/chatgptDirectExchange.js";
 export * from "./providers/memory/compositeMemory.js";
 export { ConversationRuntime, type ConversationConfiguration } from "./server/conversationRuntime.js";
+export * from "./providers/memory/memoryConnections.js";
+export { AgentForgeWebServer } from "./server/webServer.js";

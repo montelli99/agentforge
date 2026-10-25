@@ -211,3 +211,12 @@ criteria. The focused memory/chat/worker suites passed 24 tests. Build and packa
 import/privacy acceptance passed before the final category/filter-array guards;
 those final guards passed the focused suites. Custom plugin installation UI and
 live provider acceptance are not completed by this SDK work.
+
+Host-registered memory connection definitions now drive additional guided setup
+fields, bounded connection checking and encrypted per-project save/restore.
+Definitions are trusted server code, not browser-supplied code. Saved definition
+versions must still match on restore. An extended setup API regression verifies
+custom connection, encrypted secret storage, service reconstruction/restore,
+credential-free catalog responses and rejected version mismatch preserving the
+active source. Ten setup tests and the production build/browser syntax check
+passed; actual browser interaction with generated fields remains unverified.

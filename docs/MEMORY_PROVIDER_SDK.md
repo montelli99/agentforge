@@ -4,8 +4,8 @@ AgentForge exports `MemoryProvider`, `MemoryQuery`, `OperationalMemoryRecord`,
 `queryMemoryBounded`, `CompositeMemoryProvider`, `ConversationRuntime` and
 `TaskWorkerRuntime` from the `agentforge` package. An embedded application can
 implement a new memory source without editing AgentForge core. The standard
-connection screen currently offers the built-in adapters; it does not install
-arbitrary third-party code or automatically generate connection forms.
+connection screen offers built-in adapters and additional providers explicitly
+registered by the host. It does not install arbitrary third-party code.
 
 Implement all five provider operations: `record`, `get`, `query`, `delete`, and
 `getDoNotRepeatRules`. A read-only source must reject unsupported writes and
@@ -25,6 +25,21 @@ the signal. The helper never retries automatically.
 
 ## Connect an embedded runtime
 
+For guided setup, pass `memoryConnections: definitions` in the fifth options
+argument to the exported `AgentForgeWebServer` constructor. Each
+`MemoryConnectionDefinition` declares an ID, version, display name, description,
+text/secret fields and a synchronous `create` factory. The host installs and
+trusts this code; browser users cannot submit executable factories. Do network
+work in `query`, which is bounded during the connection check. Explain where data
+goes in the description. A connection check may contact or bill the service.
+
+The form renders registered fields, treats secret fields as password inputs,
+and uses the existing owner/admin authorization, explicit sharing consent and
+encrypted save/restore flow. Restore requires the same registered version;
+removed or changed definitions fail without replacing the current connection.
+Only declared string fields are accepted. Re-register the definition when the
+host restarts. No automatic module discovery or plugin marketplace is implied.
+
 With an already configured `chat` ConversationRuntime, `worker` TaskWorkerRuntime,
 and your `provider` implementing MemoryProvider:
 
@@ -41,8 +56,9 @@ await worker.withMemoryChange(async () => {
 
 The host must authenticate configuration changes, validate the connection before
 activation, and persist/reconstruct its configuration after restart. These
-methods do not provide a plugin installer or credential persistence for custom
-adapters. Do not replace a provider during active work.
+methods do not provide a plugin installer or credential persistence by
+themselves; use the guided registered-provider path for encrypted persistence.
+Do not replace a provider during active work.
 
 For simultaneous recall, create `new CompositeMemoryProvider(namespace,
 projectId, [{ alias: "notes", provider: notes }, { alias: "archive", provider:
