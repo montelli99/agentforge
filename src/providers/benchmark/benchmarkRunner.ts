@@ -55,9 +55,11 @@ export class BenchmarkRunner {
   async runSuite(
     suite: BenchmarkSuite,
     targetId: string,
-    executeCaseFn: (input: Record<string, unknown>) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    executeCaseFn: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
   ): Promise<BenchmarkResult> {
     if (!suite.cases.length) throw new Error('A benchmark requires at least one case');
+    if (suite.cases.some(item=>!Number.isSafeInteger(item.timeoutMs)||item.timeoutMs<1||item.timeoutMs>300000))
+      throw new Error('Benchmark case deadlines must be between 1 and 300000 ms');
     const startTime = Date.now();
     let passedCases = 0;
     let failedCases = 0;
@@ -65,8 +67,13 @@ export class BenchmarkRunner {
 
     for (const testCase of suite.cases) {
       const attemptStarted = performance.now();
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const res = await executeCaseFn(testCase.input);
+        const deadline = new Promise<never>((_, reject)=>{
+          timer=setTimeout(()=>{controller.abort();reject(new Error('Benchmark case deadline exceeded'));},testCase.timeoutMs);
+        });
+        const res = await Promise.race([deadline,executeCaseFn(testCase.input,controller.signal)]);
 
         // Structural equivalence check on expected output fields
         const passed = Object.keys(testCase.expectedOutput).every(
@@ -81,6 +88,8 @@ export class BenchmarkRunner {
       } catch {
         failedCases++;
       } finally {
+        if(timer)clearTimeout(timer);
+        controller.abort();
         // Include failed attempts; target-reported latency is not independent evidence.
         totalLatency += performance.now() - attemptStarted;
       }
@@ -138,7 +147,7 @@ export class BenchmarkRunner {
   async executeBenchmark(
     suiteId: string,
     targetId: string,
-    customExecutor?: (input: Record<string, unknown>) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
+    customExecutor?: (input: Record<string, unknown>, signal?: AbortSignal) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
   ): Promise<BenchmarkResult> {
     const suite = this.getSuite(suiteId);
     if (!suite) {

@@ -66,6 +66,11 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
       expect(failed.passedOverall).toBe(false);
       await expect(runner.runSuite({...HARNESS_ISOLATION_SUITE,cases:[]},'empty',async()=>({output:{},latencyMs:0}))).rejects.toThrow('at least one case');
     } finally { measured.mockRestore(); }
+    let stopSignal:AbortSignal|undefined;
+    const bounded=await runner.runSuite({...HARNESS_ISOLATION_SUITE,cases:[{...HARNESS_ISOLATION_SUITE.cases[0],timeoutMs:10}]},'stalled-fixture',async(_input,signal)=>{stopSignal=signal;return new Promise(()=>{});});
+    expect(bounded.failedCases).toBe(1);
+    expect(bounded.passedOverall).toBe(false);
+    expect(stopSignal?.aborted).toBe(true);
   });
 
   it("enforces empirical routing: unmeasured models cannot win critical tasks on reputation alone", () => {
