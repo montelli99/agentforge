@@ -143,3 +143,21 @@ An actual immediate-after-container-start probe against 2026.10.7 authenticated
 and read the synthetic session in 10,127 ms without a manual retry or model call.
 The container was stopped afterward. This does not prove reconnect orchestration
 after an established working session or durable task recovery.
+
+### Durable external submission boundary
+
+The adapter can submit an explicit session turn with a caller-provided request
+ID and requires a remote run ID. The control-plane boundary persists the request
+before submission, binds approval to the exact task contract, connection,
+session and message, and refuses automatic replay after uncertainty. A remote
+acceptance receipt is not evidence of task completion.
+
+Targeted verification: 16 runtime/dispatch tests passed and TypeScript checking
+passed. The overlap test holds a submission open, rejects a second submission
+and local execution, cancels the task, then delivers the late remote receipt.
+Reopening the saved workspace preserves both cancellation and the remote run ID.
+These are synthetic boundary tests, not real upstream task execution evidence.
+
+Still required: authenticated UI/API connection selection and approval flow,
+remote authority disclosure, run reconciliation and result verification, and an
+end-to-end real-runtime handoff. Hermes has no verified connector yet.
