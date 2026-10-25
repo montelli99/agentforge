@@ -2,10 +2,25 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {runBoundedChild} from './boundedCliProcess.js';
+import {runBoundedChild, BoundedChildFailure} from './boundedCliProcess.js';
 import {inspectClaudeCliAuthentication} from './claudeCliCapabilities.js';
 import {validateCliPlan} from './subscriptionCliModel.js';
-import {ModelProviderError, type GenerativeModelProvider, type ModelRequestOptions, type ModelResponse, type StreamChunk} from '../../core/providers/model.js';
+import {ModelProviderError, type GenerativeModelProvider, type ModelRequestOptions, type ModelResponse, type ModelResponseUsage, type StreamChunk} from '../../core/providers/model.js';
+
+/** Independent, non-resumed result totals. Missing fields mean unknown, never zero.
+ * Cache reads/writes are separate from Anthropic's uncached input_tokens.
+ */
+export function decodeClaudePlannerUsage(raw: unknown): ModelResponseUsage | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const value = raw as Record<string, unknown>;
+  const fields = ['input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'] as const;
+  if (fields.some(key => !Number.isSafeInteger(value[key]) || (value[key] as number) < 0)) return undefined;
+  const input = value.input_tokens as number, output = value.output_tokens as number;
+  const read = value.cache_read_input_tokens as number, write = value.cache_creation_input_tokens as number;
+  const promptTokens = input + read + write, totalTokens = promptTokens + output;
+  if (!Number.isSafeInteger(promptTokens) || !Number.isSafeInteger(totalTokens)) return undefined;
+  return {promptTokens, completionTokens: output, totalTokens, cachedInputTokens: read, cacheWriteInputTokens: write};
+}
 
 export interface ClaudeCliPlannerConfiguration {
   executablePath: string;
@@ -51,21 +66,29 @@ export class ClaudeCliPlanner implements GenerativeModelProvider {
     const env: NodeJS.ProcessEnv = {HOME: directory, USERPROFILE: directory, TEMP: directory, TMP: directory,
       CLAUDE_CONFIG_DIR: this.config.configurationDirectory, DISABLE_UPDATES: '1'};
     for (const key of ['SystemRoot', 'WINDIR', 'PATH', 'Path']) if (process.env[key]) env[key] = process.env[key];
+    let usage: ModelResponseUsage | undefined;
     try {
       const result = await runBoundedChild(this.config.executablePath,
         ['--print', '--restricted', '--safe-mode', '--tools', '', '--disallowedTools', '*',
           '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--setting-sources', '',
           '--no-session-persistence', '--output-format', 'json', '--model', this.config.model, '--max-turns', '1'],
         {cwd: directory, env, input, signal: options.signal, timeoutMs: 120000, maxOutputBytes: 2097152});
-      if (result.code !== 0) throw Error('Client failed');
       const response = JSON.parse(result.stdout);
+      if (response?.type === 'result') usage = decodeClaudePlannerUsage(response.usage);
+      if (result.code !== 0) throw Error('Client failed');
       if (response.type !== 'result' || response.subtype !== 'success' || response.is_error !== false || typeof response.result !== 'string')
         throw Error('Invalid client result');
       validateCliPlan(response.result);
-      // Usage is intentionally absent until the official result accounting is validated.
-      // The governed planner requires reported usage and will not accept unaccounted drafts.
-      return {id: crypto.randomUUID(), model: this.config.model, content: response.result, finishReason: 'stop'};
-    } catch { throw new ModelProviderError('Claude planning failed or was cancelled; no automatic retry'); }
+      return {id: crypto.randomUUID(), model: this.config.model, content: response.result, usage, finishReason: 'stop'};
+    } catch (error) {
+      if (error instanceof BoundedChildFailure) {
+        try {
+          const response = JSON.parse(error.result.stdout);
+          if (response?.type === 'result') usage = decodeClaudePlannerUsage(response.usage);
+        } catch { /* Partial or malformed output leaves accounting unknown. */ }
+      }
+      throw new ModelProviderError('Claude planning failed or was cancelled; no automatic retry', usage);
+    }
     finally { await fs.rm(directory, {recursive: true, force: true}); }
   }
   async *stream(_options: ModelRequestOptions): AsyncIterable<StreamChunk> {
