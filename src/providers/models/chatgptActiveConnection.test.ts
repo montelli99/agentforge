@@ -19,6 +19,20 @@ describe('active subscription connection',()=>{
   const connection=new ChatGPTActiveConnection(original,{renew:()=>new Promise(resolve=>{finish=resolve;}),catalog});
   const pending=connection.listModels();connection.deactivate();finish({...original,expiresAt:Date.now()+3600000});
   await expect(pending).rejects.toThrow('could not be prepared');expect(await connection.isAvailable()).toBe(false);
+  let entered!:()=>void;
+  const started=new Promise<void>(resolve=>{entered=resolve;});
+  let observed:AbortSignal|undefined;
+  const request=vi.fn<typeof fetch>(async(_url,init)=>{
+    observed=init?.signal??undefined;entered();
+    return new Promise((_resolve,reject)=>{
+      observed!.addEventListener('abort',()=>reject(Error('synthetic cancelled request')),{once:true});
+    });
+  });
+  const active=new ChatGPTActiveConnection({...original,expiresAt:Date.now()+3600000},{renew:vi.fn(),catalog,request});
+  const running=active.generate({model:'synthetic-model',messages:[{role:'user',content:'Synthetic'}]});
+  const rejected=expect(running).rejects.toThrow();
+  await started;active.deactivate();await rejected;
+  expect(observed?.aborted).toBe(true);expect(request).toHaveBeenCalledTimes(1);
  });
  it('rejects swapped accounts and unavailable model catalogs before inference',async()=>{
   const original=credentials(),request=vi.fn<typeof fetch>();

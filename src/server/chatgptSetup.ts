@@ -22,6 +22,7 @@ export class ChatGPTSetup {
  private connections=new Map<ChatGPTActiveConnection,string>();
  private verifierDirectory=fileURLToPath(new URL('../providers/models/assets',import.meta.url));
  constructor(private root:string){}
+ private discardConnection(attempt:Attempt){if(attempt.connection){attempt.connection.deactivate();this.connections.delete(attempt.connection);attempt.connection=undefined;}}
  private actorRoot(actor:string){if(!actor||actor.length>512)throw Error('Invalid account owner');return path.join(this.root,createHash('sha256').update(actor).digest('hex'));}
  private accountRoot(actor:string,id:string){if(!accountPattern.test(id))throw Error('Invalid saved account');return path.join(this.actorRoot(actor),id,'chatgpt-direct');}
  private store(directory:string){return new DirectTokenStore(new WindowsDirectCredentialBackend(directory));}
@@ -82,7 +83,7 @@ export class ChatGPTSetup {
      const models=await connection.listModels();
      if(attempt.abort.signal.aborted){connection.deactivate();throw Error('Cancelled');}
      attempt.connection=connection;attempt.models=models;attempt.state='ready';
-    }catch{attempt.connection?.deactivate();attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}
+    }catch{this.discardConnection(attempt);attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}
     finally{exchanged?.discard();await session.cancel().catch(()=>{});}
    })();
    return {id:attempt.id,authorizationUrl:session.authorizationUrl};
@@ -92,7 +93,7 @@ export class ChatGPTSetup {
   this.starting.get(actor)?.abort();
   const attempt=this.attempts.get(actor);if(!attempt)return;
   if(attempt.state==='ready')throw Error('Completed setup cannot be cancelled; use account disconnection');
-  attempt.abort.abort();attempt.connection?.deactivate();attempt.state='cancelled';await attempt.session?.cancel();
+  attempt.abort.abort();this.discardConnection(attempt);attempt.state='cancelled';await attempt.session?.cancel();
  }
  async shutdown(){
   this.closed=true;for(const operation of this.starting.values())operation.abort();
@@ -122,7 +123,7 @@ export class ChatGPTSetup {
    this.connections.set(connection,this.accountRoot(actor,accountId));attempt.connection=connection;
    attempt.models=await connection.listModels();signal.throwIfAborted();attempt.state='ready';
    return {id:attempt.id,models:[...attempt.models]};
-  }catch{if(attempt){attempt.connection?.deactivate();attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}throw Error('Saved account could not be restored; sign in again');}
+  }catch{if(attempt){this.discardConnection(attempt);attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}throw Error('Saved account could not be restored; sign in again');}
   finally{this.starting.delete(actor);}
  }
  async signOut<T>(actor:string,accountId:string,disconnect:(providers:ChatGPTActiveConnection[],remove:()=>Promise<Awaited<ReturnType<typeof signOutDirectSession>>>)=>Promise<T>){

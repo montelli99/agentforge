@@ -18,12 +18,13 @@ export class ChatGPTActiveConnection implements GenerativeModelProvider {
   private catalogSnapshot:DirectCatalog|undefined;
   private preparing:Promise<void>|undefined;
   private generation=0;
+  private lifetime=new AbortController();
   constructor(credentials:DirectCredentials,private services:DirectConnectionServices){
     if(credentials.renewalPending||credentials.issuer!=='https://auth.openai.com'||credentials.resource!=='https://api.openai.com/v1'||credentials.tokenType!=='Bearer'||!credentials.accessToken||!credentials.clientId||!credentials.subject||!['resource.invoke','chatgpt.tokens.use.direct'].every(scope=>credentials.scopes.includes(scope)))throw Error('Validated subscription credentials required');
     this.credentials={...credentials,scopes:[...credentials.scopes]};
   }
   /** Invalidates new requests immediately. The caller owns remote revocation and storage removal. */
-  deactivate(){this.generation++;this.grant=undefined;this.catalogSnapshot=undefined;this.credentials=undefined;}
+  deactivate(){this.generation++;this.lifetime.abort();this.grant=undefined;this.catalogSnapshot=undefined;this.credentials=undefined;}
   private async prepare(){
     if(!this.credentials)throw Error('Subscription sign-in required');
     if(this.preparing)return this.preparing;
@@ -35,7 +36,7 @@ export class ChatGPTActiveConnection implements GenerativeModelProvider {
         const credentials=previous.expiresAt<=Date.now()+60000?await this.services.renew():previous;
         if(generation!==this.generation)throw Error('Subscription connection changed');
         if(credentials.clientId!==previous.clientId||credentials.subject!==previous.subject||credentials.issuer!==previous.issuer||credentials.resource!==previous.resource||credentials.renewalPending||credentials.expiresAt<=Date.now()||credentials.tokenType!=='Bearer'||!credentials.accessToken||!['resource.invoke','chatgpt.tokens.use.direct'].every(s=>credentials.scopes.includes(s)))throw Error('Subscription renewal identity mismatch');
-        const response=await this.services.catalog(credentials.accessToken,AbortSignal.timeout(15000));
+        const response=await this.services.catalog(credentials.accessToken,AbortSignal.any([this.lifetime.signal,AbortSignal.timeout(15000)]));
         const models=listedDirectModelSlugs(response);if(!models?.length)throw Error('No selectable subscription models');
         if(generation!==this.generation)throw Error('Subscription connection changed');
         const grant:DirectGrant={accountId:credentials.subject,grantId:randomUUID(),resource:credentials.resource,scopes:[...credentials.scopes],expiresAt:credentials.expiresAt};
@@ -56,6 +57,18 @@ export class ChatGPTActiveConnection implements GenerativeModelProvider {
     return new ChatGPTDirectModel({enabled:true,model,agentTools:true},{currentGrant:()=>this.grant},()=>this.catalogSnapshot,
       new DirectResponsesTransport(grant=>this.credentials&&this.grant?.grantId===grant.grantId?{credentials:this.credentials,grantId:grant.grantId}:undefined,this.services.request));
   }
-  async generate(options:ModelRequestOptions):Promise<ModelResponse>{return (await this.provider(options.model)).generate(options);}
-  async *stream(options:ModelRequestOptions):AsyncIterable<StreamChunk>{yield* (await this.provider(options.model)).stream(options);}
+  private requestOptions(options:ModelRequestOptions):ModelRequestOptions{
+    return {...options,signal:AbortSignal.any([this.lifetime.signal,...(options.signal?[options.signal]:[])])};
+  }
+  async generate(options:ModelRequestOptions):Promise<ModelResponse>{
+    const request=this.requestOptions(options);request.signal!.throwIfAborted();
+    const result=await (await this.provider(options.model)).generate(request);
+    request.signal!.throwIfAborted();return result;
+  }
+  async *stream(options:ModelRequestOptions):AsyncIterable<StreamChunk>{
+    const request=this.requestOptions(options);request.signal!.throwIfAborted();
+    for await(const chunk of (await this.provider(options.model)).stream(request)){
+      request.signal!.throwIfAborted();yield chunk;
+    }
+  }
 }
