@@ -48,6 +48,8 @@ export * from "./core/types/agent.js";
 export * from "./core/providers/memory.js";
 export * from "./core/store/workspaceStore.js";
 export * from "./providers/memory/operationalMemory.js";
+export * from "./providers/memory/obsidianMemory.js";
+export * from "./providers/memory/hindsightMemory.js";
 
 
 // Reusable optimization SDK; importing it never starts the legacy proxy.
