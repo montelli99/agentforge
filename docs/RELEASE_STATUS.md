@@ -318,3 +318,14 @@ leaves the route locked until unlock. No provider request is made: this is not
 live credential or model-response acceptance, nor an OS-process crash test.
 The regression is now required before hosted package creation; hosted results
 for this change remain pending.
+
+### Connection-to-conversation browser extension
+
+The connection browser regression now uses a loopback-only synthetic SSE provider.
+After restart and explicit unlock, it creates a conversation through the UI,
+selects the recovered model, sends a message, renders the streamed response,
+and reloads the saved transcript. The provider observes exactly one request,
+the expected model and credential, and no replay on reload. The local Chromium
+run passed. This proves the setup-to-response transport with a fixture, not
+live model quality, planning, or isolated task execution. Hosted CI remains the
+next verification gate for this extension.

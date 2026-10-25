@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import http from 'node:http';
 import {chromium} from 'playwright';
 import {WorkspaceStore} from '../dist/core/store/workspaceStore.js';
 import {AgentForgeWebServer} from '../dist/server/webServer.js';
@@ -11,9 +12,21 @@ const root=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-connections-browser-
 process.env.AGENTFORGE_AUTH_STRICT='1';
 const options={settingsFilePath:path.join(root,'settings.json')};
 const workspaceFile=path.join(root,'workspace.json');
-let server=new AgentForgeWebServer(new WorkspaceStore(workspaceFile),0,undefined,undefined,options),browser;
+const store=new WorkspaceStore(workspaceFile);
+const workspace=store.createWorkspace({name:'Synthetic chat workspace'});
+const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic chat project',provider:'web'});
+store.createChannel({workspaceId:workspace.id,spaceId:project.id,name:'General',provider:'agentforge',visibility:'private'});
+let server=new AgentForgeWebServer(store,0,undefined,undefined,options),browser;
 const key='synthetic-credential-not-a-real-provider-key';
 const passphrase='Synthetic connection vault password';
+let requests=0;const received=[];
+const provider=http.createServer(async(req,res)=>{
+ let raw='';for await(const chunk of req)raw+=chunk;
+ received.push({url:req.url,authorization:req.headers.authorization,body:JSON.parse(raw)});requests++;
+ res.writeHead(200,{'Content-Type':'text/event-stream'});
+ res.end('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response after vault recovery'},finish_reason:null}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
+});
+await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});
  const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -23,6 +36,8 @@ try{
  await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
  await page.getByRole('button',{name:'Continue',exact:true}).click();
+ await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');
+ await page.getByLabel('API base URL',{exact:true}).fill('http://127.0.0.1:'+provider.address().port+'/v1');
  await page.getByLabel('Model name',{exact:true}).fill('synthetic-model');
  await page.getByLabel('Dedicated API key',{exact:true}).fill(key);
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
@@ -45,10 +60,26 @@ try{
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
  await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
- const after=await page.request.get(oldUrl+'/api/chat/status');const status=await after.json();assert.equal(status.configured,true);assert.ok(status.models.includes('openai::synthetic-model'));
+ const after=await page.request.get(oldUrl+'/api/chat/status');const status=await after.json();assert.equal(status.configured,true);assert.ok(status.models.includes('compatible::synthetic-model'));
  const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage}}));assert.ok(!storage.includes(key)&&!storage.includes(passphrase));
+ assert.equal(requests,0);
+ await page.getByRole('button',{name:'Next step',exact:true}).click();
+ await page.getByRole('region',{name:'Guided setup'}).getByRole('button',{name:'Open conversations',exact:true}).click();
+ await page.locator('#new-conversation').click();
+ await page.locator('dialog input[name=title]').fill('Synthetic recovery conversation');
+ await page.getByRole('button',{name:'Create conversation',exact:true}).click();
+ await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');
+ await page.getByLabel('Message',{exact:true}).fill('Please reply to this synthetic recovery check.');
+ await page.locator('.conversation-composer button[type=submit]').click();
+ await page.locator('#conversation-feed').getByText('Synthetic response after vault recovery',{exact:true}).waitFor();
+ assert.equal(requests,1);assert.equal(received[0].url,'/v1/chat/completions');
+ assert.equal(received[0].authorization,'Bearer '+key);assert.equal(received[0].body.model,'synthetic-model');
+ await page.reload();await page.locator('#conversation-feed').getByText('Synthetic response after vault recovery',{exact:true}).waitFor();
+ assert.equal(requests,1);
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({passed:true,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,liveProviderVerified:false}));
-}finally{await browser?.close();await server.stop();}
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,reloadWithoutReplay:true,liveProviderVerified:false}));
+}finally{await browser?.close();await server.stop();await new Promise(resolve=>provider.close(resolve));}
+
+
 
 
