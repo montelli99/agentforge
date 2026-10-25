@@ -64,6 +64,7 @@ export {IndexedServerMode, configureIndexedServerMode, readIndexedServerConfigur
 export {ContinuousIndexedMemoryLifecycle, extractSyntheticMemorySnapshot, type ContinuousIndexedMemoryConfiguration, type ContinuousMemoryWatchEvent, type ContinuousMemoryWatcher} from "./memory/indexed/continuousLifecycle.js";
 export {SubscriptionCliModelProvider,readSubscriptionCliConfiguration,type SubscriptionCliConfiguration} from "./providers/models/subscriptionCliModel.js";
 export {inspectClaudeCliCapabilities,inspectClaudeCliAuthentication,type ClaudeCliCapabilities,type ClaudeCliAuthentication} from "./providers/models/claudeCliCapabilities.js";
+export {inspectGeminiCliCapabilities,type GeminiCliCapabilities} from "./providers/models/geminiCliCapabilities.js";
 export {prepareChatGPTSignIn,chatgptDirectSignInEndpoint} from "./providers/models/chatgptDirectSignIn.js";
 export {exchangeDirectCallback,type DirectTokenExchangeTransport,type SessionCredentials} from "./providers/models/chatgptDirectExchange.js";
 export * from "./providers/memory/compositeMemory.js";

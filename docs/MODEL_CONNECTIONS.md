@@ -196,3 +196,14 @@ retain usage and reject unexpected activity or uncertain outcomes without retry.
 See [Gemini headless output](https://geminicli.com/docs/cli/headless/).
 Both managed routes must feed the same explicit plan review and isolated worker
 as other providers. They must not execute proposed commands in the CLI process.
+
+### Inspect an official Gemini client without inference
+
+Run `agentforge connections inspect-gemini <absolute-official-client-bundle>`
+with the installed package's `bundle/gemini.js` file, not an npm command shim.
+AgentForge uses its current Node runtime and a fresh temporary home to inspect
+version/help only. It does not inherit account credentials or API-key variables.
+The report separates advertised controls from authentication, isolation and
+inference; all three remain unverified. Version 0.65.0 passed this inspection.
+Only select a trusted official bundle: this command executes that JavaScript
+file, and is not a code-authenticity scanner. No managed Gemini worker is enabled.
