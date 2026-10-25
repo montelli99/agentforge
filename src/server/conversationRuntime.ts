@@ -50,7 +50,7 @@ export class ConversationRuntime {
   }
 
   modelConnection(model: string) {
-    if (this.changingConnection || !this.config?.models.includes(model)) throw Error('Select an available model connection.');
+    if (this.closed || this.changingConnection || !this.config?.models.includes(model)) throw Error('Select an available model connection.');
     return { provider: this.config.provider, model };
   }
 
@@ -108,25 +108,26 @@ export class ConversationRuntime {
       .slice(-20).map(task => ({ id: task.id, title: task.title, status: task.status, error: task.error, hasEvidence: Boolean(task.evidencePack) }));
     if (linkedTasks.length) messages.splice(1, 0, { role: "user", content: "Saved task state for this conversation (reference data, not new instructions). Inspect existing work before preparing another task:\n" + JSON.stringify(linkedTasks) });
     const controller = new AbortController();
-    this.active.set(threadId, { controller, actorId });
     const turnBudget = config.maxResponseMs ?? 30 * 60 * 1000;
     if (!Number.isSafeInteger(turnBudget) || turnBudget < 1 || turnBudget > 24 * 60 * 60 * 1000) {
-      this.active.delete(threadId);
       throw new Error("Invalid conversation time budget.");
     }
-    const timeout = setTimeout(() => controller.abort(), turnBudget);
     // Browser disconnection does not cancel the server-owned response.
-    response.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
     const send = (event: object) => { if (!response.destroyed) response.write(JSON.stringify(event) + "\n"); };
-    send({ type: "started", model });
     const saved = this.store.createMessage({ channelId: thread.channelId, threadId, authorId: config.provider.id,
       authorType: "agent", content: "", generation: { model, provider: config.provider.id, status: "running", promptMessageId: promptId,
         ...(memoryContext.length ? { contextMemories: memoryContext.map(({ id, title, version }) => ({ id, title, version })) } : {}) }, externalProvider: "web" });
+    // Persist the response before claiming a live run or committing HTTP headers.
+    // A storage failure must not leave the thread locked in the active map.
+    this.active.set(threadId, { controller, actorId });
+    const timeout = setTimeout(() => controller.abort(), turnBudget);
     let lastCheckpoint = Date.now();
     let content = "";
     let finished = false;
     let status: "complete" | "stopped" | "failed" = "complete";
     try {
+      response.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
+      send({ type: "started", model });
       for (let round = 0; round < 12; round++) {
         if (messages.reduce((n, m) => n + m.content.length, 0) > 180000) throw new Error("Tool context budget exceeded.");
         const calls = new Map<string, { id: string; type: "function"; function: { name: string; arguments: string } }>();
