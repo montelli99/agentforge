@@ -79,3 +79,10 @@ usage accounting, and absence of approval/execution. No live-provider or browser
 acceptance is claimed by that test. Hosted macOS save tests failed with a linked
 temporary path; the fixture now uses its canonical private path while the vault
 still rejects linked locations. Hosted confirmation remains required.
+
+Plan requests now exclude concurrent requests for the same task. A returned draft
+is discarded if the task description, scope, state, approval or existing draft
+changed while awaiting the model. A delayed synthetic provider test verified
+that the second request creates no extra invocation, changed-task output is not
+applied, usage remains recorded, and a subsequent explicit request can proceed.
+This is local-service concurrency protection, not a distributed worker lease.

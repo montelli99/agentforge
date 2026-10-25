@@ -375,6 +375,7 @@ export class AgentForgeWebServer {
   readonly localSandbox = new LocalSandboxComputeProvider();
   readonly dockerCompute = new DockerComputeProvider();
   private readonly planDraftProvider?: ModelPlanDraftProvider;
+  private readonly draftingTasks = new Set<string>();
   private readonly indexedMemory?: IndexedMemoryRuntime;
   readonly conversations: ConversationRuntime;
   private readonly host = process.env.AGENTFORGE_HOST || "127.0.0.1";
@@ -3930,6 +3931,14 @@ export class AgentForgeWebServer {
         if (!hasPermission(caller.permissions, "tasks:execute")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:execute" })); return;
         }
+        if (this.draftingTasks.has(task.id)) { res.writeHead(409); res.end(JSON.stringify({ error: 'A plan request is already running for this task. No second request was sent.' })); return; }
+        this.draftingTasks.add(task.id);
+        const planningRevision = (value: typeof task) => JSON.stringify({ title: value.title, description: value.description, projectId: value.projectId, status: value.status, contract: value.contract, approval: value.approvedExecutionPlan, draft: value.executionPlanDraft });
+        const originalRevision = planningRevision(task);
+        const assertPlanningRevision = () => {
+          const current = this.store.getTask(task.id);
+          if (!current || planningRevision(current) !== originalRevision) throw Error('Task changed while preparing the plan. The result was not applied; review the current task before trying again.');
+        };
         try {
           const body = await this.readBody(req);
           let planner = this.planDraftProvider;
@@ -3963,7 +3972,9 @@ export class AgentForgeWebServer {
             indexedPlanningContext,
             operationalPlanningContext,
           ]);
+          assertPlanningRevision();
           const draft = await planner.draft(task, undefined, planningContext);
+          assertPlanningRevision();
           const updated = this.store.updateTask(task.id, { executionPlanDraft: draft });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "user-owner", actorType: "user", action: "EXECUTION_PLAN_DRAFTED", targetType: "task", targetId: task.id, details: {
             commandCount: draft.commands.length,
@@ -3978,6 +3989,8 @@ export class AgentForgeWebServer {
           res.writeHead(200); res.end(JSON.stringify({ draft, task: updated, message: "Model draft created and saved. Review it before approval; no execution was started." })); return;
         } catch (error) {
           res.writeHead(422); res.end(JSON.stringify({ error: redactRuntimeError(error, "Unable to draft an execution plan.") })); return;
+        } finally {
+          this.draftingTasks.delete(task.id);
         }
       }
 
