@@ -40,6 +40,7 @@
     "test:memory:browser": "node scripts/memory-browser-acceptance.mjs",
     "test:connections:browser": "node scripts/connection-browser-acceptance.mjs",
     "test:approval:browser": "node scripts/approval-browser-acceptance.mjs",
+    "test:migration:browser": "node scripts/migration-browser-acceptance.mjs",
     "test:persistence:launcher": "node scripts/persistence-acceptance.mjs",
     "test:persistence:crash": "node scripts/persistence-crash-recovery.mjs",
     "test:execution:crash": "node --import tsx scripts/execution-crash-proof.ts",

@@ -382,3 +382,14 @@ and fragments, and requires loopback for local models. Server checks remain in
 place. Both local and API-compatible browser journeys passed against an isolated
 synthetic SSE endpoint, including restart/unlock and mid-response reload without
 replay. The build passed. Hosted acceptance now runs both connection modes.
+
+### Reviewed generic agent migration: browser acceptance
+
+Current source already supports explicit generic manifests, reviewed staging
+imports and durable rollback; older progress entries describing a fixture-only
+provider are superseded for this route. A fresh Chromium session passed owner
+setup, JSON entry, review before write, explicit confirmation, offline agent
+creation, source tool/permission stripping, disk reopen, separately confirmed
+rollback and persisted removal. The test is now in hosted acceptance. It uses
+synthetic agent records only, not third-party account access or arbitrary
+memory-format migration. Unsupported channels and tasks remain unsupported.
