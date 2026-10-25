@@ -10,7 +10,7 @@ export interface PlatformProtectedCredentialBackend {
   replace(key: string, credentials: DirectCredentials): Promise<void>;
   remove(key: string): Promise<void>;
 }
-/** No backend ships: installed dependencies have no established platform vault.
+/** An explicit platform backend is required; Windows DPAPI is implemented separately.
  * No plaintext file, environment discovery, custom crypto or foreign-token fallback. */
 export class DirectTokenStore {
   constructor(private readonly backend?: PlatformProtectedCredentialBackend) {}
