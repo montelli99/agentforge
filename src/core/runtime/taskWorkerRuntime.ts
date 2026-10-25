@@ -404,6 +404,9 @@ export class TaskWorkerRuntime {
     const current = this.requireTask(taskId);
     if (current.updatedAt !== task.updatedAt || current.executionReceipts?.at(-1)?.receiptDigest !== receipt.receiptDigest)
       throw Error('Task changed during discovery; refresh before reviewing');
+    // Timestamp equality is not a revision check: two updates can share a tick.
+    // Revalidate the operation's contract and workspace after asynchronous discovery.
+    validateReceipt(current, receipt, this.options.workspaceIdentity ?? '', current.worktree?.worktreePath ?? this.options.repoRoot ?? process.cwd());
     return {operationId: receipt.operationId, containers, replayed: false, reconciled: false};
   }
 
