@@ -7,7 +7,7 @@
  */
 
 import crypto from "node:crypto";
-import fs from "node:fs";
+import {assertSelectedRepository, readRepositoryBaseline} from './repositoryBaseline.js';
 import {beginReceipt,observeReceipt,validateReceipt,type ExecutionReceipt} from "./executionReceipt.js";
 import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type { Task, TaskStatus } from "../types/task.js";
@@ -455,16 +455,16 @@ export class TaskWorkerRuntime {
     return agent ? this.store.updateTask(task.id, { assignedAgentId: agent.id }) : task;
   }
 
+  getProjectBaseline(projectId: string): {baseBranch: string; baseSha: string} {
+    const project = this.store.getSpace(projectId);
+    if (!project || project.archived || !project.repositoryPath) throw Error('Select an active project with a connected repository first.');
+    return readRepositoryBaseline(this.options.repoRoot || process.cwd(), project.repositoryPath);
+  }
+
   private async resolveWorktree(task: Task): Promise<string> {
     const project = task.projectId ? this.store.getSpace(task.projectId) : undefined;
     if (project?.repositoryPath) {
-      let matches = false;
-      try {
-        const selected = fs.statSync(fs.realpathSync(project.repositoryPath));
-        const configured = fs.statSync(fs.realpathSync(this.options.repoRoot || process.cwd()));
-        matches = selected.isDirectory() && configured.isDirectory() && selected.dev === configured.dev && selected.ino === configured.ino;
-      } catch { /* An unavailable project folder is not permission to use another. */ }
-      if (!matches) throw new Error("The selected project's repository does not match this execution worker. Configure a worker for that repository before running this task.");
+      assertSelectedRepository(this.options.repoRoot || process.cwd(), project.repositoryPath);
     }
     if (!task.contract.workspace.requireIsolatedWorktree) return this.options.repoRoot || process.cwd();
     if (task.worktree?.worktreePath) {

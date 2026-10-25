@@ -564,6 +564,8 @@ export function renderWorkspaceApp(): string {
       <details class="task-boundary-editor">
         <summary>Execution boundaries &amp; checks (optional)</summary>
         <p>Prepare a reviewable plan. Saving does not approve commands, connect a repository, or start work.</p>
+        <button type="button" class="btn btn-secondary" onclick="useProjectRevision(this)">Use current project revision</button>
+        <p>This reads the saved Git revision from your selected project. Uncommitted changes are not included. Review allowed files and checks before saving.</p>
         <label class="form-label" for="task-base-branch">Starting branch</label><input id="task-base-branch" class="form-control" placeholder="main" maxlength="200">
         <label class="form-label" for="task-base-sha">Starting commit (full Git SHA)</label><input id="task-base-sha" class="form-control" placeholder="40-character commit SHA" maxlength="64">
         <label class="form-label" for="task-allowed-paths">Allowed paths · one per line</label><textarea id="task-allowed-paths" class="form-control" rows="3" placeholder="src/**"></textarea>
@@ -2198,6 +2200,18 @@ export function renderWorkspaceApp(): string {
       }catch{}
       result.innerText=warnings.join(' ');openModal('task-modal');
       const modal=document.getElementById('task-modal');modal.oninput=saveTaskDraft;modal.onchange=saveTaskDraft;
+    }
+    async function useProjectRevision(button) {
+      const project=document.getElementById('task-project'),branch=document.getElementById('task-base-branch'),sha=document.getElementById('task-base-sha'),result=document.getElementById('task-result');
+      const selected=project.value,oldBranch=branch.value,oldSha=sha.value;
+      if(!selected){result.innerText='Choose a project first. Connect its repository from Projects if needed.';return;}
+      button.disabled=true;result.innerText='Reading the selected project revision…';
+      try {
+        const baseline=await conversationRequest('/api/projects/'+encodeURIComponent(selected)+'/execution-baseline');
+        if(project.value!==selected||branch.value!==oldBranch||sha.value!==oldSha){result.innerText='Your selection changed. Request the revision again to keep your edits.';return;}
+        branch.value=baseline.baseBranch;sha.value=baseline.baseSha;saveTaskDraft();
+        result.innerText='Project revision filled in. Review allowed files and the test command; no task was run.';
+      } catch(error){result.innerText=error.message;} finally {button.disabled=false;}
     }
     let taskCreatePending=false;
     async function submitCreateTask() {

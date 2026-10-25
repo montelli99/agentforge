@@ -2492,13 +2492,19 @@ export class AgentForgeWebServer {
       return;
     }
 
-    const projectFileRoute = path.match(/^\/api\/projects\/([^/]+)\/(repository|files|file)$/);
+    const projectFileRoute = path.match(/^\/api\/projects\/([^/]+)\/(repository|files|file|execution-baseline)$/);
     if (projectFileRoute) {
       if ((caller.role !== "owner" && caller.role !== "admin") || !hasPermission(caller.permissions, req.method === "GET" ? "settings:read" : "settings:write")) { res.writeHead(403); res.end(JSON.stringify({ error: "Project file access requires an authorized owner or administrator." })); return; }
       const project = this.store.getSpace(projectFileRoute[1]);
       if (!project) { res.writeHead(404); res.end(JSON.stringify({ error: "Project not found." })); return; }
       try {
         const action = projectFileRoute[2];
+        if (action === 'execution-baseline' && req.method === 'GET') {
+          res.setHeader('Cache-Control', 'no-store');
+          try { const baseline = this.taskWorkerRuntime.getProjectBaseline(project.id); res.writeHead(200); res.end(JSON.stringify(baseline)); }
+          catch { res.writeHead(409); res.end(JSON.stringify({error: 'Choose an active Git project matching the configured execution worker, with at least one commit.'})); }
+          return;
+        }
         if (action === "repository" && req.method === "POST") {
           const body = await this.readBody(req);
           if (project.archived) throw new ProjectFileError("Restore this project before connecting files.", 409);
