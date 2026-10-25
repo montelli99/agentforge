@@ -53,6 +53,7 @@ import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
 import {HindsightMemoryProvider} from '../providers/memory/hindsightMemory.js';
+import {CompositeMemoryProvider} from '../providers/memory/compositeMemory.js';
 import {queryMemoryBounded,type MemoryProvider} from '../core/providers/memory.js';
 import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
 import type { MemoryCategory } from "../core/providers/memory.js";
@@ -2923,19 +2924,24 @@ export class AgentForgeWebServer {
             selection=JSON.parse(values[key]||values.AGENTFORGE_KEY_MEMORY_SELECTION||'null');
             if(selection?.projectId!==body.projectId)throw Error('Saved project mismatch');
           }
-          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
+          if(!selection||typeof selection.action!=='string'||!['obsidian','hindsight','combined'].includes(selection.action)||selection.confirmSharing!==true||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived)throw Error('Invalid memory selection');
           let memoryProvider:MemoryProvider;
+          const selectedSources:Array<{alias:string;provider:MemoryProvider}>=[];
           const savedSelection:Record<string,unknown>={action:selection.action,confirmSharing:true,namespace:selection.namespace.trim(),projectId:selection.projectId};
-          if(selection.action==='obsidian'){
+          if(selection.action==='obsidian'||selection.action==='combined'){
             if(typeof selection.root!=='string'||selection.root.length>4096||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid note selection');
             memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
+            selectedSources.push({alias: `notes`,provider:memoryProvider});
             Object.assign(savedSelection,{root:selection.root,files:selection.files});
-          }else{
+          }
+          if(selection.action==='hindsight'||selection.action==='combined'){
             if(typeof selection.bank!=='string'||typeof selection.apiKey!=='string')throw Error('Invalid bank connection');
             memoryProvider=new HindsightMemoryProvider(selection.bank,selection.namespace.trim(),selection.projectId,selection.apiKey);
+            selectedSources.push({alias: `recall`,provider:memoryProvider});
             Object.assign(savedSelection,{bank:selection.bank,apiKey:selection.apiKey});
           }
-          await queryMemoryBounded(memoryProvider,{namespace:selection.namespace.trim(),projectId:selection.projectId,queryText:selection.action==='hindsight'?'AgentForge connection check':undefined,limit:1});
+          memoryProvider=selection.action===`combined`?new CompositeMemoryProvider(selection.namespace.trim(),selection.projectId,selectedSources):selectedSources[0].provider;
+          await queryMemoryBounded(memoryProvider,{namespace:selection.namespace.trim(),projectId:selection.projectId,queryText:selection.action!=='obsidian'?'AgentForge connection check':undefined,limit:1});
           if(body.remember===true){
             const values=fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'))?await vault.unlock(body.passphrase as string):{};
             values[key]=JSON.stringify(savedSelection);
