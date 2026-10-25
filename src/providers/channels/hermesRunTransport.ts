@@ -38,6 +38,25 @@ export class HermesRunTransport {
     }
     return {authenticated:true,toolExecution:'server'};
   }
+  async listSessions(limit=25,offset=0):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>{
+    if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0||offset>1000000)throw Error('Invalid Hermes session page');
+    // Runs can bind API-owned sessions only. Do not advertise CLI/chat sessions
+    // that require the separate gateway protocol and different authority.
+    const result=await this.request(`/api/sessions?source=api_server&limit=${limit}&offset=${offset}`);
+    if(result.object!=='list'||!Array.isArray(result.data)||result.data.length>1000||typeof result.has_more!=='boolean'||result.offset!==offset||result.limit!==limit)throw Error('Invalid Hermes session listing');
+    const keys=new Set<string>();
+    const sessions=result.data.map((raw:unknown)=>{
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Invalid Hermes session');
+      const row=raw as Record<string,unknown>;
+      if(typeof row.id!=='string'||row.source!=='api_server'||keys.has(row.id))throw Error('Invalid Hermes session');
+      this.identifier(row.id);keys.add(row.id);
+      const name=typeof row.title==='string'&&row.title.trim()&&row.title.length<=200&&!/[\u0000-\u001f\u007f]/.test(row.title)?row.title:row.id;
+      return {key:row.id,name};
+    });
+    // Hermes may append pinned rows beyond the requested window.
+    if(result.has_more&&(offset+limit>1000000||sessions.length===0))throw Error('Invalid Hermes pagination');
+    return {sessions,...(result.has_more?{nextOffset:offset+limit}:{})};
+  }
   async submitSessionTurn(sessionKey:string,message:string,requestId:string):Promise<{runId:string}>{
     this.identifier(sessionKey);
     if(!message.trim()||message.length>32000||! /^[a-zA-Z0-9_-]{8,128}$/.test(requestId))throw Error('Invalid Hermes submission');

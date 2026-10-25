@@ -86,3 +86,17 @@ it('rejects dot-segment receipts and never observes or stops a normalized parent
  await expect(client().submitSessionTurn('session','task','request-123')).rejects.toThrow('Invalid Hermes identifier');
  expect(fetcher).toHaveBeenCalledTimes(1);
 });
+it('discovers only API-owned session metadata with bounded pagination',async()=>{
+ const page={object:'list',limit:1,offset:0,has_more:true,data:[{id:'api-one',source:'api_server',title:'Synthetic session',preview:'not copied'},{id:'api-pin',source:'api_server',pinned:true}]};
+ const fetcher=vi.fn().mockResolvedValueOnce(Response.json(page));vi.stubGlobal('fetch',fetcher);
+ expect(await client().listSessions(1,0)).toEqual({sessions:[{key:'api-one',name:'Synthetic session'},{key:'api-pin',name:'api-pin'}],nextOffset:1});
+ expect(fetcher.mock.calls[0][0]).toBe('http://127.0.0.1:8642/api/sessions?source=api_server&limit=1&offset=0');
+ for(const data of [[{id:'cli-one',source:'cli'}],[{id:'..',source:'api_server'}],[{id:'same',source:'api_server'},{id:'same',source:'api_server'}]]){
+  fetcher.mockResolvedValueOnce(Response.json({...page,data}));
+  await expect(client().listSessions(1,0)).rejects.toThrow();
+ }
+ const count=fetcher.mock.calls.length;
+ await expect(client().listSessions(0,0)).rejects.toThrow();
+ await expect(client().listSessions(25,1000001)).rejects.toThrow();
+ expect(fetcher).toHaveBeenCalledTimes(count);
+});

@@ -310,3 +310,12 @@ source/script type checking passed. Registration, guided setup, real execution,
 and verified result recovery still require implementation and acceptance.
 
 The compiled HermesRunTransport.verifyCapabilities method now passed against that same isolated runtime, returning authenticated=true and toolExecution=server. It requires bearer authentication and submission/status/Stop capabilities; incompatible shapes and HTTP 401 fail closed. Eight adapter tests, full type checking and build passed. The SDK export now includes the adapter in packaged build output; previously the unreferenced source was omitted. Compiled adapter SHA-256: 571517c3036a9332f52b8b4fe482e104a98a10fb8eaf8c4fbb5a7f78299ac318. No task was submitted; the container was stopped after the check.
+
+Hermes session discovery now uses source=api_server and returns only names/IDs,
+never previews or transcript fields. It validates pagination and duplicate IDs,
+and accommodates upstream pinned rows beyond the requested window. Nine adapter
+regressions, type checking and build passed. Against the pinned isolated runtime,
+two synthetic empty API sessions were created (201 each); the compiled adapter
+returned one per page and then an empty final page. No run/model request occurred.
+The runtime was stopped afterward. CLI/TUI/messaging session adoption is not
+supported by this Runs connector; it requires a separate gateway integration.
