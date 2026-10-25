@@ -84,7 +84,7 @@ function workboardCardCheckpoint(task){
 }
 function taskOutcomeLabel(task){
  const external=task.externalTurnReceipts?.[0];
- if(external){const status=external.observation?.remoteStatus;return (task.status==='cancelled'?'Locally cancelled · ':'')+(status?'Last external status: '+status:external.runId?'External submission accepted':'External submission uncertain')+' · completion not verified';}
+ if(external){const status=external.observation?.remoteStatus;const stop=external.stop?.status;const stopLabel=stop==='acknowledged'?' · Stop acknowledged; partial effects need review':stop==='not_acknowledged'?' · Stop not acknowledged':stop==='requested'?' · Stop requested; outcome uncertain':'';return (task.status==='cancelled'?'Locally cancelled · ':'')+(status?'Last external status: '+status:external.runId?'External submission accepted':'External submission uncertain')+stopLabel+' · completion not verified';}
  if(task.executionRecovery)return task.executionRecovery.message;
  if(task.status==='completed')return 'Complete with saved evidence';
  if(task.status==='failed')return 'Needs attention after a recorded failure';
