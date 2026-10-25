@@ -113,3 +113,11 @@ Eight conversation tests and full typechecking passed.
 `memory-diagnostic-v2.json: f9f5647b8c1a7b20bd2171317180975d2d4de71c65d8ef770ed176cb5b570b3c`
 
 `memory-diagnostic-v2-near-query.json: 83c04aeb0ed77f41a12cfbcbce431d5968fe737653d57c0fb7708b09b92aa62a`
+
+Windows subscription token persistence now has an explicit DPAPI CurrentUser
+backend, with account/client-bound entropy, bounded hidden OS calls, atomic
+replacement, and repository/linked-path rejection. Real Windows tests using only
+synthetic credentials proved reopen, rotation, ciphertext storage, tamper rejection
+and removal. This protects at rest for the Windows user, not against processes
+running as that user. The backend is not yet wired into sign-in activation;
+macOS/Linux backends and refresh/revocation integration remain open.
