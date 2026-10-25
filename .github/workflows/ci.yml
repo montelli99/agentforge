@@ -62,6 +62,7 @@ jobs:
           export AGENTFORGE_BROWSER_EXECUTABLE="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath());")"
           pnpm test:memory:browser
           pnpm test:connections:browser
+          AGENTFORGE_BROWSER_LOCAL=1 pnpm test:connections:browser
           pnpm test:approval:browser
 
       - name: Retain synthetic browser evidence

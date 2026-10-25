@@ -371,3 +371,14 @@ usage retained; and bounded-child failure with usage retained and no retry.
 Typechecking passed. The child process and account inspection are mocked in
 these tests. They do not prove official-client isolation or live subscription
 inference, which remain outstanding.
+
+### Guided local-model endpoint configuration
+
+The guide previously exposed a custom endpoint only for API-compatible providers.
+Local users can now enter their loopback model-server address and port directly,
+with the catalog endpoint prefilled. Downloaded profiles retain that address;
+validation allows HTTPS or loopback HTTP, rejects embedded credentials, queries
+and fragments, and requires loopback for local models. Server checks remain in
+place. Both local and API-compatible browser journeys passed against an isolated
+synthetic SSE endpoint, including restart/unlock and mid-response reload without
+replay. The build passed. Hosted acceptance now runs both connection modes.
