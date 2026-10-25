@@ -150,3 +150,17 @@ Discord is likewise opt-in and runtime-only through
 `AGENTFORGE_DISCORD_GATEWAY_URL`. Its standalone Gateway v10 transport routes
 interactions into the native mirror; live-provider acceptance remains an
 explicit deployment check.
+# Docker survivor discovery
+
+New Docker command containers carry AgentForge ownership, environment and hashed
+canonical-workspace labels. `DockerComputeProvider.listWorkspaceContainers(path)`
+performs a bounded, read-only lookup of matching containers and returns their
+full IDs and daemon states. It works independently of the original provider's
+in-memory environment map. No raw workspace path or command is placed in labels.
+
+Discovery is not reconciliation: a matching container may belong to a live worker,
+and its state does not establish whether a command's effects completed. The method
+does not stop containers, approve results or replay commands. Older containers
+without these labels are not discovered. Operation-receipt association, orphan
+review UI and crash-during-Docker acceptance remain unfinished.
+

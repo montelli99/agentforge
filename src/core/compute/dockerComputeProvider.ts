@@ -8,6 +8,7 @@
 
 import { execFile } from "node:child_process";
 import crypto from "node:crypto";
+import { realpath } from "node:fs/promises";
 import { validateWritableFiles } from "./nonDeletingFileMounts.js";
 import { prepareScopedWritableDirectories, checkDockerReadiness } from "./scopedDockerMounts.js";
 import { promisify } from "node:util";
@@ -19,6 +20,11 @@ import type {
 } from "../providers/compute.js";
 
 const execFileAsync = promisify(execFile);
+
+async function workspaceLabel(directory: string): Promise<string> {
+  const canonical = await realpath(directory);
+  return crypto.createHash('sha256').update(process.platform === 'win32' ? canonical.toLowerCase() : canonical).digest('hex');
+}
 
 export interface DockerProviderOptions {
   defaultImage?: string;
@@ -92,6 +98,23 @@ export class DockerComputeProvider implements ComputeProvider {
       return stdout;
     });
   }
+  /** Read-only discovery after restart. Labels identify candidates, not proof
+   * that a worker is dead or that an effect completed. Never replay or remove here.
+   */
+  async listWorkspaceContainers(worktreeDir: string): Promise<Array<{id: string; state: string}>> {
+    const digest = await workspaceLabel(worktreeDir);
+    const {stdout} = await execFileAsync('docker', ['ps', '--all', '--no-trunc',
+      '--filter', 'label=io.agentforge.managed=1', '--filter', `label=io.agentforge.workspace=${digest}`,
+      '--format', '{{json .}}'], {timeout: 10000, maxBuffer: 1024 * 1024});
+    const lines = stdout.trim().split(/\r?\n/).filter(Boolean);
+    if (lines.length > 1000) throw Error('Too many workspace containers to reconcile');
+    return lines.map(line => {
+      const value = JSON.parse(line);
+      if (!/^[a-f0-9]{64}$/.test(value.ID) || !['created','running','paused','restarting','removing','exited','dead'].includes(value.State))
+        throw Error('Invalid Docker discovery response');
+      return {id: value.ID as string, state: value.State as string};
+    });
+  }
   async createEnvironment(config: { worktreeDir: string; agentId: string; writableDirectories?: string[]; writableFiles?: string[] }): Promise<SandboxEnvironment> {
     const availability = await this.isAvailable();
     if (!availability.available) {
@@ -149,7 +172,10 @@ export class DockerComputeProvider implements ComputeProvider {
     // Killing the Docker client alone does not stop a detached container. Give
     // every run a known name and remove it before releasing the environment.
     const containerName = `${env.containerName}-${crypto.randomUUID().slice(0, 8)}`;
-    dockerArgs.splice(1, 0, "--name", containerName);
+    dockerArgs.splice(1, 0, "--name", containerName,
+      '--label', 'io.agentforge.managed=1',
+      '--label', `io.agentforge.workspace=${await workspaceLabel(env.workingDirectory)}`,
+      '--label', `io.agentforge.environment=${environmentId}`);
     dockerArgs[0] = "create";
     dockerArgs.splice(dockerArgs.indexOf("--rm"), 1);
     const controller = new AbortController();
