@@ -147,3 +147,11 @@ Validation: 14 migration-suite tests and the full TypeScript check passed.
 This is not complete migration acceptance: the HTTP flow still uses fixture
 inspection, unsupported entities are not imported, and run verification remains
 process-local. No private workspace or external memory service was imported.
+
+The subsequent UI/API change accepts pasted generic JSON for inspection,
+planning and simulation. HTTP integration verifies the supplied identity reaches
+the plan and preview leaves agent counts unchanged. Uploaded-manifest import
+returns 409 rather than ignoring the upload and importing the fixture. Null is
+invalid input, not an instruction to load example data. The production build and
+built browser-script syntax check passed; interactive browser acceptance is
+still outstanding. Reviewed import and durable rollback remain unfinished.

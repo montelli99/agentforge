@@ -31,7 +31,7 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async inspect(manifestData?: unknown): Promise<MigrationInspection> {
-    const data = structuredClone(manifestData ?? GENERIC_MIGRATION_FIXTURE) as typeof GENERIC_MIGRATION_FIXTURE;
+    const data = structuredClone(manifestData === undefined ? GENERIC_MIGRATION_FIXTURE : manifestData) as typeof GENERIC_MIGRATION_FIXTURE;
     const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(entry => typeof entry === 'string');
     if (!data || typeof data.version !== 'string' || typeof data.sourceSystem !== 'string'
       || !Array.isArray(data.agents) || !Array.isArray(data.channels) || !Array.isArray(data.tasks)

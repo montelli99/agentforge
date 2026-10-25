@@ -604,6 +604,24 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(suppliedPlan.items[0]!.targetName).toBe('Supplied agent');
       await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
       await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
+      await expect(gen.inspect(null)).rejects.toThrow('Invalid generic');
+      const agentsBefore = store.listAgents().length;
+      for (const operation of ['inspect', 'plan', 'dry-run']) {
+        const response = await fetch(`${server.getBaseUrl()}/api/migration/${operation}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: 'GENERIC', manifest: supplied }),
+        });
+        expect(response.status).toBe(200);
+        const result = await response.json() as any;
+        if (operation === 'inspect') expect(result.discovered.agentsCount).toBe(1);
+        else expect((result.plan || result).items[0].sourceId).toBe('custom-manifest-agent');
+      }
+      const blockedImport = await fetch(`${server.getBaseUrl()}/api/migration/import`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'GENERIC', manifest: supplied }),
+      });
+      expect(blockedImport.status).toBe(409);
+      expect(store.listAgents().length).toBe(agentsBefore);
     });
   });
 

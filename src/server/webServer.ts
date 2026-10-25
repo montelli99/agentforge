@@ -4658,12 +4658,15 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/inspect") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       let inspection;
       if (body.source === "OPENCLAW_CURRENT") inspection = await this.openclawCurrent.inspect();
       else if (body.source === "HERMES") inspection = await this.hermesMigration.inspect();
       else if (body.source === "GROK_BOT") inspection = await this.grokMigration.inspect();
-      else if (body.source === "GENERIC") inspection = await this.genericMigration.inspect();
+      else if (body.source === "GENERIC") {
+        try { inspection = await this.genericMigration.inspect(body.manifest); }
+        catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid generic migration manifest' })); return; }
+      }
       else inspection = await this.openclawLegacy.inspect();
 
       res.writeHead(200);
@@ -4672,7 +4675,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/plan") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       let plan;
       if (body.source === "OPENCLAW_CURRENT") {
         const insp = await this.openclawCurrent.inspect();
@@ -4684,7 +4687,9 @@ export class AgentForgeWebServer {
         const insp = await this.grokMigration.inspect();
         plan = await this.grokMigration.plan(insp);
       } else if (body.source === "GENERIC") {
-        const insp = await this.genericMigration.inspect();
+        let insp;
+        try { insp = await this.genericMigration.inspect(body.manifest); }
+        catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid generic migration manifest' })); return; }
         plan = await this.genericMigration.plan(insp);
       } else {
         const insp = await this.openclawLegacy.inspect();
@@ -4697,14 +4702,16 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/dry-run") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
       const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
         : body.source === "HERMES" ? this.hermesMigration
         : body.source === "GROK_BOT" ? this.grokMigration
         : body.source === "GENERIC" ? this.genericMigration
         : this.openclawLegacy;
 
-      const insp = await provider.inspect();
+      let insp;
+      try { insp = await provider.inspect(body.source === 'GENERIC' ? body.manifest : undefined); }
+      catch { res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid migration input' })); return; }
       const plan = await provider.plan(insp);
       const dryRun = await provider.dryRun(plan);
 
@@ -4714,7 +4721,12 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/migration/import") {
-      const body = await this.readBody(req) as { source: string };
+      const body = await this.readBody(req) as { source: string; manifest?: unknown };
+      if (body.manifest !== undefined) {
+        res.writeHead(409);
+        res.end(JSON.stringify({ error: 'Uploaded manifests support inspection, planning and simulation only. Reviewed import and durable rollback are not yet available.' }));
+        return;
+      }
       const provider = body.source === "OPENCLAW_CURRENT" ? this.openclawCurrent
         : body.source === "HERMES" ? this.hermesMigration
         : body.source === "GROK_BOT" ? this.grokMigration
