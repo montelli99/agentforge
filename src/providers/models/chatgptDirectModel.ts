@@ -23,17 +23,18 @@ export interface DirectCatalog {
 }
 export interface DirectRequest {
   model: string;
-  input: Array<{ role: 'developer' | 'user' | 'assistant'; content: string }>;
+  input: Array<{ role: 'developer' | 'user' | 'assistant'; content: string } | {role?:never;type:'function_call';call_id:string;name:string;namespace:'agentforge';arguments:string} | {role?:never;type:'function_call_output';call_id:string;output:string}>;
+  tools?:Array<{type:'namespace';name:'agentforge';description:string;tools:Array<{type:'function';name:string;description:string;parameters:RecordValue;strict:false}>}>;
   store: false;
   stream: true;
 }
 export interface AuthorizedResponsesTransport {
-  /** Future implementation binds this grant to its own token, sends Bearer auth,
+  /** Implementation binds this grant to its own token, sends Bearer auth,
    * decodes bounded SSE JSON, rejects HTTP errors, honors abort, closes on return,
-   * and never retries or logs credentials. No network implementation ships here. */
+   * and never retries or logs credentials. */
   open(request: { url: 'https://api.openai.com/v1/responses'; body: DirectRequest; grant: DirectGrant; signal: AbortSignal }): AsyncIterable<unknown>;
 }
-export interface DirectConfiguration { enabled?: boolean; model?: string; deadlineMs?: number; maxOutputBytes?: number }
+export interface DirectConfiguration { enabled?: boolean; model?: string; deadlineMs?: number; maxOutputBytes?: number; agentTools?: boolean }
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): RecordValue => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as RecordValue : {};
 function usageOf(value: unknown): ModelResponseUsage | undefined {
@@ -60,10 +61,10 @@ export function listedDirectModelSlugs(value: unknown): string[] | undefined {
   return slugs;
 }
 
-/** Offline opt-in seam only. No auth, fetch, file access, planner registration or fallback. */
+/** Opt-in provider with an injected authorized transport; no credential discovery or fallback. */
 export class ChatGPTDirectModel implements GenerativeModelProvider {
   readonly id = 'chatgpt-direct';
-  readonly name = 'ChatGPT direct Responses (offline seam)';
+  readonly name = 'ChatGPT direct Responses';
   readonly defaultTier = 2 as const;
   private readonly config: Readonly<DirectConfiguration>;
   constructor(config: DirectConfiguration, private readonly authorization: DirectAuthorization,
@@ -95,17 +96,42 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
   async isAvailable(): Promise<boolean> { return this.getReadiness().ready; }
   async listModels(): Promise<string[]> { try { return this.models(this.grant()); } catch { return []; } }
   private body(options: ModelRequestOptions): DirectRequest {
-    const allowed = new Set(['model', 'messages', 'signal', 'stream', 'responseFormat']);
+    const allowed = new Set(['model', 'messages', 'signal', 'stream', 'responseFormat',...(this.config.agentTools?['tools']:[])]);
     if (Object.keys(options).some(k => !allowed.has(k) && (options as unknown as RecordValue)[k] !== undefined)
       || options.stream === true || (options.responseFormat !== undefined && options.responseFormat !== 'json')
       || !this.config.model || options.model !== this.config.model || !Array.isArray(options.messages) || options.messages.length === 0) throw Error('Unsupported direct text planning request');
-    const input = options.messages.map(m => {
+    const functions=this.config.agentTools?(options.tools??[]).map(value=>{
+      const tool=record(value),f=record(tool.function),parameters=record(f.parameters);
+      if(tool.type!=='function'||typeof f.name!=='string'||!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(f.name)||typeof f.description!=='string'||parameters.type!=='object')throw Error('Unsupported direct function definition');
+      return {type:'function' as const,name:f.name,description:f.description,parameters,strict:false as const};
+    }):[];
+    if(functions.length>32||new Set(functions.map(f=>f.name)).size!==functions.length)throw Error('Invalid direct function set');
+    if(functions.length&&options.responseFormat==='json')throw Error('Planning JSON and conversation tools require separate requests');
+    const names=new Set(functions.map(f=>f.name)),pending=new Set<string>(),seen=new Set<string>();
+    const input:DirectRequest['input']=[];
+    for(const m of options.messages){
+      if(this.config.agentTools&&m.role==='tool'){
+        if(!m.toolCallId||!pending.delete(m.toolCallId)||typeof m.content!=='string')throw Error('Unmatched direct function result');
+        input.push({type:'function_call_output',call_id:m.toolCallId,output:m.content});continue;
+      }
+      if(this.config.agentTools&&m.role==='assistant'&&m.toolCalls?.length){
+        if(typeof m.content!=='string'||pending.size)throw Error('Invalid direct function history');
+        if(m.content)input.push({role:'assistant',content:m.content});
+        for(const call of m.toolCalls){
+          if(call.type!=='function'||!isReportedModelId(call.id)||seen.has(call.id)||!names.has(call.function.name)||typeof call.function.arguments!=='string')throw Error('Invalid direct function history');
+          seen.add(call.id);pending.add(call.id);
+          input.push({type:'function_call',call_id:call.id,name:call.function.name,namespace:'agentforge',arguments:call.function.arguments});
+        }continue;
+      }
       if (!['system', 'user', 'assistant'].includes(m.role) || typeof m.content !== 'string' || Object.keys(m).some(k => !['role', 'content'].includes(k))) throw Error('Only plain text messages supported');
-      return { role: (m.role === 'system' ? 'developer' : m.role) as 'developer' | 'user' | 'assistant', content: m.content };
-    });
+      if(pending.size)throw Error('Missing direct function results');
+      input.push({ role: (m.role === 'system' ? 'developer' : m.role) as 'developer' | 'user' | 'assistant', content: m.content });
+    }
+    if(pending.size)throw Error('Missing direct function results');
     if (options.responseFormat === 'json') input.unshift({ role: 'developer', content: 'Return only valid JSON for the requested planning draft. Do not execute actions or use tools.' });
     const body: DirectRequest = { model: options.model, input, store: false, stream: true };
-    if (Buffer.byteLength(JSON.stringify(body)) > 32768) throw Error('Direct text request exceeds 32KiB');
+    if(functions.length)body.tools=[{type:'namespace',name:'agentforge',description:'AgentForge scoped conversation tools; execution still requires existing approval.',tools:functions}];
+    if (Buffer.byteLength(JSON.stringify(body)) > (this.config.agentTools?262144:32768)) throw Error(this.config.agentTools?'Direct text request exceeds 256KiB':'Direct text request exceeds 32KiB');
     return body;
   }
   auditGenerateBody(options: ModelRequestOptions): string { return JSON.stringify(this.body(options)); }
@@ -135,7 +161,7 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
         }
         if (event.type === 'response.output_item.added' || event.type === 'response.output_item.done') {
           const item = record(event.item);
-          if (!['message', 'reasoning'].includes(item.type as string)) throw new ModelProviderError('Forbidden direct output activity', usage);
+          if (!['message', 'reasoning',...(this.config.agentTools?['function_call']:[])].includes(item.type as string)) throw new ModelProviderError('Forbidden direct output activity', usage);
         }
         if (event.type === 'response.output_text.delta') {
           if (typeof event.delta !== 'string') throw new ModelProviderError('Malformed direct text delta', usage);
@@ -146,13 +172,21 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
           usage = usageOf(response.usage);
           if (response.status !== 'completed' || typeof response.id !== 'string' || !Array.isArray(response.output)) throw new ModelProviderError('Malformed direct completion', usage);
           const messages = response.output.map(record);
-          if (messages.some(i => !['message', 'reasoning'].includes(i.type as string))) throw new ModelProviderError('Forbidden direct completion activity', usage);
+          if (messages.some(i => !['message', 'reasoning',...(this.config.agentTools?['function_call']:[])].includes(i.type as string))) throw new ModelProviderError('Forbidden direct completion activity', usage);
+          const allowedNames=new Set(body.tools?.[0].tools.map(f=>f.name)??[]),callIds=new Set<string>();
+          const toolCalls:NonNullable<ModelResponse['toolCalls']>=messages.filter(i=>i.type==='function_call').map(i=>{
+            if(i.namespace!=='agentforge'||typeof i.name!=='string'||!allowedNames.has(i.name)||!isReportedModelId(i.call_id)||callIds.has(i.call_id)||typeof i.arguments!=='string')throw new ModelProviderError('Unrequested direct function call',usage);
+            let args:unknown;try{args=JSON.parse(i.arguments);}catch{throw new ModelProviderError('Malformed direct function arguments',usage);}
+            if(!args||typeof args!=='object'||Array.isArray(args))throw new ModelProviderError('Malformed direct function arguments',usage);
+            callIds.add(i.call_id);return {id:i.call_id,type:'function',function:{name:i.name,arguments:i.arguments}};
+          });
+          if(toolCalls.length>32||Buffer.byteLength(JSON.stringify(toolCalls))>(this.config.maxOutputBytes??1048576))throw new ModelProviderError('Direct tool output exceeds local bound',usage);
           const parts = messages.filter(i => i.type === 'message').flatMap(i => Array.isArray(i.content) ? i.content.map(record) : [ {} ]);
           if (parts.some(p => p.type !== 'output_text' || typeof p.text !== 'string')) throw new ModelProviderError('Non-text direct completion', usage);
           const finalText = parts.map(p => p.text as string).join('');
           if (Buffer.byteLength(finalText) > (this.config.maxOutputBytes??1048576) || finalText !== content) throw new ModelProviderError('Direct completed text does not match stream', usage);
           if (options.responseFormat === 'json') { try { JSON.parse(finalText); } catch { throw new ModelProviderError('Direct response is not valid JSON', usage); } }
-          return { id: response.id, model: body.model, reportedModel: isReportedModelId(response.model) ? response.model : undefined, content: finalText, usage, finishReason: 'stop' };
+          return { id: response.id, model: body.model, reportedModel: isReportedModelId(response.model) ? response.model : undefined, content: finalText, usage,...(toolCalls.length?{toolCalls}:{}), finishReason: toolCalls.length?'tool_calls':'stop' };
         }
       }
     } catch (error) {
@@ -164,5 +198,10 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
       try { void iterator?.return?.().catch(() => undefined); } catch { /* bounded cleanup */ }
     }
   }
-  async *stream(_options: ModelRequestOptions): AsyncIterable<StreamChunk> { throw Error('Direct adapter exposes completed planning only'); }
+  async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {
+    if(!this.config.agentTools)throw Error('Direct adapter exposes completed planning only');
+    // Release actions only after the provider confirms completion, never from partial arguments.
+    const response=await this.generate({...options,stream:false});
+    yield {id:response.id,deltaText:response.content,toolCalls:response.toolCalls,finishReason:response.finishReason};
+  }
 }

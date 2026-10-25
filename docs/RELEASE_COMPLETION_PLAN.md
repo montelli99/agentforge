@@ -205,3 +205,18 @@ A Windows integration test exercised this entire local path using synthetic
 signed tokens and intercepted HTTP, not a live account. Twenty-nine focused
 tests and full typechecking passed. UI activation and live-provider acceptance
 remain open; this test does not authorize or prove real subscription access.
+
+The direct subscription provider now has an explicit conversation-tool mode.
+It maps approved function definitions into the supported AgentForge namespace,
+preserves function call/result history, and releases calls only after a completed
+provider response. Unknown tools/namespaces, duplicate call IDs, malformed
+arguments and unmatched history are rejected. Planning-only mode remains the
+default and continues rejecting tool activity. The conversation stream currently
+emits only completed turns, not partial text. Twenty-nine adapter/planner tests,
+nine conversation tests and full typechecking passed. The actual conversation
+runtime completed a synthetic two-turn prepare-task exchange without approving
+or executing the task. This is intercepted-provider integration evidence, not
+live subscription proof or completed account UI activation.
+Sources:
+https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
+https://developers.openai.com/api/docs/guides/function-calling

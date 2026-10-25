@@ -10,6 +10,7 @@ import { WorkspaceStore } from "../core/store/workspaceStore.js";
 import type { GenerativeModelProvider, ModelRequestOptions, StreamChunk } from "../core/providers/model.js";
 import { ConversationRuntime } from "./conversationRuntime.js";
 import { invokeConversationTool } from "./conversationTools.js";
+import {ChatGPTDirectModel} from '../providers/models/chatgptDirectModel.js';
 
 function fixture() {
   const store = new WorkspaceStore();
@@ -25,6 +26,24 @@ function provider(stream: (options: ModelRequestOptions) => AsyncIterable<Stream
   return { id: "synthetic", name: "Synthetic", defaultTier: 1, isAvailable: async () => true, listModels: async () => ["synthetic"], generate: async () => { throw Error("unexpected generate"); }, stream };
 }
 describe("server-owned conversations", () => {
+  it('runs subscription function calls through the existing scoped task workflow',async()=>{
+    const f=fixture();let round=0;
+    const grant={accountId:'synthetic-account',grantId:'synthetic-grant',resource:'https://api.openai.com/v1' as const,scopes:['resource.invoke','chatgpt.tokens.use.direct'],expiresAt:Date.now()+60000};
+    const model=new ChatGPTDirectModel({enabled:true,model:'synthetic',agentTools:true},{currentGrant:()=>grant},()=>({accountId:grant.accountId,grantId:grant.grantId,expiresAt:grant.expiresAt,response:{models:[{slug:'synthetic',display_name:'Synthetic',visibility:'list'}]}}),{async *open(request){
+      if(!round++){
+        expect(request.body.tools?.[0].name).toBe('agentforge');
+        yield {type:'response.completed',response:{id:'first',status:'completed',output:[{type:'function_call',namespace:'agentforge',name:'prepare_task',call_id:'call_1',arguments:'{"title":"Synthetic artifact"}'}]}};
+      }else{
+        const result=request.body.input.at(-1)!;
+        expect(result).toMatchObject({type:'function_call_output',call_id:'call_1'});
+        const task=JSON.parse('output' in result?result.output:'{}');expect(task.status).toBe('backlog');expect(task.approvedExecutionPlan).toBeUndefined();
+        yield {type:'response.output_text.delta',delta:'Task prepared for review.'};
+        yield {type:'response.completed',response:{id:'second',status:'completed',output:[{type:'message',content:[{type:'output_text',text:'Task prepared for review.'}]}]}};
+      }
+    }});
+    await new ConversationRuntime(f.store,{provider:model,models:['synthetic']}).respond(f.thread.id,f.prompt().id,'synthetic','owner',f.response);
+    expect(round).toBe(2);expect(f.store.listThreadMessages(f.thread.id).at(-1)?.generation?.status).toBe('complete');
+  });
   it('excludes responses and concurrent changes while loading a connection, and preserves configuration after failure', async () => {
     const f = fixture();
     const model = provider(async function* () { yield { id:'1',deltaText:'ok',finishReason:'stop' }; });
