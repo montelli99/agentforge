@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { performance } from 'node:perf_hooks';
 import { BenchmarkRunner } from "./benchmarkRunner.js";
 import {
   MODEL_INTENT_SUITE,
@@ -56,6 +57,15 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     expect(compat.compatible).toBe(true);
     expect(compat.supportedFeatures).toContain("git_worktree_isolation");
     expect(compat.supportedFeatures).toContain("command_gating");
+    let clock=0;
+    const measured=vi.spyOn(performance,'now').mockImplementation(()=>{const value=clock;clock+=7;return value;});
+    try {
+      const failed=await runner.runSuite(HARNESS_ISOLATION_SUITE,'synthetic-failure',async()=>{throw Error('Synthetic target failure');});
+      expect(failed.failedCases).toBe(failed.totalCases);
+      expect(failed.metrics.find(metric=>metric.name==='avg_latency')?.value).toBe(7);
+      expect(failed.passedOverall).toBe(false);
+      await expect(runner.runSuite({...HARNESS_ISOLATION_SUITE,cases:[]},'empty',async()=>({output:{},latencyMs:0}))).rejects.toThrow('at least one case');
+    } finally { measured.mockRestore(); }
   });
 
   it("enforces empirical routing: unmeasured models cannot win critical tasks on reputation alone", () => {

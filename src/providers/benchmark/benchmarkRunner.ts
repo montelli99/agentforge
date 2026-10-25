@@ -6,6 +6,8 @@
  */
 
 import crypto from "node:crypto";
+import { performance } from "node:perf_hooks";
+import { isDeepStrictEqual } from "node:util";
 import type {
   BenchmarkSuite,
   BenchmarkResult,
@@ -55,19 +57,20 @@ export class BenchmarkRunner {
     targetId: string,
     executeCaseFn: (input: Record<string, unknown>) => Promise<{ output: Record<string, unknown>; latencyMs: number }>,
   ): Promise<BenchmarkResult> {
+    if (!suite.cases.length) throw new Error('A benchmark requires at least one case');
     const startTime = Date.now();
     let passedCases = 0;
     let failedCases = 0;
     let totalLatency = 0;
 
     for (const testCase of suite.cases) {
+      const attemptStarted = performance.now();
       try {
         const res = await executeCaseFn(testCase.input);
-        totalLatency += res.latencyMs;
 
         // Structural equivalence check on expected output fields
         const passed = Object.keys(testCase.expectedOutput).every(
-          key => res.output[key] === testCase.expectedOutput[key]
+          key => isDeepStrictEqual(res.output[key], testCase.expectedOutput[key])
         );
 
         if (passed) {
@@ -77,6 +80,9 @@ export class BenchmarkRunner {
         }
       } catch {
         failedCases++;
+      } finally {
+        // Include failed attempts; target-reported latency is not independent evidence.
+        totalLatency += performance.now() - attemptStarted;
       }
     }
 
