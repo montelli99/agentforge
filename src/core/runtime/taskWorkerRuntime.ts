@@ -96,6 +96,12 @@ const NO_EXECUTION_BACKEND: ExecutionReadiness = {
 export class TaskWorkerRuntime {
   private readonly runId = crypto.randomUUID();
   private activeWorkers = 0;
+  private changingMemory=false;
+  async withMemoryChange<T>(operation:()=>Promise<T>):Promise<T>{
+    if(this.changingMemory||this.activeTaskExecutions.size)throw Error('Finish active tasks or memory setup first');
+    this.changingMemory=true;
+    try{return await operation();}finally{this.changingMemory=false;}
+  }
   private projectMemory=new Map<string,{provider:MemoryProvider;namespace:string}>();
   setProjectMemory(projectId:string,provider:MemoryProvider,namespace:string){
     if(this.activeTaskExecutions.size)throw Error('Finish active tasks before changing memory');
@@ -212,6 +218,7 @@ export class TaskWorkerRuntime {
   }
 
   async executeTask(taskId: string): Promise<Task> {
+    if(this.changingMemory)throw Error('Memory setup is in progress; retry after it finishes');
     const task = this.requireTask(taskId);
     const blockReason = this.getExecutionBlockReason();
     if (blockReason) throw new Error(blockReason);

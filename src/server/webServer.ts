@@ -2901,7 +2901,7 @@ export class AgentForgeWebServer {
       if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')||!hasPermission(caller.permissions,'memory:write')){res.writeHead(403);res.end(JSON.stringify({error:'Memory connections require an owner or administrator.'}));return;}
       try{
         const body=await this.readBody(req);
-        await this.conversations.changeMemory(async()=>{
+        await this.taskWorkerRuntime.withMemoryChange(()=>this.conversations.changeMemory(async()=>{
           if(this.taskWorkerRuntime.getActiveTasksCount())throw Error('Finish active tasks before changing memory');
           if(body.action==='disconnect'){this.taskWorkerRuntime.clearSelectedProjectMemory();return {memoryNamespace:undefined,memoryProvider:undefined};}
           const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
@@ -2933,7 +2933,7 @@ export class AgentForgeWebServer {
           this.taskWorkerRuntime.clearSelectedProjectMemory();
           this.taskWorkerRuntime.setProjectMemory(selection.projectId,memoryProvider,selection.namespace.trim());
           return {memoryNamespace:selection.namespace.trim(),memoryProvider};
-        });
+        }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
       }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key.'}));}
       return;

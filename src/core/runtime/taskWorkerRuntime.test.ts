@@ -428,6 +428,13 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       expect(receivedSourceIds).toHaveLength(3);
       expect(store.listAuditEntries().some(entry => entry.action === "TASK_CONTEXT_PACKED" && entry.targetId === task.id)).toBe(true);
       const selected=new OperationalMemoryProvider();
+      let finishChange!:()=>void;
+      const changing=runtimeWithMemory.withMemoryChange(()=>new Promise<void>(resolve=>{finishChange=resolve;}));
+      await expect(runtimeWithMemory.executeTask(task.id)).rejects.toThrow('Memory setup is in progress');
+      await expect(runtimeWithMemory.withMemoryChange(async()=>{})).rejects.toThrow('Finish active tasks or memory setup first');
+      finishChange();await changing;
+      await expect(runtimeWithMemory.withMemoryChange(async()=>{throw Error('synthetic failed setup');})).rejects.toThrow('synthetic failed setup');
+      await expect(runtimeWithMemory.withMemoryChange(async()=>true)).resolves.toBe(true);
       await selected.record({namespace:'selected',projectId:'project-alpha',category:'general_fact',title:'Selected release source',content:'Selected release evidence',tags:['chat-context']});
       runtimeWithMemory.setProjectMemory('project-alpha',selected,'selected');
       const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
