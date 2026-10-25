@@ -1,4 +1,5 @@
 import { ConnectionSetup } from './connectionSetup.js';
+import { ChatGPTSetup } from './chatgptSetup.js';
 import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
@@ -383,6 +384,7 @@ export class AgentForgeWebServer {
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
+  private readonly chatgptSetup: ChatGPTSetup;
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -401,6 +403,7 @@ export class AgentForgeWebServer {
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
+    this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
     this.indexedMemory = options.indexedMemory;
     this.completionEngine = completionEngine;
@@ -2950,6 +2953,27 @@ export class AgentForgeWebServer {
     if (path === "/api/chat/status" && req.method === "GET") {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
     }
+    if(path.startsWith('/api/connections/chatgpt/')){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end(JSON.stringify({error:'Sign in to AgentForge to manage subscription accounts.'}));return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end(JSON.stringify({error:'Account management requires an owner or administrator.'}));return;}
+      const actor=caller.user?.id||'authenticated-owner';
+      try{
+        if(path==='/api/connections/chatgpt/status'&&req.method==='GET'){const result=await this.chatgptSetup.status(actor);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+        const body=await this.readBody(req);
+        if(path==='/api/connections/chatgpt/restore'){if(typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.restore(actor,body.accountId);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(path==='/api/connections/chatgpt/begin'){if(body.accountId!==undefined&&typeof body.accountId!=='string')throw Error('Invalid account');const result=await this.chatgptSetup.begin(actor,typeof body.accountId==='string'?body.accountId:undefined);res.writeHead(200);res.end(JSON.stringify(result));return;}
+        if(path==='/api/connections/chatgpt/cancel'){await this.chatgptSetup.cancel(actor);res.writeHead(200);res.end(JSON.stringify({cancelled:true}));return;}
+        if(path==='/api/connections/chatgpt/activate'){
+          if(typeof body.id!=='string'||typeof body.model!=='string')throw Error('Invalid selection');
+          await this.conversations.changeConnection(()=>this.chatgptSetup.activate(actor,body.id as string,body.model as string));
+          res.writeHead(200);res.end(JSON.stringify(this.conversations.status()));return;
+        }
+        res.writeHead(404);res.end();
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Subscription setup could not finish. Complete or cancel any pending sign-in, finish active responses, and retry. Protected storage must be outside a repository.'}));}
+      return;
+    }
     if (path === '/api/connections/save' || path === '/api/connections/unlock') {
       res.setHeader('Cache-Control', 'no-store');
       if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
@@ -4667,8 +4691,9 @@ export class AgentForgeWebServer {
     return `http://${this.host}:${address.port}`;
   }
 
-  stop(): Promise<void> {
+  async stop(): Promise<void> {
     this.conversations.shutdown();
+    await this.chatgptSetup.shutdown();
     this.indexedMemory?.close();
     if (this.taskWorkerRuntime) {
       this.taskWorkerRuntime.stop();

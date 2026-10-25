@@ -229,3 +229,7 @@ connection tests passed with intercepted providers. The selected-model planner
 route now uses the direct subscription request profile, omitting unsupported
 sampling/output-token fields. UI account activation remains unfinished; this
 provider is not automatically installed or advertised as a working saved account.
+
+Subscription setup integration progress: authenticated owner/admin endpoints now begin, inspect, cancel, and activate actor-scoped ChatGPT sign-in. The guided setup presents official sign-in, saved account selection, result checking, and account model selection. URLs and credentials are not stored in browser storage. Server shutdown cancels callback listeners and deactivates in-memory connections. Windows protected storage only. Typecheck, build, and 13 existing setup/provider tests passed before the final shutdown cleanup; live OAuth/browser acceptance, remote sign-out/revocation, and restart restoration still need proof. This is implementation progress, not release acceptance.
+
+Saved-account recovery is now wired through an authenticated restore endpoint and guided setup action. It checks actor ownership, registration/client binding, protected credentials, and a fresh account model catalog before model activation. Uncertain refresh state requires new sign-in. Cancellation and shutdown invalidate recovery. Typecheck and 13 existing setup/provider tests passed after these changes; those tests do not establish live restore or browser acceptance. Direct restore acceptance coverage remains required.
