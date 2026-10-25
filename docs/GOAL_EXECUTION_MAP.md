@@ -191,3 +191,12 @@ receipts and pruned receipts fail verification; no automatic retry occurs.
 Authority-change status is unknown when only an unverifiable durable receipt
 remains. The synthetic disk-reload regression passed within the 25-test suites;
 this is not an operating-system crash test or an atomic rollback implementation.
+
+Integration check after commit `1788689`: `pnpm check` passed full typechecking,
+product isolation, 111 test files (664 tests passed, two skipped), production
+build, browser-script syntax and package-surface acceptance. The npm archive
+privacy check inspected 217 files without matching private-data signatures.
+The migration website guide was updated to explain uploaded previews and the
+unfinished import/rollback boundary; website checks passed across 42 pages.
+Hosted run `40219215991` for `1788689` was still running when checked; no final
+hosted result or rendered-browser acceptance is claimed here.
