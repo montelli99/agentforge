@@ -77,8 +77,17 @@ try{
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
  assert.equal(await readFile(path.join(worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
- console.log(JSON.stringify({passed:true,syntheticOnly:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,finalHumanReviewPending:true}));
+ await page.getByRole('button',{name:'Refresh status',exact:true}).click();
+ await page.getByRole('button',{name:'Review request',exact:true}).click();
+ await page.getByRole('region',{name:'Decision brief'}).getByText('Recorded verification passed',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Approve request',exact:true}).click();
+ assert.equal(store.getTask(taskId).status,'waiting_approval');
+ await page.getByRole('button',{name:'Confirm approval',exact:true}).click();
+ await page.getByRole('heading',{name:'You’re all caught up.',exact:true}).waitFor();
+ assert.equal(store.getTask(taskId).status,'completed');
+ const restored=new WorkspaceStore(path.join(root,'state.json'));
+ assert.equal(restored.getTask(taskId).status,'completed');
+ assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();}
-
-
 

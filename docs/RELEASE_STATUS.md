@@ -342,3 +342,13 @@ not establish a model-generated plan or the complete clean-install journey.
 The worker uses the supported manual-dispatch configuration. Initial fixture
 failures came from ambiguous selectors and a worker not started; the test was
 corrected without changing the product's approval or execution guards.
+
+### Final browser review and durable completion
+
+The approval regression now continues from verified Docker output into the
+Review Desk, reads the recorded verification result, selects Approve request,
+and confirms the decision. Before confirmation the task remains waiting for
+approval. Afterward it is completed; reopening the disk store preserves both
+completion and the authenticated reviewer's identity. The local run passed.
+This supersedes the prior fixture's final-review-pending limitation, but still
+uses a fixed synthetic plan and is not the clean-install live-model journey.
