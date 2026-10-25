@@ -7,6 +7,7 @@
  */
 
 import crypto from "node:crypto";
+import fs from "node:fs";
 import {beginReceipt,observeReceipt,validateReceipt,type ExecutionReceipt} from "./executionReceipt.js";
 import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
 import type { Task, TaskStatus } from "../types/task.js";
@@ -455,6 +456,16 @@ export class TaskWorkerRuntime {
   }
 
   private async resolveWorktree(task: Task): Promise<string> {
+    const project = task.projectId ? this.store.getSpace(task.projectId) : undefined;
+    if (project?.repositoryPath) {
+      let matches = false;
+      try {
+        const selected = fs.statSync(fs.realpathSync(project.repositoryPath));
+        const configured = fs.statSync(fs.realpathSync(this.options.repoRoot || process.cwd()));
+        matches = selected.isDirectory() && configured.isDirectory() && selected.dev === configured.dev && selected.ino === configured.ino;
+      } catch { /* An unavailable project folder is not permission to use another. */ }
+      if (!matches) throw new Error("The selected project's repository does not match this execution worker. Configure a worker for that repository before running this task.");
+    }
     if (!task.contract.workspace.requireIsolatedWorktree) return this.options.repoRoot || process.cwd();
     if (task.worktree?.worktreePath) {
       return this.worktreeManager.validateWorktree(task.worktree, task.id, task.contract.repository.baseSha);

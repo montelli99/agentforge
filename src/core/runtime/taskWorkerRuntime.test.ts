@@ -5,6 +5,7 @@ import { AgentForgeWebServer } from "../../server/webServer.js";
 import type { Task } from "../types/task.js";
 import { OperationalMemoryProvider } from "../../providers/memory/operationalMemory.js";
 import { MemoryConnectionRegistry } from '../../providers/memory/memoryConnections.js';
+import os from 'node:os';
 
 /** Explicit test double. Production never receives a fake executor. */
 function testExecutionBackend(): TaskExecutionBackend {
@@ -40,6 +41,20 @@ describe("TaskWorkerRuntime & Server Integration", () => {
 
   afterEach(() => {
     runtime.stop();
+  });
+
+  it('refuses a selected project repository different from the configured worker before effects', async () => {
+    const workspace = store.createWorkspace({name: 'Synthetic repository boundary'});
+    const project = store.createSpace({workspaceId: workspace.id, name: 'Other repository', provider: 'web', repositoryPath: os.tmpdir()});
+    const task = store.createTask({id: 'wrong-repository', projectId: project.id, title: 'Do not run in a different repository', status: 'ready', priority: 'medium'});
+    const backend = testExecutionBackend();
+    const execute = vi.spyOn(backend, 'execute');
+    runtime = new TaskWorkerRuntime(store, backend, {repoRoot: process.cwd(), autoStart: false, requireEffectReceipts: true});
+    await runtime.executeTask(task.id);
+    expect(execute).not.toHaveBeenCalled();
+    expect(store.getTask(task.id)?.status).toBe('failed');
+    expect(store.getTask(task.id)?.error).toContain('repository does not match');
+    expect(store.getTask(task.id)?.executionReceipts ?? []).toHaveLength(0);
   });
 
   it("initializes with honest initial state and fails closed without a production backend", () => {
