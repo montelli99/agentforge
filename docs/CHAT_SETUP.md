@@ -1,5 +1,7 @@
 # Conversation model setup
 
+For multiple named API/local connections and subscription-client boundaries, see [Model connections](MODEL_CONNECTIONS.md).
+
 AgentForge saves conversations locally without a model. Chat generation is an optional, explicitly configured route. The web conversation exposes scoped history, text attachment and task tools. It does not itself grant repository access or execution authority: task execution still requires an approved plan and configured backend.
 
 ## First-run Setup Guide
