@@ -17,6 +17,7 @@ store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',r
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
 let reads=0,submissions=0,stops=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',listSessions:async(limit,offset)=>{assert.equal(limit,25);assert.ok([0,25].includes(offset));return offset===0?{sessions:[{key:'selected-session',name:'Synthetic agent conversation'}],nextOffset:25}:{sessions:[{key:'selected-session',name:'Synthetic agent conversation'},{key:'second-session',name:'Second conversation'}]};},inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
 let browser;
+server.registerExternalRunConnection({id:'other-runtime',displayName:'Other test agent',inspectRun:async()=>{throw Error('Not selected');},submitSessionTurn:async()=>{throw Error('Must not send');}});
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:process.env.AGENTFORGE_BROWSER_EXECUTABLE});
  const page=await browser.newPage();
@@ -45,6 +46,21 @@ try{
  const delegation=page.getByRole('dialog',{name:'Delegate task',exact:true});
  await delegation.getByRole('option',{name:'OpenClaw test agent · Status not checked',exact:true}).waitFor({state:'attached'});
  assert.equal(await delegation.getByLabel('Connected runtime',{exact:true}).inputValue(),'synthetic-runtime');
+ let releaseDiscovery,discoverySeen;
+ const heldDiscovery=new Promise(resolve=>{releaseDiscovery=resolve;});
+ const startedDiscovery=new Promise(resolve=>{discoverySeen=resolve;});
+ await page.route('**/api/runtime-sessions',async route=>{const response=await route.fetch();discoverySeen();await heldDiscovery;await route.fulfill({response});});
+ await delegation.getByRole('button',{name:'Find agent sessions',exact:true}).click();
+ await startedDiscovery;
+ await delegation.getByLabel('Connected runtime',{exact:true}).selectOption('other-runtime');
+ const staleResponse=page.waitForResponse(response=>response.url().endsWith('/api/runtime-sessions'));
+ releaseDiscovery();await staleResponse;
+ await delegation.getByLabel('Exact message to send',{exact:true}).fill('Synthetic race check');
+ assert.equal(await delegation.getByLabel('Choose an agent session',{exact:true}).isVisible(),false);
+ assert.equal(await delegation.getByLabel('Session key',{exact:true}).inputValue(),'');
+ assert.equal(submissions,0);
+ await page.unroute('**/api/runtime-sessions');
+ await delegation.getByLabel('Connected runtime',{exact:true}).selectOption('synthetic-runtime');
  await delegation.getByRole('button',{name:'Find agent sessions',exact:true}).click();
  await delegation.getByRole('option',{name:'Synthetic agent conversation · selected-session',exact:true}).waitFor({state:'attached'});
  assert.equal(await delegation.getByLabel('Session key',{exact:true}).inputValue(),'');assert.equal(submissions,0);
