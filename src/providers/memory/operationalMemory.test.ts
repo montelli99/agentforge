@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it,vi } from "vitest";
+import {HindsightMemoryProvider} from './hindsightMemory.js';
 import { OperationalMemoryProvider } from "./operationalMemory.js";
 import {ObsidianMemoryProvider} from './obsidianMemory.js';
 import fs from 'node:fs/promises';
@@ -45,6 +46,17 @@ describe("OperationalMemoryProvider", () => {
     expect(await memory.getDoNotRepeatRules("workspace", "alpha")).toEqual([globalRule, projectRule]);
     expect(await memory.delete("workspace", projectRule.id)).toBe(true);
     expect(await memory.delete("workspace", projectRule.id)).toBe(false);
+    const remote=vi.fn<typeof fetch>(async(url,init)=>{
+      expect(String(url)).toBe('https://api.hindsight.vectorize.io/v1/default/banks/synthetic-bank/memories/recall');
+      expect(init?.redirect).toBe('error');expect(JSON.parse(String(init?.body))).toMatchObject({tags_match:'all_strict',tags:['chat-context']});
+      return Response.json({results:[{id:'shared',text:'Selected remote fact',tags:['chat-context'],mentioned_at:'2026-01-01T00:00:00Z'},{id:'unshared',text:'Excluded fact',tags:[],mentioned_at:'2026-01-01T00:00:00Z'}]});
+    });
+    const hindsight=new HindsightMemoryProvider('synthetic-bank','workspace','alpha','synthetic-key',remote);
+    expect(await hindsight.query({namespace:'workspace',projectId:'beta',queryText:'fact'})).toEqual([]);expect(remote).not.toHaveBeenCalled();
+    const recalled=await hindsight.query({namespace:'workspace',projectId:'alpha',queryText:'fact'});
+    expect(recalled.map(item=>item.record.id)).toEqual(['shared']);expect(remote).toHaveBeenCalledTimes(1);
+    remote.mockResolvedValueOnce(new Response('synthetic-secret-provider-error',{status:401}));
+    await expect(hindsight.query({namespace:'workspace',projectId:'alpha',queryText:'fact'})).rejects.toThrow(/^Hindsight recall unavailable; check the selected bank and connection$/);
     const vault=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-vault-')));
     try{
       await fs.writeFile(path.join(vault,'selected.md'),'Synthetic alpha correction');
