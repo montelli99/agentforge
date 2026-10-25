@@ -512,9 +512,16 @@ export class WorkspaceStore {
       || hashes[index]?.sha256 !== crypto.createHash('sha256').update(JSON.stringify(agent)).digest('hex')))
       throw Error('Imported agents changed or are missing; rollback refused');
     // Conservative reference check across operational records, excluding import audit receipts.
-    const references = JSON.stringify([...[this.tasks, this.approvals, this.channels, this.threads, this.messages,
+    const references = JSON.stringify([...[this.workspaces, this.spaces, this.users, this.packages,
+      this.tasks, this.approvals, this.channels, this.threads, this.messages,
       this.processes, this.processRevisionHistory, this.processRevisionProposals, this.processAgentBindings,
-      this.calls, this.installations, this.operationalMemories].map(collection => Array.from(collection.values() as Iterable<unknown>))]);
+      this.calls, this.installations, this.operationalMemories].map(collection => Array.from(collection.values() as Iterable<unknown>)),
+      Array.from(this.agents.values()).filter(agent => !ids.includes(agent.id)),
+      this.benchmarkResults, this.qualityBaselines, this.qualityAnalyses, this.qualityCorrections,
+      this.eventLedger.getAllEntries(), this.eventLedger.getAllBindings(),
+      this.auditEntries.filter(entry => !(entry.actorId === 'migration-generic'
+        && entry.targetType === 'system' && entry.targetId === runId
+        && ['generic_migration_started', 'generic_migration_completed'].includes(entry.action)))]);
     if (ids.some(id => references.includes(JSON.stringify(id)))) throw Error('Imported agents are referenced; rollback refused');
     const priorAudit = [...this.auditEntries];
     const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
