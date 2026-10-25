@@ -24,6 +24,8 @@ import type { GenerativeModelProvider } from "../src/core/providers/model.js";
 import type { Task } from "../src/core/types/task.js";
 import { MiMoModelProvider } from "../src/providers/models/mimoModel.js";
 import { createHash } from "node:crypto";
+import type {ModelResponseUsage} from '../src/core/providers/model.js';
+const requestUsage:Array<ModelResponseUsage|null>=[];
 
 const live = process.env.AGENTFORGE_LIVE_EXECUTION_PROOF === "1";
 if (live && !process.env.AGENTFORGE_PROOF_MODEL) throw Error("Choose an explicit model from the provider model list");
@@ -132,8 +134,10 @@ async function main(): Promise<void> {
       isAvailable: () => provider.isAvailable(), listModels: async () => [proof.model], generate: async () => { throw Error("Unexpected non-streaming request"); },
       async *stream(options) {
         if (++proof.requests > 4) throw Error("Live proof request limit reached; no retries");
+        const usageIndex=requestUsage.push(null)-1;
         if (!proof.disconnected) { response.emit("close"); response.destroyed = true; proof.disconnected = true; }
         try { for await (const chunk of provider.stream({ ...options, maxTokens: 768, thinking: "disabled", signal: AbortSignal.any([...(options.signal ? [options.signal] : []), AbortSignal.timeout(60000)]) })) {
+          if(chunk.usage)requestUsage[usageIndex]=chunk.usage;
           for (const call of chunk.toolCalls || []) if (call.function.name) proof.toolCalls.push(call.function.name);
           yield chunk;
         } } catch (error) { providerFailure ||= /MiMo stream error \d{3}/.exec(String(error))?.[0] || "Provider transport failure"; throw error; }
@@ -167,4 +171,4 @@ async function main(): Promise<void> {
 }
 
 try { await main(); } catch (error) { proof.status = "failed"; process.exitCode = 1; console.error(error instanceof Error ? error.name : "Proof failed"); }
-finally { proof.elapsedMs = Date.now() - started; const report = JSON.stringify({ ...proof, providerFailure }, null, 2); if (process.env.AGENTFORGE_PROOF_OUTPUT) await writeFile(process.env.AGENTFORGE_PROOF_OUTPUT, report); console.log(report); }
+finally { proof.elapsedMs = Date.now() - started; proof.tokenUsage=live&&requestUsage.length===proof.requests&&requestUsage.every(Boolean)?'provider-reported per request':'unreported or incomplete; do not infer zero';const report = JSON.stringify({ ...proof, requestUsage, providerFailure }, null, 2); if (process.env.AGENTFORGE_PROOF_OUTPUT) await writeFile(process.env.AGENTFORGE_PROOF_OUTPUT, report); console.log(report); }

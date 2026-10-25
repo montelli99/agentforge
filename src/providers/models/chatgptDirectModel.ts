@@ -202,6 +202,6 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
     if(!this.config.agentTools)throw Error('Direct adapter exposes completed planning only');
     // Release actions only after the provider confirms completion, never from partial arguments.
     const response=await this.generate({...options,stream:false});
-    yield {id:response.id,deltaText:response.content,toolCalls:response.toolCalls,finishReason:response.finishReason};
+    yield {id:response.id,deltaText:response.content,toolCalls:response.toolCalls,finishReason:response.finishReason,usage:response.usage};
   }
 }

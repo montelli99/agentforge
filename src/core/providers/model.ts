@@ -65,6 +65,9 @@ export function isReportedModelId(value: unknown): value is string {
 
 export interface StreamChunk {
   id: string;
+    /** Provider-reported cumulative usage for this request, not a token delta.
+     * Missing means unreported; consumers must not assume zero. */
+    usage?: ModelResponseUsage;
   deltaText?: string;
   toolCalls?: Array<{
     id: string;
