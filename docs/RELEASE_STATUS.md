@@ -24,7 +24,7 @@ The owner approval boundary and execution sequence are recorded in
 The requirement-by-requirement evidence index is maintained in
 [COMPLETION_AUDIT_2026-09-27.md](COMPLETION_AUDIT_2026-09-27.md).
 
-## Current local source evidence - 2026-10-03
+## Historical local source evidence - 2026-10-03 (superseded)
 
 The current source identity is base revision
 `47467ba62ab1b2da1b10650e18acd5df04048db8` plus preserved uncommitted
@@ -33,10 +33,10 @@ test files, 622 passed and 2 explicitly skipped live tests. Typecheck, build,
 the 197-file package/archive gate, and 14 synthetic repository path/type tests
 passed locally. See [the current build receipt](CURRENT_BUILD_RECEIPT_2026-10-03.md).
 
-This exact source has no hosted-CI run, release commit, live-provider proof,
+At that checkpoint, this source had no hosted-CI run, release commit, live-provider proof,
 registry provenance, or independent acceptance of the replacement release
 archive. A prior broad working-directory archive was rejected and is not a
-distribution candidate. Public release remains blocked pending independent
+distribution candidate. Public release at that checkpoint remained blocked pending independent
 review of an explicitly allowlisted replacement.
 
 ## Historical and component evidence
