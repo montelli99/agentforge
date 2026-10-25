@@ -80,6 +80,13 @@ jobs:
           path: /tmp/agentforge-memory-browser-*/memory-import.png
           if-no-files-found: error
 
+      - name: Retain synthetic delegation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: delegation-browser-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/agentforge-external-browser-*/delegation-review.png
+          if-no-files-found: error
+
       - name: Package exact verified commit
         run: |
           mkdir -p release-output
