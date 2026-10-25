@@ -52,6 +52,7 @@ import type { TaskPriority, TaskStatus } from "../core/types/task.js";
 import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
+import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
 import type { MemoryCategory } from "../core/providers/memory.js";
 import { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider, executionContractDigest, type ApprovedPlanRecord } from "../core/runtime/approvedPlanProvider.js";
@@ -2900,12 +2901,19 @@ export class AgentForgeWebServer {
         const body=await this.readBody(req);
         await this.conversations.changeMemory(async()=>{
           if(body.action==='disconnect')return {memoryNamespace:undefined,memoryProvider:undefined};
-          if(body.action!=='obsidian'||body.confirmSharing!==true||typeof body.root!=='string'||body.root.length>4096||typeof body.namespace!=='string'||!body.namespace.trim()||body.namespace.length>120||typeof body.projectId!=='string'||!this.store.getSpace(body.projectId)||this.store.getSpace(body.projectId)?.archived||!Array.isArray(body.files)||!body.files.length||body.files.length>100||body.files.some(file=>typeof file!=='string'||file.length>1024))throw Error('Invalid memory selection');
-          const memoryProvider=new ObsidianMemoryProvider(body.root,body.namespace.trim(),body.projectId,body.files as string[]);
-          await memoryProvider.query({namespace:body.namespace.trim(),projectId:body.projectId,limit:1});
-          return {memoryNamespace:body.namespace.trim(),memoryProvider};
+          const vault=new EncryptedConnectionStore(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json'));
+          if((body.action==='restore'||body.remember===true)&&(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024))throw Error('Unlock passphrase required');
+          const selection=body.action==='restore'?JSON.parse((await vault.unlock(body.passphrase as string)).AGENTFORGE_KEY_MEMORY_SELECTION||'null'):body;
+          if(!selection||selection.action!=='obsidian'||selection.confirmSharing!==true||typeof selection.root!=='string'||selection.root.length>4096||typeof selection.namespace!=='string'||!selection.namespace.trim()||selection.namespace.length>120||typeof selection.projectId!=='string'||!this.store.getSpace(selection.projectId)||this.store.getSpace(selection.projectId)?.archived||!Array.isArray(selection.files)||!selection.files.length||selection.files.length>100||selection.files.some((file:unknown)=>typeof file!=='string'||file.length>1024))throw Error('Invalid memory selection');
+          const memoryProvider=new ObsidianMemoryProvider(selection.root,selection.namespace.trim(),selection.projectId,selection.files);
+          await memoryProvider.query({namespace:selection.namespace.trim(),projectId:selection.projectId,limit:1});
+          if(body.remember===true){
+            if(fs.existsSync(pathModule.join(pathModule.dirname(this.settingsFilePath),'memory-connection.encrypted.json')))await vault.unlock(body.passphrase as string);
+            await vault.save({AGENTFORGE_KEY_MEMORY_SELECTION:JSON.stringify({action:'obsidian',confirmSharing:true,root:selection.root,namespace:selection.namespace.trim(),projectId:selection.projectId,files:selection.files})},body.passphrase as string);
+          }
+          return {memoryNamespace:selection.namespace.trim(),memoryProvider};
         });
-        res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:'session-only'}));
+        res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
       }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active responses, and check the selected project, vault and Markdown paths. Notes must be regular files under 64 KB; linked paths are not supported.'}));}
       return;
     }

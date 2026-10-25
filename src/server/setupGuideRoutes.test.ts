@@ -54,7 +54,7 @@ describe("Setup Guide API", () => {
     const workspace=store.createWorkspace({name:'Synthetic notes'});
     const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic notes',provider:'web'});
     fs.writeFileSync(path.join(dataDirectory,'note.md'),'Synthetic selected memory');
-    const memorySelection={action:'obsidian',namespace:'synthetic',root:dataDirectory,projectId:project.id,files:['note.md'],confirmSharing:true};
+    const memorySelection={action:'obsidian',namespace:'synthetic',root:dataDirectory,projectId:project.id,files:['note.md'],confirmSharing:true,remember:true,passphrase:'synthetic memory unlock'};
     expect((await request('/api/memory/connection','',memorySelection)).status).toBe(401);
     expect((await request('/api/memory/connection',viewer,memorySelection)).status).toBe(403);
     expect((await request('/api/memory/connection',owner,{...memorySelection,confirmSharing:false})).status).toBe(400);
@@ -70,6 +70,10 @@ describe("Setup Guide API", () => {
     expect(server.conversations.status().configured).toBe(false);
     expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
     expect(server.conversations.status().models).toEqual(['synthetic::synthetic-model']);
+    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:'wrong synthetic passphrase'})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,{action:'restore',passphrase:memorySelection.passphrase})).status).toBe(200);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).not.toContain(dataDirectory);
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
     expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);
