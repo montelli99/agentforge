@@ -329,3 +329,16 @@ the expected model and credential, and no replay on reload. The local Chromium
 run passed. This proves the setup-to-response transport with a fixture, not
 live model quality, planning, or isolated task execution. Hosted CI remains the
 next verification gate for this extension.
+
+### Authenticated browser approval to Docker execution
+
+A new real-browser regression displays the exact synthetic task command and
+boundaries, approves through the authenticated UI, verifies approval creates
+no execution receipt, then selects Run task. The real Docker worker produces
+the expected artifact, passing evidence and an observed receipt. The task
+correctly remains waiting for final review. This local check passed and is
+now required in hosted acceptance. It seeds a fixed synthetic task; it does
+not establish a model-generated plan or the complete clean-install journey.
+The worker uses the supported manual-dispatch configuration. Initial fixture
+failures came from ambiguous selectors and a worker not started; the test was
+corrected without changing the product's approval or execution guards.
