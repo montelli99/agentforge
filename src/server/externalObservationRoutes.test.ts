@@ -14,7 +14,8 @@ it('requires authenticated execution permission and observes only the saved runt
  store.updateTask(task.id,{externalTurnReceipts:[{requestId:'saved-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'saved-connection',sessionKey:'synthetic-session',status:'accepted',runId:'saved-run',createdAt:new Date().toISOString()}]});
  const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(directory,'settings.json')});
  const inspect=vi.fn(async()=>({runId:'saved-run',status:'timeout'}));
- server.registerExternalRunConnection({id:'saved-connection',inspectRun:inspect});
+ const submit=vi.fn(async()=>({runId:'submitted-run'}));
+ server.registerExternalRunConnection({id:'saved-connection',inspectRun:inspect,submitSessionTurn:submit});
  try{
   await server.start(); const base=server.getBaseUrl();
   const login=async(username:string)=>{const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'synthetic test password'})});expect(r.status).toBe(200);return (await r.json()).token as string;};
@@ -29,6 +30,13 @@ it('requires authenticated execution permission and observes only the saved runt
   expect(preparedBody.submitted).toBe(false);expect(preparedBody.approval.status).toBe('pending');
   expect(preparedBody.approval.description).toContain('Exact synthetic delegation');
   expect(store.getTask(reviewTask.id)?.externalTurnReceipts).toBeUndefined();
+  const dispatch=(message='Exact synthetic delegation')=>fetch(base+'/api/tasks/'+reviewTask.id+'/external-submit',{method:'POST',headers:{Authorization:'Bearer '+operator,'Content-Type':'application/json'},body:JSON.stringify({approvalId:preparedBody.approval.id,connectionId:'saved-connection',sessionKey:'selected-session',message})});
+  expect((await dispatch()).status).toBe(409);expect(submit).not.toHaveBeenCalled();
+  store.resolveApproval({approvalId:preparedBody.approval.id,status:'approved',approverUserId:'synthetic-reviewer',decisionOrigin:'web'});
+  expect((await dispatch('Changed after review')).status).toBe(409);expect(submit).not.toHaveBeenCalled();
+  const dispatched=await dispatch();expect(dispatched.status).toBe(200);
+  expect(await dispatched.json()).toMatchObject({submitted:true,verified:false,receipt:{runId:'submitted-run',status:'accepted'}});
+  expect((await dispatch()).status).toBe(409);expect(submit).toHaveBeenCalledTimes(1);
   const request=(token?:string,method='POST')=>fetch(base+'/api/tasks/'+task.id+'/external-observation',{method,headers:token?{Authorization:'Bearer '+token}:{}});
   expect((await request()).status).toBe(401);
   expect((await request(reader)).status).toBe(403);
