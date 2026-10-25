@@ -495,7 +495,7 @@ export class WorkspaceStore {
 
   // --- Agents ---
   /** Remove only an unchanged, unused generic staging batch identified by durable receipts. */
-  rollbackAgentImport(runId: string): { removedIds: string[] } {
+  private validateAgentImportRollback(runId: string) {
     if (!this.verifyAuditChain().valid) throw Error('Migration audit integrity failed');
     const receipts = this.listAuditEntries({ actorId: 'migration-generic', targetType: 'system', targetId: runId, limit: 100 });
     if (receipts.some(entry => entry.action === 'generic_migration_rolled_back')) throw Error('Migration already rolled back');
@@ -523,6 +523,17 @@ export class WorkspaceStore {
         && entry.targetType === 'system' && entry.targetId === runId
         && ['generic_migration_started', 'generic_migration_completed'].includes(entry.action)))]);
     if (ids.some(id => references.includes(JSON.stringify(id)))) throw Error('Imported agents are referenced; rollback refused');
+    return { ids: ids as string[], agents };
+  }
+
+  /** Read-only eligibility; the mutation repeats validation to reject intervening changes. */
+  inspectAgentImportRollback(runId: string): { eligible: boolean } {
+    try { this.validateAgentImportRollback(runId); return { eligible: true }; }
+    catch { return { eligible: false }; }
+  }
+
+  rollbackAgentImport(runId: string): { removedIds: string[] } {
+    const { ids, agents } = this.validateAgentImportRollback(runId);
     const priorAudit = [...this.auditEntries];
     const priorCheckpoint = this.auditPrunedCheckpoint ? { ...this.auditPrunedCheckpoint } : undefined;
     try {

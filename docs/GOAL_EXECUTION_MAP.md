@@ -347,3 +347,7 @@ A second isolated Linux reproduction exposed a remaining cancellation race: a le
 ### Broader staging rollback reference protection
 
 Expanded the conservative rollback check to workspace/space/user/package records, other agents, benchmark and quality records, event ledger entries and bindings, and audit activity other than the batch's own import receipts. This prevents removal of a supposedly unused profile whose use is recorded outside tasks or channels. A synthetic in-memory import followed by a benchmark referencing its agent refused rollback, retained the agent, and preserved audit validity. All 14 existing migration integration tests and source/script type checks passed. The 0b5b83d hosted run 40222182616 completed successfully across all seven jobs; current-head hosted proof remains pending.
+
+### Recovery UI reports actual rollback eligibility
+
+Extracted a read-only eligibility check shared with rollback validation. Import history now reports rollbackEligible separately from unchanged-record verification. The UI offers rollback only when that field is explicitly true, and explains unavailability for imports whose records remain unchanged but are referenced. Mutation repeats validation rather than trusting the earlier screen result. A synthetic check verified eligibility before use, no audit writes from inspection, and ineligibility after assigning a task. All 14 migration integration tests, source/script type checks and build/browser-script syntax passed. Rendered browser acceptance remains outstanding.

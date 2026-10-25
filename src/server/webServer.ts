@@ -4670,7 +4670,7 @@ export class AgentForgeWebServer {
         const records = entries.filter(entry => entry.targetId === runId);
         const rolledBack = records.some(entry => entry.action === 'generic_migration_rolled_back');
         const verified = !rolledBack && (await this.genericMigration.verify(runId, this.store)).overallPassed;
-        return { runId, recordedAt: records[0]?.timestamp, status: !auditIntact ? 'needs-review' : rolledBack ? 'rolled-back' : verified ? 'imported-unchanged' : 'needs-review' };
+        return { runId, rollbackEligible: verified && auditIntact && this.store.inspectAgentImportRollback(runId).eligible, recordedAt: records[0]?.timestamp, status: !auditIntact ? 'needs-review' : rolledBack ? 'rolled-back' : verified ? 'imported-unchanged' : 'needs-review' };
       }));
       res.writeHead(200); res.end(JSON.stringify({ runs, limit: 100, historyMayBePruned: true })); return;
     }
