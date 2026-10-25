@@ -103,6 +103,17 @@ compatibility, not populated-page pagination or completed agent work.
 Compiled adapter SHA-256:
 `6f1893cb901199e06da3af24ef10824f66b528a9ee487665b4a818e3e9085075`.
 
+A subsequent populated-page probe created two explicitly synthetic session
+metadata records in that same disposable gateway using `sessions.create` with
+only key and label (no message or title-generation input). The same compiled
+adapter returned one row at offset 0 with `nextOffset:1`, then the other row at
+offset 1 with no next offset. Labels and exact `agent:main:agentforge-picker-fixture-*`
+keys were preserved. No model turn was requested; the container was stopped.
+This establishes live populated pagination for the pinned gateway version.
+Browser acceptance separately verifies duplicate-row merging, preserved explicit
+selection and no send when loading another page. Real delegated task completion
+remains unverified.
+
 The optional OpenClaw WebSocket adapter targets protocol 4 as documented at
 https://docs.openclaw.ai/gateway/protocol/handshake and
 https://docs.openclaw.ai/gateway/protocol/auth (reviewed October 25, 2026).
