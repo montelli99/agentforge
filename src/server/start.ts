@@ -26,6 +26,7 @@ import { TeleprotoTelegramUserSessionClient } from "../providers/channels/telepr
 import { readTelegramSessionConfig } from "../providers/channels/telegramSessionConfig.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import { OpenClawGatewayTransport } from "../providers/channels/openClawGatewayTransport.js";
+import { configureHermesRunConnection } from "../providers/channels/hermesRunConnection.js";
 import { DiscordGatewayTransport } from "../providers/channels/discordGatewayTransport.js";
 import { readDiscordBotToken } from "../providers/channels/discordBotConfig.js";
 import { SlackSocketModeTransport } from "../providers/channels/slackSocketModeTransport.js";
@@ -167,6 +168,9 @@ if (gatewayUrl) {
   server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), displayName: 'OpenClaw (experimental)', isConnected:()=>registeredGateway.isConnected(), listSessions:(limit,offset)=>registeredGateway.listSessions(limit,offset), inspectRun: runId => registeredGateway.inspectRun(runId), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId), requestRunStop:(sessionKey,runId)=>registeredGateway.requestRunStop(sessionKey,runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
+
+const hermesConnection=configureHermesRunConnection(process.env);
+if(hermesConnection)server.registerExternalRunConnection(hermesConnection);
 
 // Discord Gateway is also opt-in and runtime-only. The token is never written
 // to workspace state or exposed through the public manifest.

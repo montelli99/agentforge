@@ -1,3 +1,4 @@
+import {createHmac} from 'node:crypto';
 /** Experimental Hermes Runs adapter. Register only after explicit configuration.
  * The caller owns durable approval/receipts; this adapter never retries effects.
  */
@@ -9,6 +10,10 @@ export class HermesRunTransport {
       (parsed.protocol!=='https:'&&!(parsed.protocol==='http:'&&['127.0.0.1','[::1]'].includes(parsed.hostname))))throw Error('Use HTTPS or literal loopback HTTP for Hermes');
     if(!token.trim()||/[\r\n]/.test(token))throw Error('Hermes API credential is required');
     this.origin=parsed.origin;
+  }
+  /** Configuration binding only; rotating credentials requires explicit rebinding. */
+  getConnectionId():string{
+    return 'hermes-'+createHmac('sha256',this.token).update(this.origin).digest('hex');
   }
   private identifier(value:string){
     // URL parsers normalize dot segments even when percent-encoded. Never let

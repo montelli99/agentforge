@@ -319,3 +319,20 @@ two synthetic empty API sessions were created (201 each); the compiled adapter
 returned one per page and then an empty final page. No run/model request occurred.
 The runtime was stopped afterward. CLI/TUI/messaging session adoption is not
 supported by this Runs connector; it requires a separate gateway integration.
+
+### Explicit Hermes registration
+
+The launcher registers Hermes only when both AGENTFORGE_HERMES_URL and
+AGENTFORGE_HERMES_API_KEY are explicitly supplied. It never reads API_SERVER_KEY
+or another installation's profile. Use HTTPS remotely or literal loopback HTTP.
+The named connection exposes API-session discovery and existing reviewed-submit,
+saved-run observation and Stop controls. Readiness remains not_checked (HTTP has
+no persistent authenticated socket); compatibility is checked before submission.
+The remote host executes tools under its own authority, not the local contract.
+
+Receipt connection identity binds the normalized origin and credential through
+HMAC. Credential rotation or endpoint changes require explicit future rebinding;
+they cannot silently adopt old receipts. This is configuration binding, not proof
+of remote identity. Eleven focused tests, full type checking and build passed.
+Guided credential setup, real model-backed task execution and verified results
+remain incomplete. The current published release does not contain these changes.
