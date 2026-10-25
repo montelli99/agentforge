@@ -3,7 +3,7 @@ import type { WorkspaceStore } from "../core/store/workspaceStore.js";
 import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider } from "../core/runtime/approvedPlanProvider.js";
 import type { MemoryProvider } from '../core/providers/memory.js';
-import {queryMemoryBounded} from '../core/providers/memory.js';
+import {queryMemoryBounded,memorySourceIdentity} from '../core/providers/memory.js';
 import { OperationalMemoryProvider } from '../providers/memory/operationalMemory.js';
 
 export const conversationTools = [
@@ -34,8 +34,8 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
     // An adapter's filtering is not a privacy boundary. Enforce scope here too.
     return results.map(result=>result.record)
       .filter(record=>record.namespace===memoryNamespace&&record.projectId===project.id&&!record.archived&&record.tags.includes('chat-context'))
-      .sort((a,b)=>(b.updatedAt||b.createdAt).localeCompare(a.updatedAt||a.createdAt)).slice(0,8)
-      .map(record=>{const offset=Math.max(0,record.content.toLocaleLowerCase().indexOf(query)-500);return {providerId:provider.id,id:record.id,title:record.title,version:record.version||1,updatedAt:record.updatedAt||record.createdAt,content:record.content.slice(offset,offset+4000),truncated:record.content.length>4000,referenceDataOnly:true};});
+      .slice(0,8)
+      .map(record=>{const offset=Math.max(0,record.content.toLocaleLowerCase().indexOf(query)-500);return {providerId:provider.id,source:memorySourceIdentity(provider,record),id:record.id,title:record.title,version:record.version||1,updatedAt:record.updatedAt||record.createdAt,content:record.content.slice(offset,offset+4000),truncated:record.content.length>4000,referenceDataOnly:true};});
   }
   if (name === "read_attachment") {
     const attachment = store.listThreadMessages(threadId).flatMap(message => message.attachments || []).find(file => file.id === args.attachmentId);

@@ -8,12 +8,13 @@ export interface ContextSource {
   kind: "goal" | "memory" | "workflow" | "decision" | "evidence";
   text: string;
   updatedAt?: string;
+  memorySource?: { providerId: string; recordId: string; alias?: string };
 }
 
 export interface ContextPacket {
   id: string;
   createdAt: string;
-  sources: Array<Pick<ContextSource, "id" | "kind" | "updatedAt">>;
+  sources: Array<Pick<ContextSource, "id" | "kind" | "updatedAt" | "memorySource">>;
   content: string;
   originalTokens: number;
   packedTokens: number;
@@ -55,7 +56,7 @@ export function buildContextPacket(sources: ContextSource[], maxTokens = 12000):
   return {
     id: `ctx-${crypto.randomUUID()}`,
     createdAt: new Date().toISOString(),
-    sources: sources.map(({ id, kind, updatedAt }) => ({ id, kind, updatedAt })),
+    sources: sources.map(({ id, kind, updatedAt, memorySource }) => ({ id, kind, updatedAt, ...(memorySource ? { memorySource } : {}) })),
     content,
     originalTokens,
     packedTokens,

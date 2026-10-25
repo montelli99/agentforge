@@ -58,6 +58,22 @@ export interface MemorySearchResult {
   score: number;
 }
 
+/** Only public source identifiers cross into model context, never arbitrary adapter metadata. */
+export function memorySourceIdentity(provider: MemoryProvider, record: OperationalMemoryRecord): {
+  providerId: string; recordId: string; alias?: string;
+} {
+  const source = record.metadata?.memorySource;
+  if (provider.id === 'composite' && source && typeof source === 'object' && !Array.isArray(source)) {
+    const value = source as Record<string, unknown>;
+    if (typeof value.alias === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value.alias) &&
+        typeof value.providerId === 'string' && value.providerId.length <= 128 &&
+        typeof value.recordId === 'string' && value.recordId.length <= 1024) {
+      return { providerId: value.providerId, recordId: value.recordId, alias: value.alias };
+    }
+  }
+  return { providerId: provider.id, recordId: record.id };
+}
+
 export interface MemoryProvider {
   readonly id: string;
   readonly name: string;

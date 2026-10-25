@@ -18,7 +18,7 @@ import type { CompletionEngine } from "../completion/completionEngine.js";
 import { ProcessExecutionEngine, type ProcessExecutionTrace } from "../process/processExecutionEngine.js";
 import { buildContextPacket, type ContextPacket, type ContextSource } from "../../contextPacket.js";
 import type { MemoryProvider } from "../providers/memory.js";
-import {queryMemoryBounded} from '../providers/memory.js';
+import {queryMemoryBounded,memorySourceIdentity} from '../providers/memory.js';
 import type { ProcessStep } from "../types/process.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { ExecutionContract } from "../types/contract.js";
@@ -358,7 +358,7 @@ export class TaskWorkerRuntime {
       return true;
     });
     for (const { record } of records) sources.push({
-      id: record.id,
+      id: record.id, memorySource: memorySourceIdentity(memory,record),
       kind: record.category === "approval" ? "decision" as const : record.category === "artifact" ? "evidence" as const : "memory" as const,
       updatedAt: record.updatedAt || record.createdAt,
       text: `${record.title}\n${record.content}`,
