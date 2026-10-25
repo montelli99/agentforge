@@ -4,7 +4,23 @@
 
 Use a computer where you can install Node.js 22 or newer, Git and pnpm. The repository pins pnpm 10.30.1. You need internet access to download dependencies. Docker is optional; you do not need a Telegram account or a paid model just to open the workspace.
 
-The currently documented delivery method is a source checkout. Check the GitHub Releases page for any published artifacts before assuming a desktop installer exists. The website is a static product site; installing AgentForge starts a separate application on your computer.
+The website is a static product site; installing AgentForge starts a separate application on your computer. Choose the published archive below or the source-build instructions that follow. There is no desktop installer.
+
+## Install the verified GitHub archive
+
+Download `agentforge-0.1.2.tgz` from the [0.1.2 early-access release](https://github.com/montelli99/agentforge/releases/tag/v0.1.2). Its SHA-256 is `8f0ba13226eb617d7668e8bd1f6054586dac6c0964ddb62b6c4289bc14f76f91`. This route needs Node.js 22+ and npm, but no npm account or pnpm.
+
+From the folder containing the downloaded archive:
+
+```sh
+mkdir agentforge-workspace
+cd agentforge-workspace
+npm init -y
+npm install --ignore-scripts ../agentforge-0.1.2.tgz
+node node_modules/agentforge/dist/server/start.js
+```
+
+Keep the terminal running and open http://127.0.0.1:3460. Complete owner setup and connect your selected model. Git and Docker are needed for isolated repository execution. Model accounts and OpenClaw/Hermes runtimes are not automatically connected. Review the early-access release limitations before relying on an integration.
 
 ## Windows PowerShell
 

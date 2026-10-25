@@ -7,6 +7,30 @@ Run the current AgentForge control plane locally. A new workspace begins empty a
 - Node.js 22 or newer
 - pnpm 10 or newer
 
+## Install the GitHub release without building
+
+Download `agentforge-0.1.2.tgz` from the
+[0.1.2 early-access release](https://github.com/montelli99/agentforge/releases/tag/v0.1.2).
+Its SHA-256 is `8f0ba13226eb617d7668e8bd1f6054586dac6c0964ddb62b6c4289bc14f76f91`.
+This route needs Node.js 22+ and npm, but no npm account or pnpm. Git and Docker
+are needed for isolated repository execution, not for simply opening the UI.
+
+From the folder containing the downloaded archive, create a new installation:
+
+```sh
+mkdir agentforge-workspace
+cd agentforge-workspace
+npm init -y
+npm install --ignore-scripts ../agentforge-0.1.2.tgz
+node node_modules/agentforge/dist/server/start.js
+```
+
+Keep the terminal running and open `http://127.0.0.1:3460`. Complete owner setup,
+then use the connection guide to select a model. Installing sends no model request
+and does not connect OpenClaw, Hermes, or private accounts automatically.
+This is an early-access build; see the release notes for unverified integrations.
+The source-build instructions below are an alternative for contributors.
+
 ## Install and build
 
 ```bash

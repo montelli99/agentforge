@@ -111,6 +111,11 @@ future managed service.
 
 ### 1. Installation
 
+For the verified GitHub archive and startup command, follow the
+[release installation steps](QUICKSTART.md#install-the-github-release-without-building).
+No npm account is required. Version 0.1.2 is an early-access GitHub release;
+do not assume it is published to the npm registry.
+
 From an AgentForge source checkout:
 ```bash
 # Install exactly from the checked-in pnpm lockfile
