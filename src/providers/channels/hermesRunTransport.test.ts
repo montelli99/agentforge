@@ -3,6 +3,20 @@ import {HermesRunTransport} from './hermesRunTransport.js';
 import http from 'node:http';
 import {once} from 'node:events';
 const client=()=>new HermesRunTransport('http://127.0.0.1:8642','synthetic-secret');
+it('requires authenticated run controls and discloses server-side execution without submitting work',async()=>{
+ const capabilities={object:'hermes.api_server.capabilities',platform:'hermes-agent',auth:{type:'bearer',required:true},runtime:{tool_execution:'server'},features:{run_submission:true,run_status:true,run_stop:true}};
+ const fetcher=vi.fn().mockResolvedValueOnce(Response.json(capabilities));vi.stubGlobal('fetch',fetcher);
+ expect(await client().verifyCapabilities()).toEqual({authenticated:true,toolExecution:'server'});
+ expect(fetcher.mock.calls[0][0]).toBe('http://127.0.0.1:8642/v1/capabilities');
+ expect(fetcher.mock.calls[0][1].method).toBe('GET');
+ for(const invalid of [{...capabilities,auth:{type:'bearer',required:false}},{...capabilities,features:{run_submission:true}},{...capabilities,runtime:{tool_execution:'client'}},{}]){
+  fetcher.mockResolvedValueOnce(Response.json(invalid));
+  await expect(client().verifyCapabilities()).rejects.toThrow('required authenticated run controls');
+ }
+ fetcher.mockResolvedValueOnce(new Response('{}',{status:401}));
+ await expect(client().verifyCapabilities()).rejects.toThrow('401');
+ expect(fetcher.mock.calls.every(call=>call[1].method==='GET')).toBe(true);
+});
 it('uses real HTTP without following a credential-bearing redirect or replaying a lost response',async()=>{
  vi.unstubAllGlobals();
  const requests:Array<{path:string;key?:string;body:string}>=[];

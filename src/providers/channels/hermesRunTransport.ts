@@ -26,6 +26,18 @@ export class HermesRunTransport {
     if(!result||typeof result!=='object'||Array.isArray(result))throw Error('Invalid Hermes response');
     return result as Record<string,unknown>;
   }
+  /** Read-only compatibility check. It does not prove model availability or task success. */
+  async verifyCapabilities():Promise<{authenticated:true;toolExecution:'server'}>{
+    const result=await this.request('/v1/capabilities');
+    const record=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
+    const auth=record(result.auth),runtime=record(result.runtime),features=record(result.features);
+    if(result.object!=='hermes.api_server.capabilities'||result.platform!=='hermes-agent'||
+      auth.type!=='bearer'||auth.required!==true||runtime.tool_execution!=='server'||
+      features.run_submission!==true||features.run_status!==true||features.run_stop!==true){
+      throw Error('Hermes endpoint does not expose the required authenticated run controls');
+    }
+    return {authenticated:true,toolExecution:'server'};
+  }
   async submitSessionTurn(sessionKey:string,message:string,requestId:string):Promise<{runId:string}>{
     this.identifier(sessionKey);
     if(!message.trim()||message.length>32000||! /^[a-zA-Z0-9_-]{8,128}$/.test(requestId))throw Error('Invalid Hermes submission');

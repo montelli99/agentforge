@@ -308,3 +308,5 @@ observation/Stop to a parent API path. Dot-only identifiers are now rejected,
 including returned submission receipts. Seven adapter regressions and full
 source/script type checking passed. Registration, guided setup, real execution,
 and verified result recovery still require implementation and acceptance.
+
+The compiled HermesRunTransport.verifyCapabilities method now passed against that same isolated runtime, returning authenticated=true and toolExecution=server. It requires bearer authentication and submission/status/Stop capabilities; incompatible shapes and HTTP 401 fail closed. Eight adapter tests, full type checking and build passed. The SDK export now includes the adapter in packaged build output; previously the unreferenced source was omitted. Compiled adapter SHA-256: 571517c3036a9332f52b8b4fe482e104a98a10fb8eaf8c4fbb5a7f78299ac318. No task was submitted; the container was stopped after the check.

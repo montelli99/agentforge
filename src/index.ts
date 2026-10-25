@@ -71,3 +71,5 @@ export * from "./providers/memory/compositeMemory.js";
 export { ConversationRuntime, type ConversationConfiguration } from "./server/conversationRuntime.js";
 export * from "./providers/memory/memoryConnections.js";
 export { AgentForgeWebServer } from "./server/webServer.js";
+// Experimental transport only; importing does not connect or submit work.
+export { HermesRunTransport } from "./providers/channels/hermesRunTransport.js";
