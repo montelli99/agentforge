@@ -2990,7 +2990,7 @@ export class AgentForgeWebServer {
       const body = await this.readBody(req);
       try {
         if (typeof body.namespace !== 'string' || !['review','commit'].includes(String(body.action))) throw new MemoryImportValidationError('Choose review or commit and a collection.');
-        const review = reviewMemoryImport(body.archive, body.namespace, this.store);
+        const review = reviewMemoryImport(body.archive, body.namespace, this.store, body.projectMap);
         if (body.action === 'review') {
           res.writeHead(200); res.end(JSON.stringify({digest: review.digest, items: review.items, imported: review.imported, unchanged: review.unchanged})); return;
         }

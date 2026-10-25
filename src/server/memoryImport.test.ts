@@ -41,3 +41,22 @@ it('owns its reviewed snapshot and treats object key ordering as equivalent on r
   expect(replay.unchanged).toBe(1);
   expect(store.importOperationalMemoryBatch(replay.records,'fixture-owner')).toEqual({imported:0,unchanged:1});
 });
+it('requires explicit active-project mapping and retains the original scope as provenance',()=>{
+ const store=new WorkspaceStore();
+ const workspace=store.createWorkspace({name:'Fixture'});
+ const destination=store.createSpace({workspaceId:workspace.id,name:'Destination',provider:'web'});
+ const other=store.createSpace({workspaceId:workspace.id,name:'Other',provider:'web'});
+ const input={...fixture(),records:[{...fixture().records[0],projectId:'old-installation-project',metadata:{source:'fixture'}}]};
+ expect(()=>reviewMemoryImport(input,'fixture',store)).toThrow(/missing or archived/);
+ const reviewed=reviewMemoryImport(input,'fixture',store,{'old-installation-project':destination.id});
+ expect(reviewed.items[0]).toMatchObject({sourceProjectId:'old-installation-project',projectId:destination.id});
+ expect(reviewed.records[0].metadata).toEqual({source:'fixture',agentforgeProjectRemap:{from:'old-installation-project',to:destination.id,previous:null}});
+ expect(input.records[0].projectId).toBe('old-installation-project');
+ expect(reviewMemoryImport(input,'fixture',store,{'old-installation-project':other.id}).digest).not.toBe(reviewed.digest);
+ store.importOperationalMemoryBatch(reviewed.records,'fixture-owner');
+ expect(reviewMemoryImport(input,'fixture',store,{'old-installation-project':destination.id}).unchanged).toBe(1);
+ expect(()=>reviewMemoryImport(input,'fixture',store,{'old-installation-project':other.id})).toThrow(/conflicts/);
+ expect(()=>reviewMemoryImport(input,'fixture',store,{'old-installation-project':''})).toThrow();
+ expect(()=>reviewMemoryImport(input,'fixture',store,{'unknown-source':destination.id})).toThrow();
+ expect(reviewMemoryImport(fixture(),'fixture',new WorkspaceStore()).records[0].projectId).toBeUndefined();
+});
