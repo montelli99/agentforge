@@ -10,7 +10,7 @@ describe('survivor discovery HTTP boundary', () => {
   it('requires task-read access, stays read-only, and sanitizes discovery failures', async () => {
     const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'af-survivor-route-')));
     const store = new WorkspaceStore();
-    for (const [username, permissions] of [['reader', ['tasks:read']], ['restricted', []]] as const) {
+    for (const [username, permissions] of [['reader', ['tasks:read']], ['restricted', []], ['reviewer', ['tasks:read', 'tasks:execute', 'approvals:decide']]] as const) {
       store.createUser({username, displayName: username, role: 'viewer', permissions: [...permissions], password: 'synthetic acceptance password'});
     }
     store.createTask({id: 'synthetic-task', title: 'Synthetic survivor lookup', status: 'paused', priority: 'medium'});
@@ -46,6 +46,19 @@ describe('survivor discovery HTTP boundary', () => {
       expect(message).toContain('No work was replayed or reconciled');
       expect(store.getTask('synthetic-task')).toEqual(before);
       expect(discovery).toHaveBeenCalledTimes(2);
+      const reviewer = await login('reviewer');
+      const restore = vi.spyOn(runtime, 'reconcileObservedExecution').mockImplementation(() => {throw Error('Recovery failed: api_key=synthetic-secret-value-12345678');});
+      const resolution = await fetch(base + '/api/tasks/synthetic-task/resolve-receipt', {
+        method: 'POST', headers: {Authorization: 'Bearer ' + reviewer, 'Content-Type': 'application/json'},
+        body: JSON.stringify({expectedUpdatedAt: before!.updatedAt, operationId: null, receiptDigest: null, decision: 'restore-observed'}),
+      });
+      expect(resolution.status).toBe(409);
+      expect(resolution.headers.get('cache-control')).toBe('no-store');
+      const detail = await resolution.text();
+      expect(detail).not.toContain('synthetic-secret-value');
+      expect(detail).toContain('[REDACTED_SECRET]');
+      expect(restore).toHaveBeenCalledTimes(1);
+      expect(store.getTask('synthetic-task')).toEqual(before);
     } finally {
       await server.stop();
       if (path.dirname(directory) !== await fs.realpath(os.tmpdir()) || !path.basename(directory).startsWith('af-survivor-route-')) throw Error('Invalid fixture cleanup');

@@ -63,4 +63,16 @@ describe('combined project memory', () => {
     await rejected;
     expect(provider.query).toHaveBeenCalledTimes(1);
   });
+
+  it('does not dispatch queued adapters when cancelled before their invocation', async () => {
+    const controller = new AbortController();
+    const first = source('first', [item(record('first'))]);
+    const second = source('second', [item(record('second'))]);
+    const combined = new CompositeMemoryProvider('workspace', 'selected', [{alias: 'one', provider: first}, {alias: 'two', provider: second}]);
+    const pending = combined.query({namespace: 'workspace', projectId: 'selected', signal: controller.signal});
+    controller.abort();
+    await expect(pending).rejects.toThrow('Combined memory lookup failed or stopped');
+    expect(first.query).not.toHaveBeenCalled();
+    expect(second.query).not.toHaveBeenCalled();
+  });
 });

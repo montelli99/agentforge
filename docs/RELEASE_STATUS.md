@@ -1,4 +1,37 @@
-## Exact-build checkpoint — 2026-10-25
+## Current release status — 2026-10-25
+
+The full release is not accepted. The automated-browser service blocker is
+resolved: direct regression tests are authorized and run in fresh synthetic
+browser profiles. Earlier blocked-browser entries below are historical.
+
+Revision `47eb3c94bdcb11eb2547fd97ef02cf4c29ad815f` passed all seven
+[hosted jobs](https://github.com/montelli99/agentforge/actions/runs/40234778190).
+The downloaded archive commit marker and SHA-256 were independently checked:
+`71665a4c3e1476c48ff13825c1ba82bbb34b4d8178c9cdbb8e0d8ffbd5d61d7b`.
+Clean installation of those exact bytes passed five browser journeys on Windows
+and hosted Linux: memory review/import/reload, encrypted API and local connection
+restart/unlock and mid-stream reload, approved real-Docker execution through final
+review and durable completion, and reviewed migration with durable rollback.
+Provider responses in these browser fixtures are synthetic.
+
+[PR #6](https://github.com/montelli99/agentforge/pull/6) merged this checkpoint
+into `vnext` as `278c2d7ea9279002699825d5eae5362944011b3f`. This is integration,
+not npm publication or full release acceptance.
+
+Subsequent local regressions also prove restored connections can draft plans
+without approving or executing them, and recorded verified Docker results can
+be restored after a service restart before final browser approval. Receipt
+recovery errors now redact recognized credentials. These changes are in
+[PR #7](https://github.com/montelli99/agentforge/pull/7); their hosted results must
+be checked against the final head before claiming exact-build acceptance.
+
+Still open: unified first-user onboarding through a useful real-model task;
+live subscription lifecycle and managed-worker acceptance; uncertain-effect
+reconciliation and broader memory-provider behavior; held-out comparisons;
+completed eight-hour soak; registry authentication/publication and launch work.
+Historical cache removal still requires hosting-provider confirmation.
+
+## Earlier exact-build checkpoint — 2026-10-25
 
 Revision `2584e236f710322e95f977ef3dbc1d57c4775f51` passed all seven
 [hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40231877867)

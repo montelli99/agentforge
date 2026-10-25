@@ -17,6 +17,9 @@ const store=new WorkspaceStore(workspaceFile);
 const workspace=store.createWorkspace({name:'Synthetic chat workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic chat project',provider:'web'});
 store.createChannel({workspaceId:workspace.id,spaceId:project.id,name:'General',provider:'agentforge',visibility:'private'});
+const taskId='connected-planner-proof',stamp=new Date().toISOString();
+store.createTask({id:taskId,projectId:project.id,title:'Draft using restored connection',description:'Generate a Node command that prints a synthetic greeting.',priority:'medium',status:'ready',createdAt:stamp,updatedAt:stamp,contract:{id:'connected-planner-contract',taskId,version:1,repository:{baseBranch:'main',baseSha:'a'.repeat(40)},workspace:{requireIsolatedWorktree:true},scope:{allowedPaths:['artifacts/**'],protectedPaths:['.env'],maxFilesChanged:1},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[],completion:{requireEvidencePack:true,requireHumanApproval:true},createdAt:stamp}});
+const plannedCommands=[{checkName:'custom_script',command:'node -e "console.log(123)"',timeoutMs:10000}];
 let server=new AgentForgeWebServer(store,0,undefined,undefined,options),browser;
 const local=process.env.AGENTFORGE_BROWSER_LOCAL==='1';const route=local?'local':'compatible';
 const key='synthetic-credential-not-a-real-provider-key';
@@ -25,6 +28,7 @@ let requests=0;const received=[];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  received.push({url:req.url,authorization:req.headers.authorization,body:JSON.parse(raw)});requests++;
+ if(!JSON.parse(raw).stream){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));return;}
  res.writeHead(200,{'Content-Type':'text/event-stream'});
  res.write('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response '},finish_reason:null}]})+'\n\n');
  await new Promise(resolve=>setTimeout(resolve,1500));
@@ -85,6 +89,17 @@ try{
  assert.equal(requests,1);
  const snapshot=JSON.parse(fs.readFileSync(workspaceFile,'utf8'));
  assert.ok(JSON.stringify(snapshot).includes('Synthetic response after vault recovery'));
+ await page.getByLabel('Tasks and runs',{exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('Draft using restored connection',{exact:true})}).click();
+ await page.getByRole('button',{name:'Execution plan',exact:true}).click();
+ await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption(route+'::synthetic-model');
+ await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
+ await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
+ const savedTask=new WorkspaceStore(workspaceFile).getTask(taskId);
+ assert.deepEqual(savedTask.executionPlanDraft.commands,plannedCommands);
+ assert.equal(savedTask.approvedExecutionPlan,undefined);assert.equal(savedTask.executionReceipts?.length||0,0);
+ assert.equal(requests,2);assert.equal(savedTask.planningAudits.at(-1).status,'completed');
+ console.log(JSON.stringify({restoredConnectionDraftsPlan:true,draftingDidNotApproveOrExecute:true}));
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({passed:true,connectionKind:route,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,midStreamReload:true,reloadWithoutReplay:true,liveProviderVerified:false}));
 }finally{await browser?.close();await server.stop();await new Promise(resolve=>provider.close(resolve));}
