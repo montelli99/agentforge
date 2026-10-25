@@ -397,3 +397,7 @@ Connected the subscription guide to an authenticated, owner/admin-only status en
 ### Cancel account inspection on disconnect and shutdown
 
 The web account check now owns an AbortController and in-flight promise. Closing its response cancels the child process; service shutdown cancels and awaits the current check before closing. Concurrent checks remain refused. A temporary service using the real official client and an isolated signed-out profile observed an active check, then shutdown aborted it, cleared the pending state and completed in 149 ms. The response contained only the generic failure message. This measured cancellation of an account inspection, not authenticated inference or worker recovery. Ten existing setup-route tests and source/script type checks passed. Hosted runs for 459d823, 3cd6ecd, 9c27f2e and 6e9deca completed successfully; current-head hosted proof remains separate.
+
+### Distinguish official-client authentication routes
+
+Claude account inspection now returns a sanitized connectionKind alongside loggedIn. The documented claude.ai method is classified subscription; API-key/helper and third-party methods are labeled separately. OAuth-token and unknown methods remain unverified. Guided setup explains the distinction without enabling a model or changing billing. The real isolated client returned signed-out; source/script type checks and build/browser syntax passed. Signed-in branches have not been verified against live accounts. This closes a misleading status presentation gap, not the outstanding managed execution requirement.

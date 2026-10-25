@@ -16,10 +16,16 @@ export interface ClaudeCliCapabilities {
   inferencePerformed: false;
 }
 
+export interface ClaudeCliAuthentication {
+  loggedIn: boolean;
+  connectionKind: 'signed-out' | 'subscription' | 'api' | 'third-party' | 'unverified';
+  inferenceVerified: false;
+}
+
 /** Ask the official client about an explicitly selected profile; never read its token files.
  * Authentication status alone does not prove model entitlement or safe execution.
  */
-export async function inspectClaudeCliAuthentication(executable: string, configurationDirectory: string, signal?: AbortSignal): Promise<{loggedIn: boolean; inferenceVerified: false}> {
+export async function inspectClaudeCliAuthentication(executable: string, configurationDirectory: string, signal?: AbortSignal): Promise<ClaudeCliAuthentication> {
   if (!path.isAbsolute(configurationDirectory)) throw Error('Select an absolute Claude configuration directory');
   const configuration = await fs.lstat(configurationDirectory);
   if (!configuration.isDirectory() || configuration.isSymbolicLink()) throw Error('Select a regular Claude configuration directory');
@@ -32,11 +38,16 @@ export async function inspectClaudeCliAuthentication(executable: string, configu
   try {
     const result = await runBoundedChild(executable, ['auth', 'status', '--json'],
       {cwd: directory, env, signal, timeoutMs: 10000, maxOutputBytes: 32768});
-    const status = JSON.parse(result.stdout) as {loggedIn?: unknown};
+    const status = JSON.parse(result.stdout) as {loggedIn?: unknown; authMethod?: unknown};
     if (typeof status?.loggedIn !== 'boolean' || (status.loggedIn ? result.code !== 0 : result.code !== 1 && result.code !== 0))
       throw Error('Invalid authentication status');
     // Drop account identifiers, paths and any additional provider fields.
-    return {loggedIn: status.loggedIn, inferenceVerified: false};
+    const connectionKind: ClaudeCliAuthentication['connectionKind'] = !status.loggedIn ? 'signed-out'
+      : status.authMethod === 'claude.ai' ? 'subscription'
+      : status.authMethod === 'api_key' || status.authMethod === 'api_key_helper' ? 'api'
+      : status.authMethod === 'third_party' ? 'third-party' : 'unverified';
+    // OAuth-token and unknown methods are not sufficient evidence of a subscription route.
+    return {loggedIn: status.loggedIn, connectionKind, inferenceVerified: false};
   } catch {
     throw Error('Claude account status unavailable; reconnect through the official client');
   } finally { await fs.rm(directory, {recursive: true, force: true}); }
