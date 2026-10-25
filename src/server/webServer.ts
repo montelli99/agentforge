@@ -396,6 +396,7 @@ export class AgentForgeWebServer {
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
+  private stopping = false;
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -773,6 +774,11 @@ export class AgentForgeWebServer {
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    if (this.stopping) {
+      res.writeHead(503, { "Content-Type": "application/json", "Connection": "close", "Cache-Control": "no-store" });
+      res.end(JSON.stringify({ error: "AgentForge is shutting down. Reconnect after it restarts." }));
+      return;
+    }
     const url = new URL(req.url || "/", `http://localhost:${this.port}`);
     const allowedOrigin = this.getAllowedLocalOrigin(req.headers.origin);
     if (!this.isAllowedLocalHost(req.headers.host) || (req.headers.origin && !allowedOrigin)) {
@@ -3038,6 +3044,7 @@ export class AgentForgeWebServer {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
     }
     if(path === '/api/connections/gemini/inspect') {
+      if (this.stopping) { res.writeHead(503); res.end(); return; }
       res.setHeader('Cache-Control', 'no-store');
       if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect client setup.'})); return; }
       if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
@@ -3056,6 +3063,7 @@ export class AgentForgeWebServer {
       return;
     }
     if(path === '/api/connections/claude/status') {
+      if (this.stopping) { res.writeHead(503); res.end(); return; }
       res.setHeader('Cache-Control', 'no-store');
       if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect subscription accounts.'})); return; }
       if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
@@ -4894,6 +4902,7 @@ export class AgentForgeWebServer {
   }
 
   async stop(): Promise<void> {
+    this.stopping = true;
     this.conversations.shutdown();
     const geminiCheck = this.geminiClientCheck;
     if (geminiCheck) { geminiCheck.controller.abort(); await geminiCheck.result.catch(() => undefined); }
