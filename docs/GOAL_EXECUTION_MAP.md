@@ -267,3 +267,7 @@ their dedicated check. No paid request was repeated for this change.
 Added tsconfig.scripts.json covering all nine TypeScript scripts. typecheck:all now includes this check, so existing pnpm check and verify:public CI paths enforce it. The first run exposed a missing repository field in the disposable crash-proof contract and unsafe optional token-usage access in the latency diagnostic; both are corrected. The synthetic file backend has no Git revision (empty baseSha), and does not claim repository verification.
 
 Validation: pnpm typecheck:all passed. The actual child-process termination/restart proof passed: durable started receipt existed before termination, automatic retry was refused, and exactly one synthetic effect remained. This does not prove remote-provider reconciliation or Docker orphan cleanup. No live model requests or private integrations were used.
+
+### Hosted CI export omission corrected
+
+Hosted run 40220294456 failed the public link boundary because README linked to docs/MEMORY_PROVIDER_SDK.md without that document being in the explicit source-export allowlist. Added that public guide and tsconfig.scripts.json (required by the newly checked source-release commands) to the allowlist. No private directories were added. Validation: public-link acceptance passed all 2,619 local links across 92 allowlisted documents; repository-privacy acceptance passed its 27 cases and source scan. Hosted acceptance of the resulting commit remains pending.
