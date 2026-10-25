@@ -4381,6 +4381,13 @@ export class AgentForgeWebServer {
           res.end(JSON.stringify({ error: "Permission denied", required: "tasks:execute" }));
           return;
         }
+        if (task.externalTurnReceipts?.length) {
+          if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+          const cancelledTask = this.store.updateTask(task.id, {status:'cancelled'});
+          res.writeHead(200);
+          res.end(JSON.stringify({message:'Task cancelled locally. The external run has not been stopped and may still be running; use its runtime to stop it.',task:cancelledTask,remoteStopped:false}));
+          return;
+        }
         if (this.taskWorkerRuntime) {
           const cancelledTask = await this.taskWorkerRuntime.cancelTask(task.id);
           res.writeHead(200);

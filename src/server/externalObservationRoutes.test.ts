@@ -42,6 +42,9 @@ it('requires authenticated execution permission and observes only the saved runt
   const dispatched=await dispatch();expect(dispatched.status).toBe(200);
   expect(await dispatched.json()).toMatchObject({submitted:true,verified:false,receipt:{runId:'submitted-run',status:'accepted'}});
   expect((await dispatch()).status).toBe(409);expect(submit).toHaveBeenCalledTimes(1);
+  const cancel=await fetch(base+'/api/tasks/'+reviewTask.id+'/cancel',{method:'POST',headers:{Authorization:'Bearer '+operator}});
+  expect(cancel.status).toBe(200);expect(await cancel.json()).toMatchObject({remoteStopped:false,task:{status:'cancelled'}});
+  expect(store.getTask(reviewTask.id)?.externalTurnReceipts?.[0].runId).toBe('submitted-run');
   const request=(token?:string,method='POST')=>fetch(base+'/api/tasks/'+task.id+'/external-observation',{method,headers:token?{Authorization:'Bearer '+token}:{}});
   expect((await request()).status).toBe(401);
   expect((await request(reader)).status).toBe(403);
