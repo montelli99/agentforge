@@ -86,6 +86,8 @@ export interface DirectCredentials {
   clientId: string; subject: string; issuer: typeof issuer; resource: typeof resource;
   accessToken: string; refreshToken?: string; idToken: string; tokenType: 'Bearer';
   scopes: readonly string[]; expiresAt: number;
+  /** Durable marker: an interrupted rotating-token request must not be replayed. */
+  renewalPending?: boolean;
 }
 /** Validates an injected token response without exchange, storage or auth calls. */
 export async function validateDirectTokenResponse(callback: ValidatedCallback, response: unknown, verifier: IdentityTokenVerifier,

@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
 import type { DirectCredentials } from './chatgptDirectOAuth.js';
 
+export interface LockedCredentialRecord {
+  read(): Promise<DirectCredentials | undefined>;
+  replace(credentials: DirectCredentials): Promise<void>;
+  remove(): Promise<void>;
+}
+
 export interface PlatformProtectedCredentialBackend {
   /** Implement only with a vetted platform credential API under the current user.
    * This declaration is not proof of protection; deployment must vet the backend. */
@@ -9,6 +15,7 @@ export interface PlatformProtectedCredentialBackend {
   /** Atomically replace the complete rotating token record. Never log plaintext. */
   replace(key: string, credentials: DirectCredentials): Promise<void>;
   remove(key: string): Promise<void>;
+  transaction?<T>(key: string, operation: (record: LockedCredentialRecord) => Promise<T>): Promise<T>;
 }
 /** An explicit platform backend is required; Windows DPAPI is implemented separately.
  * No plaintext file, environment discovery, custom crypto or foreign-token fallback. */
@@ -34,4 +41,13 @@ export class DirectTokenStore {
     await backend.replace(key, { ...credentials, scopes: [...credentials.scopes] });
   }
   async remove(clientId: string, subject: string): Promise<void> { const { backend, key } = this.target(clientId, subject); await backend.remove(key); }
+  async transaction<T>(clientId:string,subject:string,operation:(record:LockedCredentialRecord)=>Promise<T>):Promise<T> {
+    const {backend,key}=this.target(clientId,subject);
+    if(!backend.transaction)throw Error('Exclusive credential transactions unavailable');
+    return backend.transaction(key,record=>operation({
+      read:async()=>{const value=await record.read();if(value&&(value.clientId!==clientId||value.subject!==subject||value.issuer!=='https://auth.openai.com'||value.resource!=='https://api.openai.com/v1'))throw Error('Credential-store identity mismatch');return value;},
+      replace:async value=>{if(value.clientId!==clientId||value.subject!==subject)throw Error('Credential-store identity mismatch');await record.replace(value);},
+      remove:()=>record.remove(),
+    }));
+  }
 }

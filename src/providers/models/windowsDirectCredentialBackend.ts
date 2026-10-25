@@ -1,8 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
+import {createServer} from 'node:net';
 import {BoundedChildFailure,runBoundedChild} from './boundedCliProcess.js';
-import type {PlatformProtectedCredentialBackend} from './chatgptDirectTokenStore.js';
+import type {PlatformProtectedCredentialBackend,LockedCredentialRecord} from './chatgptDirectTokenStore.js';
 import type {DirectCredentials} from './chatgptDirectOAuth.js';
 
 /** Windows DPAPI CurrentUser storage. Not an isolation boundary against this user's processes. */
@@ -45,13 +46,27 @@ export class WindowsDirectCredentialBackend implements PlatformProtectedCredenti
       throw Error(`Windows credential protection failed (${classification}; stage=${stage})`);
     }
   }
-  async read(key:string):Promise<DirectCredentials|undefined>{
+  async transaction<T>(key:string,operation:(record:LockedCredentialRecord)=>Promise<T>):Promise<T>{
+    const file=await this.target(key);
+    const name='\\\\.\\pipe\\agentforge-credential-'+createHash('sha256').update(path.resolve(file).toLowerCase()).digest('hex');
+    // Windows owns the pipe handle; process death releases it without stale-file deletion.
+    const lock=createServer(socket=>socket.destroy());
+    await new Promise<void>((resolve,reject)=>{lock.once('error',()=>reject(Error('Credential session is busy or unavailable')));lock.listen(name,resolve);});
+    let active=true;
+    const check=()=>{if(!active)throw Error('Credential transaction is closed');};
+    try{return await operation({read:()=>{check();return this.readUnlocked(key);},replace:value=>{check();return this.replaceUnlocked(key,value);},remove:()=>{check();return this.removeUnlocked(key);}});}
+    finally{active=false;await new Promise<void>(resolve=>lock.close(()=>resolve()));}
+  }
+  async read(key:string):Promise<DirectCredentials|undefined>{return this.transaction(key,record=>record.read());}
+  async replace(key:string,credentials:DirectCredentials):Promise<void>{return this.transaction(key,record=>record.replace(credentials));}
+  async remove(key:string):Promise<void>{return this.transaction(key,record=>record.remove());}
+  private async readUnlocked(key:string):Promise<DirectCredentials|undefined>{
     const file=await this.target(key);let encrypted:Buffer;
     try{encrypted=await fs.readFile(file);}catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return undefined;throw Error('Credential read failed');}
     const plain=await this.transform('Unprotect',encrypted,key);
     try{return JSON.parse(plain.toString('utf8')) as DirectCredentials;}catch{throw Error('Invalid protected credential record');}finally{plain.fill(0);}
   }
-  async replace(key:string,credentials:DirectCredentials):Promise<void>{
+  private async replaceUnlocked(key:string,credentials:DirectCredentials):Promise<void>{
     const file=await this.target(key),plain=Buffer.from(JSON.stringify(credentials));
     if(plain.length>65536){plain.fill(0);throw Error('Credential record too large');}
     let encrypted:Buffer;try{encrypted=await this.transform('Protect',plain,key);}finally{plain.fill(0);}
@@ -60,5 +75,5 @@ export class WindowsDirectCredentialBackend implements PlatformProtectedCredenti
     try{const handle=await fs.open(temporary,'wx',0o600);try{await handle.writeFile(encrypted);await handle.sync();}finally{await handle.close();}await this.target(key);await fs.rename(temporary,file);}
     finally{await fs.unlink(temporary).catch(error=>{if(error.code!=='ENOENT')throw error;});}
   }
-  async remove(key:string):Promise<void>{const file=await this.target(key);await fs.unlink(file).catch(error=>{if(error.code!=='ENOENT')throw error;});}
+  private async removeUnlocked(key:string):Promise<void>{const file=await this.target(key);await fs.unlink(file).catch(error=>{if(error.code!=='ENOENT')throw error;});}
 }

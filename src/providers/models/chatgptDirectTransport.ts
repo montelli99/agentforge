@@ -8,7 +8,7 @@ export class DirectResponsesTransport implements AuthorizedResponsesTransport {
     const session=this.credentials(input.grant),token=session?.credentials,now=Date.now();
     if(input.url!=='https://api.openai.com/v1/responses'||!token||session?.grantId!==input.grant.grantId||token.subject!==input.grant.accountId
       ||token.resource!==input.grant.resource||token.issuer!=='https://auth.openai.com'||token.tokenType!=='Bearer'
-      ||!token.accessToken||token.expiresAt<=now||input.grant.expiresAt<=now
+      ||token.renewalPending||!token.accessToken||token.expiresAt<=now||input.grant.expiresAt<=now
       ||!['resource.invoke','chatgpt.tokens.use.direct'].every(s=>token.scopes.includes(s)&&input.grant.scopes.includes(s)))throw Error('Authorized subscription session unavailable');
     input.signal.throwIfAborted();
     let response:Response;

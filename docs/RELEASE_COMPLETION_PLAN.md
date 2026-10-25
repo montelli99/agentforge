@@ -179,3 +179,17 @@ Verifier failures are redacted. Focused OAuth tests passed; full typechecking
 passed before the additional prior-record shape guard. This validation is not yet
 wired to automatic refresh; cross-process coordination, durable interruption
 handling, credential replacement and activation remain unfinished.
+
+Renewal is now coordinated with Windows protected storage using an OS-held named
+pipe lock shared by reads, writes, removal and renewal transactions. A pending
+marker is encrypted and persisted before exchange; uncertain exchanges remain
+pending across reopen and require a fresh sign-in rather than replay. A validated
+replacement clears the marker atomically; fresh sessions avoid extra refreshes.
+The coordinator bounds renewal to 30 seconds and redacts failure details.
+Real Windows tests verified replacement/reopen, durable uncertainty/no replay,
+cross-process exclusion, and lock release after terminating the owner process.
+Twenty-nine focused tests and full typechecking passed locally. This is storage
+and renewal coordination, not completed subscription UI activation. The refresh
+identity verifier, platform coverage beyond Windows, revocation, and live account
+acceptance remain open. Existing in-memory grant snapshots must be invalidated
+by the activation manager when renewal begins; that manager is not yet wired.
