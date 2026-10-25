@@ -122,7 +122,7 @@ async function main(): Promise<void> {
     const model: GenerativeModelProvider = { id: "synthetic", name: "Scripted acceptance model", defaultTier: 1,
       isAvailable: async()=>true, listModels: async()=>["synthetic"], generate: async()=>{throw Error("unexpected");},
       async *stream() {
-        if (!round++) { response.emit("close"); response.destroyed = true;
+        if (!round++) { response.emit("close"); response.destroyed = true; proof.disconnected = true; proof.toolCalls.push("execute_task");
           yield { id: "1", toolCalls: [{ id: "run", type: "function" as const, function: { name: "execute_task", arguments: JSON.stringify({ taskId }) } }], finishReason: "tool_calls" };
         } else { yield { id: "2", deltaText: "Execution evidence is saved for review.", finishReason: "stop" }; }
       }
