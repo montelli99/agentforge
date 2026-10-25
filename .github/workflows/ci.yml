@@ -54,6 +54,21 @@ jobs:
       - name: Verify Docker survivor discovery after worker death
         run: pnpm test:execution:docker-crash
 
+      - name: Prepare isolated browser acceptance
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify memory setup and reload in Chromium
+        run: |
+          export AGENTFORGE_BROWSER_EXECUTABLE="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath());")"
+          pnpm test:memory:browser
+
+      - name: Retain synthetic browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-browser-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/agentforge-memory-browser-*/memory-import.png
+          if-no-files-found: error
+
       - name: Package exact verified commit
         run: |
           mkdir -p release-output
