@@ -8,6 +8,7 @@ import { OpenClawMigrationProvider } from "./providers/migration/openclawMigrati
 import { HermesMigrationProvider } from "./providers/migration/hermesMigrationProvider.js";
 import { GrokBotMigrationProvider } from "./providers/migration/grokBotMigrationProvider.js";
 import { GenericMigrationProvider } from "./providers/migration/genericMigrationProvider.js";
+import { GENERIC_MIGRATION_FIXTURE } from "./providers/migration/fixtures/generic_manifest.fixture.js";
 import { PROVIDER_READINESS_REGISTRY } from "./core/types/providerReadiness.js";
 import { EmpiricalRouter } from "./core/router/empiricalRouter.js";
 import { TelegramMirrorProvider } from "./providers/channels/telegramMirror.js";
@@ -593,6 +594,16 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       expect(res.importedCount).toBe(1);
       const verify = await gen.verify(res.runId, store);
       expect(verify.overallPassed).toBe(false);
+      const supplied = structuredClone(GENERIC_MIGRATION_FIXTURE);
+      supplied.agents[0]!.id = 'custom-manifest-agent';
+      supplied.agents[0]!.name = 'Supplied agent';
+      const suppliedInspection = await gen.inspect(supplied);
+      supplied.agents[0]!.name = 'Changed after inspection';
+      const suppliedPlan = await gen.plan(suppliedInspection);
+      expect(suppliedPlan.items[0]!.sourceId).toBe('custom-manifest-agent');
+      expect(suppliedPlan.items[0]!.targetName).toBe('Supplied agent');
+      await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
+      await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
     });
   });
 

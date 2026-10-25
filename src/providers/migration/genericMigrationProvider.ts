@@ -21,6 +21,7 @@ import type { WorkspaceStore } from "../../core/store/workspaceStore.js";
 import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.js";
 
 export class GenericMigrationProvider implements MigrationProvider {
+  private inspections = new WeakMap<MigrationInspection, typeof GENERIC_MIGRATION_FIXTURE>();
   private runs=new Map<string,{ids:string[];expected:number}>();
   readonly id = "migration-generic";
   readonly source: MigrationSource = "GENERIC";
@@ -30,15 +31,24 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async inspect(manifestData?: unknown): Promise<MigrationInspection> {
-    const data = (manifestData as any) || GENERIC_MIGRATION_FIXTURE;
-    return {
+    const data = structuredClone(manifestData ?? GENERIC_MIGRATION_FIXTURE) as typeof GENERIC_MIGRATION_FIXTURE;
+    const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(entry => typeof entry === 'string');
+    if (!data || typeof data.version !== 'string' || typeof data.sourceSystem !== 'string'
+      || !Array.isArray(data.agents) || !Array.isArray(data.channels) || !Array.isArray(data.tasks)
+      || data.agents.some(agent => !agent || ![agent.id, agent.name, agent.role, agent.description].every(value => typeof value === 'string')
+        || !agent.id || !strings(agent.tools) || !strings(agent.permissions))
+      || new Set(data.agents.map(agent => agent.id)).size !== data.agents.length
+      || data.channels.some(channel => !channel || typeof channel.name !== 'string' || typeof channel.visibility !== 'string')) {
+      throw new Error('Invalid generic migration manifest');
+    }
+    const inspection: MigrationInspection = {
       source: "GENERIC",
       sourceVersion: data.version,
       inspectedAt: new Date().toISOString(),
       discovered: {
         agentsCount: data.agents?.length || 0,
         channelsCount: data.channels?.length || 0,
-        toolsCount: data.agents?.[0]?.tools?.length || 0,
+        toolsCount: new Set(data.agents.flatMap(agent => agent.tools)).size,
         modelsCount: 1,
         tasksCount: data.tasks?.length || 0,
         schedulesCount: 0,
@@ -47,10 +57,13 @@ export class GenericMigrationProvider implements MigrationProvider {
       secretRequirements: [],
       rawMetadata: { sourceSystem: data.sourceSystem },
     };
+    this.inspections.set(inspection, data);
+    return inspection;
   }
 
   async plan(inspection: MigrationInspection): Promise<MigrationPlan> {
-    const data = GENERIC_MIGRATION_FIXTURE;
+    const data = this.inspections.get(inspection);
+    if (!data) throw new Error('Inspect the manifest with this provider before planning');
     const items: MigrationItem[] = [];
 
     // Map agents

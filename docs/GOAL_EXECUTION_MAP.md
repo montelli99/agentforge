@@ -135,3 +135,15 @@ operator-approved release actions.
 
 No phase is marked complete from intent alone. Each phase must retain the
 evidence named above, and unresolved external evidence stays visible.
+
+### Generic manifest inspection correction — October 25, 2026
+
+The generic provider now snapshots and validates the supplied manifest at
+inspection and plans from that snapshot, rather than substituting the bundled
+example. Unknown inspections are rejected; later edits to the caller's input do
+not change the inspected plan. The existing migration regression covers custom
+agent identity, snapshot isolation, unknown inspection and malformed input.
+Validation: 14 migration-suite tests and the full TypeScript check passed.
+This is not complete migration acceptance: the HTTP flow still uses fixture
+inspection, unsupported entities are not imported, and run verification remains
+process-local. No private workspace or external memory service was imported.
