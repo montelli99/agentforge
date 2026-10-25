@@ -32,7 +32,9 @@ describe.skipIf(process.platform!=='win32')('protected session renewal',()=>{
     expect(result.authenticationNonce).toBe(original.authenticationNonce);expect(result.renewalPending).toBeUndefined();
     expect(result.accessToken).toBe('renewed-synthetic-access');expect(request).toHaveBeenCalledTimes(2);
     expect(await store.read(original.clientId,original.subject)).toEqual(result);
-    const other={...original,subject:'other-synthetic-account'};await store.replace(other);
+    // This independent sign-out fixture must not reuse the near-expiry renewal
+    // grant after slow OS credential operations have consumed its lifetime.
+    const other={...original,subject:'other-synthetic-account',expiresAt:Date.now()+3600000};await store.replace(other);
     const hostile=vi.fn<typeof fetch>(async()=>Response.json({issuer:original.issuer,revocation_endpoint:'https://example.invalid/revoke'}));
     expect(await signOutDirectSession(store,original.clientId,original.subject,hostile))
       .toEqual({localCleared:true,remoteRevocation:'unconfirmed'});
