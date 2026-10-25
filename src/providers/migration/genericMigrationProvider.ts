@@ -4,6 +4,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { MigrationProvider } from "../../core/providers/migration.js";
 import type {
   MigrationSource,
@@ -23,7 +24,8 @@ import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.j
 
 export class GenericMigrationProvider implements MigrationProvider {
   private inspections = new WeakMap<MigrationInspection, typeof GENERIC_MIGRATION_FIXTURE>();
-  private runs=new Map<string,{ids:string[];expected:number}>();
+  private plans = new WeakMap<MigrationPlan, MigrationPlan>();
+  private runs = new Map<string, { agents: AgentTeammate[]; expected: number; store: WorkspaceStore }>();
   readonly id = "migration-generic";
   readonly source: MigrationSource = "GENERIC";
 
@@ -120,7 +122,7 @@ export class GenericMigrationProvider implements MigrationProvider {
       });
     }
 
-    return {
+    const plan: MigrationPlan = {
       id: `plan-generic-${Date.now()}`,
       source: "GENERIC",
       createdAt: new Date().toISOString(),
@@ -130,6 +132,8 @@ export class GenericMigrationProvider implements MigrationProvider {
       summary: { direct: 0, transform: data.agents.length, manualReview: 0, unsupported: data.channels.length + data.tasks.length, secretRequired: 0, dangerous: 0 },
       readinessScore: items.length ? Math.round(100*data.agents.length/items.length) : 0,
     };
+    this.plans.set(plan, structuredClone(plan));
+    return plan;
   }
 
   async dryRun(plan: MigrationPlan): Promise<MigrationDryRun> {
@@ -147,6 +151,10 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async importToStore(plan: MigrationPlan, targetStore: WorkspaceStore) {
+    if (!isDeepStrictEqual(this.plans.get(plan), plan)) {
+      throw new Error('Migration plan is unknown or changed; regenerate it before import');
+    }
+    plan = structuredClone(plan);
     const preview = await this.dryRun(plan);
     if (!plan.items.length || !preview.dryRunPassed) {
       throw new Error('Migration plan contains unsupported or unreviewed items; nothing was imported');
@@ -159,27 +167,37 @@ export class GenericMigrationProvider implements MigrationProvider {
     }
     const runId = `run-generic-${randomUUID()}`;
     let importedCount=0;
-    const ids:string[]=[];
+    const agents: AgentTeammate[] = [];
     for (const item of plan.items) {
       if (item.targetCategory === "agent" && item.canonicalPayload) {
         const created=targetStore.createAgent(item.canonicalPayload as any);
-        ids.push(created.id);
+        agents.push(structuredClone(created));
         importedCount++;
       }
     }
-    this.runs.set(runId,{ids,expected:plan.items.length});
+    this.runs.set(runId,{agents,expected:plan.items.length,store:targetStore});
     return { runId, importedCount };
   }
 
   async verify(runId: string, targetStore: WorkspaceStore): Promise<MigrationVerification> {
     const run=this.runs.get(runId);
-    const hasAgent=Boolean(run&&run.ids.length>0&&run.ids.length===run.expected&&run.ids.every(id=>targetStore.listAgents().some(agent=>agent.id===id)));
+    const sameStore = run?.store === targetStore;
+    const hasAgent = Boolean(run && sameStore && run.agents.length > 0 && run.agents.length === run.expected
+      && run.agents.every(agent => isDeepStrictEqual(targetStore.getAgent(agent.id), agent)));
+    const privilegeExpansionDetected = Boolean(run && sameStore && run.agents.some(expected => {
+      const actual = targetStore.getAgent(expected.id);
+      return actual && (actual.permissions.some(permission => !expected.permissions.includes(permission))
+        || actual.tools.some(tool => !expected.tools.includes(tool))
+        || !isDeepStrictEqual(actual.computePolicy, expected.computePolicy)
+        || (!expected.modelPolicy.allowCloudFallback && actual.modelPolicy.allowCloudFallback)
+        || (!expected.harnessPolicy.autoResume && actual.harnessPolicy.autoResume));
+    }));
     return {
       migrationRunId: runId,
       verifiedAt: new Date().toISOString(),
-      checks: [{ name: "Generic Agent Imported", passed: hasAgent, details: "Checks created agent identities for this run; partial or unknown runs do not pass" }],
+      checks: [{ name: "Generic staging records unchanged", passed: hasAgent, details: "Compares complete created records in the original store; unknown, partial or changed runs do not pass. This does not verify runtime behavior." }],
       overallPassed: hasAgent,
-      privilegeExpansionDetected: false,
+      privilegeExpansionDetected,
     };
   }
 

@@ -173,3 +173,12 @@ rather than disappearing from it. Synthetic staging import verifies these policy
 values and run identity; 25 regression tests passed. This is staging only, not
 behavior-preserving migration or completed activation. Uploaded import remains
 disabled pending review and durable rollback.
+
+Staging verification now compares complete cloned agent records in the original
+store, rather than testing ID existence. Added permissions/tools and changes to
+execution policies are reported as authority changes; the verification type no
+longer hardcodes this result to false. Imports reject unknown or edited generated
+plans and snapshot accepted input before awaiting preflight. Regression checks
+cover changed permissions, another target store, tampered plans and collisions;
+25 tests passed. These receipts are still in memory and do not establish durable
+rollback, runtime equivalence or production migration acceptance.

@@ -101,7 +101,7 @@ export interface MigrationVerification {
     details: string;
   }>;
   overallPassed: boolean;
-  privilegeExpansionDetected: false; // Security invariant
+  privilegeExpansionDetected: boolean; // Verification must report observed authority changes.
 }
 
 export interface MigrationComparison {
