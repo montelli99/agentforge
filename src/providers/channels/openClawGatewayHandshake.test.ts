@@ -148,3 +148,17 @@ it('reports a missing run receipt as uncertain rather than completed', async () 
   socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{status:'accepted'}});
   await expect(result).rejects.toThrow(/uncertain/); expect(socket.sent).toHaveLength(2); client.stop();
 });
+
+it('observes only the saved run and never turns a timeout into completion or replay', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const observation = client.inspectRun('saved-run');
+  expect(socket.sent[1]).toMatchObject({method:'agent.wait',params:{runId:'saved-run',timeoutMs:0}});
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{runId:'saved-run',status:'timeout'}});
+  await expect(observation).resolves.toEqual({runId:'saved-run',status:'timeout'});
+  const wrong = client.inspectRun('saved-run');
+  socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{runId:'other-run',status:'ok'}});
+  await expect(wrong).rejects.toThrow(/mismatched/);
+  await expect(client.inspectRun('')).rejects.toThrow(/explicit/);
+  expect(socket.sent.slice(1).every(frame=>frame.method==='agent.wait')).toBe(true);
+  expect(socket.sent).toHaveLength(3); client.stop();
+});

@@ -161,3 +161,11 @@ These are synthetic boundary tests, not real upstream task execution evidence.
 Still required: authenticated UI/API connection selection and approval flow,
 remote authority disclosure, run reconciliation and result verification, and an
 end-to-end real-runtime handoff. Hermes has no verified connector yet.
+
+Run inspection now uses the installed OpenClaw 2026.10.7 `agent.wait` schema
+(runId, timeoutMs), requesting a zero-wait observation of the saved run ID.
+The adapter rejects mismatched run IDs and retains upstream status verbatim.
+Source inspection of prepareAgentWaitForTurn confirmed pending and timeout
+responses; neither establishes completion. Eighteen transport tests and type
+checking passed, including mismatched receipts and no resubmission. This method
+still needs control-plane reconciliation wiring and actual-runtime acceptance.

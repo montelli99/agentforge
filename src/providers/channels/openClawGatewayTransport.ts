@@ -163,6 +163,16 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return { runId: result.runId };
   }
 
+  /** Observe a previously saved run without resubmission. Timeout is not completion. */
+  async inspectRun(runId: string): Promise<Record<string, unknown> & {runId: string; status: string}> {
+    if (!runId.trim() || runId.length > 512 || /[\u0000-\u001f]/.test(runId)) throw new Error("An explicit valid gateway run ID is required");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!["operator.read", "operator.write", "operator.admin"].some(scope => this.grantedScopes.has(scope))) throw new Error("gateway did not grant run read permission");
+    const result = await this.request<Record<string, unknown>>("agent.wait", {runId, timeoutMs: 0});
+    if (!result || result.runId !== runId || typeof result.status !== "string" || !result.status.trim()) throw new Error("gateway returned an invalid or mismatched run observation");
+    return result as Record<string, unknown> & {runId: string; status: string};
+  }
+
   private sendConnect(signedAt: number) {
     const scopes = ["operator.read", "operator.write"];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
