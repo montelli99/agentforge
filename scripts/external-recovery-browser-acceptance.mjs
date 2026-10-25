@@ -11,9 +11,10 @@ const store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic external workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic project',provider:'web'});
 const task=store.createTask({projectId:project.id,title:'Synthetic delegated task',priority:'medium',status:'paused'});
+const newTask=store.createTask({projectId:project.id,title:'New synthetic delegation',priority:'medium',status:'ready'});
 store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString()}]});
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
-let reads=0;server.registerExternalRunConnection({id:'synthetic-runtime',inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};}});
+let reads=0,submissions=0;server.registerExternalRunConnection({id:'synthetic-runtime',inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');assert.equal(message,'Only the reviewed synthetic message');submissions++;return {runId:'new-synthetic-run'};}});
 let browser;
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:process.env.AGENTFORGE_BROWSER_EXECUTABLE});
@@ -32,5 +33,17 @@ try{
  await page.getByRole('dialog',{name:'Task review',exact:true}).getByText('Last external status: timeout · completion not verified',{exact:true}).waitFor();
  assert.equal(reads,1); // Reload must not submit work or silently poll the remote agent.
  assert.equal(await page.getByRole('dialog',{name:'Task review',exact:true}).getByRole('button',{name:'Resume',exact:true}).count(),0);
- console.log(JSON.stringify({passed:true,runReads:reads,taskStatus:'paused',modelCalls:0}));
+ await page.getByRole('button',{name:'Close task',exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('New synthetic delegation',{exact:true})}).click();
+ await page.getByRole('button',{name:'Delegate to connected agent',exact:true}).click();
+ const delegation=page.getByRole('dialog',{name:'Delegate task',exact:true});
+ await delegation.getByLabel('Session key',{exact:true}).fill('selected-session');
+ await delegation.getByLabel('Exact message to send',{exact:true}).fill('Only the reviewed synthetic message');
+ await delegation.getByRole('button',{name:'Prepare delegation review',exact:true}).click();
+ await delegation.getByText('Review the destination and full message above. Nothing has been sent.',{exact:true}).waitFor();
+ assert.equal(submissions,0);
+ await delegation.getByRole('button',{name:'Approve and send this message',exact:true}).click();
+ await delegation.getByText('External agent accepted the request. Completion is not yet verified.',{exact:true}).waitFor();
+ assert.equal(submissions,1);assert.equal(store.getTask(newTask.id).externalTurnReceipts[0].runId,'new-synthetic-run');
+ console.log(JSON.stringify({passed:true,runReads:reads,submissions,taskStatus:'paused',modelCalls:0}));
 }finally{await browser?.close();await server.stop();}
