@@ -33,25 +33,36 @@ async function availablePort() {
 
 async function startServer(port) {
   childOutput = "";
+  const started = Date.now();
+  let attempts = 0;
+  let lastProbe = "not-attempted";
+  let spawnError;
   child = spawn(process.execPath, ["dist/server/start.js"], {
     cwd: process.cwd(),
     env: { ...process.env, AGENTFORGE_DATA_DIR: dataDirectory, AGENTFORGE_HOST: "127.0.0.1", PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
   });
-  child.stdout.setEncoding("utf8").on("data", chunk => { childOutput += chunk; });
-  child.stderr.setEncoding("utf8").on("data", chunk => { childOutput += chunk; });
+  child.once("error", error => { spawnError = error.code || "unknown"; });
+  child.stdout.setEncoding("utf8").on("data", chunk => { childOutput = (childOutput + chunk).slice(-16384); });
+  child.stderr.setEncoding("utf8").on("data", chunk => { childOutput = (childOutput + chunk).slice(-16384); });
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new Error(`Server exited early (${child.exitCode}). ${childOutput}`);
+    if (spawnError || child.exitCode !== null || child.signalCode !== null)
+      throw new Error(`Server ended before readiness: ${JSON.stringify({ spawnError, exitCode: child.exitCode, signal: child.signalCode, attempts, lastProbe })}. ${childOutput}`);
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/api/status`, { headers: { Connection: "close" } });
+      attempts++;
+      const response = await fetch(`http://127.0.0.1:${port}/api/status`, { headers: { Connection: "close" }, signal: AbortSignal.timeout(Math.max(1, Math.min(1000, deadline - Date.now()))) });
+      lastProbe = `http-${response.status}`;
+      await response.body?.cancel();
       if (response.ok) return;
-    } catch {
+    } catch (error) {
+      lastProbe = String(error.cause?.code || error.name || "request-failed");
       // The disposable launcher is still binding its loopback port.
     }
     await new Promise(resolve => setTimeout(resolve, 125));
   }
-  throw new Error(`Server did not become ready. ${childOutput}`);
+  throw new Error(`Server did not become ready: ${JSON.stringify({ pid: child.pid, elapsedMs: Date.now() - started, attempts, lastProbe, exitCode: child.exitCode, signal: child.signalCode })}. ${childOutput}`);
 }
 
 async function waitForExit(process) {
