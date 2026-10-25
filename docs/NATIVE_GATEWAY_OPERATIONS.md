@@ -351,3 +351,11 @@ failed-run persistence/observation, not successful execution or its failure caus
 The local integrated regression suite at b00b08f plus the delegation copy change
 passed 138 files: 818 tests passed, two skipped (820 total), in 78.48 seconds.
 This is local evidence; exact final-head hosted acceptance remains required.
+
+The registered Hermes connection now has a real-HTTP AgentForge route regression:
+anonymous listing is denied, authenticated connection discovery causes no upstream
+request, explicit session discovery performs one GET with the configured credential,
+and only names/IDs return. Synthetic previews and the credential are absent from
+both the response and saved workspace. This uses a local upstream fixture; the
+separate pinned-runtime evidence above covers Hermes protocol compatibility.
+The route test and full type checking passed; no model task was run by this test.
