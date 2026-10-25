@@ -23,15 +23,15 @@ function setup() {
   client.start(); return { client, socket: Socket.latest };
 }
 function authenticate(socket: Socket) {
-  socket.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test-challenge" } });
-  socket.receive({ type: "res", id: socket.sent[0].id, ok: true, payload: { type: "hello-ok" } });
+  socket.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test-challenge", ts: 123456789 } });
+  socket.receive({ type: "res", id: socket.sent[0].id, ok: true, payload: { type: "hello-ok", protocol: 4, auth: { role: "operator", scopes: ["operator.read", "operator.write"] } } });
 }
 describe("gateway authentication and interrupted delivery", () => {
   it("requires the matching challenge response before sends or inbound events", async () => {
     const { client, socket } = setup(); const inbound = vi.fn(); client.subscribe(inbound);
     expect(client.isConnected()).toBe(false); expect(client.isConnecting()).toBe(true);
     expect(socket.sent).toHaveLength(0);
-    socket.receive({ type: "res", id: "unrelated", ok: true, payload: { type: "hello-ok" } });
+    socket.receive({ type: "res", id: "unrelated", ok: true, payload: { type: "hello-ok", protocol: 4, auth: { role: "operator", scopes: ["operator.read", "operator.write"] } } });
     socket.receive({ type: "event", event: "chat", payload: { text: "untrusted", chatId: 1 } });
     expect(inbound).not.toHaveBeenCalled();
     await expect(client.sendMessage(1, "test")).rejects.toThrow(/authentication/);
@@ -59,10 +59,10 @@ describe("gateway failure boundaries", () => {
   it("bounds missing challenge and failed authentication", async () => {
     vi.useFakeTimers(); const { client, socket } = setup();
     socket.receive(null); socket.receive([]);
-    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(client.isConnecting()).toBe(false); expect(socket.sent).toHaveLength(0);
     client.start(); const next = Socket.latest;
-    next.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test" } });
+    next.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test", ts: 123456789 } });
     next.receive({ type: "res", id: next.sent[0].id, ok: false });
     expect(client.isConnected()).toBe(false); expect(client.isConnecting()).toBe(false);
   });
@@ -79,5 +79,25 @@ describe("gateway failure boundaries", () => {
     await expect(sent).rejects.toThrow(/uncertain/);
     expect(client.isConnected()).toBe(false);
     client.start(); authenticate(Socket.latest); expect(client.isConnected()).toBe(true); client.stop();
+  });
+});
+
+describe("current gateway protocol contract", () => {
+  it("uses protocol 4 and the server challenge time rather than the local clock", () => {
+    const { client, socket } = setup(); authenticate(socket);
+    expect(socket.sent[0].params).toMatchObject({ minProtocol: 4, maxProtocol: 4, device: { signedAt: 123456789, nonce: "test-challenge" } }); client.stop();
+  });
+  it.each([undefined, -1, 1.5, "123"])("rejects an invalid challenge timestamp %s", ts => {
+    const { client, socket } = setup();
+    socket.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test", ts } });
+    expect(socket.sent).toHaveLength(0); expect(client.isConnecting()).toBe(false);
+  });
+  it("does not send under a read-only grant", async () => {
+    const { client, socket } = setup();
+    socket.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test", ts: 123 } });
+    socket.receive({ type: "res", id: socket.sent[0].id, ok: true, payload: { type: "hello-ok", protocol: 4, auth: { role: "operator", scopes: ["operator.read"] } } });
+    expect(client.isConnected()).toBe(true);
+    await expect(client.sendMessage(1, "test")).rejects.toThrow(/write permission/);
+    expect(socket.sent).toHaveLength(1); client.stop();
   });
 });

@@ -35,6 +35,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private connectId?: string;
   private handshakeTimer?: ReturnType<typeof setTimeout>;
   private seq = 0;
+  private grantedScopes = new Set<string>();
   private readonly pending = new Map<string, Pending>();
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
   private readonly device;
@@ -57,7 +58,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     this.connectId = undefined;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
-    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.stop(); }, 15_000);
+    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.stop(); }, 30_000);
     socket.addEventListener("message", event => { if (this.socket === socket) this.handle(String(event.data)); });
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
@@ -72,6 +73,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     const socket = this.socket;
     this.socket = undefined;
     this.connected = false;
+    this.grantedScopes.clear();
     this.connectId = undefined;
     this.nonce = undefined;
     for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected; delivery may be uncertain"));
@@ -85,6 +87,8 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   }
 
   async sendMessage(chatId: string | number, text: string, topicId?: number): Promise<number> {
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!this.grantedScopes.has("operator.write") && !this.grantedScopes.has("operator.admin")) throw new Error("gateway did not grant message write permission");
     const result = await this.request<Record<string, unknown>>("send", {
       channel: "telegram", target: String(chatId), message: text,
       ...(topicId ? { threadId: topicId } : {}),
@@ -95,15 +99,14 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return parsed;
   }
 
-  private sendConnect() {
+  private sendConnect(signedAt: number) {
     const scopes = ["operator.read", "operator.write"];
-    const signedAt = Date.now();
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
     const publicRaw = (crypto.createPublicKey(this.device.publicKeyPem).export({ type: "spki", format: "der" }) as Buffer).subarray(-32);
     const signature = b64url(crypto.sign(null, Buffer.from(payload), crypto.createPrivateKey(this.device.privateKeyPem)));
     this.connectId = crypto.randomUUID();
     this.send({ type: "req", id: this.connectId, method: "connect", params: {
-      minProtocol: 3, maxProtocol: 3,
+      minProtocol: 4, maxProtocol: 4,
       client: { id: "gateway-client", version: "agentforge", platform: process.platform, mode: "backend" },
       caps: [], role: "operator", scopes, auth: this.options.token ? { token: this.options.token } : undefined,
       device: { id: this.device.deviceId, publicKey: b64url(publicRaw), signature, signedAt, ...(this.nonce ? { nonce: this.nonce } : {}) },
@@ -117,16 +120,21 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     if (frame.type === "event") {
       const event = frame as unknown as GatewayEvent;
       if (event.event === "connect.challenge") {
-        const nonce = (event.payload as { nonce?: unknown } | undefined)?.nonce;
-        if (typeof nonce === "string" && nonce.length > 0 && !this.connectId && !this.connected) { this.nonce = nonce; this.sendConnect(); }
+        const challenge = event.payload as { nonce?: unknown; ts?: unknown } | undefined;
+        const nonce = challenge?.nonce;
+        if (!this.connectId && !this.connected) {
+          if (typeof nonce !== "string" || !nonce.trim() || typeof challenge?.ts !== "number" || !Number.isSafeInteger(challenge.ts) || challenge.ts < 0) { this.stop(); return; }
+          this.nonce = nonce; this.sendConnect(challenge.ts);
+        }
       } else if (event.event === "chat" && this.connected) this.emitChat(event.payload);
       return;
     }
     if (frame.type === "res" && typeof frame.id === "string") {
       if (frame.id === this.connectId) {
-        const payload = frame.payload as { type?: string } | undefined;
+        const payload = frame.payload as { type?: string; protocol?: number; auth?: { role?: string; scopes?: unknown } } | undefined;
         this.connectId = undefined;
-        if (frame.ok === true && payload?.type === "hello-ok") {
+        if (frame.ok === true && payload?.type === "hello-ok" && payload.protocol === 4 && payload.auth?.role === "operator" && Array.isArray(payload.auth.scopes) && payload.auth.scopes.every(scope => typeof scope === "string")) {
+          this.grantedScopes = new Set(payload.auth.scopes);
           clearTimeout(this.handshakeTimer);
           this.handshakeTimer = undefined;
           this.connected = true;
