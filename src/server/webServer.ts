@@ -367,6 +367,7 @@ export class AgentForgeWebServer {
   readonly hermesMigration = new HermesMigrationProvider();
   readonly grokMigration = new GrokBotMigrationProvider();
   readonly genericMigration = new GenericMigrationProvider();
+  private migrationReviews = new Map<string, { owner: string; digest: string; expires: number; plan: Awaited<ReturnType<GenericMigrationProvider['plan']>> }>();
   readonly taskWorkerRuntime: TaskWorkerRuntime;
   readonly driftMonitor: DriftMonitor;
   /** Human corrections are durable but this API exposes summaries, never expected output. */
@@ -4658,6 +4659,40 @@ export class AgentForgeWebServer {
     }
 
     // --- Migration Center REST Endpoints (Sections 7-27) ---
+    if (req.method === 'POST' && ['/api/migration/prepare-import', '/api/migration/commit-import', '/api/migration/rollback-import'].includes(path)) {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Sign in to review migration changes.' })); return; }
+      if (!['owner', 'admin'].includes(caller.user.role)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Owner or administrator review required.' })); return; }
+      const body = await this.readBody(req);
+      for (const [id, review] of this.migrationReviews) if (review.expires < Date.now()) this.migrationReviews.delete(id);
+      try {
+        if (path.endsWith('/prepare-import')) {
+          if (body.source !== 'GENERIC' || body.manifest === undefined) throw Error('Provide an explicit generic manifest.');
+          if (this.migrationReviews.size >= 20) throw Error('Too many pending migration reviews; wait for expiry.');
+          const plan = await this.genericMigration.plan(await this.genericMigration.inspect(body.manifest));
+          const dryRun = await this.genericMigration.dryRun(plan);
+          if (!plan.items.length || !dryRun.dryRunPassed) throw Error('Only supported agent staging profiles can be imported; remove unsupported items before review.');
+          const reviewId = crypto.randomUUID(), expires = Date.now() + 600000;
+          const digest = crypto.createHash('sha256').update(JSON.stringify(plan)).digest('hex');
+          this.migrationReviews.set(reviewId, { owner: caller.user.id, digest, expires, plan });
+          res.writeHead(200); res.end(JSON.stringify({ reviewId, digest, expiresAt: new Date(expires).toISOString(), plan, dryRun })); return;
+        }
+        if (path.endsWith('/rollback-import')) {
+          if (typeof body.runId !== 'string' || body.confirm !== true) throw Error('Confirm the exact import run to roll back.');
+          const result = this.store.rollbackAgentImport(body.runId);
+          res.writeHead(200); res.end(JSON.stringify(result)); return;
+        }
+        const review = typeof body.reviewId === 'string' ? this.migrationReviews.get(body.reviewId) : undefined;
+        if (!review || review.owner !== caller.user.id || body.digest !== review.digest || body.confirm !== true)
+          throw Error('Review is missing, expired, changed or belongs to another user. Prepare and review again.');
+        // Consume before any await: concurrent requests cannot reuse this approval.
+        this.migrationReviews.delete(body.reviewId as string);
+        const result = await this.genericMigration.importToStore(review.plan, this.store);
+        const verification = await this.genericMigration.verify(result.runId, this.store);
+        res.writeHead(200); res.end(JSON.stringify({ result, verification }));
+      } catch { res.writeHead(409); res.end(JSON.stringify({ error: 'Migration could not be applied. Refresh the review; inspect existing agents and import receipts before retrying.' })); }
+      return;
+    }
     if (req.method === "GET" && path === "/api/migration/sources") {
       res.writeHead(200);
       res.end(JSON.stringify([

@@ -702,6 +702,26 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       });
       expect(blockedImport.status).toBe(409);
       expect(store.listAgents().length).toBe(agentsBefore);
+      const migrationRequest = (action: string, body: object, token = '') => fetch(server.getBaseUrl()+'/api/migration/'+action, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer '+token } : {}) }, body: JSON.stringify(body),
+      });
+      expect((await migrationRequest('prepare-import', { source: 'GENERIC', manifest: stagingManifest })).status).toBe(401);
+      store.createUser({ username: 'migration-reviewer', displayName: 'Migration reviewer', role: 'owner', password: 'synthetic migration password' });
+      const login = await fetch(server.getBaseUrl()+'/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'migration-reviewer', password: 'synthetic migration password' }) });
+      const token = (await login.json()).token;
+      const prepared = await migrationRequest('prepare-import', { source: 'GENERIC', manifest: stagingManifest }, token);
+      expect(prepared.status).toBe(200);
+      const review = await prepared.json();
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
+      expect((await migrationRequest('commit-import', { reviewId: review.reviewId, digest: 'changed', confirm: true }, token)).status).toBe(409);
+      const commit = { reviewId: review.reviewId, digest: review.digest, confirm: true };
+      const imported = await migrationRequest('commit-import', commit, token);
+      expect(imported.status).toBe(200);
+      const importedResult = await imported.json();
+      expect(importedResult.verification.overallPassed).toBe(true);
+      expect((await migrationRequest('commit-import', commit, token)).status).toBe(409);
+      expect((await migrationRequest('rollback-import', { runId: importedResult.result.runId, confirm: true }, token)).status).toBe(200);
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
     });
   });
 

@@ -311,3 +311,9 @@ Added a store-level migration batch commit and routed generic imports through it
 ### Durable rollback for unchanged staging imports
 
 Added rollbackAgentImport using the original hash-verified import receipts. It removes only the complete unchanged batch, refuses missing/changed agents or operational references, writes the removal and rollback receipt in one snapshot, restores in-memory state on write failure, and refuses repeated rollback. Source manifests are untouched. Existing migration coverage now verifies restart rollback of two agents, durable absence after reopening, audit integrity, changed-agent refusal, repeated rollback refusal and concurrent-write failure preserving both agents and disk. All 14 integration tests and source/script type checks passed. The authenticated reviewed upload/rollback UI and crash-interruption proof remain unfinished.
+
+### Reviewed uploaded-agent import API
+
+Added authenticated owner/admin prepare-import, commit-import and rollback-import endpoints. Preparation accepts an explicit generic manifest, refuses unsupported items, returns the exact staging plan with a SHA-256 digest and ten-minute review expiry, and makes no import. Commit binds the review to its user and digest, requires explicit confirmation, and consumes it before awaiting the atomic import to prevent duplicate submissions. Rollback requires explicit run confirmation and the durable unchanged-batch checks. Pending reviews are bounded and intentionally do not survive restart; users must re-review.
+
+Existing API integration coverage proves anonymous denial, prepare without writes, changed-digest refusal, successful verified import, single-use refusal, and rollback. All 14 migration tests and typecheck:all passed. Browser controls still need wiring and acceptance; the old unreviewed upload route remains blocked.
