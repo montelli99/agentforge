@@ -25,7 +25,7 @@ Live OpenClaw/Hermes task delegation and guided connection remain unaccepted.
 PR #11 adds reviewed external delegation, durable run observations and scoped
 Stop requests. Disposable OpenClaw authentication and unknown-run inspection
 have been exercised; an actual completed OpenClaw model task has not. Hermes
-has no verified connector. The connection selector uses a readable configured
+now has an experimental, explicitly configured Runs connector. Its packaged adapter passed authenticated discovery, API-session pagination, and failed-run observation after restart against a pinned isolated Hermes image. Successful model-backed delegation and result verification remain unaccepted. The connection selector uses a readable configured
 name while approvals bind to the internal identity. Stop outcomes survive reload
 without resending and explicitly retain uncertainty or partial-effect review.
 Synthetic browser acceptance covers these controls, not real remote completion.
