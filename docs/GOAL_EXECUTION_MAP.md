@@ -229,3 +229,9 @@ lookup handling now replaces raw adapter exceptions with a fixed error so
 third-party exception text cannot expose credentials. The 24 focused tests and
 full typecheck passed. This is synthetic integration evidence, not a live
 third-party service or browser journey result.
+
+Registered-provider restart failures now have a fixed, credential-free recovery
+message identifying a missing provider or changed setup version. Service
+reconstruction tests remove the definition and replace it with a newer version;
+both restore attempts fail, leave project memory disconnected, and preserve the
+encrypted selection byte-for-byte. Ten setup tests and typechecking passed.

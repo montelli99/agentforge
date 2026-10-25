@@ -114,6 +114,18 @@ describe("Setup Guide API", () => {
       expect((await request('/api/memory/connection',owner,{...memorySelection,action:'custom',providerId:'example-memory',providerVersion:'2',config:{apiKey:'synthetic-hindsight-secret'}})).status).toBe(400);
       expect(server.conversations.status().memoryProvider).toBe('agentforge_operational');
     }finally{transport.mockRestore();}
+    const savedMemoryVault=fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8');
+    for(const definitions of [[],[{...definition,version:'2'}]]){
+      await server.stop();
+      server=new AgentForgeWebServer(store,0,undefined,undefined,{...options,memoryConnections:definitions});
+      await server.start();base=server.getBaseUrl();
+      expect((await request('/api/connections/unlock',owner,{passphrase:body.passphrase})).status).toBe(200);
+      const unavailable=await request('/api/memory/connection',owner,{action:'restore',projectId:project.id,passphrase:memorySelection.passphrase});
+      expect(unavailable.status).toBe(400);
+      expect(await unavailable.text()).toContain('missing or its setup version changed');
+      expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+      expect(fs.readFileSync(path.join(dataDirectory,'memory-connection.encrypted.json'),'utf8')).toBe(savedMemoryVault);
+    }
     // A wrong passphrase after restarting cannot replace a saved credential set.
     await server.stop();server = new AgentForgeWebServer(store,0,undefined,undefined,options);await server.start();base=server.getBaseUrl();
     expect((await request('/api/connections/save',owner,{...body,passphrase:'wrong synthetic passphrase'})).status).toBe(400);

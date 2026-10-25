@@ -1,5 +1,9 @@
 import type { MemoryProvider } from '../../core/providers/memory.js';
 
+export class MemoryConnectionUnavailable extends Error {
+  constructor() { super('The saved memory provider is missing or its setup version changed. Ask the host administrator to restore the matching provider, or reconnect it using the current setup. Your saved selection has not been changed.'); }
+}
+
 export interface MemoryConnectionDefinition {
   id: string;
   version: string;
@@ -34,7 +38,8 @@ export class MemoryConnectionRegistry {
   }
   connect(id: string, version: unknown, config: unknown, namespace: string, projectId: string) {
     const definition = this.definitions.get(id);
-    if (!definition || definition.version !== version || !config || typeof config !== 'object' || Array.isArray(config)) throw Error('Memory connection definition unavailable or changed');
+    if (!definition || definition.version !== version) throw new MemoryConnectionUnavailable();
+    if (!config || typeof config !== 'object' || Array.isArray(config)) throw Error('Invalid memory connection configuration');
     const values = config as Record<string, unknown>;
     if (Object.keys(values).some(key => !definition.fields.some(field => field.key === key))) throw Error('Unknown memory connection field');
     const validated: Record<string, string> = {};

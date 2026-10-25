@@ -53,7 +53,7 @@ import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
 import {HindsightMemoryProvider} from '../providers/memory/hindsightMemory.js';
-import { MemoryConnectionRegistry, type MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
+import { MemoryConnectionRegistry, MemoryConnectionUnavailable, type MemoryConnectionDefinition } from '../providers/memory/memoryConnections.js';
 import {CompositeMemoryProvider} from '../providers/memory/compositeMemory.js';
 import {queryMemoryBounded,type MemoryProvider} from '../core/providers/memory.js';
 import {EncryptedConnectionStore} from '../core/secret/encryptedConnectionStore.js';
@@ -2966,7 +2966,7 @@ export class AgentForgeWebServer {
           return {projectId:selection.projectId,memoryNamespace:selection.namespace.trim(),memoryProvider};
         }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
-      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key.'}));}
+      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
       return;
     }
 
