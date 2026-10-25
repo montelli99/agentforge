@@ -133,3 +133,13 @@ an explicit key and negotiated read authority and preserves unknown activity
 fields rather than interpreting omission as idle. A pre-ready connection failed;
 retry after the runtime reported readiness succeeded. Automatic startup retry,
 UI session binding and task reconciliation are still unfinished.
+
+A bounded connection coordinator now retries transport failures and the explicit
+upstream startup-sidecars UNAVAILABLE response, with backoff and a total deadline.
+Authentication/protocol rejection is terminal. Explicit stop cancels startup;
+only connection attempts retry, never messages. The server startup path awaits
+this coordinator before reporting authentication and stops the relay on shutdown.
+An actual immediate-after-container-start probe against 2026.10.7 authenticated
+and read the synthetic session in 10,127 ms without a manual retry or model call.
+The container was stopped afterward. This does not prove reconnect orchestration
+after an established working session or durable task recovery.

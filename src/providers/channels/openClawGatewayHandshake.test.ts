@@ -112,3 +112,23 @@ it('reads only the selected session and preserves unknown active-run state', asy
   await expect(client.readSessionHistory('selected', 101)).rejects.toThrow(/limit/);
   expect(socket.sent).toHaveLength(2); client.stop();
 });
+
+it('retries temporary network failure but stops on rejected authentication', async () => {
+  vi.useFakeTimers(); const {client, socket} = setup();
+  const ready = client.connectWhenReady(2000);
+  socket.dispatchEvent(new Event('error'));
+  await vi.advanceTimersByTimeAsync(30);
+  const next = Socket.latest;
+  expect(next).not.toBe(socket);
+  next.receive({type:'event',event:'connect.challenge',payload:{nonce:'test',ts:123}});
+  next.receive({type:'res',id:next.sent[0].id,ok:false,error:{code:'UNAUTHORIZED'}});
+  const rejected = expect(ready).rejects.toThrow(/rejected/);
+  await vi.advanceTimersByTimeAsync(30); await rejected;
+  await vi.advanceTimersByTimeAsync(2000); expect(Socket.latest).toBe(next);
+});
+it('cancels pending startup when explicitly stopped', async () => {
+  vi.useFakeTimers(); const {client} = setup();
+  const ready = client.connectWhenReady(2000); const rejected = expect(ready).rejects.toThrow(/cancelled/);
+  client.stop(); await vi.advanceTimersByTimeAsync(30); await rejected;
+  expect(client.isConnecting()).toBe(false);
+});

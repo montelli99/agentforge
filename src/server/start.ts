@@ -210,15 +210,17 @@ server.start().then(async () => {
     }
   }
   if (gatewayTransport && gatewayRelay) {
-    gatewayTransport.start();
+    await gatewayTransport.connectWhenReady();
     gatewayRelay.start();
-    console.log("[AgentForge vNext] Optional OpenClaw/Hermes relay connected; native AgentForge Telegram remains available.");
+    console.log("[AgentForge vNext] Optional OpenClaw gateway authenticated; complete relay compatibility remains experimental.");
   }
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (shuttingDown) return;
     shuttingDown = true;
+    gatewayRelay?.stop();
+    gatewayTransport?.stop();
     console.log(`[AgentForge vNext] Received ${signal}; stopping runtime cleanly.`);
     await server.nativeGateway.stop(configuredChannels);
     await server.stop();

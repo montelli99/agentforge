@@ -44,6 +44,9 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private connectId?: string;
   private handshakeTimer?: ReturnType<typeof setTimeout>;
   private seq = 0;
+  private stopGeneration = 0;
+  private terminalHandshakeFailure = false;
+  private connectingOperation = false;
   private grantedScopes = new Set<string>();
   private readonly pending = new Map<string, Pending>();
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
@@ -65,18 +68,21 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     if (this.socket) return;
     this.nonce = undefined;
     this.connectId = undefined;
+    this.terminalHandshakeFailure = false;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
-    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.stop(); }, 30_000);
+    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.disconnect(); }, 30_000);
     socket.addEventListener("message", event => { if (this.socket === socket) this.handle(String(event.data)); });
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
-      this.stop();
+      this.disconnect();
     });
-    socket.addEventListener("error", () => { if (this.socket === socket) this.stop(); });
+    socket.addEventListener("error", () => { if (this.socket === socket) this.disconnect(); });
   }
 
-  stop(): void {
+  stop(): void { this.stopGeneration++; this.disconnect(); }
+
+  private disconnect(): void {
     clearTimeout(this.handshakeTimer);
     this.handshakeTimer = undefined;
     const socket = this.socket;
@@ -88,6 +94,29 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected; delivery may be uncertain"));
     this.pending.clear();
     socket?.close();
+  }
+
+  async connectWhenReady(timeoutMs = 30_000): Promise<void> {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) throw new Error("Invalid gateway connection deadline");
+    if (this.connectingOperation) throw new Error("Gateway connection is already in progress");
+    this.connectingOperation = true;
+    const generation = this.stopGeneration;
+    const deadline = Date.now() + timeoutMs;
+    let retryAt = 0;
+    let backoff = 250;
+    try {
+      while (Date.now() < deadline) {
+        if (this.stopGeneration !== generation) throw new Error("Gateway connection cancelled");
+        if (this.isConnected()) return;
+        if (this.terminalHandshakeFailure) throw new Error("Gateway authentication or protocol rejected; review the connection settings");
+        if (!this.socket && Date.now() >= retryAt) {
+          this.start(); retryAt = Date.now() + backoff; backoff = Math.min(backoff * 2, 2000);
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+      }
+      throw new Error("Gateway did not become ready before the connection deadline");
+    } catch (error) { this.disconnect(); throw error; }
+    finally { this.connectingOperation = false; }
   }
 
   subscribe(handler: (update: TelegramBotUpdate) => Promise<void>): () => void {
@@ -144,7 +173,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
         const challenge = event.payload as { nonce?: unknown; ts?: unknown } | undefined;
         const nonce = challenge?.nonce;
         if (!this.connectId && !this.connected) {
-          if (typeof nonce !== "string" || !nonce.trim() || typeof challenge?.ts !== "number" || !Number.isSafeInteger(challenge.ts) || challenge.ts < 0) { this.stop(); return; }
+          if (typeof nonce !== "string" || !nonce.trim() || typeof challenge?.ts !== "number" || !Number.isSafeInteger(challenge.ts) || challenge.ts < 0) { this.terminalHandshakeFailure = true; this.disconnect(); return; }
           this.nonce = nonce; this.sendConnect(challenge.ts);
         }
       } else if (event.event === "chat" && this.connected) this.emitChat(event.payload);
@@ -160,7 +189,11 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
           this.handshakeTimer = undefined;
           this.connected = true;
         }
-        else this.stop();
+        else {
+          const error = frame.error as { code?: string; details?: { reason?: string } } | undefined;
+          this.terminalHandshakeFailure = !(error?.code === "UNAVAILABLE" && error.details?.reason === "startup-sidecars");
+          this.disconnect();
+        }
         return;
       }
       const waiter = this.pending.get(frame.id); if (!waiter) return;
