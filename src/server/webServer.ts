@@ -82,7 +82,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
-import { observeExternalTurn } from '../core/runtime/externalTurnDispatch.js';
+import { observeExternalTurn, prepareExternalTurnApproval } from '../core/runtime/externalTurnDispatch.js';
 import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
@@ -4004,6 +4004,26 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === 'external-review') {
+        res.setHeader('Cache-Control', 'no-store');
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+        const body = await this.readBody(req);
+        if (typeof body.connectionId !== 'string' || typeof body.sessionKey !== 'string' || typeof body.message !== 'string') {
+          res.writeHead(400); res.end(JSON.stringify({error:'Select a runtime and session and provide the exact message to delegate.'})); return;
+        }
+        if (!this.externalRunConnections.has(body.connectionId)) {
+          res.writeHead(409); res.end(JSON.stringify({error:'The selected external runtime is not configured.'})); return;
+        }
+        try {
+          const approval = prepareExternalTurnApproval(this.store, task.id, caller.user?.id || 'authenticated-requester', {connectionId:body.connectionId,sessionKey:body.sessionKey,message:body.message});
+          res.writeHead(200); res.end(JSON.stringify({approval,submitted:false}));
+        } catch {
+          res.writeHead(409); res.end(JSON.stringify({error:'This task or message is not eligible for external review. No work was submitted.'}));
+        }
+        return;
+      }
       if (action === 'external-observation') {
         res.setHeader('Cache-Control', 'no-store');
         if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }

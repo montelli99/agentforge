@@ -19,6 +19,16 @@ it('requires authenticated execution permission and observes only the saved runt
   await server.start(); const base=server.getBaseUrl();
   const login=async(username:string)=>{const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'synthetic test password'})});expect(r.status).toBe(200);return (await r.json()).token as string;};
   const reader=await login('reader'), operator=await login('operator');
+  const reviewTask=store.createTask({title:'Synthetic review task',status:'ready',priority:'medium'});
+  const review=(token:string,connectionId='saved-connection')=>fetch(base+'/api/tasks/'+reviewTask.id+'/external-review',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({connectionId,sessionKey:'selected-session',message:'Exact synthetic delegation'})});
+  expect((await review(reader)).status).toBe(403);
+  expect((await review(operator,'unregistered')).status).toBe(409);
+  expect(store.listApprovals()).toHaveLength(0);
+  const prepared=await review(operator);expect(prepared.status).toBe(200);
+  const preparedBody=await prepared.json();
+  expect(preparedBody.submitted).toBe(false);expect(preparedBody.approval.status).toBe('pending');
+  expect(preparedBody.approval.description).toContain('Exact synthetic delegation');
+  expect(store.getTask(reviewTask.id)?.externalTurnReceipts).toBeUndefined();
   const request=(token?:string,method='POST')=>fetch(base+'/api/tasks/'+task.id+'/external-observation',{method,headers:token?{Authorization:'Bearer '+token}:{}});
   expect((await request()).status).toBe(401);
   expect((await request(reader)).status).toBe(403);
