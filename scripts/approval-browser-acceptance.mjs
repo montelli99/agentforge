@@ -51,15 +51,15 @@ const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}
       worktree,
     };
 
-const store=new WorkspaceStore(path.join(root,'state.json'));
+let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web'});
 task.projectId=project.id;store.createTask(task);
 const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan);
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
 assert.equal((await backend.initialize()).ready,true);
-const worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
-const server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(root,'settings.json')});let browser;
+let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
+let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(root,'settings.json')});let browser;
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
@@ -78,7 +78,23 @@ try{
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
  assert.equal(await readFile(path.join(worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
- await page.getByRole('button',{name:'Refresh status',exact:true}).click();
+ const savedReceipts=JSON.parse(JSON.stringify(result.executionReceipts));
+ const oldUrl=server.getBaseUrl();worker.stop();await server.stop();
+ store=new WorkspaceStore(path.join(root,'state.json'));
+ worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
+ server=new AgentForgeWebServer(store,Number(new URL(oldUrl).port),undefined,worker,{settingsFilePath:path.join(root,'settings.json')});
+ await server.start();await page.reload();
+ if(await page.locator('input[name=username]').isVisible()){
+  await page.locator('input[name=username]').fill('owner');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ }
+ await page.getByLabel('Tasks and runs',{exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('Prove approved Docker execution',{exact:true})}).click();
+ await page.getByRole('button',{name:'Review recorded execution',exact:true}).click();
+ await page.getByRole('button',{name:'Restore verified recorded result',exact:true}).click();
+ await page.getByText('Validated recorded result restored. No command replayed.',{exact:true}).waitFor();
+ assert.deepEqual(store.getTask(taskId).executionReceipts,savedReceipts);
+ assert.equal(store.getTask(taskId).status,'waiting_approval');
+ await page.getByRole('dialog',{name:'Recorded execution review',exact:true}).getByRole('button',{name:'Close',exact:true}).click();
  await page.getByRole('button',{name:'Review request',exact:true}).click();
  await page.getByRole('region',{name:'Decision brief'}).getByText('Recorded verification passed',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Approve request',exact:true}).click();
@@ -89,6 +105,6 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
- console.log(JSON.stringify({passed:true,syntheticOnly:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,finalReviewConfirmed:true,durableCompletion:true}));
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();}
 
