@@ -18,7 +18,7 @@ if(process.argv[2]==='child'){
  let child:ReturnType<typeof spawn>|undefined;
  try{
   const store=new WorkspaceStore(path.join(root,'state.json'));const now=new Date().toISOString();
-  const task:Task={id:'crash-task',projectId:'synthetic',title:'Disposable crash effect',description:'Write one synthetic marker.',priority:'medium',status:'ready',createdAt:now,updatedAt:now,contract:{id:'crash-contract',taskId:'crash-task',version:1,workspace:{requireIsolatedWorktree:false},scope:{allowedPaths:['effects.txt'],protectedPaths:[],maxFilesChanged:1},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[],completion:{requireEvidencePack:true,requireHumanApproval:true},createdAt:now}};
+  const task:Task={id:'crash-task',projectId:'synthetic',title:'Disposable crash effect',description:'Write one synthetic marker.',priority:'medium',status:'ready',createdAt:now,updatedAt:now,contract:{id:'crash-contract',taskId:'crash-task',version:1,repository:{baseBranch:'main',baseSha:''},workspace:{requireIsolatedWorktree:false},scope:{allowedPaths:['effects.txt'],protectedPaths:[],maxFilesChanged:1},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[],completion:{requireEvidencePack:true,requireHumanApproval:true},createdAt:now}};
   store.createTask(task);
   const env:NodeJS.ProcessEnv={};for(const key of ['SystemRoot','WINDIR','PATH','Path','TEMP','TMP'])if(process.env[key])env[key]=process.env[key];
   child=spawn(process.execPath,['--import','tsx',fileURLToPath(import.meta.url),'child',root],{cwd:process.cwd(),env,windowsHide:true,stdio:['ignore','ignore','pipe','ipc']});
