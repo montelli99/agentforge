@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "92aaef5928cb450c7d159a1927408163aeec6715",
+  "command": "pnpm test:conversation:e2e",
+  "live": true,
+  "model": "mimo-v2.6-flash",
+  "requests": 2,
+  "toolCalls": ["execute_task"],
+  "disconnected": true,
+  "status": "passed",
+  "elapsedMs": 17169,
+  "artifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+  "costUsd": "unmeasured",
+  "tokenUsage": "not exposed by streaming adapter",
+  "limitation": "Pre-approved fixed synthetic task with real network-disabled Docker execution; does not prove autonomous planning, complete browser workflow, process-crash recovery, or competitor superiority."
+}
