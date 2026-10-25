@@ -3,8 +3,9 @@
 This public map covers the public product and release gates. Owner-specific
 execution amendments remain private and are not release inputs. Slack and
 Discord acceptance are deferred; registry publication is a separate action.
-The app goal was last observed blocked; 'active' below is historical plan text,
-not evidence that the app goal has been resumed.
+The release goal remains active and incomplete. Current verification is recorded
+in `RELEASE_STATUS.md`; dated phase evidence below is historical unless its exact
+revision matches the build being assessed.
 
 This is the operator-facing map for the approved AgentForge public-release
 goal. It links the larger specifications to the evidence required before each
