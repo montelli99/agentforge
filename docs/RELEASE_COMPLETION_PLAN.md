@@ -121,3 +121,11 @@ synthetic credentials proved reopen, rotation, ciphertext storage, tamper reject
 and removal. This protects at rest for the Windows user, not against processes
 running as that user. The backend is not yet wired into sign-in activation;
 macOS/Linux backends and refresh/revocation integration remain open.
+
+The direct subscription adapter now has a concrete bounded Responses SSE
+transport. It accepts only an explicitly supplied account-and-grant-matched
+credential, rejects redirects and expired/insufficient grants, limits stream and
+event size, honors cancellation and never retries. Synthetic transport tests
+cover matching/mismatched grants, complete/truncated events, one-request behavior
+and safe network errors. This transport has not yet been activated by the UI or
+verified with a real subscription grant; renewal remains unfinished.
