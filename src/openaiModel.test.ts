@@ -59,6 +59,17 @@ describe("OpenAI-compatible model adapter", () => {
       .toEqual({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
   });
 
+  it("accepts reported totals with a null optional breakdown without inventing cache usage", () => {
+    expect(reportedChatCompletionUsage({prompt_tokens:761,completion_tokens:196,total_tokens:957,
+      prompt_tokens_details:null,completion_tokens_details:{reasoning_tokens:33}})).toEqual({
+        promptTokens:761,completionTokens:196,totalTokens:957,
+      });
+    for (const details of [false, 0, "", [], "invalid"]) {
+      expect(reportedChatCompletionUsage({prompt_tokens:761,completion_tokens:196,total_tokens:957,
+        prompt_tokens_details:details})).toBeUndefined();
+    }
+  });
+
   it("preserves cache categories as subsets of reported prompt tokens", () => {
     expect(reportedChatCompletionUsage({prompt_tokens:100,completion_tokens:20,total_tokens:120,
       prompt_tokens_details:{cached_tokens:40,cache_write_tokens:10}})).toEqual({

@@ -31,6 +31,35 @@ removal remains a separate tracked request until the hosting provider confirms i
 
 ## October 25 progress
 
+### Live planning and browser execution regression repair
+
+The live compatible-provider probe exposed valid token totals being rejected
+when `prompt_tokens_details` was null. Optional null breakdowns now preserve
+reported totals without inventing cache counts; malformed breakdowns still fail.
+Fifteen provider/accounting regression tests passed locally.
+
+The next browser probe exposed duplicated rendering code inside the task control
+handler, which referenced an unavailable `root` and prevented Run from reaching
+the server. That duplicate was removed. The browser acceptance now checks the
+Run HTTP response and browser exceptions instead of only waiting for task state.
+The existing hosted package gate also caught this failure on revision 49f224d;
+its six platform unit-test jobs passed, but package acceptance failed.
+
+After repair, both the synthetic provider journey (including null usage details)
+and replay of the inspected live provider response passed browser approval,
+network-disabled Docker execution, artifact verification, service restart,
+recorded-result restoration without command replay, and final approval. The
+recorded-response run made zero paid requests and is not a new live-model run.
+External delegation/recovery browser acceptance also passed. These are disposable
+test tasks, not proof of arbitrary useful tasks or complete external-agent support.
+
+Acceptance script SHA-256:
+`5c10aafbad8b2db3e3c0cbde33729a1772691c4b8455820f8863798b144dd686`.
+Provider implementation SHA-256:
+`ff0009df17b7d5cec142ba8a5179ceb52f43ce55cbfc68535c3137d3fd80daa4`.
+Browser implementation SHA-256:
+`06014e0a99f74b035063677a011fe6d0d2fbf25c266e7e40808531d9f7f2b0c9`.
+
 Markdown exports now include a versioned AgentForge header. Selecting such a
 file through the read-only Obsidian adapter preserves its text, category, tags,
 version, creation/update timestamps, archive status and public provenance.

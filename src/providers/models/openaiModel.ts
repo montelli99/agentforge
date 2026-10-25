@@ -43,7 +43,8 @@ export function reportedChatCompletionUsage(value: unknown): ModelResponse["usag
   if (counts.some(count => typeof count !== "number" || !Number.isSafeInteger(count) || count < 0)) return undefined;
   const [promptTokens, completionTokens, totalTokens] = counts as number[];
   if (totalTokens !== promptTokens + completionTokens) return undefined;
-  const details=raw.prompt_tokens_details;
+  // Compatible providers may explicitly omit optional breakdowns with null.
+  const details=raw.prompt_tokens_details ?? undefined;
   if(details!==undefined && (!details || typeof details!=="object" || Array.isArray(details))) return undefined;
   const reported=details as Record<string,unknown>|undefined;
   const cached=reported?.cached_tokens;

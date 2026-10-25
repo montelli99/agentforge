@@ -5,6 +5,11 @@ import {mkdtemp,writeFile,readFile} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
 import http from 'node:http';
+import {createHash} from 'node:crypto';
+const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
+const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE;
+if(recordedResponse && liveModel)throw Error('Recorded and live provider modes are mutually exclusive');
+if(liveModel && (!process.env.MIMO_API_KEY || process.env.AGENTFORGE_LIVE_PLANNING_PROOF!=='1'))throw Error('Live browser proof requires explicit opt-in and a MiMo credential');
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
 
 const {ApprovedPlanProvider}=await builtModule('core/runtime/approvedPlanProvider.js');
@@ -41,12 +46,24 @@ const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw);modelRequests++;
  assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
+ if(recordedResponse){res.writeHead(200,{'Content-Type':'application/json'});res.end(await readFile(recordedResponse,'utf8'));return;}
+ if(liveModel){
+  try{
+   if(modelRequests!==1)throw Error('Live proof permits one request only');
+   const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:1500,stream:false})});
+   const response=await upstream.text();
+   await writeFile(path.join(root,'live-provider-response.json'),response);
+   res.writeHead(upstream.status,{'Content-Type':'application/json'});res.end(response);
+  }catch{res.writeHead(502,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Live proof request failed; no retry permitted'}));}
+  return;
+ }
  res.writeHead(200,{'Content-Type':'application/json'});
- res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));
+ res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30,prompt_tokens_details:null}}));
 });
 await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
+ const browserErrors=[];page.on('pageerror',error=>browserErrors.push(error.message));
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();
  await page.getByLabel('Models and routing',{exact:true}).click();
@@ -116,7 +133,17 @@ try{
  await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
  await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
  assert.equal(modelRequests,1);
- assert.deepEqual(store.getTask(taskId).executionPlanDraft.commands,plannedCommands);
+ assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
+ if(!liveModel&&!recordedResponse)assert.deepEqual(store.getTask(taskId).executionPlanDraft.commands,plannedCommands);
+ if(liveModel){
+  const plan=store.getTask(taskId).executionPlanDraft;
+  const digest=createHash('sha256').update(JSON.stringify(plan.commands)).digest('hex');
+  await writeFile(path.join(root,'review-plan.json'),JSON.stringify({model:liveModel,digest,plan,taskId},null,2));
+  console.log(JSON.stringify({status:'awaiting-test-plan-inspection',review:path.join(root,'review-plan.json'),approvalFile:path.join(root,'reviewed-digest.txt')}));
+  const until=Date.now()+300000;let reviewed=false;
+  while(Date.now()<until){try{reviewed=(await readFile(path.join(root,'reviewed-digest.txt'),'utf8')).trim()===digest;}catch{}if(reviewed)break;await new Promise(resolve=>setTimeout(resolve,500));}
+  assert.equal(reviewed,true,'The exact live plan must be inspected before browser approval');
+ }
  assert.equal(store.getTask(taskId).planningAudits.at(-1).status,'completed');
  assert.match(await page.locator('.execution-command-list').innerText(),/verified.txt/);
  assert.equal(store.getTask(taskId).approvedExecutionPlan,undefined);
@@ -124,7 +151,10 @@ try{
  await page.getByText('Approved until',{exact:false}).waitFor();
  assert.equal(store.getTask(taskId).approvedExecutionPlan.approvedBy,'user-owner');
  assert.equal(store.listTasks().some(value=>value.executionReceipts?.length),false);
+ const runResponse=page.waitForResponse(response=>response.url().endsWith('/api/tasks/'+taskId+'/run')&&response.request().method()==='POST');
  await page.getByRole('button',{name:'Run task',exact:true}).click();
+ const runResult=await runResponse;
+ assert.equal(runResult.ok(),true,JSON.stringify(await runResult.json()));
  const deadline=Date.now()+60000;
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
@@ -157,6 +187,7 @@ try{
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
  assert.equal(modelRequests,1);
- console.log(JSON.stringify({passed:true,syntheticOnly:true,syntheticModelDraft:true,oneModelRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
+ console.log(JSON.stringify({passed:true,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
 
