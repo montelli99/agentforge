@@ -71,6 +71,7 @@ function workboardProjectLabel(task){
  return task.id==='AF-142'?'Fixture record':'No linked project';
 }
 function workboardCardCheckpoint(task){
+ if(task.externalTurnReceipts?.length)return 'Review saved external run';
  if(task.executionRecovery)return 'Review interrupted execution receipt';
  if(task.status==='waiting_approval')return 'Human decision required';
  if(task.status==='verification_running')return 'Verification in progress';
@@ -82,6 +83,8 @@ function workboardCardCheckpoint(task){
  return workboardState.runtime?.canExecuteTasks?'Ready for an authorized run':'Execution offline · finish Harness setup';
 }
 function taskOutcomeLabel(task){
+ const external=task.externalTurnReceipts?.[0];
+ if(external){const status=external.observation?.remoteStatus;return (task.status==='cancelled'?'Locally cancelled · ':'')+(status?'Last external status: '+status:external.runId?'External submission accepted':'External submission uncertain')+' · completion not verified';}
  if(task.executionRecovery)return task.executionRecovery.message;
  if(task.status==='completed')return 'Complete with saved evidence';
  if(task.status==='failed')return 'Needs attention after a recorded failure';

@@ -27,5 +27,10 @@ try{
  await dialog.getByRole('button',{name:'Check external run',exact:true}).click();
  await dialog.getByText('External status: timeout. This does not verify task completion.',{exact:true}).waitFor();
  assert.equal(reads,1);assert.equal(store.getTask(task.id).status,'paused');
+ await page.reload();await page.getByLabel('Tasks and runs',{exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText('Synthetic delegated task',{exact:true})}).click();
+ await page.getByRole('dialog',{name:'Task review',exact:true}).getByText('Last external status: timeout · completion not verified',{exact:true}).waitFor();
+ assert.equal(reads,1); // Reload must not submit work or silently poll the remote agent.
+ assert.equal(await page.getByRole('dialog',{name:'Task review',exact:true}).getByRole('button',{name:'Resume',exact:true}).count(),0);
  console.log(JSON.stringify({passed:true,runReads:reads,taskStatus:'paused',modelCalls:0}));
 }finally{await browser?.close();await server.stop();}
