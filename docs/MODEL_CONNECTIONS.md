@@ -171,3 +171,28 @@ Account status distinguishes `subscription` (the official client's `claude.ai` a
 ### Explicit Codex planner model selection
 
 The optional `codex-cli` planner configuration accepts an explicit `gpt-*` model identifier rather than forcing one historical model. Choose an identifier available in your official client's model picker. `listModels()` reports the configured selection, not an entitlement lookup. AgentForge passes that selection through `-m`, keeps the existing medium reasoning/default tier and approval boundaries, and does not fall back to another model or API billing. Invalid identifiers fail before launch. See the [official CLI model flag](https://learn.chatgpt.com/docs/developer-commands?surface=cli).
+
+### Managed planner implementation status
+
+The internal Claude draft adapter now checks the selected official profile,
+requires subscription authentication, bounds the process, propagates cancellation,
+and validates initialization/activity/result events. It rejects exposed tools,
+tool activity and ambiguous results, and preserves validated usage on failures.
+Synthetic validation and a real signed-out refusal have passed. Signed-in
+inference, managed-policy isolation and the complete approval journey have not.
+It is therefore not activated by the server or advertised as a working connection.
+Event rejection detects activity; it cannot reverse an already performed effect.
+
+Gemini managed planning remains unimplemented. The implementation must use a
+deliberately selected official-client profile; headless mode can reuse an
+existing login, but a missing login must not trigger an API or Vertex fallback.
+See [Gemini authentication](https://geminicli.com/docs/get-started/authentication/).
+Select the profile with `GEMINI_CLI_HOME`, which contains the client's `.gemini`
+directory. Verify effective settings, hooks, extensions, environment loading and
+tool policy before inference; a separate home alone is not isolation proof.
+See [Gemini configuration](https://geminicli.com/docs/reference/configuration/).
+Consume the documented initialization, message, tool, error and result events;
+retain usage and reject unexpected activity or uncertain outcomes without retry.
+See [Gemini headless output](https://geminicli.com/docs/cli/headless/).
+Both managed routes must feed the same explicit plan review and isolated worker
+as other providers. They must not execute proposed commands in the CLI process.
