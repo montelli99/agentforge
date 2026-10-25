@@ -31,6 +31,16 @@ removal remains a separate tracked request until the hosting provider confirms i
 
 ## October 25 progress
 
+Markdown exports now include a versioned AgentForge header. Selecting such a
+file through the read-only Obsidian adapter preserves its text, category, tags,
+version, creation/update timestamps, archive status and public provenance.
+The selected project ID and collection must match the export; scope is never
+silently reassigned. Archived exports stay out of default recall. Ordinary and
+older unversioned Markdown remain ordinary notes. This is selected-file
+portability, not bulk migration, source deletion or automatic project remapping.
+Synthetic file round-trip and rejection cases are covered by
+`src/providers/memory/portableMarkdown.test.ts`.
+
 The real Docker interruption proof now kills the AgentForge worker after an
 approved synthetic file effect, reopens the durable store with a new runtime,
 and finds the still-running container by workspace and operation labels. It

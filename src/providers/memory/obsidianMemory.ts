@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {readPortableMarkdown} from './portableMarkdown.js';
 import type {MemoryProvider,MemoryQuery,OperationalMemoryRecord,MemorySearchResult} from '../../core/providers/memory.js';
 
 /** Explicitly selected Markdown files only. Never scans a user's vault or writes notes. */
@@ -26,17 +27,16 @@ export class ObsidianMemoryProvider implements MemoryProvider {
       while(bytesRead<bytes.length){const next=await handle.read(bytes,bytesRead,bytes.length-bytesRead,bytesRead);if(!next.bytesRead)break;bytesRead+=next.bytesRead;}
       if(bytesRead>65536)throw Error('Selected note exceeds the 64 KB limit');
       const content=new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(0,bytesRead));
-      return {id:createHash('sha256').update(file).digest('hex'),namespace:this.namespace,projectId:this.projectId,category:'general_fact',title:path.basename(file,'.md'),content,tags:['chat-context'],createdAt:stat.birthtime.toISOString(),updatedAt:stat.mtime.toISOString(),metadata:{providerId:this.id,relativePath:file,contentSha256:createHash('sha256').update(content).digest('hex'),readOnly:true}};
+      const portable=readPortableMarkdown(content,this.namespace,this.projectId);
+      return {id:createHash('sha256').update(file).digest('hex'),namespace:this.namespace,projectId:this.projectId,category:'general_fact',title:path.basename(file,'.md'),content,tags:['chat-context'],createdAt:stat.birthtime.toISOString(),updatedAt:stat.mtime.toISOString(),...portable,metadata:{...portable?.metadata,providerId:this.id,relativePath:file,contentSha256:createHash('sha256').update(content).digest('hex'),readOnly:true}};
     }finally{await handle.close();}
   }
   async query(query:MemoryQuery):Promise<MemorySearchResult[]>{
     query.signal?.throwIfAborted();
     if(query.namespace!==this.namespace||query.projectId!==this.projectId||query.globalOnly)return [];
-    if(query.categories&&!query.categories.includes('general_fact'))return [];
-    if(query.tags?.length&&!query.tags.includes('chat-context'))return [];
     const terms=(query.queryText??'').toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const matches:MemorySearchResult[]=[];
-    for(const file of this.files){query.signal?.throwIfAborted();const record=await this.read(file);query.signal?.throwIfAborted();const text=(record.title+'\n'+record.content).toLocaleLowerCase();const score=terms.filter(term=>text.includes(term)).length;if(!terms.length||score)matches.push({record,score});}
+    for(const file of this.files){query.signal?.throwIfAborted();const record=await this.read(file);query.signal?.throwIfAborted();if((record.archived&&!query.includeArchived)||(query.categories?.length&&!query.categories.includes(record.category))||(query.tags?.length&&!query.tags.every(tag=>record.tags.includes(tag))))continue;const text=(record.title+'\n'+record.content).toLocaleLowerCase();const score=terms.filter(term=>text.includes(term)).length;if(!terms.length||score)matches.push({record,score});}
     return matches.sort((a,b)=>b.score-a.score).slice(0,Math.max(0,Math.min(query.limit??20,100)));
   }
   async get(namespace:string,id:string):Promise<OperationalMemoryRecord|null>{
@@ -46,5 +46,5 @@ export class ObsidianMemoryProvider implements MemoryProvider {
   }
   async record():Promise<OperationalMemoryRecord>{throw Error('Selected Obsidian notes are read-only; edit them in your vault');}
   async delete():Promise<boolean>{throw Error('Selected Obsidian notes are read-only; disconnect a note to stop sharing it');}
-  async getDoNotRepeatRules():Promise<OperationalMemoryRecord[]>{return [];}
+  async getDoNotRepeatRules(namespace:string,projectId?:string):Promise<OperationalMemoryRecord[]>{return (await this.query({namespace,projectId,categories:['do_not_repeat'],limit:100})).map(result=>result.record);}
 }

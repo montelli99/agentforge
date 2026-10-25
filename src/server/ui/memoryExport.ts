@@ -14,6 +14,8 @@ export function memoryMarkdown(record: {
     && typeof provenance.recordId === 'string' && provenance.recordId.length <= 1024
     ? {alias: provenance.alias, providerId: provenance.providerId, recordId: provenance.recordId} : undefined;
   return ['---',
+    'agentforge_format: "agentforge-memory"',
+    'agentforge_schema: 1',
     'agentforge_id: ' + JSON.stringify(record.id),
     'agentforge_namespace: ' + JSON.stringify(record.namespace),
     'agentforge_project: ' + JSON.stringify(record.projectId || null),
