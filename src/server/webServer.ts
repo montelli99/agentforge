@@ -4034,7 +4034,7 @@ export class AgentForgeWebServer {
             : this.store.updateTask(task.id, { status: "paused" });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "authenticated-reviewer", actorType: "user", action: "TASK_RECEIPT_REVIEWED", targetType: "task", targetId: task.id, details: { decision: body.decision, operationId: receipt?.operationId ?? null, receiptDigest: receipt?.receiptDigest ?? null, previousStatus: current.status, replayed: false } });
           res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
-        } catch (error) { res.writeHead(409); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Receipt review failed" })); }
+        } catch (error) { res.writeHead(409, { "Cache-Control": "no-store" }); res.end(JSON.stringify({ error: redactRuntimeError(error, "Receipt review failed") })); }
         return;
       }
 
