@@ -53,7 +53,7 @@ const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}
 
 let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
-const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web'});
+const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web',repositoryPath:root});
 task.projectId=project.id;store.createTask(task);
 const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan);
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
@@ -64,6 +64,28 @@ try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  await page.getByLabel('Tasks and runs',{exact:true}).click();
+ await page.locator('#workboard-create').click();
+ await page.locator('#task-project').selectOption(project.id);
+ await page.locator('.task-boundary-editor summary').click();
+ const taskCount=store.listTasks().length;
+ await page.getByRole('button',{name:'Use current project revision',exact:true}).click();
+ await page.getByText('Project revision filled in. Review allowed files and the test command; no task was run.',{exact:true}).waitFor();
+ assert.equal(await page.locator('#task-base-branch').inputValue(),'main');
+ assert.equal(await page.locator('#task-base-sha').inputValue(),baseSha);
+ assert.equal(store.listTasks().length,taskCount);
+ assert.equal(store.getTask(taskId).executionReceipts?.length||0,0);
+ const anonymous=await fetch(server.getBaseUrl()+'/api/projects/'+project.id+'/execution-baseline');
+ assert.ok([401,403].includes(anonymous.status));
+ let releaseBaseline,baselineRequested;
+ const baselineHeld=new Promise(resolve=>{releaseBaseline=resolve;});
+ const baselineSeen=new Promise(resolve=>{baselineRequested=resolve;});
+ await page.route('**/execution-baseline',async route=>{const response=await route.fetch();baselineRequested();await baselineHeld;await route.fulfill({response});});
+ await page.getByRole('button',{name:'Use current project revision',exact:true}).click();
+ await baselineSeen;await page.locator('#task-base-branch').fill('user-edited-branch');releaseBaseline();
+ await page.getByText('Your selection changed. Request the revision again to keep your edits.',{exact:true}).waitFor();
+ assert.equal(await page.locator('#task-base-branch').inputValue(),'user-edited-branch');
+ await page.unroute('**/execution-baseline');
+ await page.locator('#task-modal').getByRole('button',{name:'Cancel',exact:true}).click();
  await page.getByRole('button').filter({has:page.getByText('Prove approved Docker execution',{exact:true})}).click();
  await page.locator('.task-proof-step').filter({hasText:'Plan'}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
@@ -105,6 +127,6 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
- console.log(JSON.stringify({passed:true,syntheticOnly:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ console.log(JSON.stringify({passed:true,syntheticOnly:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();}
 
