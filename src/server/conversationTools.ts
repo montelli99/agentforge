@@ -48,7 +48,7 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
   if (name !== "inspect_task" && name !== "execute_task") throw new Error("Unknown conversation tool.");
   const task = typeof args.taskId === "string" ? store.getTask(args.taskId) : undefined;
   if (!task || task.originThreadId !== threadId || task.projectId !== project.id) throw new Error("Task is not in this conversation.");
-  if (name === "inspect_task") return { task, readiness: worker?.getExecutionReadiness() };
+  if (name === "inspect_task") return { task: worker?.presentTask(task) ?? task, readiness: worker?.getExecutionReadiness() };
   if (!worker || !worker.canExecuteTasks()) throw new Error(worker?.getExecutionBlockReason() || "Execution is not configured.");
   if (!task.approvedExecutionPlan || !["ready", "approved"].includes(task.status)) throw new Error("An approved execution plan and ready task are required. Review this task before execution.");
   await new ApprovedPlanProvider(async () => task.approvedExecutionPlan).getPlan(task);

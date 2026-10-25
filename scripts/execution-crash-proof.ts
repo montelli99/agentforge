@@ -31,7 +31,9 @@ if(process.argv[2]==='child'){
   const worker=new TaskWorkerRuntime(restored,backend(root,false),{repoRoot:root,requireEffectReceipts:true,workspaceIdentity:'crash-proof'});
   let refused=false;try{await worker.executeTask(task.id);}catch(error){refused=String(error).includes('no replay permitted');}
   const effects=fs.readFileSync(path.join(root,'effects.txt'),'utf8').trim().split('\n').length;
-  const report={status:refused&&effects===1?'passed':'failed',actualChildTerminated:true,receiptBeforeCrash:'started',retryRefused:refused,effectCount:effects,taskStatusAfterRestart:restored.getTask(task.id)?.status,limitation:'Disposable file backend; proves receipt replay protection across process death, not remote-provider or Docker orphan reconciliation.'};
+  const presented=worker.presentTask(restored.getTask(task.id)!);
+  if(presented.status!=='paused'||!presented.executionRecovery)throw Error('Interrupted task was not presented for review');
+  const report={status:refused&&effects===1?'passed':'failed',actualChildTerminated:true,receiptBeforeCrash:'started',retryRefused:refused,effectCount:effects,taskStatusAfterRestart:restored.getTask(task.id)?.status,presentedStatus:presented.status,recoveryMessage:presented.executionRecovery.message,limitation:'Disposable file backend; proves receipt replay protection across process death, not remote-provider or Docker orphan reconciliation.'};
   if(process.env.AGENTFORGE_PROOF_OUTPUT)fs.writeFileSync(process.env.AGENTFORGE_PROOF_OUTPUT,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));if(report.status!=='passed')process.exitCode=1;
  }finally{if(child&&child.exitCode===null&&child.signalCode===null){const exit=once(child,'exit');child.kill('SIGKILL');await exit;}const resolved=path.resolve(root);if(!resolved.startsWith(path.resolve(os.tmpdir())+path.sep)||!path.basename(resolved).startsWith('agentforge-effect-crash-'))throw Error('Cleanup path mismatch');fs.rmSync(resolved,{recursive:true,force:true});}
 }

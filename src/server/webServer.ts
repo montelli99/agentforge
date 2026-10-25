@@ -2742,7 +2742,7 @@ export class AgentForgeWebServer {
 
     if (req.method === "GET" && path === "/api/tasks") {
       res.writeHead(200);
-      res.end(JSON.stringify(this.store.listTasks()));
+      res.end(JSON.stringify(this.store.listTasks().map(task => this.taskWorkerRuntime?.presentTask(task) ?? task)));
       return;
     }
 
@@ -3830,7 +3830,7 @@ export class AgentForgeWebServer {
         res.writeHead(200, { "Cache-Control": "no-store" });
         res.end(JSON.stringify(action === "activity"
           ? { entries: this.store.listAuditEntries({ targetType: "task", targetId: task.id, limit: 200 }), limit: 200 }
-          : { ...task, executionContractDigest: executionContractDigest(task) }));
+          : { ...(this.taskWorkerRuntime?.presentTask(task) ?? task), executionContractDigest: executionContractDigest(task) }));
         return;
       }
 

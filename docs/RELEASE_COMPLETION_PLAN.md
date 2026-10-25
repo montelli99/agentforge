@@ -49,4 +49,9 @@ the durable receipt was `started`, the restarted worker refused replay, and the
 effect count remained one. This used a file backend, not a remote provider or
 Docker orphan. The persisted task still displayed `verification_running` after
 restart, exposing an unfinished interruption/reconciliation presentation path.
+The read-only task presentation now labels an old-session active receipt as
+paused with explicit reconciliation guidance. It preserves the recorded status
+and does not assert that another worker has stopped. Repeating the actual crash
+check verified that presentation and that replay remains blocked. Remote-effect
+reconciliation and end-user recovery actions remain incomplete.
 Do not claim recovery is complete based on duplicate prevention alone.

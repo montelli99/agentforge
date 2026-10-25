@@ -71,6 +71,7 @@ function workboardProjectLabel(task){
  return task.id==='AF-142'?'Fixture record':'No linked project';
 }
 function workboardCardCheckpoint(task){
+ if(task.executionRecovery)return 'Review interrupted execution receipt';
  if(task.status==='waiting_approval')return 'Human decision required';
  if(task.status==='verification_running')return 'Verification in progress';
  if(task.status==='in_progress')return 'Work in progress';
@@ -81,6 +82,7 @@ function workboardCardCheckpoint(task){
  return workboardState.runtime?.canExecuteTasks?'Ready for an authorized run':'Execution offline · finish Harness setup';
 }
 function taskOutcomeLabel(task){
+ if(task.executionRecovery)return task.executionRecovery.message;
  if(task.status==='completed')return 'Complete with saved evidence';
  if(task.status==='failed')return 'Needs attention after a recorded failure';
  if(task.status==='waiting_approval')return 'Ready for human review';

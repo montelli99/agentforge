@@ -136,6 +136,19 @@ export class TaskWorkerRuntime {
   canExecuteTasks(): boolean { return this.getExecutionReadiness().ready; }
   getActiveTaskIds(): string[] { return [...this.activeTaskExecutions.keys()]; }
 
+  /** Read-only presentation: an old receipt is not evidence of a live local worker. */
+  presentTask(task: Task): Task & { executionRecovery?: { recordedStatus: TaskStatus; message: string } } {
+    const receipt = task.executionReceipts?.at(-1);
+    if (!receipt || receipt.runId === this.runId || this.activeTaskExecutions.has(task.id)
+      || !["in_progress", "verification_running"].includes(task.status)) return task;
+    return { ...task, status: "paused", executionRecovery: {
+      recordedStatus: task.status,
+      message: receipt.status === "observed"
+        ? "A previous worker saved execution evidence. Review and reconcile its receipt before continuing; no work was replayed."
+        : "Execution is not owned by this service session. Check the original worker and reconcile the uncertain receipt before continuing. No retry is permitted automatically.",
+    } };
+  }
+
   start(): void {
     if (this.running) return;
     const blockReason = this.getExecutionBlockReason();
