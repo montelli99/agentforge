@@ -117,6 +117,8 @@ describe("Sections 47, 48, 49: Benchmark Domain, Benchmark Everything & Empirica
     });
 
     // Re-route with same requirements
+    // Reloading the same run must not add weight or replace its original evidence.
+    router.recordBenchmarkResult({executionKind:'executor',id:'bench-measured-01',suiteId:'suite-model-tools-v1',targetType:'MODEL',targetId:'target-tier2-llama3-8b',totalCases:2,passedCases:0,failedCases:2,metrics:[],artifacts:[],passedOverall:false,executedAt:new Date().toISOString(),durationMs:1});
     const measuredDecision = router.route({
       taskType: "bug_fix",
       risk: "high",
