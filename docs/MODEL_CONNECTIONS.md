@@ -223,3 +223,25 @@ The report separates advertised controls from authentication, isolation and
 inference; all three remain unverified. Version 0.65.0 passed this inspection.
 Only select a trusted official bundle: this command executes that JavaScript
 file, and is not a code-authenticity scanner. No managed Gemini worker is enabled.
+
+### Experimental Claude subscription planner
+
+The server launcher accepts `AGENTFORGE_PLAN_PROVIDER=claude-cli` together with
+`AGENTFORGE_PLAN_CLAUDE_CONFIG`, an absolute path to a private JSON file containing
+exactly `executablePath`, `configurationDirectory`, and `model`. Select the trusted
+official executable and the profile you intend to use; all paths must be absolute,
+and the model identifier must start with `claude-`. Do not put API keys or account
+tokens in this file. AgentForge does not discover profiles or copy their credentials.
+
+Configuration loading does not launch the client. A draft request checks advertised
+client controls and official subscription authentication, then requests a bounded
+plan-only invocation with tools/MCP disabled and no session persistence. Missing
+controls, API authentication, malformed results and unknown usage fail closed; no
+API fallback or automatic retry is supplied. The host-configured planner is used
+when a plan request does not explicitly select a different connected model.
+Review and approval remain required before governed Docker execution.
+
+This route is experimental: live subscription inference, effective client isolation,
+and the complete user journey have not been accepted. Requested client flags and
+transcript checks are not an OS sandbox. This is a planner route, not streaming
+Claude chat or permission to run the official client against private repositories.

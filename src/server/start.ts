@@ -1,6 +1,8 @@
 import { readModelConnections } from "../providers/models/modelConnections.js";
 import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
 import {SubscriptionCliModelProvider,readSubscriptionCliConfiguration} from "../providers/models/subscriptionCliModel.js";
+import {ClaudeCliPlanner} from '../providers/models/claudeCliPlanner.js';
+import {readClaudeCliPlannerConfiguration} from '../providers/models/claudeCliConfiguration.js';
 import {configureIndexedServerMode,readIndexedServerConfiguration} from "../memory/indexed/serverMode.js";
 /**
  * AgentForge vNext Web Control Plane Launcher
@@ -57,9 +59,10 @@ const chatProvider = configuredConnections?.provider ?? (chatModels.length
       ? new OpenAIModelProvider(chatKey, chatBase)
       : undefined
   : undefined);
-const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
+const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct","claude-cli"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
 const cliPlanConfig=planProviderName==="codex-cli"?readSubscriptionCliConfiguration(process.env.AGENTFORGE_PLAN_CLI_CONFIG??""):undefined;
-const selectedPlanProvider=cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=cliPlanConfig?.model??chatModels[0];
+const claudePlanConfig=planProviderName==='claude-cli'?readClaudeCliPlannerConfiguration(process.env.AGENTFORGE_PLAN_CLAUDE_CONFIG??''):undefined;
+const selectedPlanProvider=claudePlanConfig?new ClaudeCliPlanner(claudePlanConfig):cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=claudePlanConfig?.model??cliPlanConfig?.model??chatModels[0];
 const planningAccounting = {requireReportedUsage:true,persist:async (audit: import("../core/runtime/executionReceipt.js").PlanningAudit)=>{const task=store.getTask(audit.taskId);if(!task)throw new Error("Planning audit task missing");if(audit.status==="started"&&(task.planningAudits??[]).some(item=>item.id!==audit.id&&item.status!=="completed"))throw new Error("Unresolved planning usage: inspect audit before another invocation.");store.updateTask(task.id,{planningAudits:[...(task.planningAudits??[]).filter(item=>item.id!==audit.id),audit]});}};
 const planDraftProvider = planProviderName === "chatgpt-direct"
   ? configureChatGPTDirectPlanner(process.env, planningAccounting)
