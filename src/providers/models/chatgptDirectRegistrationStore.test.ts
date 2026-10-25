@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { realpathSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -8,7 +8,7 @@ const hostId = 'urn:uuid:00000000-0000-4000-8000-000000000001';
 const clientId = 'mock-issued-client';
 
 function temporaryStore() {
-  const root = mkdtempSync(path.join(tmpdir(), 'agentforge-direct-registration-'));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'agentforge-direct-registration-')));
   const directory = path.join(root, 'chatgpt-direct');
   const store = new FileChatGPTDirectRegistrationStore(directory, () => hostId);
   return { root, directory, store };
@@ -82,7 +82,7 @@ describe('ChatGPT direct nonsecret registration store', () => {
   });
 
   it('rejects a junction ancestor before creating anything through it', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'agentforge-direct-junction-'));
+    const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'agentforge-direct-junction-')));
     const outside = path.join(root, 'outside');
     const alias = path.join(root, 'alias');
     mkdirSync(outside);

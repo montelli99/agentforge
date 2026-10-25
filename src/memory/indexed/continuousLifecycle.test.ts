@@ -12,7 +12,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
 });
 function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'af-memory-recovery-'));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'af-memory-recovery-')));
   roots.push(root);
   const sourceRoot = path.join(root, 'sources');
   const ownedRoot = path.join(root, 'owned');

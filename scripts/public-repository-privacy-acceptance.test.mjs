@@ -26,7 +26,9 @@ function runFixture(relativePath, contents = "synthetic fixture", { archiveTree 
         'import fs from "node:fs";',
         'import { syncBuiltinESMExports } from "node:module";',
         'const originalReadFileSync = fs.readFileSync.bind(fs);',
-        'fs.readFileSync = (...args) => { process.stderr.write(`CONTENT_READ:${String(args[0])}\\n`); return originalReadFileSync(...args); };',
+        // Node 22 may load the scanner module through readFileSync(URL).
+        // Count scanner content reads (path strings), not the module loader.
+        'fs.readFileSync = (...args) => { if (!(args[0] instanceof URL)) process.stderr.write(`CONTENT_READ:${String(args[0])}\\n`); return originalReadFileSync(...args); };',
         'syncBuiltinESMExports();',
       ].join("\n"));
       nodeArguments.push("--import", pathToFileURL(instrumentation).href);

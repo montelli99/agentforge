@@ -101,7 +101,7 @@ describe("production planning context", () => {
 
   it("uses actual JEv, indexed, and scoped operational sources in the indexed draft-plan route", async () => {
     process.env.AGENTFORGE_AUTH_STRICT = "1";
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-planning-context-"));
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-planning-context-")));
     temporaryRoots.push(root);
     fs.writeFileSync(path.join(root, "memory.md"), [
       "# Review planning reference",

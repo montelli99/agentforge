@@ -14,7 +14,7 @@ const bundlePath = fileURLToPath(new URL('./assets/offline-id-token-verifier.mjs
 const temporaryPaths: string[] = [];
 
 async function createRuntimeCopy(): Promise<string> {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-signin-runtime-'));
+  const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-signin-runtime-')));
   temporaryPaths.push(directory);
   await fs.copyFile(bundlePath, path.join(directory, 'offline-id-token-verifier.mjs'));
   return directory;
@@ -47,7 +47,7 @@ describe('verifier runtime integrity', () => {
   });
 
   it('rejects a symlinked or junction-substituted runtime path', async () => {
-    const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-signin-link-'));
+    const parent = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-signin-link-')));
     temporaryPaths.push(parent);
     const runtime = path.join(parent, 'real');
     const alias = path.join(parent, 'alias');
