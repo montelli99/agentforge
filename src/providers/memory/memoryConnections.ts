@@ -39,6 +39,8 @@ export class MemoryConnectionRegistry {
   connect(id: string, version: unknown, config: unknown, namespace: string, projectId: string) {
     const definition = this.definitions.get(id);
     if (!definition || definition.version !== version) throw new MemoryConnectionUnavailable();
+    if (typeof namespace !== 'string' || !namespace.trim() || typeof projectId !== 'string' || !projectId.trim())
+      throw Error('Select a memory namespace and project');
     if (!config || typeof config !== 'object' || Array.isArray(config)) throw Error('Invalid memory connection configuration');
     const values = config as Record<string, unknown>;
     if (Object.keys(values).some(key => !definition.fields.some(field => field.key === key))) throw Error('Unknown memory connection field');
@@ -48,7 +50,19 @@ export class MemoryConnectionRegistry {
       if (typeof value !== 'string' || value.length > 8192 || (field.required && !value.trim())) throw Error('Invalid memory connection value');
       validated[field.key] = value;
     }
-    const provider = definition.create({ namespace, projectId, config: { ...validated } });
+    let provider: MemoryProvider;
+    try {
+      provider = definition.create({ namespace, projectId, config: { ...validated } });
+      if (!provider || typeof provider !== 'object'
+        || typeof provider.id !== 'string' || !provider.id.trim() || provider.id.length > 128
+        || typeof provider.name !== 'string' || !provider.name.trim() || provider.name.length > 120
+        || ['record', 'get', 'query', 'delete', 'getDoNotRepeatRules'].some(method =>
+          typeof (provider as unknown as Record<string, unknown>)[method] !== 'function'))
+        throw Error('Incomplete provider contract');
+    } catch {
+      // Factories may include their configuration or credentials in an error.
+      throw Error('Memory provider setup failed; check the installed adapter and its configuration');
+    }
     return { provider, config: validated, version: definition.version };
   }
 }
