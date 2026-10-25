@@ -43,3 +43,10 @@ JSON artifact SHA-256:
 
 Markdown artifact SHA-256:
 `8ae6b47e8fd7655f028156004e0b85151d7823a7c75bc4f5a2250ba184f69a62`
+
+An actual child-process termination after a disposable file effect also passed:
+the durable receipt was `started`, the restarted worker refused replay, and the
+effect count remained one. This used a file backend, not a remote provider or
+Docker orphan. The persisted task still displayed `verification_running` after
+restart, exposing an unfinished interruption/reconciliation presentation path.
+Do not claim recovery is complete based on duplicate prevention alone.
