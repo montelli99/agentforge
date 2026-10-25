@@ -15,7 +15,8 @@ it('requires authenticated execution permission and observes only the saved runt
  const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(directory,'settings.json')});
  const inspect=vi.fn(async()=>({runId:'saved-run',status:'timeout'}));
  const submit=vi.fn(async()=>({runId:'submitted-run'}));
- server.registerExternalRunConnection({id:'saved-connection',inspectRun:inspect,submitSessionTurn:submit});
+ const stop=vi.fn(async()=>({acknowledged:true}));
+ server.registerExternalRunConnection({id:'saved-connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop});
  try{
   await server.start(); const base=server.getBaseUrl();
   const login=async(username:string)=>{const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'synthetic test password'})});expect(r.status).toBe(200);return (await r.json()).token as string;};
@@ -45,6 +46,12 @@ it('requires authenticated execution permission and observes only the saved runt
   const cancel=await fetch(base+'/api/tasks/'+reviewTask.id+'/cancel',{method:'POST',headers:{Authorization:'Bearer '+operator}});
   expect(cancel.status).toBe(200);expect(await cancel.json()).toMatchObject({remoteStopped:false,task:{status:'cancelled'}});
   expect(store.getTask(reviewTask.id)?.externalTurnReceipts?.[0].runId).toBe('submitted-run');
+  const stopRequest=(token:string)=>fetch(base+'/api/tasks/'+reviewTask.id+'/external-stop',{method:'POST',headers:{Authorization:'Bearer '+token}});
+  expect((await stopRequest(reader)).status).toBe(403);expect(stop).not.toHaveBeenCalled();
+  const stopped=await stopRequest(operator);expect(stopped.status).toBe(200);
+  expect(await stopped.json()).toMatchObject({stop:{status:'acknowledged'},verified:false});
+  expect(stop).toHaveBeenCalledExactlyOnceWith('selected-session','submitted-run');
+  expect((await stopRequest(operator)).status).toBe(409);expect(stop).toHaveBeenCalledTimes(1);
   const request=(token?:string,method='POST')=>fetch(base+'/api/tasks/'+task.id+'/external-observation',{method,headers:token?{Authorization:'Bearer '+token}:{}});
   expect((await request()).status).toBe(401);
   expect((await request(reader)).status).toBe(403);

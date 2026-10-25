@@ -164,7 +164,7 @@ if (gatewayUrl) {
   });
   gatewayRelay = server.telegram.createGatewayRelay(gatewayTransport);
   const registeredGateway = gatewayTransport;
-  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), inspectRun: runId => registeredGateway.inspectRun(runId), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId)});
+  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), inspectRun: runId => registeredGateway.inspectRun(runId), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId), requestRunStop:(sessionKey,runId)=>registeredGateway.requestRunStop(sessionKey,runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
 
