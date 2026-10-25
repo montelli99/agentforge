@@ -99,3 +99,10 @@ Further work requires a disposable upstream installation, source-verified event
 mapping, explicit task/session binding, and durable run reconciliation before
 chat delegation can be released. AgentForge does not inspect private runtime
 profiles or import their credentials automatically.
+
+A loopback WebSocket acceptance now verifies the actual signed challenge over
+Node's native client, interrupts a send by terminating the server connection,
+and confirms a fresh authenticated connection does not replay that send. A new
+explicit send receives the server's message ID. The server is a synthetic `ws`
+test fixture, not an installed OpenClaw runtime. Run the
+`openClawGatewayNetwork.test.ts` suite for this transport proof.
