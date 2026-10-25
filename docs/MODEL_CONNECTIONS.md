@@ -101,3 +101,9 @@ project configuration, workspace exports, or release artifacts.
 - [DeepSeek API](https://api-docs.deepseek.com/)
 - [xAI API](https://docs.x.ai/)
 - [Ollama compatibility](https://docs.ollama.com/api/openai-compatibility)
+
+## ChatGPT plan integration status
+
+The official [Sign in with ChatGPT integration guide](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) documents dynamic registration and authorized plan usage. AgentForge already contains isolated OAuth verification and a direct planner abstraction, but its sign-in command discards session tokens and never installs an active provider. The server has no completed owner-facing connection, refresh and model-selection lifecycle for this route. These components are not a working subscription-chat connection.
+
+The remaining integration must use the authorized grant and model catalog, preserve per-profile identity, handle renewal and revocation, and keep sign-in separate from consent to inference. Existing API connections must not be used as a fallback. No imported browser session, consumer cookie or unrelated application token is needed.
