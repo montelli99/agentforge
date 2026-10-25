@@ -413,3 +413,7 @@ The shared memory lookup boundary previously returned provider-owned references.
 ### Refuse observed conflicting memory revisions during planning
 
 A synthetic provider returned an old safety limit in the rule query and its correction in the topical query with the same record ID. Before the fix, worker context included the old limit and silently discarded the correction. Planning now compares duplicate record snapshots and refuses inconsistent context; identical duplicates still work. The same reproduction rejected the conflict after the change. All 13 existing task-worker tests and source/script type checks passed. This does not prove transactional consistency across remote stores or detect unreturned corrections, and no real model or account was used.
+
+### Detect duplicate conflicts before composition and truncation
+
+Moved the model-visible record fingerprint into the shared memory contract and applied it within each provider response as well as across worker lookups. Identical duplicate IDs collapse to one; differing snapshots reject the result before truncation. A synthetic direct and combined-provider diagnostic rejected a second conflicting record even with limit:1, and returned one record for identical duplicates. All 15 existing operational-memory/task-worker tests and source/script type checks passed. Conflicting meaning across different IDs or aliases remains distinct from this identity-consistency check.

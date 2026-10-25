@@ -85,3 +85,5 @@ Return structured-cloneable data from memory queries, including metadata. The sh
 ### Conflicting records during planning
 
 Planning retrieves safety rules and topical memories separately. If those lookups return the same record ID with different model-visible content, scope, source identity, category, tags or revision timestamps, context construction fails rather than silently choosing one. Identical duplicates are included once. Resolve or refresh the source before requesting a new plan. This detects observed conflicts; it does not establish a transactional snapshot across independent remote stores or detect corrections absent from all returned results.
+
+The shared lookup boundary also checks duplicate IDs within each provider response before truncating accepted results. Identical records collapse to one; conflicting records reject the lookup, including conflicts beyond the requested result limit. Combined providers therefore cannot hide a source conflict through their own duplicate removal. Different source aliases remain separate identities; this is not semantic contradiction detection between unrelated records.

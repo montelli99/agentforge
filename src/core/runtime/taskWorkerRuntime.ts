@@ -18,7 +18,7 @@ import type { CompletionEngine } from "../completion/completionEngine.js";
 import { ProcessExecutionEngine, type ProcessExecutionTrace } from "../process/processExecutionEngine.js";
 import { buildContextPacket, type ContextPacket, type ContextSource } from "../../contextPacket.js";
 import type { MemoryProvider } from "../providers/memory.js";
-import {queryMemoryBounded,memorySourceIdentity} from '../providers/memory.js';
+import {queryMemoryBounded,memorySourceIdentity,memoryContextFingerprint} from '../providers/memory.js';
 import type { ProcessStep } from "../types/process.js";
 import type { AgentTeammate } from "../types/agent.js";
 import type { ExecutionContract } from "../types/contract.js";
@@ -353,9 +353,7 @@ export class TaskWorkerRuntime {
     const seen = new Map<string, string>();
     const records = [...rules, ...topical].filter(({ record }) => {
       if(record.namespace!==scope.namespace||record.archived||(selected?record.projectId!==task.projectId:record.projectId&&record.projectId!==task.projectId))return false;
-      const snapshot = JSON.stringify([record.namespace, record.projectId, record.category,
-        record.title, record.content, [...record.tags].sort(), record.version,
-        record.createdAt, record.updatedAt, memorySourceIdentity(memory, record)]);
+      const snapshot = memoryContextFingerprint(memory, record);
       const previous = seen.get(record.id);
       if (previous !== undefined) {
         if (previous !== snapshot) throw Error('Memory changed or conflicted during planning; no consistent context is available');

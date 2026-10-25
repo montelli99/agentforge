@@ -74,6 +74,13 @@ export function memorySourceIdentity(provider: MemoryProvider, record: Operation
   return { providerId: provider.id, recordId: record.id };
 }
 
+/** Compare the fields used to select and present a memory, not engine-specific scores. */
+export function memoryContextFingerprint(provider: MemoryProvider, record: OperationalMemoryRecord): string {
+  return JSON.stringify([record.namespace, record.projectId, record.category, record.archived === true,
+    record.title, record.content, [...record.tags].sort(), record.version,
+    record.createdAt, record.updatedAt, memorySourceIdentity(provider, record)]);
+}
+
 export interface MemoryProvider {
   readonly id: string;
   readonly name: string;
@@ -109,6 +116,7 @@ export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQue
     const results = await Promise.race([stopped,request]);
     if (!Array.isArray(results) || results.length > 1000) throw Error('Invalid memory provider response');
     const accepted: MemorySearchResult[] = [];
+    const seen = new Map<string, string>();
     for (const sourceResult of results) {
       // Providers may retain and reuse their records. Validate an owned snapshot so
       // later adapter mutation cannot change the scope or content already accepted.
@@ -130,6 +138,13 @@ export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQue
         || (query.globalOnly && record.projectId !== undefined) || (!query.includeArchived && record.archived)
         || (query.categories?.length && !query.categories.includes(record.category))
         || (query.tags?.length && !query.tags.every(tag => record.tags.includes(tag)))) continue;
+      const snapshot = memoryContextFingerprint(provider, record);
+      const previous = seen.get(record.id);
+      if (previous !== undefined) {
+        if (previous !== snapshot) throw Error('Conflicting memory records returned; no consistent result is available');
+        continue;
+      }
+      seen.set(record.id, snapshot);
       if (accepted.length < limit) accepted.push(result);
     }
     return accepted;
