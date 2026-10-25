@@ -103,7 +103,14 @@ try{
  assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
  assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(created.id).contract.repository.baseSha,baseSha);
  await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
- await page.locator('.task-proof-step').filter({hasText:'Plan'}).click();
+ await page.locator('[data-section="boundaries"]').click();
+ await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
+ const boundaryEditor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});
+ assert.equal(await boundaryEditor.getByLabel('Required output files · one exact path per line',{exact:true}).inputValue(),'artifacts/verified.txt');
+ await boundaryEditor.getByRole('button',{name:'Save boundaries',exact:true}).click();
+ await boundaryEditor.waitFor({state:'hidden'});
+ assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
+ await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption('compatible::synthetic-model');
  await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();

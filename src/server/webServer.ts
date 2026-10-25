@@ -4079,6 +4079,9 @@ export class AgentForgeWebServer {
           || typeof body.baseSha !== "string" || !shaPattern.test(body.baseSha)
           || !isStringList(body.allowedPaths) || body.allowedPaths.length === 0
           || !isStringList(body.protectedPaths)
+          || (body.requiredOutputPaths !== undefined && (!isStringList(body.requiredOutputPaths)
+            || body.requiredOutputPaths.some((value: string) => !/^[a-zA-Z0-9_.][a-zA-Z0-9_./-]*$/.test(value)
+              || value.split('/').some(part => !part || part === '.' || part === '..'))))
           || !validChecks) {
           res.writeHead(400); res.end(JSON.stringify({ error: "Provide the current task version, a branch, full Git SHA, allowed/protected paths, and at least one bounded command." })); return;
         }
@@ -4098,7 +4101,9 @@ export class AgentForgeWebServer {
           scope: { ...current.contract.scope, allowedPaths: body.allowedPaths.map((path: string) => path.trim()), protectedPaths: body.protectedPaths.map((path: string) => path.trim()) },
           authority: { externalMessage: false, productionWrite: false, deployment: false, forcePush: false, deleteFiles: false, networkOutbound: false },
           requiredChecks: checks.map(check => ({ type: check.type as VerificationCheckType, required: check.required, command: check.command.trim(), ...(check.timeoutMs === undefined ? {} : { timeoutMs: check.timeoutMs }) })),
-          completion: { requireEvidencePack: true, requireHumanApproval: true },
+          completion: { ...current.contract.completion, requireEvidencePack: true, requireHumanApproval: true,
+            ...(body.requiredOutputPaths === undefined ? {} : {requiredArtifacts: [...new Set(body.requiredOutputPaths as string[])].map(outputPath =>
+              current.contract.completion.requiredArtifacts?.find(artifact => artifact.path === outputPath) ?? {path: outputPath})}) },
           createdAt: new Date().toISOString(),
         };
         const approvalInvalidated = Boolean(current.approvedExecutionPlan);
