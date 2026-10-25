@@ -163,3 +163,5 @@ Run `agentforge connections inspect-claude <absolute-official-client-path>` to i
 ### Explicit Claude account-status inspection
 
 Run `agentforge connections claude-status <absolute-official-client-path> <absolute-profile-directory>` to ask the selected official client whether that profile is signed in. The command returns only `loggedIn` and `inferenceVerified: false`; it never reads token files or returns account identifiers. A signed-out profile exits with code 1. This is an authentication-status check, not proof of model entitlement, inference, or execution isolation. Select only a trusted official executable and a profile you intend to inspect.
+
+The guided subscription setup includes **Check Claude client account**. Host operators opt in by setting `AGENTFORGE_CLAUDE_EXECUTABLE` and `AGENTFORGE_CLAUDE_PROFILE_DIRECTORY` to explicit absolute paths before starting the service. The browser cannot choose either path. The check requires an authenticated owner or administrator with settings permission, permits one check at a time, and does not activate a chat model. Do not configure an executable you do not trust.

@@ -1,5 +1,6 @@
 import { ConnectionSetup } from './connectionSetup.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
+import { inspectClaudeCliAuthentication } from '../providers/models/claudeCliCapabilities.js';
 import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
@@ -392,6 +393,7 @@ export class AgentForgeWebServer {
   private readonly settingsFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
   private readonly chatgptSetup: ChatGPTSetup;
+  private claudeStatusPending = false;
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -3032,6 +3034,24 @@ export class AgentForgeWebServer {
 
     if (path === "/api/chat/status" && req.method === "GET") {
       res.writeHead(200); res.end(JSON.stringify(this.conversations.status())); return;
+    }
+    if(path === '/api/connections/claude/status') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect subscription accounts.'})); return; }
+      if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      // Browser requests cannot select executables or account directories on the host.
+      const executable = process.env.AGENTFORGE_CLAUDE_EXECUTABLE;
+      const profile = process.env.AGENTFORGE_CLAUDE_PROFILE_DIRECTORY;
+      if (!executable || !profile) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferenceVerified:false})); return; }
+      if (this.claudeStatusPending) { res.writeHead(409); res.end(JSON.stringify({error:'An account check is already running.'})); return; }
+      this.claudeStatusPending = true;
+      try {
+        const result = await inspectClaudeCliAuthentication(executable, profile);
+        res.writeHead(200); res.end(JSON.stringify({configured:true,...result}));
+      } catch { res.writeHead(400); res.end(JSON.stringify({error:'The official Claude client could not verify account status. Check the host configuration and official client sign-in.'})); }
+      finally { this.claudeStatusPending = false; }
+      return;
     }
     if(path.startsWith('/api/connections/chatgpt/')){
       res.setHeader('Cache-Control','no-store');

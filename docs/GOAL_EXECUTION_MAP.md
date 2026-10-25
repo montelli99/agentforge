@@ -389,3 +389,7 @@ Added a public capability-inspection function and CLI command using the bounded 
 ### Claude authentication status exposed through the CLI
 
 Added bounded official-client auth-status inspection and a CLI command using an explicitly selected configuration directory. Output is reduced to loggedIn and inferenceVerified:false; provider account fields are discarded. A real official 2.1.310 client with an isolated signed-out profile returned loggedIn:false and exit 1 through the built CLI. Source/script type checks and build/browser syntax passed. No credentials, sign-in, or inference were used. Authenticated model execution and GUI connection wiring remain incomplete.
+
+### Guided Claude account inspection
+
+Connected the subscription guide to an authenticated, owner/admin-only status endpoint. Executable and profile selection are host-only environment settings; browser input cannot select host programs or directories. Concurrent checks are refused and provider errors are sanitized. A temporary built server returned 401 for anonymous access, 403 for a viewer, and configured:false/inferenceVerified:false for an owner without host configuration. The first synthetic probe collided with the seeded owner username before starting its server; the corrected distinct-username probe produced the results above. Ten existing setup-route tests, type checks and build/browser-script syntax passed. Rendered UI acceptance and authenticated inference remain unverified; this feature does not activate a Claude worker.
