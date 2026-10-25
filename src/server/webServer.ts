@@ -51,6 +51,7 @@ import type { AgentTeammate, HarnessPolicy, ModelPolicy, DecisionPolicy, Compute
 import type { TaskPriority, TaskStatus } from "../core/types/task.js";
 import { UniversalMirrorRouter } from "../core/mirror/universalMirrorRouter.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
+import {ObsidianMemoryProvider} from '../providers/memory/obsidianMemory.js';
 import type { MemoryCategory } from "../core/providers/memory.js";
 import { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider, executionContractDigest, type ApprovedPlanRecord } from "../core/runtime/approvedPlanProvider.js";
@@ -2888,6 +2889,24 @@ export class AgentForgeWebServer {
       const records = await this.operationalMemory.query({ namespace, queryText, includeArchived: url.searchParams.get("includeArchived") === "true" });
       res.writeHead(200);
       res.end(JSON.stringify(records.map(result => result.record)));
+      return;
+    }
+
+    if(path==='/api/memory/connection'&&req.method==='POST'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end(JSON.stringify({error:'Sign in to manage memory connections.'}));return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')||!hasPermission(caller.permissions,'memory:write')){res.writeHead(403);res.end(JSON.stringify({error:'Memory connections require an owner or administrator.'}));return;}
+      try{
+        const body=await this.readBody(req);
+        await this.conversations.changeMemory(async()=>{
+          if(body.action==='disconnect')return {memoryNamespace:undefined,memoryProvider:undefined};
+          if(body.action!=='obsidian'||body.confirmSharing!==true||typeof body.root!=='string'||body.root.length>4096||typeof body.namespace!=='string'||!body.namespace.trim()||body.namespace.length>120||typeof body.projectId!=='string'||!this.store.getSpace(body.projectId)||this.store.getSpace(body.projectId)?.archived||!Array.isArray(body.files)||!body.files.length||body.files.length>100||body.files.some(file=>typeof file!=='string'||file.length>1024))throw Error('Invalid memory selection');
+          const memoryProvider=new ObsidianMemoryProvider(body.root,body.namespace.trim(),body.projectId,body.files as string[]);
+          await memoryProvider.query({namespace:body.namespace.trim(),projectId:body.projectId,limit:1});
+          return {memoryNamespace:body.namespace.trim(),memoryProvider};
+        });
+        res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:'session-only'}));
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Memory connection unchanged. Connect a model first, finish active responses, and check the selected project, vault and Markdown paths. Notes must be regular files under 64 KB; linked paths are not supported.'}));}
       return;
     }
 

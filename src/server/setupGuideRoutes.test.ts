@@ -51,6 +51,18 @@ describe("Setup Guide API", () => {
     expect(fs.existsSync(path.join(dataDirectory,'subscription-accounts'))).toBe(false);
     const saved = await request('/api/connections/save',owner,body);
     expect(saved.status).toBe(200);
+    const workspace=store.createWorkspace({name:'Synthetic notes'});
+    const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic notes',provider:'web'});
+    fs.writeFileSync(path.join(dataDirectory,'note.md'),'Synthetic selected memory');
+    const memorySelection={action:'obsidian',namespace:'synthetic',root:dataDirectory,projectId:project.id,files:['note.md'],confirmSharing:true};
+    expect((await request('/api/memory/connection','',memorySelection)).status).toBe(401);
+    expect((await request('/api/memory/connection',viewer,memorySelection)).status).toBe(403);
+    expect((await request('/api/memory/connection',owner,{...memorySelection,confirmSharing:false})).status).toBe(400);
+    expect((await request('/api/memory/connection',owner,memorySelection)).status).toBe(200);
+    expect(server.conversations.status().memoryProvider).toBe('obsidian');
+    expect((await request('/api/memory/connection',owner,{action:'disconnect'})).status).toBe(200);
+    expect(server.conversations.status().projectMemoryEnabled).toBe(false);
+    expect(fs.readFileSync(path.join(dataDirectory,'note.md'),'utf8')).toBe('Synthetic selected memory');
     const status = await saved.text(); expect(status).toContain('synthetic::synthetic-model');expect(status).not.toContain(body.apiKey);expect(status).not.toContain(body.passphrase);
     const vault = fs.readFileSync(path.join(dataDirectory,'connections.encrypted.json'),'utf8');
     expect(vault).not.toContain(body.apiKey);expect(vault).not.toContain(body.passphrase);

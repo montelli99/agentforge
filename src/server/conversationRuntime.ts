@@ -22,6 +22,12 @@ export interface ConversationConfiguration {
 export class ConversationRuntime {
   private closed = false;
   private changingConnection = false;
+  async changeMemory(load:()=>Promise<{memoryNamespace?:string;memoryProvider?:MemoryProvider}>){
+    return this.changeConnection(async()=>{
+      if(!this.config?.models.length)throw Error('Connect a chat model first.');
+      const memory=await load();return {...this.config,...memory};
+    });
+  }
   async disconnectConnection<T>(providers: readonly GenerativeModelProvider[], remove:()=>Promise<T>):Promise<T> {
     if(this.closed||this.active.size||this.changingConnection)throw Error('Finish or stop active responses before disconnecting.');
     this.changingConnection=true;
@@ -49,7 +55,7 @@ export class ConversationRuntime {
   status() {
     return { connectionCatalog: modelConnectionCatalog, subscriptionCatalog: subscriptionConnectionCatalog, connections: this.config?.connections || [], configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null,
       models: this.config?.models || [], activeThreads: [...this.active.keys()], supportsAttachments: true, attachmentFormats: ["text/plain", "text/markdown", "text/csv", "application/json"], execution: this.worker?.getExecutionReadiness(),
-      projectMemoryEnabled: Boolean(this.config?.memoryNamespace) };
+      projectMemoryEnabled: Boolean(this.config?.memoryNamespace),memoryProvider:this.config?.memoryNamespace?(this.config.memoryProvider?.id??'agentforge_operational'):null };
   }
 
   modelConnection(model: string) {
