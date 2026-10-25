@@ -199,3 +199,27 @@ an old receipt from silently targeting the new configuration. This is configurat
 binding, not cryptographic proof of the remote server's identity. Six targeted
 transport/HTTP tests and type checking passed, including option mutation and IPv6
 loopback validation. Credential rotation requires explicit future rebinding logic.
+
+### Integrated API and browser recovery checkpoint
+
+The API now supports listing configured runtime IDs, preparing an exact pending
+review, and submitting that exact request after approval. HTTP tests reject
+unregistered destinations, unapproved submissions, changed messages and duplicate
+submissions. The runtime URL and credentials cannot be supplied through these APIs.
+Review text explains that an external runtime has its own tools and permissions;
+AgentForge's local execution contract is not enforced inside that runtime.
+
+A full local regression run at 45f8d20 passed 803 tests with 2 skipped across
+136 files. Later browser changes were checked separately: a fresh browser signed
+in, opened a synthetic external task, checked its saved run once, then reloaded.
+The last timeout status remained visible, completion remained unverified, and
+local Resume stayed hidden. No model call was made. The check is now included in
+hosted acceptance and the installed-archive runner. Hosted acceptance of the final
+head is still required; earlier passing revisions do not cover later changes.
+
+Cancelling an external task currently cancels only AgentForge's local record.
+Both the confirmation and response disclose that the remote run may continue;
+the saved receipt is retained. Remote cancellation, guided connection setup,
+chat-to-delegation review UI, actual model-backed task acceptance, artifact/result
+verification and Hermes integration remain open. No stable-release or comparative
+superiority claim follows from this checkpoint.
