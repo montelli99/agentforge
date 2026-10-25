@@ -108,3 +108,36 @@ export async function validateDirectTokenResponse(callback: ValidatedCallback, r
     tokenType: 'Bearer', scopes: Object.freeze(scopes), expiresAt };
   return { credentials, grant: { accountId: claims.sub, grantId, resource, scopes: [...scopes], expiresAt } };
 }
+
+/** Validate renewal of an already verified registration. Never use this to
+ * establish a new account: the prior record supplies the immutable identity. */
+export async function validateDirectRefreshResponse(previous: DirectCredentials, response: unknown,
+  verifier: IdentityTokenVerifier, now: () => number = Date.now): Promise<DirectCredentials> {
+  const r = response as Record<string, unknown> | null;
+  if (!text(previous.clientId,256) || previous.clientId==='dynamic_agent_client' || !text(previous.subject,256)
+    || previous.issuer!==issuer || previous.resource!==resource || !text(previous.refreshToken)
+    || previous.tokenType!=='Bearer' || !text(previous.idToken) || !Array.isArray(previous.scopes)
+    || previous.scopes.some(scope=>!directOAuthScopes.includes(scope))
+    || !r || !text(r.access_token) || !text(r.refresh_token) || r.token_type!=='Bearer'
+    || !Number.isSafeInteger(r.expires_in) || (r.expires_in as number)<=0 || (r.expires_in as number)>86400
+    || (r.scope!==undefined && typeof r.scope!=='string') || (r.id_token!==undefined && !text(r.id_token))) {
+    throw Error('Invalid OAuth renewal response');
+  }
+  const scopes=r.scope===undefined?[...previous.scopes]:(r.scope as string).split(/\s+/).filter(Boolean);
+  if (!['resource.invoke','chatgpt.tokens.use.direct'].every(scope=>scopes.includes(scope))
+    || scopes.some(scope=>!previous.scopes.includes(scope)) || new Set(scopes).size!==scopes.length) {
+    throw Error('OAuth renewal permission missing or expanded');
+  }
+  if (r.id_token!==undefined) {
+    let claims:VerifiedIdentity;
+    try { claims=await verifier.verifySignature(r.id_token as string); }
+    catch { throw Error('OAuth renewal identity validation failed'); }
+    const audiences=typeof claims.aud==='string'?[claims.aud]:claims.aud;
+    if (claims.iss!==issuer || claims.sub!==previous.subject || !Array.isArray(audiences)
+      || audiences.length!==1 || audiences[0]!==previous.clientId || !Number.isSafeInteger(claims.exp)
+      || claims.exp*1000<=now()) throw Error('OAuth renewal identity mismatch');
+  }
+  return {...previous,accessToken:r.access_token,refreshToken:r.refresh_token,
+    idToken:r.id_token===undefined?previous.idToken:r.id_token as string,
+    scopes:Object.freeze(scopes),expiresAt:now()+(r.expires_in as number)*1000};
+}

@@ -170,3 +170,12 @@ response identity/grant validation, atomic token replacement and UI activation
 still need integration; this transport alone is not automatic renewal. The shared
 JSON helper now also redacts fetch exceptions, closing a network-error disclosure
 path in sign-in/catalog calls. Twelve runtime tests and full typechecking passed.
+
+Renewal response validation now preserves the existing registration, requires a
+replacement refresh token and usable access-token lifetime, rejects scope
+expansion, and checks any returned signed identity against the selected subject,
+issuer and client. It retains the prior identity hint when no ID token is returned.
+Verifier failures are redacted. Focused OAuth tests passed; full typechecking
+passed before the additional prior-record shape guard. This validation is not yet
+wired to automatic refresh; cross-process coordination, durable interruption
+handling, credential replacement and activation remain unfinished.
