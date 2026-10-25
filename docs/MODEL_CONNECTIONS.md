@@ -183,13 +183,23 @@ inference, managed-policy isolation and the complete approval journey have not.
 It is therefore not activated by the server or advertised as a working connection.
 Event rejection detects activity; it cannot reverse an already performed effect.
 
-Gemini managed planning remains unimplemented. The implementation must use a
+Gemini managed planning remains disabled and incomplete. Its internal stream
+validator now checks a single initialization, the exact requested model and
+prompt, assistant text deltas, a final successful result and zero tool calls.
+It rejects unexpected activity and retains valid usage when rejecting a result.
+Synthetic protocol checks passed; this is not live inference or isolation proof.
+The implementation must use a
 deliberately selected official-client profile; headless mode can reuse an
 existing login, but a missing login must not trigger an API or Vertex fallback.
 See [Gemini authentication](https://geminicli.com/docs/get-started/authentication/).
 Select the profile with `GEMINI_CLI_HOME`, which contains the client's `.gemini`
 directory. Verify effective settings, hooks, extensions, environment loading and
 tool policy before inference; a separate home alone is not isolation proof.
+The inspected official 0.65.0 client also processes `@` file references before
+inference. Model tool denial does not prevent that preprocessing. Managed
+activation must prevent unintended prompt-driven file expansion and verify the
+effective input, rather than treating a zero-tool transcript as proof that no
+files were accessed. No automatic prompt rewrite or credential copying is enabled.
 See [Gemini configuration](https://geminicli.com/docs/reference/configuration/).
 Consume the documented initialization, message, tool, error and result events;
 retain usage and reject unexpected activity or uncertain outcomes without retry.
