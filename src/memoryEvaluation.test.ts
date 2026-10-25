@@ -5,6 +5,7 @@ import { DurableEvaluationJournal } from './durableEvaluationJournal.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { spawn } from 'node:child_process';
 
 describe("memory evaluation", () => {
   it("measures relevance, isolation, and packet compression", async () => {
@@ -35,6 +36,29 @@ describe("memory evaluation", () => {
       expect((await fs.readFile(output+'.events.jsonl','utf8')).trim().split('\n').map(line=>JSON.parse(line).status)).toEqual(['started','failed']);
       await expect(DurableEvaluationJournal.create(output)).rejects.toThrow();
       expect(JSON.parse(await fs.readFile(output,'utf8')).attempts[0].status).toBe('failed');
+      const interruptedOutput=path.join(directory,'interrupted.json');
+      const source=new URL('./durableEvaluationJournal.ts',import.meta.url).href;
+      const child=spawn(process.execPath,['--import','tsx','--input-type=module','-e',
+        `const {DurableEvaluationJournal}=await import(${JSON.stringify(source)});
+         const journal=await DurableEvaluationJournal.create(process.argv[1]);
+         await journal.checkpoint({type:'attempt',status:'started'},{complete:false,attempts:[{status:'started'}]});
+         process.stdout.write('checkpoint-ready');setInterval(()=>{},1000);`,interruptedOutput],
+        {stdio:['ignore','pipe','pipe'],windowsHide:true});
+      const exited=new Promise<void>(resolve=>child.once('close',()=>resolve()));
+      try {
+        await new Promise<void>((resolve,reject)=>{
+          const timer=setTimeout(()=>reject(Error('Evaluation child did not checkpoint')),20000);
+          let text='';
+          child.stdout.on('data',chunk=>{text+=String(chunk);if(text.includes('checkpoint-ready')){clearTimeout(timer);resolve();}});
+          child.once('error',error=>{clearTimeout(timer);reject(error);});
+          child.once('exit',()=>{clearTimeout(timer);reject(Error('Evaluation child exited before interruption'));});
+        });
+      } finally { child.kill('SIGKILL');await exited; }
+      const recovered=JSON.parse(await fs.readFile(interruptedOutput,'utf8'));
+      expect(recovered.complete).toBe(false);
+      expect(recovered.attempts).toEqual([{status:'started'}]);
+      expect((await fs.readFile(interruptedOutput+'.events.jsonl','utf8')).trim().split('\n').map(line=>JSON.parse(line).status)).toEqual(['started']);
+      await expect(DurableEvaluationJournal.create(interruptedOutput)).rejects.toThrow();
     } finally { await fs.rm(directory,{recursive:true,force:true}); }
   });
 });

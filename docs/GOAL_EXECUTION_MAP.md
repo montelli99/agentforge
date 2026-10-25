@@ -244,3 +244,11 @@ overwrite refusal, and typechecking passed. No paid request or new competitive
 comparison was run. Power-loss durability and actual process-kill recovery of
 this journal remain unproven; the ablation is still only a recall experiment,
 not a full-agent superiority result.
+
+A real child-process termination now exercises the evaluation journal. The
+child flushes a started-attempt checkpoint, signals readiness, and is killed
+without closing its journal. The parent reads the intact incomplete report and
+started event, and verifies a fresh writer cannot overwrite that attempt.
+The local regression and full typecheck passed. This establishes this specific
+post-checkpoint process-termination case, not power-loss survival, termination
+during a write, or knowledge of an uncertain remote provider's billing/result.
