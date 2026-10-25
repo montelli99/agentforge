@@ -393,7 +393,7 @@ export class AgentForgeWebServer {
   private readonly settingsFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
   private readonly chatgptSetup: ChatGPTSetup;
-  private claudeStatusPending = false;
+  private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -3044,13 +3044,20 @@ export class AgentForgeWebServer {
       const executable = process.env.AGENTFORGE_CLAUDE_EXECUTABLE;
       const profile = process.env.AGENTFORGE_CLAUDE_PROFILE_DIRECTORY;
       if (!executable || !profile) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferenceVerified:false})); return; }
-      if (this.claudeStatusPending) { res.writeHead(409); res.end(JSON.stringify({error:'An account check is already running.'})); return; }
-      this.claudeStatusPending = true;
+      if (this.claudeStatusCheck) { res.writeHead(409); res.end(JSON.stringify({error:'An account check is already running.'})); return; }
+      const controller = new AbortController();
+      const check = {controller, result: inspectClaudeCliAuthentication(executable, profile, controller.signal)};
+      this.claudeStatusCheck = check;
+      const disconnect = () => { if (!res.writableEnded) controller.abort(); };
+      res.once('close', disconnect);
       try {
-        const result = await inspectClaudeCliAuthentication(executable, profile);
+        const result = await check.result;
         res.writeHead(200); res.end(JSON.stringify({configured:true,...result}));
       } catch { res.writeHead(400); res.end(JSON.stringify({error:'The official Claude client could not verify account status. Check the host configuration and official client sign-in.'})); }
-      finally { this.claudeStatusPending = false; }
+      finally {
+        res.removeListener('close', disconnect);
+        if (this.claudeStatusCheck === check) this.claudeStatusCheck = undefined;
+      }
       return;
     }
     if(path.startsWith('/api/connections/chatgpt/')){
@@ -4868,6 +4875,11 @@ export class AgentForgeWebServer {
 
   async stop(): Promise<void> {
     this.conversations.shutdown();
+    const claudeCheck = this.claudeStatusCheck;
+    if (claudeCheck) {
+      claudeCheck.controller.abort();
+      await claudeCheck.result.catch(() => undefined);
+    }
     await this.chatgptSetup.shutdown();
     this.indexedMemory?.close();
     if (this.taskWorkerRuntime) {
