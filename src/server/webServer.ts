@@ -3968,6 +3968,18 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === 'survivors') {
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+        res.setHeader('Cache-Control', 'no-store');
+        try {
+          if (!this.taskWorkerRuntime) throw Error('Worker unavailable');
+          const result = await this.taskWorkerRuntime.inspectExecutionSurvivors(task.id);
+          res.writeHead(200); res.end(JSON.stringify(result));
+        } catch { res.writeHead(409); res.end(JSON.stringify({error:'Survivor discovery unavailable or task changed. No work was replayed or reconciled.'})); }
+        return;
+      }
       if (action === "receipt" || action === "resolve-receipt") {
         if (!hasPermission(caller.permissions, "tasks:read")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:read" })); return;

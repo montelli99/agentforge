@@ -20,6 +20,7 @@ import type {
 } from "../providers/compute.js";
 
 const execFileAsync = promisify(execFile);
+const operationIdPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 
 async function workspaceLabel(directory: string): Promise<string> {
   const canonical = await realpath(directory);
@@ -101,10 +102,12 @@ export class DockerComputeProvider implements ComputeProvider {
   /** Read-only discovery after restart. Labels identify candidates, not proof
    * that a worker is dead or that an effect completed. Never replay or remove here.
    */
-  async listWorkspaceContainers(worktreeDir: string): Promise<Array<{id: string; state: string}>> {
+  async listWorkspaceContainers(worktreeDir: string, operationId?: string): Promise<Array<{id: string; state: string}>> {
+    if (operationId !== undefined && !operationIdPattern.test(operationId)) throw Error('Invalid execution operation identity');
     const digest = await workspaceLabel(worktreeDir);
     const {stdout} = await execFileAsync('docker', ['ps', '--all', '--no-trunc',
       '--filter', 'label=io.agentforge.managed=1', '--filter', `label=io.agentforge.workspace=${digest}`,
+      ...(operationId ? ['--filter', `label=io.agentforge.operation=${operationId}`] : []),
       '--format', '{{json .}}'], {timeout: 10000, maxBuffer: 1024 * 1024});
     const lines = stdout.trim().split(/\r?\n/).filter(Boolean);
     if (lines.length > 1000) throw Error('Too many workspace containers to reconcile');
@@ -152,6 +155,7 @@ export class DockerComputeProvider implements ComputeProvider {
     command: string,
     options: ExecutionCommandOptions = {},
   ): Promise<CommandExecutionResult> {
+    if (options.operationId !== undefined && !operationIdPattern.test(options.operationId)) throw Error('Invalid execution operation identity');
     const env = this.environments.get(environmentId);
     if (!env || env.status !== "running") {
       throw new Error(`Docker sandbox environment ${environmentId} not found or not running`);
@@ -176,6 +180,7 @@ export class DockerComputeProvider implements ComputeProvider {
       '--label', 'io.agentforge.managed=1',
       '--label', `io.agentforge.workspace=${await workspaceLabel(env.workingDirectory)}`,
       '--label', `io.agentforge.environment=${environmentId}`);
+    if (options.operationId) dockerArgs.splice(1, 0, '--label', `io.agentforge.operation=${options.operationId}`);
     dockerArgs[0] = "create";
     dockerArgs.splice(dockerArgs.indexOf("--rm"), 1);
     const controller = new AbortController();

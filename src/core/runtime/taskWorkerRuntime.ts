@@ -49,13 +49,14 @@ export interface TaskExecutionOutput {
  * execution, and evidence collection. The runtime never fabricates any of them.
  */
 export interface TaskExecutionBackend {
+  inspectSurvivors?(input: {worktreePath: string; operationId: string}): Promise<Array<{id: string; state: string}>>;
   getReadiness(): ExecutionReadiness;
   validateTask?(task: Task): Promise<void>;
   /** False when all effects must come exclusively from the approved command plan. */
   allowsGovernedProcesses?: boolean;
   /** Optional provider hook for executing an already-authorized process step. */
   executeProcessStep?(input: { step: ProcessStep; taskId: string; agent: AgentTeammate; contract: ExecutionContract; worktreePath: string }): Promise<{ output?: string }>;
-  execute(input: { task: Task; worktreePath: string; signal: AbortSignal; contextPacket?: ContextPacket }): Promise<TaskExecutionOutput>;
+  execute(input: { task: Task; worktreePath: string; signal: AbortSignal; contextPacket?: ContextPacket; operationId?: string }): Promise<TaskExecutionOutput>;
 }
 
 /** Backends throw this only after execution and resource cleanup have settled. */
@@ -279,7 +280,7 @@ export class TaskWorkerRuntime {
         details: { packetId: contextPacket.id, sourceCount: contextPacket.sources.length, originalTokens: contextPacket.originalTokens, packedTokens: contextPacket.packedTokens },
       });
       if (receipt) validateReceipt(currentTask,receipt,this.options.workspaceIdentity??"",worktreePath);
-      const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket });
+      const output = await this.executionBackend.execute({ task: currentTask, worktreePath, signal: abortController.signal, contextPacket, operationId: receipt?.operationId });
       if (abortController.signal.aborted) throw new TaskExecutionCancelledError();
       const evidence = this.createEvidencePack(currentTask, output, processTrace);
       const verifiedPassed = requiredChecksPassedByEvidence(currentTask, output.testResults)
@@ -394,6 +395,18 @@ export class TaskWorkerRuntime {
 
   private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
   reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(['completed','cancelled'].includes(task.status))throw Error('Finished tasks cannot be resolved again');if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage unknown: reconcile audit before restoring execution');if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');if(task.contract.completion.requireHumanApproval){const approval=receipt.evidence.approvalId?this.store.getApproval(receipt.evidence.approvalId):undefined;if(!approval||approval.taskId!==task.id||approval.status!=='pending')throw Error('Recorded result requires its original pending approval; reconcile approval before restoring');}const status:TaskStatus=task.contract.completion.requireHumanApproval?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
+  async inspectExecutionSurvivors(taskId: string) {
+    const task = this.requireTask(taskId), receipt = task.executionReceipts?.at(-1);
+    if (!receipt) throw Error('No operation-bound receipt to inspect');
+    validateReceipt(task, receipt, this.options.workspaceIdentity ?? '', task.worktree?.worktreePath ?? this.options.repoRoot ?? process.cwd());
+    if (!this.executionBackend?.inspectSurvivors) throw Error('This backend does not support survivor discovery');
+    const containers = await this.executionBackend.inspectSurvivors({worktreePath: receipt.worktreePath, operationId: receipt.operationId});
+    const current = this.requireTask(taskId);
+    if (current.updatedAt !== task.updatedAt || current.executionReceipts?.at(-1)?.receiptDigest !== receipt.receiptDigest)
+      throw Error('Task changed during discovery; refresh before reviewing');
+    return {operationId: receipt.operationId, containers, replayed: false, reconciled: false};
+  }
+
   async cancelTask(taskId: string): Promise<Task> {
     const task = this.requireTask(taskId);
     if (task.status === "completed") throw new Error("Completed tasks cannot be cancelled.");

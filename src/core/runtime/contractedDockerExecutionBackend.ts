@@ -56,6 +56,9 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     this.dockerBlocker = availability.available ? "" : availability.error || "Docker is unavailable.";
     return this.getReadiness();
   }
+  async inspectSurvivors(input: {worktreePath: string; operationId: string}) {
+    return this.docker.listWorkspaceContainers(input.worktreePath, input.operationId);
+  }
 
   getReadiness(): ExecutionReadiness {
     const plan = this.planProvider.getReadiness();
@@ -81,7 +84,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     this.assertPlan(task, await this.planProvider.getPlan(task));
   }
 
-  async execute(input: { task: Task; worktreePath: string; signal: AbortSignal }): Promise<TaskExecutionOutput> {
+  async execute(input: { task: Task; worktreePath: string; signal: AbortSignal; operationId?: string }): Promise<TaskExecutionOutput> {
     const readiness = this.getReadiness();
     if (!readiness.ready) throw new Error(readiness.blockers.join(" "));
     if (!input.task.contract.workspace.requireIsolatedWorktree) {
@@ -112,6 +115,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
         if (input.signal.aborted) throw new TaskExecutionCancelledError();
         const startedAt = new Date().toISOString();
         const result = await this.docker.executeCommand(environment.id, plannedCommand.command, {
+          operationId: input.operationId,
           timeoutMs: plannedCommand.timeoutMs,
           signal: input.signal,
         });

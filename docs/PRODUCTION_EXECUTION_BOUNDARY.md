@@ -161,6 +161,10 @@ in-memory environment map. No raw workspace path or command is placed in labels.
 Discovery is not reconciliation: a matching container may belong to a live worker,
 and its state does not establish whether a command's effects completed. The method
 does not stop containers, approve results or replay commands. Older containers
-without these labels are not discovered. Operation-receipt association, orphan
-review UI and crash-during-Docker acceptance remain unfinished.
+without these labels are not discovered. Receipt-governed execution now passes
+its operation UUID into each command container's labels. The authenticated
+`GET /api/tasks/:id/survivors` endpoint requires task-read permission, validates
+the receipt and scopes discovery to both its workspace and operation. A changed
+task invalidates the lookup. Empty results do not prove that effects never
+occurred. Orphan review UI and crash-during-Docker acceptance remain unfinished.
 
