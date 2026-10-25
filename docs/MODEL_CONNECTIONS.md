@@ -234,6 +234,16 @@ on the assumption that these environment overrides are effective, and do not
 relax filesystem permissions or the client's ownership checks to make it pass.
 Account selection and effective policy still need a supported, verified route.
 
+Run the same probe with a final `user` argument to test the documented user
+profile settings instead of administrative settings. With official 0.65.0 on
+Windows, this variant passed: `.gemini/settings.json` selected API-key auth
+while requiring `oauth-personal`, and the real headless client rejected that
+mismatch. It used an empty disposable home with no credentials. This proves
+that specific user-setting rejection, not login, paid subscription entitlement,
+tool denial, or successful inference. A dedicated AgentForge profile can use
+this supported setting location; it must not mutate an existing private profile
+or describe user-editable settings as an administrator-enforced security boundary.
+
 ### Experimental Claude subscription planner
 
 The server launcher accepts `AGENTFORGE_PLAN_PROVIDER=claude-cli` together with
