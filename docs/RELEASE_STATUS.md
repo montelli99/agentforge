@@ -22,6 +22,21 @@ identity preservation and no automatic send replay. A real loopback WebSocket
 fixture verifies signatures and reconnection; it is not an OpenClaw installation.
 Live OpenClaw/Hermes task delegation and guided connection remain unaccepted.
 
+PR #11 adds reviewed external delegation, durable run observations and scoped
+Stop requests. Disposable OpenClaw authentication and unknown-run inspection
+have been exercised; an actual completed OpenClaw model task has not. Hermes
+has no verified connector. The connection selector uses a readable configured
+name while approvals bind to the internal identity. Stop outcomes survive reload
+without resending and explicitly retain uncertainty or partial-effect review.
+Synthetic browser acceptance covers these controls, not real remote completion.
+
+The live planning probe found and repaired null optional usage breakdown handling.
+Browser acceptance also found and repaired a duplicated rendering block that
+prevented the Run handler from sending its request. Saved-response execution and
+restart recovery now pass locally; hosted verification and publication of the
+new integration revision remain separate gates. Do not describe these branch
+changes as already installed by the published archive.
+
 Still open: clean first-user onboarding through a useful real-model task;
 live subscription lifecycle and managed workers; uncertain-effect reconciliation;
 live memory-provider acceptance and migration; held-out comparative evaluation;
