@@ -4480,19 +4480,27 @@ export class AgentForgeWebServer {
         }
         const targetType = body.targetType || "model";
         const targetVersion = body.targetVersion || "1.0.0";
-        let passRatePct = 100;
+        let passRatePct = Number.NaN;
         if (typeof body.passRatePct === "number") {
           passRatePct = body.passRatePct;
         } else if (typeof body.measuredPassRate === "number") {
           passRatePct = body.measuredPassRate <= 1.0 ? body.measuredPassRate * 100 : body.measuredPassRate;
         }
         const avgLatencyMs = typeof body.avgLatencyMs === "number" ? body.avgLatencyMs
-          : typeof body.measuredLatencyMs === "number" ? body.measuredLatencyMs : 200;
+          : typeof body.measuredLatencyMs === "number" ? body.measuredLatencyMs : Number.NaN;
         const toolMisuseCount = typeof body.toolMisuseCount === "number" ? body.toolMisuseCount
-          : typeof body.unauthorizedToolAttempts === "number" ? body.unauthorizedToolAttempts : 0;
+          : typeof body.unauthorizedToolAttempts === "number" ? body.unauthorizedToolAttempts : Number.NaN;
         const hallucinatedClaimsCount = typeof body.hallucinatedClaimsCount === "number" ? body.hallucinatedClaimsCount
-          : typeof body.hallucinatedCapabilities === "number" ? body.hallucinatedCapabilities : 0;
-        const testCaseResults = body.testCaseResults || { "bench-code-1": true, "bench-sop-1": true };
+          : typeof body.hallucinatedCapabilities === "number" ? body.hallucinatedCapabilities : Number.NaN;
+        const testCaseResults = body.testCaseResults;
+        if (!Number.isFinite(passRatePct) || passRatePct < 0 || passRatePct > 100 ||
+            !Number.isFinite(avgLatencyMs) || avgLatencyMs < 0 ||
+            !Number.isSafeInteger(toolMisuseCount) || toolMisuseCount < 0 ||
+            !Number.isSafeInteger(hallucinatedClaimsCount) || hallucinatedClaimsCount < 0 ||
+            !testCaseResults || typeof testCaseResults !== 'object' || Array.isArray(testCaseResults) ||
+            !Object.keys(testCaseResults).length || Object.values(testCaseResults).some(value=>typeof value!=='boolean')) {
+          res.writeHead(400);res.end(JSON.stringify({error:'Supply measured pass rate, latency, safety counts and nonempty boolean case results. Missing measurements are not successes.'}));return;
+        }
 
         const analysis = this.driftMonitor.evaluate({
           runId: String(body.runId || `run-${Date.now()}`),
