@@ -102,6 +102,19 @@ describe("current gateway protocol contract", () => {
   });
 });
 
+it('lists bounded metadata without transcript import or implicit session selection', async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const page=client.listSessions(2,4);
+ expect(socket.sent[1]).toMatchObject({method:'sessions.list',params:{limit:2,offset:4,rowMode:'compact'}});
+ socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{sessions:[{key:'agent:main:chosen',displayName:'Chosen agent',messages:['not imported']}],nextOffset:8}});
+ expect(await page).toEqual({sessions:[{key:'agent:main:chosen',name:'Chosen agent'}],nextOffset:8});
+ await expect(client.listSessions(101)).rejects.toThrow(/bounds/);
+ const bad=client.listSessions();
+ socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{sessions:[{key:'same'},{key:'same'}]}});
+ await expect(bad).rejects.toThrow(/duplicate/);
+ expect(socket.sent).toHaveLength(3);client.stop();
+});
+
 it('reads only the selected session and preserves unknown active-run state', async () => {
   const {client, socket} = setup(); authenticate(socket);
   const result = client.readSessionHistory('agent:main:synthetic-probe', 10);

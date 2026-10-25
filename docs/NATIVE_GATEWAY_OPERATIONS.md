@@ -83,6 +83,26 @@ be run only with an operator-authorized provider session.
 
 ## Experimental OpenClaw connection boundary
 
+Session-picker implementation boundary (October 25): the installed disposable
+OpenClaw 2026.10.7 schema in `dist/src-BaGOtYrI.mjs` defines `sessions.list`
+parameters `rowMode: "compact"`, positive integer `limit`, and nonnegative
+integer `offset`. This was read inside the pinned image with networking disabled,
+without starting a gateway or reading a personal profile. The official
+[session-control reference](https://docs.openclaw.ai/gateway/protocol/rpc-session-control)
+documents session listing as an index read, not a model turn. A guided picker
+must preserve exact session keys, bounded pagination, and explicit selection;
+it must not infer a default destination or import transcript bodies.
+
+The bounded reader and authenticated API now feed an explicit browser session
+picker. Synthetic browser acceptance proves that listing does not select or send,
+and explicit selection carries the exact key into reviewed delegation. The
+compiled adapter also authenticated against the disposable OpenClaw 2026.10.7
+gateway and returned `{sessions:[]}` for `limit:25, offset:0`. No model request
+was made; the container was stopped afterward. This verifies live empty-list
+compatibility, not populated-page pagination or completed agent work.
+Compiled adapter SHA-256:
+`6f1893cb901199e06da3af24ef10824f66b528a9ee487665b4a818e3e9085075`.
+
 The optional OpenClaw WebSocket adapter targets protocol 4 as documented at
 https://docs.openclaw.ai/gateway/protocol/handshake and
 https://docs.openclaw.ai/gateway/protocol/auth (reviewed October 25, 2026).

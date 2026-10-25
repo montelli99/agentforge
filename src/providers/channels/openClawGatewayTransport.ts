@@ -144,6 +144,29 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return parsed;
   }
 
+  /** Metadata-only discovery. No transcript import, default selection or send. */
+  async listSessions(limit = 25, offset = 0): Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger(offset) || offset < 0) throw Error('Invalid session page bounds');
+    if (!this.isConnected()) throw Error('gateway authentication not complete');
+    if (!['operator.read','operator.write','operator.admin'].some(scope=>this.grantedScopes.has(scope))) throw Error('gateway did not grant session read permission');
+    const result=await this.request<Record<string,unknown>>('sessions.list',{limit,offset,rowMode:'compact'});
+    if (!result || !Array.isArray(result.sessions) || result.sessions.length > limit) throw Error('Invalid gateway session page');
+    const keys=new Set<string>();
+    const sessions=result.sessions.map((row:unknown)=>{
+      if (!row || typeof row !== 'object' || Array.isArray(row)) throw Error('Invalid gateway session row');
+      const value=row as Record<string,unknown>;
+      const key=value.key;
+      if (typeof key!=='string'||!key.trim()||key.length>512||/[\u0000-\u001f\u007f]/.test(key)||keys.has(key)) throw Error('Invalid or duplicate gateway session key');
+      keys.add(key);
+      const label=value.displayName ?? value.label;
+      const name=typeof label==='string'&&label.trim()&&label.length<=200&&!/[\u0000-\u001f\u007f]/.test(label)?label:key;
+      return {key,name};
+    });
+    const next=result.nextOffset;
+    if (next!==undefined&&next!==null&&(!Number.isSafeInteger(next)||Number(next)<=offset)) throw Error('Invalid gateway session pagination');
+    return {sessions,...(next===undefined||next===null?{}:{nextOffset:Number(next)})};
+  }
+
   /** Read one explicitly bound session; never infer a session or replay a turn. */
   async readSessionHistory(sessionKey: string, limit = 50): Promise<Record<string, unknown> & { messages: unknown[] }> {
     if (!sessionKey.trim() || sessionKey.length > 512 || /[\u0000-\u001f]/.test(sessionKey)) throw new Error("An explicit valid gateway session key is required");

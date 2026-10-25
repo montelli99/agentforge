@@ -400,10 +400,10 @@ export class AgentForgeWebServer {
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
-  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
+  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
 
   /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
-  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
+  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
     if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
     if (connection.displayName !== undefined && (!connection.displayName.trim() || connection.displayName.length > 100 || /[\u0000-\u001f\u007f]/.test(connection.displayName))) throw Error('Invalid external connection display name');
     this.externalRunConnections.set(connection.id, {...connection});
@@ -1457,7 +1457,7 @@ export class AgentForgeWebServer {
     const mutatesControlPlane = !["GET", "HEAD", "OPTIONS"].includes(req.method || "GET");
     // These routes have their own capability-specific denial below. Preserve
     // that narrower error and audit record instead of intercepting it here.
-    const hasRouteSpecificWriteGate = /^\/api\/(settings|browser|workflows|projects|agents|tasks|approvals|memory|packages|audit)(?:\/|$)/.test(path);
+    const hasRouteSpecificWriteGate = path === '/api/runtime-sessions' || /^\/api\/(settings|browser|workflows|projects|agents|tasks|approvals|memory|packages|audit)(?:\/|$)/.test(path);
     if (mutatesControlPlane && caller.role === "viewer" && !hasRouteSpecificWriteGate) {
       this.store.recordAudit({
         origin: "web", actorId: caller.user?.id || "anonymous", actorType: "user", action: "rbac_denied",
@@ -1465,6 +1465,23 @@ export class AgentForgeWebServer {
       });
       res.writeHead(403);
       res.end(JSON.stringify({ error: "A write-capable role is required for this action.", role: caller.role }));
+      return;
+    }
+
+    if (path === '/api/runtime-sessions') {
+      res.setHeader('Cache-Control','no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401);res.end();return; }
+      if (!hasPermission(caller.permissions,'tasks:read') || !hasPermission(caller.permissions,'tasks:execute')) {res.writeHead(403);res.end();return;}
+      if (req.method !== 'POST') {res.writeHead(405);res.end();return;}
+      const body=await this.readBody(req);
+      const offset=body.offset ?? 0;
+      if (typeof body.connectionId!=='string'||typeof offset!=='number'||!Number.isSafeInteger(offset)||offset<0) {res.writeHead(400);res.end();return;}
+      const connection=this.externalRunConnections.get(body.connectionId);
+      if (!connection?.listSessions) {res.writeHead(409);res.end(JSON.stringify({error:'Session discovery is unavailable for this connection.'}));return;}
+      try {
+        const page=await connection.listSessions(25,offset);
+        res.writeHead(200);res.end(JSON.stringify({connectionId:connection.id,...page}));
+      } catch {res.writeHead(409);res.end(JSON.stringify({error:'Could not read sessions. Check the selected agent connection. No work was sent.'}));}
       return;
     }
 

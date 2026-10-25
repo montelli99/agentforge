@@ -15,7 +15,7 @@ const newTask=store.createTask({projectId:project.id,title:'New synthetic delega
 const uncertainTask=store.createTask({projectId:project.id,title:'Interrupted synthetic delegation',priority:'medium',status:'ready'});
 store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString()}]});
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
-let reads=0,submissions=0,stops=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
+let reads=0,submissions=0,stops=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',listSessions:async(limit,offset)=>{assert.equal(limit,25);assert.equal(offset,0);return {sessions:[{key:'selected-session',name:'Synthetic agent conversation'}]};},inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
 let browser;
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:process.env.AGENTFORGE_BROWSER_EXECUTABLE});
@@ -45,7 +45,11 @@ try{
  const delegation=page.getByRole('dialog',{name:'Delegate task',exact:true});
  await delegation.getByRole('option',{name:'OpenClaw test agent · Status not checked',exact:true}).waitFor({state:'attached'});
  assert.equal(await delegation.getByLabel('Connected runtime',{exact:true}).inputValue(),'synthetic-runtime');
- await delegation.getByLabel('Session key',{exact:true}).fill('selected-session');
+ await delegation.getByRole('button',{name:'Find agent sessions',exact:true}).click();
+ await delegation.getByRole('option',{name:'Synthetic agent conversation · selected-session',exact:true}).waitFor({state:'attached'});
+ assert.equal(await delegation.getByLabel('Session key',{exact:true}).inputValue(),'');assert.equal(submissions,0);
+ await delegation.getByLabel('Choose an agent session',{exact:true}).selectOption('selected-session');
+ assert.equal(await delegation.getByLabel('Session key',{exact:true}).inputValue(),'selected-session');
  await delegation.getByLabel('Exact message to send',{exact:true}).fill('Only the reviewed synthetic message');
  await delegation.getByRole('button',{name:'Prepare delegation review',exact:true}).click();
  await delegation.getByText('Review the destination and full message above. Nothing has been sent.',{exact:true}).waitFor();
