@@ -91,6 +91,14 @@ written into the repository or release artifacts.
 Record the hosted run URL and commit SHA in the release record after the run
 finishes successfully.
 
+Set `AGENTFORGE_CI_RUN_ID` to that run's numeric ID and run
+`pnpm test:hosted-ci:evidence`. The check requires all seven jobs to succeed
+for the exact current commit, not an ancestor. Pull-request jobs check out the
+head commit explicitly. The public acceptance job retains the npm archive,
+`COMMIT.txt`, and `SHA256SUMS.txt` as a workflow artifact. Download that artifact
+and verify its commit and digest before distributing it. Keep the final receipt
+outside the source tree so recording it does not change the verified commit.
+
 ## 3. Live provider acceptance
 
 Live checks are opt-in and use disposable test accounts only:
