@@ -106,3 +106,21 @@ and confirms a fresh authenticated connection does not replay that send. A new
 explicit send receives the server's message ID. The server is a synthetic `ws`
 test fixture, not an installed OpenClaw runtime. Run the
 `openClawGatewayNetwork.test.ts` suite for this transport proof.
+
+### Actual upstream authentication — October 25, 2026
+
+The compiled adapter authenticated against OpenClaw 2026.10.7 (157d8c2)
+installed with npm scripts disabled in a disposable Node 24 container. The
+container used a fresh home/configuration, synthetic gateway token, no host
+profile mounts, an internal Docker network, and a loopback connection from a
+probe inside the container. Result: authenticated=true, modelCalled=false.
+The gateway was stopped after the probe. No chat delivery, task delegation,
+remote pairing, or Hermes compatibility is established by this result.
+
+Compiled transport SHA-256:
+`ae9a77997dd35b6ac40b7be92a617ef0a65e0d25be01aa4736eaf30d7bcf8790`.
+Disposable image ID:
+`sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0`.
+The initial host-to-container attempts failed to authenticate over the internal
+network; the successful probe ran in the gateway container's own network
+namespace. This is local backend authentication, not remote-device pairing.
