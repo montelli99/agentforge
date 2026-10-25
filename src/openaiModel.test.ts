@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { OpenAIModelProvider } from "./providers/models/openaiModel.js";
+import { OpenAIModelProvider, reportedChatCompletionUsage } from "./providers/models/openaiModel.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -7,6 +7,7 @@ describe("OpenAI-compatible model adapter", () => {
   it("forwards tool/JSON options and returns tool calls from a non-streaming response", async () => {
     const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify({
       id: "resp-1",
+      model: "test-model-2026-09-30",
       choices: [{
         message: {
           content: null,
@@ -19,24 +20,62 @@ describe("OpenAI-compatible model adapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const provider = new OpenAIModelProvider("test-key", "https://example.test/v1");
-    const result = await provider.generate({
+    const options = {
       model: "test-model",
-      messages: [{ role: "user", content: "Use the tool" }],
+      messages: [{ role: "user" as const, content: "Use the tool" }],
       tools: [{ type: "function", function: { name: "lookup" } }],
       toolChoice: "auto",
-      responseFormat: "json",
+      responseFormat: "json" as const,
       stop: ["DONE"],
-    });
+    };
+    const result = await provider.generate(options);
 
     expect(result.content).toBe("");
     expect(result.toolCalls?.[0]?.function.name).toBe("lookup");
     expect(result.finishReason).toBe("tool_calls");
-    expect(result.usage.estimatedCostUsd).toBeUndefined();
+    expect(result.model).toBe("test-model");
+    expect(result.reportedModel).toBe("test-model-2026-09-30");
+    expect(result.usage?.estimatedCostUsd).toBeUndefined();
     const sentBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(fetchMock.mock.calls[0]?.[1]?.body).toBe(provider.auditGenerateBody(options));
     expect(sentBody.tools).toEqual([{ type: "function", function: { name: "lookup" } }]);
     expect(sentBody.tool_choice).toBe("auto");
     expect(sentBody.response_format).toEqual({ type: "json_object" });
     expect(sentBody.stop).toEqual(["DONE"]);
+  });
+
+  it.each([
+    undefined,
+    { prompt_tokens: 2, completion_tokens: 1 },
+    { prompt_tokens: -1, completion_tokens: 1, total_tokens: 0 },
+    { prompt_tokens: 1.5, completion_tokens: 1, total_tokens: 2.5 },
+    { prompt_tokens: 2, completion_tokens: 1, total_tokens: 99 },
+  ])("keeps missing or invalid completion usage unknown", usage => {
+    expect(reportedChatCompletionUsage(usage)).toBeUndefined();
+  });
+
+  it("preserves an explicitly reported zero without inferring it", () => {
+    expect(reportedChatCompletionUsage({ prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }))
+      .toEqual({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+  });
+
+  it("preserves cache categories as subsets of reported prompt tokens", () => {
+    expect(reportedChatCompletionUsage({prompt_tokens:100,completion_tokens:20,total_tokens:120,
+      prompt_tokens_details:{cached_tokens:40,cache_write_tokens:10}})).toEqual({
+        promptTokens:100,completionTokens:20,totalTokens:120,cachedInputTokens:40,cacheWriteInputTokens:10,
+      });
+    expect(reportedChatCompletionUsage({prompt_tokens:100,completion_tokens:20,total_tokens:120,
+      prompt_tokens_details:{cached_tokens:90,cache_write_tokens:20}})).toBeUndefined();
+  });
+
+  it("does not turn omitted HTTP usage into zero-cost accounting", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      id: "resp-no-usage", choices: [{ message: { content: "ok" }, finish_reason: "stop" }],
+    }), { status: 200 })));
+    const result = await new OpenAIModelProvider("test-key", "https://example.test/v1").generate({
+      model: "test-model", messages: [{ role: "user", content: "test" }],
+    });
+    expect(result.usage).toBeUndefined();
   });
 
   it("keeps streamed tool-call IDs stable across argument deltas", async () => {

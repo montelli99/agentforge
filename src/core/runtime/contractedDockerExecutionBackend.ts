@@ -10,6 +10,8 @@
 import type { Task } from "../types/task.js";
 import type { CommandAuditRecord, TestResultRecord } from "../types/evidence.js";
 import { ContractEnforcer } from "../contract/contractEnforcer.js";
+import { prepareScopedWritableDirectories } from "../compute/scopedDockerMounts.js";
+import { prepareNonDeletingFileMounts } from "../compute/nonDeletingFileMounts.js";
 import { DockerComputeProvider } from "../compute/dockerComputeProvider.js";
 import type { ExecutionReadiness, TaskExecutionBackend, TaskExecutionOutput } from "./taskWorkerRuntime.js";
 import { TaskExecutionCancelledError } from "./taskWorkerRuntime.js";
@@ -93,10 +95,15 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     // Fail before executing if the contracted revision cannot produce evidence.
     await collectGitExecutionEvidence(input.worktreePath, input.task.contract.repository.baseSha);
     if (input.signal.aborted) throw new TaskExecutionCancelledError();
-    const environment = await this.docker.createEnvironment({
+    const nonDeleting = input.task.contract.authority.deleteFiles ? undefined : await prepareNonDeletingFileMounts(input.worktreePath, input.task.contract.scope, (input.task.contract.completion.requiredArtifacts ?? []).map(item=>item.path));
+    const writableDirectories = nonDeleting ? [] : await prepareScopedWritableDirectories(input.worktreePath, input.task.contract.scope);
+    let environment;
+    try { environment = await this.docker.createEnvironment({
       worktreeDir: input.worktreePath,
+      writableDirectories, writableFiles: nonDeleting?.writableFiles,
       agentId: this.options.agentId || input.task.assignedAgentId || "agentforge-worker",
     });
+    } catch(error) { await nonDeleting?.discardUnwrittenPlaceholders(); throw error; }
     const commandsExecuted: CommandAuditRecord[] = [];
     const testResults: TestResultRecord[] = [];
 
@@ -126,6 +133,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
           durationMs: result.durationMs,
         });
       }
+      await nonDeleting?.discardUnwrittenPlaceholders();
       const filesChanged = await collectGitExecutionEvidence(input.worktreePath, input.task.contract.repository.baseSha);
       const artifacts = await collectExecutionArtifacts(input.worktreePath, filesChanged);
       const scope = this.contractEnforcer.validateFileModifications(input.task.contract, filesChanged.map(file => file.filePath), input.worktreePath);
@@ -143,7 +151,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
       const finalSha = await readGitHeadSha(input.worktreePath);
       return { commandsExecuted, testResults, filesChanged, artifacts, finalSha };
     } finally {
-      await this.docker.destroyEnvironment(environment.id);
+      try { await this.docker.destroyEnvironment(environment.id); } finally { await nonDeleting?.discardUnwrittenPlaceholders(); }
     }
   }
 

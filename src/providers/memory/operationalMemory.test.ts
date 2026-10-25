@@ -36,6 +36,8 @@ describe("OperationalMemoryProvider", () => {
     });
     expect(scoped.map(result => result.record.id)).toEqual([globalRule.id, projectRule.id]);
     expect(scoped.map(result => result.record.id)).not.toContain(betaRule.id);
+    const globalOnly = await memory.query({ namespace: "workspace", globalOnly: true });
+    expect(globalOnly.map(result => result.record.id)).toEqual([globalRule.id]);
     expect(await memory.getDoNotRepeatRules("workspace", "alpha")).toEqual([globalRule, projectRule]);
     expect(await memory.delete("workspace", projectRule.id)).toBe(true);
     expect(await memory.delete("workspace", projectRule.id)).toBe(false);

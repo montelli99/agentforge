@@ -8,6 +8,8 @@
 
 import { execFile } from "node:child_process";
 import crypto from "node:crypto";
+import { validateWritableFiles } from "./nonDeletingFileMounts.js";
+import { prepareScopedWritableDirectories, checkDockerReadiness } from "./scopedDockerMounts.js";
 import { promisify } from "node:util";
 import type {
   ComputeProvider,
@@ -22,20 +24,22 @@ export interface DockerProviderOptions {
   defaultImage?: string;
   maxMemoryBytes?: number;
   cpuQuota?: number;
+  /** Bounded daemon readiness timeout; defaults to the upstream 15 seconds. */
+  readinessTimeoutMs?: number;
 }
 
 /**
- * Container arguments are kept data-only to avoid shell interpolation. The task
- * workspace is the only writable mount; container networking is disabled.
+ * Container arguments are kept data-only to avoid shell interpolation. Reviewed output directories are the only writable host mounts; container networking is disabled.
  */
 export function buildDockerRunArguments(
   image: string,
   worktreePath: string,
   command: string,
-  options: Pick<DockerProviderOptions, "maxMemoryBytes" | "cpuQuota">,
+  options: Pick<DockerProviderOptions, "maxMemoryBytes" | "cpuQuota"> & { writableDirectories?: string[]; writableFiles?: string[] },
 ): string[] {
   const args = [
     "run", "--rm",
+    "--pull=never",
     "--network", "none",
     "--read-only",
     "--cap-drop", "ALL",
@@ -43,9 +47,19 @@ export function buildDockerRunArguments(
     "--pids-limit", "256",
     "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
   ];
+  // Bind-mounted outputs retain host ownership on Linux. Match that identity
+  // instead of requiring world-writable files or DAC override capabilities.
+  if (process.platform === "linux" && process.getuid && process.getgid) {
+    args.push("--user", `${process.getuid()}:${process.getgid()}`);
+  }
   if (options.maxMemoryBytes) args.push(`--memory=${options.maxMemoryBytes}b`);
   if (options.cpuQuota) args.push(`--cpus=${options.cpuQuota}`);
-  args.push("-v", `${worktreePath}:/workspace:rw`, "-w", "/workspace", image, "sh", "-lc", command);
+  args.push('-v', `${worktreePath}:/workspace:ro`);
+  for (const relative of [...(options.writableDirectories ?? []), ...(options.writableFiles ?? [])]) {
+    if (!/^[a-zA-Z0-9_.][a-zA-Z0-9_./-]*$/.test(relative) || relative.split('/').some(p => !p || p === '.' || p === '..')) throw new Error('Invalid writable mount.');
+    args.push('-v', `${worktreePath}/${relative}:/workspace/${relative}:rw`);
+  }
+  args.push('-w', '/workspace', image, 'sh', '-lc', command);
   return args;
 }
 
@@ -57,44 +71,47 @@ export class DockerComputeProvider implements ComputeProvider {
   private defaultImage: string;
   private maxMemoryBytes?: number;
   private cpuQuota?: number;
-  private environments = new Map<string, SandboxEnvironment & { containerName: string; cleanupError?: string }>();
+  private readinessTimeoutMs: number;
+  private environments = new Map<string, SandboxEnvironment & { containerName: string; writableDirectories: string[]; writableFiles: string[]; cleanupError?: string }>();
   private activeCommands = new Map<string, { controller: AbortController; finished: Promise<void> }>();
 
   constructor(options: DockerProviderOptions = {}) {
     this.defaultImage = options.defaultImage || "node:22-alpine";
     this.maxMemoryBytes = options.maxMemoryBytes;
     this.cpuQuota = options.cpuQuota;
+    this.readinessTimeoutMs = options.readinessTimeoutMs ?? 15000;
+    if (!Number.isSafeInteger(this.readinessTimeoutMs) || this.readinessTimeoutMs < 1 || this.readinessTimeoutMs > 60000) throw new Error("Invalid Docker readiness timeout.");
   }
 
   /**
    * Checks whether the local Docker daemon is running and reachable.
    */
   async isAvailable(): Promise<{ available: boolean; version?: string; error?: string }> {
-    try {
-      // Desktop Docker can take several seconds to answer while waking up.
-      const { stdout } = await execFileAsync("docker", ["info", "--format", "{{.ServerVersion}}"], { timeout: 15000 });
-      return { available: true, version: stdout.trim() };
-    } catch (err: unknown) {
-      return { available: false, error: "Docker daemon is not running, reachable, or authorized for this user." };
-    }
+    return checkDockerReadiness(this.readinessTimeoutMs, async timeoutMs => {
+      const { stdout } = await execFileAsync('docker', ['info', '--format', '{{.ServerVersion}}'], { timeout: timeoutMs });
+      return stdout;
+    });
   }
-
-  async createEnvironment(config: { worktreeDir: string; agentId: string }): Promise<SandboxEnvironment> {
+  async createEnvironment(config: { worktreeDir: string; agentId: string; writableDirectories?: string[]; writableFiles?: string[] }): Promise<SandboxEnvironment> {
     const availability = await this.isAvailable();
     if (!availability.available) {
       throw new Error(`Cannot create Docker sandbox: ${availability.error}`);
     }
 
+    const writableDirectories = await prepareScopedWritableDirectories(config.worktreeDir, { allowedPaths: (config.writableDirectories ?? []).map(p => `${p}/**`), protectedPaths: [] });
+    const writableFiles = config.writableFiles ?? [];
+    await validateWritableFiles(config.worktreeDir, writableFiles);
     const environmentId = `docker-sbx-${crypto.randomUUID().slice(0, 8)}`;
     const containerName = `agentforge-${environmentId}`;
 
-    const env: SandboxEnvironment & { containerName: string } = {
+    const env: SandboxEnvironment & { containerName: string; writableDirectories: string[]; writableFiles: string[] } = {
       id: environmentId,
       kind: "docker",
       workingDirectory: config.worktreeDir,
       isolated: true,
       status: "running",
       containerName,
+      writableDirectories, writableFiles,
     };
 
     this.environments.set(environmentId, env);
@@ -122,9 +139,12 @@ export class DockerComputeProvider implements ComputeProvider {
     const startTime = Date.now();
     const timeout = options.timeoutMs || 60000;
 
+    await prepareScopedWritableDirectories(env.workingDirectory, { allowedPaths: env.writableDirectories.map(p => `${p}/**`), protectedPaths: [] });
+    await validateWritableFiles(env.workingDirectory, env.writableFiles);
     const dockerArgs = buildDockerRunArguments(this.defaultImage, env.workingDirectory, command, {
       maxMemoryBytes: this.maxMemoryBytes,
       cpuQuota: this.cpuQuota,
+      writableDirectories: env.writableDirectories, writableFiles: env.writableFiles,
     });
     // Killing the Docker client alone does not stop a detached container. Give
     // every run a known name and remove it before releasing the environment.

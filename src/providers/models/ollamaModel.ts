@@ -10,6 +10,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 export class OllamaModelProvider implements GenerativeModelProvider {
@@ -41,22 +42,10 @@ export class OllamaModelProvider implements GenerativeModelProvider {
 
   async generate(options: ModelRequestOptions): Promise<ModelResponse> {
     const url = `${this.baseUrl}/api/chat`;
-    const bodyPayload: Record<string, unknown> = {
-      model: options.model,
-      messages: options.messages,
-      temperature: options.temperature,
-      options: { num_predict: options.maxTokens },
-      stream: false,
-    };
-
-    if (options.responseFormat === "json") {
-      bodyPayload.format = "json";
-    }
-
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(bodyPayload),
+      body: this.auditGenerateBody(options),
       signal: options.signal ?? AbortSignal.timeout(30000),
     });
 
@@ -73,21 +62,42 @@ export class OllamaModelProvider implements GenerativeModelProvider {
       prompt_eval_count?: number;
       eval_count?: number;
     };
-    const promptTokens = json.prompt_eval_count || 0;
-    const completionTokens = json.eval_count || 0;
+    const promptTokens = json.prompt_eval_count;
+    const completionTokens = json.eval_count;
+    const usage = Number.isSafeInteger(promptTokens) && Number.isSafeInteger(completionTokens)
+      && promptTokens! >= 0 && completionTokens! >= 0
+      && Number.isSafeInteger(promptTokens! + completionTokens!)
+      ? { promptTokens: promptTokens!, completionTokens: completionTokens!,
+          totalTokens: promptTokens! + completionTokens!, estimatedCostUsd: 0 }
+      : undefined;
 
     return {
       id: `ollama-${Date.now()}`,
       model: options.model,
+      ...(isReportedModelId(json.model)?{reportedModel:json.model}:{}),
       content: json.message?.content || "",
-      usage: {
-        promptTokens,
-        completionTokens,
-        totalTokens: promptTokens + completionTokens,
-        estimatedCostUsd: 0, // Local compute is $0 external cost
-      },
+      // Missing provider counts are unknown, never a fabricated zero.
+      usage,
       finishReason: json.done_reason ?? (json.done ? "stop" : undefined),
     };
+  }
+
+  auditGenerateBody(options: ModelRequestOptions): string {
+    const bodyPayload: Record<string, unknown> = {
+      model: options.model,
+      messages: options.messages,
+      options: {
+        ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+        ...(options.maxTokens === undefined ? {} : { num_predict: options.maxTokens }),
+      },
+      ...(options.thinking === undefined ? {} : { think: options.thinking === "enabled" }),
+      stream: false,
+    };
+
+    if (options.responseFormat === "json") {
+      bodyPayload.format = "json";
+    }
+    return JSON.stringify(bodyPayload);
   }
 
   async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {
@@ -98,8 +108,11 @@ export class OllamaModelProvider implements GenerativeModelProvider {
       body: JSON.stringify({
         model: options.model,
         messages: options.messages,
-        temperature: options.temperature,
-        options: { num_predict: options.maxTokens },
+        options: {
+          ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+          ...(options.maxTokens === undefined ? {} : { num_predict: options.maxTokens }),
+        },
+        ...(options.thinking === undefined ? {} : { think: options.thinking === "enabled" }),
         stream: true,
       }),
       signal: options.signal,

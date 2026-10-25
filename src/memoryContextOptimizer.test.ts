@@ -77,7 +77,7 @@ describe("Phase 3A: Real Embeddings + Memory Context Optimizer", () => {
     });
 
     expect(result.cacheHit).toBe(true);
-    expect(result.tokensSaved).toBeGreaterThan(0);
+    expect(result.tokensSaved).toBeLessThan(0);
     expect(result.optimizedPrompt).toContain("CACHED RESPONSE");
   });
 

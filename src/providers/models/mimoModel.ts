@@ -14,6 +14,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
+import { isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 export type MiMoCapability =
@@ -57,6 +58,14 @@ export const MIMO_MODEL_REGISTRY: Record<string, MiMoModelDescriptor> = {
 
 const KNOWN_MODEL_IDS = Object.keys(MIMO_MODEL_REGISTRY);
 
+export function reportedMiMoUsage(value: unknown): ModelResponse["usage"] {
+ if(!value || typeof value!=="object")return undefined;
+ const raw=value as Record<string,unknown>;const counts=[raw.prompt_tokens,raw.completion_tokens,raw.total_tokens];
+ if(counts.some(n=>typeof n!=="number"||!Number.isSafeInteger(n)||n<0))return undefined;
+ const [promptTokens,completionTokens,totalTokens]=counts as number[];
+ if(totalTokens!==promptTokens+completionTokens)return undefined;
+ return {promptTokens,completionTokens,totalTokens};
+}
 export class MiMoModelProvider implements GenerativeModelProvider {
   readonly id = "mimo";
   readonly name: string;
@@ -114,16 +123,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({
-        model: options.model,
-        messages: options.messages,
-        temperature: options.temperature,
-        max_tokens: options.maxTokens,
-        tools: options.tools,
-        tool_choice: options.toolChoice,
-        ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
-        stream: false,
-      }),
+      body: this.auditGenerateBody(options),
       signal: options.signal
         ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)])
         : AbortSignal.timeout(60_000),
@@ -136,6 +136,7 @@ export class MiMoModelProvider implements GenerativeModelProvider {
 
     const json = await res.json() as {
       id: string;
+      model?: string;
       choices: Array<{
         message: {
           content: string;
@@ -158,15 +159,25 @@ export class MiMoModelProvider implements GenerativeModelProvider {
     return {
       id: json.id,
       model: options.model,
+      ...(isReportedModelId(json.model)?{reportedModel:json.model}:{}),
       content: choice?.message?.content || "",
       toolCalls: choice?.message?.tool_calls,
-      usage: {
-        promptTokens: json.usage?.prompt_tokens || 0,
-        completionTokens: json.usage?.completion_tokens || 0,
-        totalTokens: json.usage?.total_tokens || 0,
-      },
+      usage: reportedMiMoUsage(json.usage),
       finishReason: choice?.finish_reason,
     };
+  }
+
+  auditGenerateBody(options: ModelRequestOptions): string {
+    return JSON.stringify({
+      model: options.model,
+      messages: options.messages,
+      temperature: options.temperature,
+      max_tokens: options.maxTokens,
+      tools: options.tools,
+      tool_choice: options.toolChoice,
+      ...(options.thinking ? { thinking: { type: options.thinking } } : {}),
+      stream: false,
+    });
   }
 
   async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {

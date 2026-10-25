@@ -5,12 +5,42 @@ release. It does not require private business data or production credentials.
 
 ## 1. Local public boundary
 
-From the repository root, run:
+Never archive the raw working directory. Ignored browser profiles, runtime
+state, caches, logs, or generated evidence may still exist on disk even when
+Git and npm exclude them. Create a new output directory outside the repository
+from the explicit public allowlist:
+
+```text
+node scripts/public-release-stage.mjs <new-output-directory>
+```
+
+The exporter refuses an existing output directory and copies only the reviewed
+source, build, license, website, workflow, and selected public-document inputs.
+It does not copy research working trees or local runtime/artifact directories.
+Install dependencies from the checked-in lockfile in that isolated staging
+tree, then run:
 
 ```text
 pnpm verify:public
 pnpm release:audit
 ```
+
+Before distribution, extract the exact proposed archive into another new
+directory and run the Git-free archive checks exactly as shipped:
+
+```text
+node --test scripts/public-repository-privacy-acceptance.test.mjs
+node scripts/public-repository-privacy-acceptance.mjs --archive-tree
+node scripts/public-link-acceptance.mjs
+```
+
+Do not initialize `.git` in the extraction. Archive mode uses bounded direct
+filesystem enumeration and rejects Git metadata or installed dependency trees.
+Repository mode remains Git-aware for tracked and untracked release candidates.
+Both modes fail on nested browser profiles, cookie/login/history/session stores,
+unreviewed runtime/cache/artifact trees, databases, logs, and nested archives
+without reading prohibited profile contents. A local pass remains local
+evidence; independent review is still required.
 
 The combined `pnpm release:preflight` command runs those checks and the
 non-publishing registry preflight in one repeatable sequence.
@@ -60,6 +90,14 @@ written into the repository or release artifacts.
 
 Record the hosted run URL and commit SHA in the release record after the run
 finishes successfully.
+
+Set `AGENTFORGE_CI_RUN_ID` to that run's numeric ID and run
+`pnpm test:hosted-ci:evidence`. The check requires all seven jobs to succeed
+for the exact current commit, not an ancestor. Pull-request jobs check out the
+head commit explicitly. The public acceptance job retains the npm archive,
+`COMMIT.txt`, and `SHA256SUMS.txt` as a workflow artifact. Download that artifact
+and verify its commit and digest before distributing it. Keep the final receipt
+outside the source tree so recording it does not change the verified commit.
 
 ## 3. Live provider acceptance
 

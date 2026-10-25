@@ -1,3 +1,4 @@
+import type {IndexedMemoryRuntime} from "../memory/indexed/serverMode.js";
 import { parseMessageAttachments } from "./messageAttachments.js";
 import { connectProjectFolder, listProjectFiles, readProjectFile, ProjectFileError } from "./projectFiles.js";
 import { ConversationRuntime, type ConversationConfiguration } from "./conversationRuntime.js";
@@ -72,6 +73,7 @@ import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
 import type { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
+import { mergePlanningContextPackets } from "./planningContext.js";
 
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const PRODUCT_DOCUMENTATION_ROOT = pathModule.join(process.cwd(), "docs");
@@ -372,6 +374,7 @@ export class AgentForgeWebServer {
   readonly localSandbox = new LocalSandboxComputeProvider();
   readonly dockerCompute = new DockerComputeProvider();
   private readonly planDraftProvider?: ModelPlanDraftProvider;
+  private readonly indexedMemory?: IndexedMemoryRuntime;
   readonly conversations: ConversationRuntime;
   private readonly host = process.env.AGENTFORGE_HOST || "127.0.0.1";
   /** Optional deployment credential; it is never returned by any status route. */
@@ -391,10 +394,11 @@ export class AgentForgeWebServer {
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider } = {},
+    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.planDraftProvider = options.planDraftProvider;
+    this.indexedMemory = options.indexedMemory;
     this.conversations = new ConversationRuntime(store, options.conversation);
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
@@ -978,7 +982,7 @@ export class AgentForgeWebServer {
       };
     }
 
-    if (process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") {
+    if (this.requiresAuthentication()) {
       return { role: "viewer", permissions: [], isAuthenticated: false };
     }
 
@@ -989,6 +993,12 @@ export class AgentForgeWebServer {
       permissions: defaultOwner?.permissions || ["*"],
       isAuthenticated: false,
     };
+  }
+
+  private requiresAuthentication(): boolean {
+    return process.env.AGENTFORGE_AUTH_STRICT === "1"
+      || process.env.NODE_ENV === "production"
+      || Boolean(this.store.getUser("user-owner")?.passwordHash);
   }
 
   private setSessionCookie(res: http.ServerResponse, token: string, expiresAt: string): void {
@@ -1005,6 +1015,26 @@ export class AgentForgeWebServer {
     res.setHeader("Content-Type", "application/json");
     const caller = this.authenticateCaller(req);
 
+    if (path === "/api/indexed-memory" || path === "/api/indexed-memory/query") {
+      if (!this.indexedMemory) { res.writeHead(404); res.end(JSON.stringify({error:"Indexed memory mode is not configured"})); return; }
+      if (!caller.isAuthenticated || !caller.user) { res.writeHead(401); res.end(JSON.stringify({error:"Authenticated indexed owner required"})); return; }
+      if (caller.user.id !== this.indexedMemory.config.userId) { res.writeHead(403); res.end(JSON.stringify({error:"Indexed user boundary denied"})); return; }
+      const permission = req.method === "GET" || path.endsWith("/query") ? "memory:read" : "memory:write";
+      if (!hasPermission(caller.permissions,permission)) { res.writeHead(403); res.end(JSON.stringify({error:"Permission denied",required:permission})); return; }
+      try {
+        if (req.method === "GET" && path === "/api/indexed-memory") { res.writeHead(200); res.end(JSON.stringify(this.indexedMemory.status())); return; }
+        if (req.method !== "POST") { res.writeHead(405); res.end(); return; }
+        const body = await this.readBody(req);
+        if (path.endsWith("/query")) { if(typeof body.query!=="string")throw Error("Query required"); const hits=await this.indexedMemory.query(body.query); res.writeHead(200); res.end(JSON.stringify({hits})); return; }
+        const result = await this.indexedMemory.control(body as {operation:string;operationId:string;expectedRevision:number;source?:string});
+        if (!result || typeof result !== 'object' || !('operationId' in result) || typeof result.operationId !== 'string'
+          || !('operation' in result) || typeof result.operation !== 'string'
+          || !('revision' in result) || !Number.isSafeInteger(result.revision)) throw Error('Invalid indexed control receipt');
+        const receiptDigest = 'receiptDigest' in result && typeof result.receiptDigest === 'string' ? result.receiptDigest : undefined;
+        this.store.recordAudit({origin:"web",actorId:caller.user.id,actorType:"user",action:"INDEXED_MEMORY_CONTROL",targetType:"memory",targetId:result.operationId,details:{operation:result.operation,revision:result.revision,receiptDigest}});
+        res.writeHead(200);res.end(JSON.stringify(result));return;
+      } catch { res.writeHead(422);res.end(JSON.stringify({error:"Indexed operation failed closed; inspect inputs/provider and refresh revision. No automatic retry."}));return; }
+    }
     // Auth & Identity Endpoints (Section 11: Identity + RBAC)
     // A new local workspace has an owner identity but intentionally no password.
     // Bootstrap is single-use: once a password exists, ordinary login is required.
@@ -1123,11 +1153,12 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "GET" && path === "/api/auth/me") {
-      const strictMode = process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production";
+      const strictMode = this.requiresAuthentication();
       res.writeHead(200);
       res.end(JSON.stringify({
         authenticated: caller.isAuthenticated,
         accessMode: caller.isAuthenticated ? "authenticated" : strictMode ? "authentication_required" : "local_unlocked",
+        ownerSetupRequired: !Boolean(this.store.getUser("user-owner")?.passwordHash),
         user: caller.user ? {
           id: caller.user.id,
           username: caller.user.username,
@@ -1376,7 +1407,7 @@ export class AgentForgeWebServer {
     }
 
     // Strict mode rejection for unauthenticated requests on non-auth paths
-    if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+    if (this.requiresAuthentication() && !caller.isAuthenticated) {
       res.writeHead(401);
       res.end(JSON.stringify({ error: "Authentication required" }));
       return;
@@ -1771,6 +1802,9 @@ export class AgentForgeWebServer {
     if (browserSessionMatch && req.method === "POST") {
       const sessionId = decodeURIComponent(browserSessionMatch[1]);
       const operation = browserSessionMatch[2];
+      if (operation === "approve-write" && !caller.isAuthenticated) {
+        res.writeHead(401); res.end(JSON.stringify({ error: "Sign in before approving a browser write." })); return;
+      }
       const canControlBrowser = caller.role === "owner" || caller.role === "admin" || hasPermission(caller.permissions, "tasks:execute") || hasPermission(caller.permissions, "tasks:*");
       const canApproveBrowserWrite = caller.role === "owner" || caller.role === "admin" || hasPermission(caller.permissions, "approvals:decide") || hasPermission(caller.permissions, "approvals:*");
       if (!canControlBrowser || (operation === "approve-write" && !canApproveBrowserWrite)) {
@@ -2803,6 +2837,9 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/approvals/resolve") {
+      if (!caller.isAuthenticated) {
+        res.writeHead(401); res.end(JSON.stringify({ error: "Sign in before recording an approval decision." })); return;
+      }
       if (!hasPermission(caller.permissions, "approvals:decide") && !hasPermission(caller.permissions, "approvals:*")) {
         this.store.recordAudit({
           origin: "web",
@@ -2828,7 +2865,7 @@ export class AgentForgeWebServer {
       const resolved = this.store.resolveApproval({
         approvalId: body.approvalId,
         status: body.status as "approved" | "rejected",
-        approverUserId: caller.user?.id || "user-owner",
+        approverUserId: caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client",
         decisionOrigin: "web",
         decisionNotes: typeof body.decisionNotes === "string" ? body.decisionNotes : undefined,
       });
@@ -3086,7 +3123,7 @@ export class AgentForgeWebServer {
     const processRevisionResolutionRoute = path.match(/^\/api\/processes\/([^/]+)\/revisions\/([^/]+)\/resolve$/);
     const processRollbackRoute = path.match(/^\/api\/processes\/([^/]+)\/rollback$/);
     if (processRevisionResolutionRoute && req.method === "POST") {
-      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+      if (!caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to resolve a process revision." }));
         return;
@@ -3114,7 +3151,7 @@ export class AgentForgeWebServer {
         const result = this.store.resolveProcessRevisionProposal({
           proposalId,
           status: body.status,
-          approverUserId: caller.user?.id || "local-unverified-web-client",
+          approverUserId: caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client",
         });
         if (result.proposal.status === "stale") {
           res.writeHead(409);
@@ -3133,7 +3170,7 @@ export class AgentForgeWebServer {
       return;
     }
     if (processRollbackRoute && req.method === "POST") {
-      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+      if (!caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to roll back a process." }));
         return;
@@ -3172,8 +3209,8 @@ export class AgentForgeWebServer {
       const restored = this.store.rollbackProcess(processId, target.version, body.expectedVersion);
       this.store.recordAudit({
         origin: "api",
-        actorId: caller.user?.id || "local-unverified-web-client",
-        actorType: caller.user ? "user" : "system",
+        actorId: caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client",
+        actorType: caller.isAuthenticated && caller.user ? "user" : "system",
         action: "process_revision_rolled_back",
         targetType: "process",
         targetId: processId,
@@ -3186,7 +3223,7 @@ export class AgentForgeWebServer {
         process: restored,
         diff,
         restoredFromVersion: target.version,
-        rolledBackBy: caller.user?.id || "local-unverified-web-client",
+        rolledBackBy: caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client",
         agentSpecification,
         revalidation,
       }));
@@ -3419,7 +3456,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/calls/simulate") {
-      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+      if (this.requiresAuthentication() && !caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated identity is required to initiate a call." }));
         return;
@@ -3468,7 +3505,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/packages/install") {
-      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+      if (this.requiresAuthentication() && !caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated identity is required to install a package." }));
         return;
@@ -3534,7 +3571,7 @@ export class AgentForgeWebServer {
     }
 
     if (req.method === "POST" && path === "/api/packages/uninstall") {
-      if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+      if (this.requiresAuthentication() && !caller.isAuthenticated) {
         res.writeHead(401);
         res.end(JSON.stringify({ error: "Authenticated identity is required to uninstall a package." }));
         return;
@@ -3747,6 +3784,42 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === "receipt" || action === "resolve-receipt") {
+        if (!hasPermission(caller.permissions, "tasks:read")) {
+          res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:read" })); return;
+        }
+        if (req.method === "GET" && action === "receipt") {
+          const receipt = task.executionReceipts?.at(-1);
+          res.writeHead(200, { "Cache-Control": "no-store" });
+          res.end(JSON.stringify({ expectedUpdatedAt: task.updatedAt, status: task.status,
+            receipt: receipt ? { operationId: receipt.operationId, receiptDigest: receipt.receiptDigest, status: receipt.status, startedAt: receipt.startedAt, verifiedPassed: receipt.evidence?.verifiedPassed === true } : null,
+            unknownPlanningCount: task.planningAudits?.filter(item => item.status !== "completed").length ?? 0,
+            message: "Recorded results may be restored after validation. Unknown effects or usage remain quarantined; commands are never replayed by review." })); return;
+        }
+        if (req.method !== "POST" || action !== "resolve-receipt") { res.writeHead(405); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({ error: "Sign in to review recorded execution." })); return; }
+        if (!hasPermission(caller.permissions, "tasks:execute") || !hasPermission(caller.permissions, "approvals:decide")) { res.writeHead(403); res.end(JSON.stringify({ error: "Execution and approval-review permissions are required." })); return; }
+        const body = await this.readBody(req);
+        const current = this.store.getTask(task.id);
+        const receipt = current?.executionReceipts?.at(-1);
+        if (!current || typeof body.expectedUpdatedAt !== "string" || body.expectedUpdatedAt !== current.updatedAt
+          || body.operationId !== (receipt?.operationId ?? null) || body.receiptDigest !== (receipt?.receiptDigest ?? null)) {
+          res.writeHead(409); res.end(JSON.stringify({ error: "Task or receipt changed. Refresh and review again." })); return;
+        }
+        if (body.decision !== "restore-observed" && body.decision !== "keep-quarantined") { res.writeHead(400); res.end(JSON.stringify({ error: "Choose restore-observed or keep-quarantined." })); return; }
+        try {
+          if (this.taskWorkerRuntime.isTaskExecuting(task.id)) throw new Error("Pause active execution before reviewing its receipt.");
+          if (["completed", "cancelled"].includes(current.status)) throw new Error("Finished tasks cannot be resolved again.");
+          if (body.decision === "restore-observed" && current.planningAudits?.some(item => item.status !== "completed")) throw new Error("Planning usage is unknown. Keep this task quarantined.");
+          const updated = body.decision === "restore-observed"
+            ? this.taskWorkerRuntime.reconcileObservedExecution(task.id)
+            : this.store.updateTask(task.id, { status: "paused" });
+          this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "authenticated-reviewer", actorType: "user", action: "TASK_RECEIPT_REVIEWED", targetType: "task", targetId: task.id, details: { decision: body.decision, operationId: receipt?.operationId ?? null, receiptDigest: receipt?.receiptDigest ?? null, previousStatus: current.status, replayed: false } });
+          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
+        } catch (error) { res.writeHead(409); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Receipt review failed" })); }
+        return;
+      }
+
       if (req.method === "GET" && (!action || action === "activity")) {
         const required = action === "activity" ? "audit:read" : "tasks:read";
         if (!hasPermission(caller.permissions, required)) {
@@ -3811,7 +3884,7 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "revoke-plan") {
-        if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+        if (!caller.isAuthenticated) {
           res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to revoke an execution plan." })); return;
         }
         if (!hasPermission(caller.permissions, "approvals:decide")) {
@@ -3838,9 +3911,33 @@ export class AgentForgeWebServer {
           res.writeHead(503); res.end(JSON.stringify({ error: "No model plan-draft provider is configured." })); return;
         }
         try {
-          const draft = await this.planDraftProvider.draft(task);
+          if(this.indexedMemory && (!caller.isAuthenticated || caller.user?.id!==this.indexedMemory.config.userId)) throw Error("Indexed planning user boundary denied");
+          const planningInspection = await this.controller.inspect(`review execution plan for task: ${task.title}\n${task.description}`, {
+            taskId: task.id,
+            projectId: task.projectId,
+            contract: task.contract,
+          });
+          const [indexedPlanningContext, operationalPlanningContext] = await Promise.all([
+            this.indexedMemory?.planningContext(task),
+            this.taskWorkerRuntime.getPlanningContext(task.id),
+          ]);
+          const planningContext = mergePlanningContextPackets([
+            planningInspection.contextPacket,
+            indexedPlanningContext,
+            operationalPlanningContext,
+          ]);
+          const draft = await this.planDraftProvider.draft(task, undefined, planningContext);
           const updated = this.store.updateTask(task.id, { executionPlanDraft: draft });
-          this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "user-owner", actorType: "user", action: "EXECUTION_PLAN_DRAFTED", targetType: "task", targetId: task.id, details: { commandCount: draft.commands.length, source: draft.source } });
+          this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "user-owner", actorType: "user", action: "EXECUTION_PLAN_DRAFTED", targetType: "task", targetId: task.id, details: {
+            commandCount: draft.commands.length,
+            source: draft.source,
+            contextPacketId: planningContext.id,
+            packedTokens: planningContext.packedTokens,
+            truncated: planningContext.truncated,
+            indexedMemory: Boolean(this.indexedMemory),
+            jevIntent: planningInspection.intent,
+            jevProviderId: planningInspection.decision.providerId,
+          } });
           res.writeHead(200); res.end(JSON.stringify({ draft, task: updated, message: "Model draft created and saved. Review it before approval; no execution was started." })); return;
         } catch (error) {
           res.writeHead(422); res.end(JSON.stringify({ error: redactRuntimeError(error, "Unable to draft an execution plan.") })); return;
@@ -3848,7 +3945,7 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "approve-plan") {
-        if ((process.env.AGENTFORGE_AUTH_STRICT === "1" || process.env.NODE_ENV === "production") && !caller.isAuthenticated) {
+        if (!caller.isAuthenticated) {
           res.writeHead(401); res.end(JSON.stringify({ error: "Authenticated reviewer identity is required to approve an execution plan." })); return;
         }
         if (!hasPermission(caller.permissions, "approvals:decide") || !hasPermission(caller.permissions, "tasks:execute")) {
@@ -3867,7 +3964,7 @@ export class AgentForgeWebServer {
         }
         const record: ApprovedPlanRecord = {
           plan: { taskId: task.id, source: "human_approved", commands: commands.map(command => ({ checkName: command.checkName, command: command.command, ...(command.timeoutMs === undefined ? {} : { timeoutMs: command.timeoutMs }) })) },
-          contractDigest: executionContractDigest(task), approvedBy: caller.user?.id || "user-owner",
+          contractDigest: executionContractDigest(task), approvedBy: caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client",
           approvedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3600000).toISOString(),
         };
         try { await new ApprovedPlanProvider(async () => record).getPlan(task); }
@@ -4052,6 +4149,9 @@ export class AgentForgeWebServer {
       }
 
       if (req.method === "POST" && action === "approve") {
+        if (!caller.isAuthenticated) {
+          res.writeHead(401); res.end(JSON.stringify({ error: "Sign in before approving task evidence." })); return;
+        }
         if (!hasPermission(caller.permissions, "approvals:decide")) {
           res.writeHead(403);
           res.end(JSON.stringify({ error: "Permission denied", required: "approvals:decide" }));
@@ -4065,7 +4165,7 @@ export class AgentForgeWebServer {
           }));
           return;
         }
-        const approvedBy = caller.user?.id || "local-owner";
+        const approvedBy = caller.isAuthenticated && caller.user ? caller.user.id : "local-unverified-web-client";
         if (task.evidencePack.approvalId) {
           const request = this.store.listApprovals().find(item => item.id === task.evidencePack?.approvalId);
           if (!request || request.taskId !== task.id || request.status !== "pending") {
@@ -4518,6 +4618,7 @@ export class AgentForgeWebServer {
 
   stop(): Promise<void> {
     this.conversations.shutdown();
+    this.indexedMemory?.close();
     if (this.taskWorkerRuntime) {
       this.taskWorkerRuntime.stop();
     }

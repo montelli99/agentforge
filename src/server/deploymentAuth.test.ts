@@ -75,6 +75,28 @@ describe("deployment authentication boundary", () => {
     expect(loggedOut.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
+  it("requires login for the workspace after local owner setup", async () => {
+    delete process.env.AGENTFORGE_AUTH_STRICT;
+    const store = new WorkspaceStore();
+    server = new AgentForgeWebServer(store, 0);
+    await server.start();
+    const base = server.getBaseUrl();
+
+    const before = await fetch(`${base}/api/auth/me`);
+    expect(await before.json()).toMatchObject({ accessMode: "local_unlocked", ownerSetupRequired: true });
+    const bootstrapped = await fetch(`${base}/api/auth/bootstrap`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: "a long local owner password" }),
+    });
+    expect(bootstrapped.status).toBe(201);
+    const session = await bootstrapped.json() as { token: string };
+
+    const identity = await fetch(`${base}/api/auth/me`);
+    expect(await identity.json()).toMatchObject({ accessMode: "authentication_required", ownerSetupRequired: false });
+    expect((await fetch(`${base}/api/workspaces`)).status).toBe(401);
+    expect((await fetch(`${base}/api/workspaces`, { headers: { Authorization: `Bearer ${session.token}` } })).status).toBe(200);
+  });
+
   it("requires the configured bearer token for API access", async () => {
     process.env.AGENTFORGE_API_TOKEN = "test-deployment-token";
     server = new AgentForgeWebServer(undefined, 0);
@@ -128,6 +150,44 @@ describe("deployment authentication boundary", () => {
     });
     expect(write.status).toBe(403);
     expect(await write.json()).toMatchObject({ error: "A write-capable role is required for this action." });
+  });
+
+  it("binds a strict-mode approval decision to the authenticated reviewer", async () => {
+    process.env.AGENTFORGE_AUTH_STRICT = "1";
+    const store = new WorkspaceStore();
+    const admin = store.createUser({ username: "release-admin", displayName: "Release admin", role: "admin" });
+    const session = store.createSession(admin.id);
+    const approval = store.createApproval({ taskId: "task-test", requesterAgentId: "agent-test", action: "Review a synthetic change", risk: "low" });
+    server = new AgentForgeWebServer(store, 0);
+    await server.start();
+    const url = `${server.getBaseUrl()}/api/approvals/resolve`;
+    const body = JSON.stringify({ approvalId: approval.id, status: "approved" });
+
+    const anonymous = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+    expect(anonymous.status).toBe(401);
+    expect(store.getApproval(approval.id)?.status).toBe("pending");
+
+    const authenticated = await fetch(url, {
+      method: "POST", headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" }, body,
+    });
+    expect(authenticated.status).toBe(200);
+    expect(store.getApproval(approval.id)).toMatchObject({
+      status: "approved", approverUserId: admin.id, decisionOrigin: "web",
+    });
+  });
+
+  it("does not accept an unsigned approval from an unlocked local client", async () => {
+    delete process.env.AGENTFORGE_AUTH_STRICT;
+    const store = new WorkspaceStore();
+    const approval = store.createApproval({ taskId: "task-test", requesterAgentId: "agent-test", action: "Local synthetic review", risk: "low" });
+    server = new AgentForgeWebServer(store, 0);
+    await server.start();
+    const response = await fetch(`${server.getBaseUrl()}/api/approvals/resolve`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approvalId: approval.id, status: "approved" }),
+    });
+    expect(response.status).toBe(401);
+    expect(store.getApproval(approval.id)).toMatchObject({ status: "pending" });
   });
 
   it("preserves a recoverable owner account when managing workspace access", async () => {

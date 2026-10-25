@@ -45,6 +45,8 @@ export interface MemoryQuery {
   queryText?: string;
   tags?: string[];
   projectId?: string;
+  /** Limit a projectless worker to explicitly shared records. */
+  globalOnly?: boolean;
   limit?: number;
   includeArchived?: boolean;
 }

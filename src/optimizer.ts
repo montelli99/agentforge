@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type {
   CanonicalEnvelope,
   RuntimeRequest,
@@ -37,7 +38,7 @@ export class AgentForgeOptimizer {
   private deltaEngine = getDeltaEngine();
   private sessionManager = getSessionManager();
   private costLedger = getCostLedger();
-  private semanticMemory = getSemanticMemory();
+  // Embedding initialization is deferred until explicit semantic-memory use.
   private fingerprinter = getContextFingerprinter();
   private benchmark = getModelBenchmark();
   private memoryContextOptimizer = getMemoryContextOptimizer();
@@ -149,7 +150,7 @@ export class AgentForgeOptimizer {
               optimizedPrompt: bypassResult.answer,
             },
           },
-          telemetry: createTelemetry({
+          telemetry: { ...createTelemetry({
             originalPrompt,
             optimizedPrompt: bypassResult.answer,
             selectedModel: envelope.model,
@@ -160,7 +161,7 @@ export class AgentForgeOptimizer {
             policyConstraintsApplied: [],
             fallbackUsed: false,
             optimizationTimeMs: Date.now() - startTime,
-          }),
+          }), providerCallsAvoided: 1, memoryBypassApplied: true, memoryBypassTokensSaved, memoryBypassCostSavedUsd },
           notes,
         };
       }
@@ -172,48 +173,20 @@ export class AgentForgeOptimizer {
     }
 
     if (this.config.exactCache || this.config.semanticCache) {
-      const cacheResult = this.cache.lookup(
-        envelope.policy.tenantId as string || "default",
-        "general",
-        originalPrompt,
-        this.getModelFamily(envelope.model.model),
-      );
-      if (cacheResult.hit) {
-        cacheStatus = "hit";
-        notes.push("cache hit");
-
-        this.costLedger.record({
-          tenantId: (envelope.policy.tenantId as string) || "default",
-          provider: envelope.model.provider,
-          model: envelope.model.model,
-          inputTokens: 0,
-          outputTokens: 0,
-          inputCostUsd: 0,
-          outputCostUsd: 0,
-          cacheHits: 1,
-          metadata: { cacheHit: true },
-        });
-
-        return {
-          optimized: true,
-          envelope,
-          telemetry: createTelemetry({
-            originalPrompt,
-            optimizedPrompt: originalPrompt,
-            selectedModel: envelope.model,
-            routingReason: "cache hit - using cached response",
-            cacheStatus: "hit",
-            compressionApplied: false,
-            contextDedupApplied: false,
-            policyConstraintsApplied: [],
-            fallbackUsed: false,
-            optimizationTimeMs: Date.now() - startTime,
-          }),
-          notes,
-        };
+      const constraints = this.responseCacheConstraints(envelope, request);
+      const modelIdentity = JSON.stringify([envelope.model.provider, envelope.model.model]);
+      const cached = this.cache.lookup(envelope.policy.tenantId as string || "default", "general", originalPrompt, modelIdentity, constraints);
+      // Direct answer reuse requires exact bytes and the complete request/policy
+      // identity. Similarity alone cannot establish equivalent task outcomes.
+      if (!envelope.sideEffecting && typeof envelope.policy.cacheScopeVersion === "string" && envelope.policy.cacheScopeVersion.trim() && cached.hit && cached.entry?.key.promptHash === crypto.createHash("sha256").update(originalPrompt).digest("hex")
+        && typeof cached.entry.response === "string" && cached.entry.response.trim()) {
+        const answer = cached.entry.response;
+        return { optimized: true, envelope: { ...envelope, request: { ...envelope.request, optimizedPrompt: answer } },
+          telemetry: { ...createTelemetry({ originalPrompt, optimizedPrompt: answer, selectedModel: envelope.model, routingReason: "exact scoped response reused locally", cacheStatus: "hit", compressionApplied: false, contextDedupApplied: false, policyConstraintsApplied: constraints, fallbackUsed: false, optimizationTimeMs: Date.now()-startTime }), providerCallsAvoided: 1 },
+          notes: ["exact scoped response reused locally; no provider dispatch required"] };
       }
       cacheStatus = "miss";
-      notes.push("cache miss");
+      notes.push("cache miss or unsafe response reuse rejected");
     }
 
     if (this.config.semanticMemory) {
@@ -224,9 +197,12 @@ export class AgentForgeOptimizer {
         tokenBudget: this.config.maxCostUsd ? undefined : 4000,
       });
 
-      if (memoryResult.cacheHit && memoryResult.tokensSaved > 0) {
+      if (memoryResult.cacheHit) {
         optimizedPrompt = memoryResult.optimizedPrompt;
-        notes.push(`memory context: eliminated ${memoryResult.tokensSaved} tokens (similarity: ${memoryResult.similarity.toFixed(2)})`);
+        const delta = memoryResult.tokensSaved;
+        notes.push(delta > 0
+          ? `memory context: eliminated ${delta} tokens (similarity: ${memoryResult.similarity.toFixed(2)})`
+          : `memory context: added ${Math.abs(delta)} tokens (similarity: ${memoryResult.similarity.toFixed(2)})`);
       }
     }
 
@@ -419,6 +395,16 @@ export class AgentForgeOptimizer {
     };
   }
 
+  private responseCacheConstraints(envelope: CanonicalEnvelope, request: RuntimeRequest): string[] {
+    return [JSON.stringify({ policy: envelope.policy, payload: request.payload, runtime: request.runtime, config: this.config })];
+  }
+
+  /** Explicit trusted caller boundary; no automatic capture of private/live answers. */
+  storeValidatedResponse(envelope: CanonicalEnvelope, request: RuntimeRequest, response: string): void {
+    if (envelope.sideEffecting || typeof envelope.policy.cacheScopeVersion !== "string" || !envelope.policy.cacheScopeVersion.trim() || !response.trim()) throw new Error("Only validated non-effecting text responses may be cached");
+    this.cache.store(envelope.policy.tenantId as string || "default", "general", this.extractPrompt(envelope), JSON.stringify([envelope.model.provider,envelope.model.model]), response, this.responseCacheConstraints(envelope,request));
+  }
+
   private extractPrompt(envelope: CanonicalEnvelope): string {
     const request = envelope.request as Record<string, unknown>;
     if (typeof request.prompt === "string") return request.prompt;
@@ -452,7 +438,7 @@ export class AgentForgeOptimizer {
   }
 
   getSemanticMemory() {
-    return this.semanticMemory;
+    return getSemanticMemory();
   }
 
   getContextFingerprinter() {

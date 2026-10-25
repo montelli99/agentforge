@@ -53,6 +53,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
       }
       // Keep intentionally shared workspace rules visible while excluding another project's private records.
       if (query.projectId && rec.projectId && rec.projectId !== query.projectId) continue;
+      if (query.globalOnly && rec.projectId) continue;
       if (query.tags && query.tags.length > 0) {
         const hasTag = query.tags.some(t => rec.tags.includes(t));
         if (!hasTag) continue;

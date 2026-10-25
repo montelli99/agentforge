@@ -1,3 +1,9 @@
+## Local release verification — 2026-10-25
+
+The public export was rebuilt and checked locally. Recovery now reconstructs the owned memory staging cache and index before serving after restart, validates durable state, and records replayable control receipts in the same database transaction. Control revision checks are serialized; source cohorts are checked again before ingestion. Continuous synthetic memory remains opt-in and requires a caller-supplied watcher; it is not automatic private-session discovery.
+
+The release includes a pinned offline verifier product asset, its integrity tests, public requirement documents, and the indexed-memory third-party license. Local test results and archive hashes are supplied in the accompanying release verification report. These checks do not claim hosted CI, public publication, live-provider entitlement, or production acceptance of every optional adapter. Historical checkpoints below retain their original dates.
+
 # AgentForge release status
 
 This document is generated from the current checkout and records what is
@@ -18,7 +24,26 @@ The owner approval boundary and execution sequence are recorded in
 The requirement-by-requirement evidence index is maintained in
 [COMPLETION_AUDIT_2026-09-27.md](COMPLETION_AUDIT_2026-09-27.md).
 
-## Verified in the current checkout
+## Historical local source evidence - 2026-10-03 (superseded)
+
+The current source identity is base revision
+`47467ba62ab1b2da1b10650e18acd5df04048db8` plus preserved uncommitted
+integration changes. The current local product regression checkpoint is 104
+test files, 622 passed and 2 explicitly skipped live tests. Typecheck, build,
+the 197-file package/archive gate, and 14 synthetic repository path/type tests
+passed locally. See [the current build receipt](CURRENT_BUILD_RECEIPT_2026-10-03.md).
+
+At that checkpoint, this source had no hosted-CI run, release commit, live-provider proof,
+registry provenance, or independent acceptance of the replacement release
+archive. A prior broad working-directory archive was rejected and is not a
+distribution candidate. Public release at that checkpoint remained blocked pending independent
+review of an explicitly allowlisted replacement.
+
+## Historical and component evidence
+
+The evidence below predates the current uncommitted integration unless an item
+explicitly says otherwise. It must not be represented as current whole-tree or
+hosted proof.
 
 - TypeScript typecheck passes.
 - The full verification suite covers the native gateway, workspace hierarchy,
@@ -80,15 +105,15 @@ The requirement-by-requirement evidence index is maintained in
   container. Re-run `pnpm test:docker:acceptance` on the release host after
   Docker is available; availability is an environment condition, not a claim
   made by the package.
-- Hosted CI run `36645820769` passed the full Ubuntu, macOS, and Windows matrix
+- Historical hosted CI run `36645820769` passed the full Ubuntu, macOS, and Windows matrix
   on Node 22 and 24, including public-package and isolated-execution
   acceptance.
-- The public Render site is live from the current `vnext` source. Local
+- A historical public Render deployment was live from its recorded `vnext` revision. Local
   completion audit, repository-privacy, and product-isolation gates pass.
 - The complete `pnpm verify:public` sequence passed on the release host,
   including typecheck, build, archive privacy, persistence crash recovery,
   Docker acceptance, and approved Docker end-to-end evidence.
-- The full Vitest regression suite passed with 91 files and 502 tests; two
+- At the September 29 historical checkpoint, the Vitest suite passed with 91 files and 502 tests; two
   tests remain skipped only behind explicit live-test opt-in.
 - A read-only native Telegram BotFather check accepted the configured token,
   returned the bot identity, reported no webhook, zero pending updates, and
@@ -118,7 +143,7 @@ The requirement-by-requirement evidence index is maintained in
 
 ## Owner release decisions
 
-- The public package version is `0.1.0` and the package is publishable. The repository is Apache-2.0 and the privacy gate passes.
+- The package version remains `0.1.0` and the repository remains Apache-2.0. Current publication is blocked pending independent privacy review of the allowlisted replacement archive.
 - The GitHub Actions release gates can be started manually with `workflow_dispatch` in `.github/workflows/ci.yml`; the workflow does not require production credentials.
 - Publishing to npm or another registry remains an explicit external release action; it is not performed by the build or audit commands.
 
@@ -145,14 +170,14 @@ mock receipt.
 
 - The browser adapter now includes a bounded Jev observe/choose/execute loop with re-observation, step limits, blocked/max-step results, and independent verification before accepting DONE.
 
-## Current local verification — 2026-09-29
+## Historical local verification - 2026-09-29
 
 The repeatable release procedure is documented in [RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md). It separates locally verified package/privacy gates from external proof that requires a hosted CI run or disposable live-provider accounts.
 
 The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md](./GOAL_EXECUTION_MAP.md).
 
 - `pnpm check`, `pnpm verify:public`, `pnpm test:persistence:launcher`, and
-  `pnpm test:package:cli` passed. The current full suite reports 91 files
+  `pnpm test:package:cli` passed at that checkpoint. The historical suite reported 91 files
   passed, 502 tests passed, and 2 opt-in live-model tests skipped.
 - Docker Desktop was started and `pnpm test:docker:acceptance` created the
   isolated network-disabled container successfully.
@@ -205,3 +230,4 @@ The full approved scope and evidence map is maintained in [GOAL_EXECUTION_MAP.md
 - September 27, 2026: `pnpm release:audit` passed all ten local public-release gates. It reports `packageReady: true`, with no local privacy, license, manifest, package-surface, or CLI blockers.
 - September 27, 2026: focused native-channel verification passed 19 tests across Telegram BotFather, Telegram native-path selection, Telegram relay protection, Slack Socket Mode, and Discord Gateway transport.
 - The audit still correctly reports hosted CI provenance and registry publication as external release evidence. Neither is claimed by the local checkout.
+

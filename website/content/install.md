@@ -53,7 +53,7 @@ The Setup Guide can organize an outcome into local records before a model is con
 
 ## Make the first conversation work
 
-Follow the [model connection guide](CHAT_SETUP.md) to set a dedicated credential, endpoint and allowed model list. Restart AgentForge after changing runtime settings. Select the model in the composer and send a simple text request, such as “Draft three acceptance criteria for this documentation review.”
+Follow the [model connection guide](../../docs/CHAT_SETUP.md) to set a dedicated credential, endpoint and allowed model list. Restart AgentForge after changing runtime settings. Select the model in the composer and send a simple text request, such as "Draft three acceptance criteria for this documentation review."
 
 Success means the selected provider returns a response, the response remains after reloading the page, and a follow-up continues in the same conversation. Saving text locally is useful, but is different from generating a model response. The current generation route does not analyze attachments.
 

@@ -11,6 +11,25 @@ describe("AgentForge controller memory handoff", () => {
     expect(inspection.contextPacket.content).toContain("Never execute without explicit approval.");
   });
 
+  it("keeps durable rules alongside topical memories without crossing channel boundaries", async () => {
+    const memory = new OperationalMemoryProvider();
+    await memory.record({ namespace: "agentforge-controller", category: "do_not_repeat",
+      title: "Global safeguard", content: "Never skip the signed manifest.", tags: [] });
+    await memory.record({ namespace: "agentforge-controller", projectId: "channel-alpha",
+      category: "general_fact", title: "Launch checkpoint", content: "The launch checklist is current.", tags: [] });
+    await memory.record({ namespace: "agentforge-controller", projectId: "channel-beta",
+      category: "general_fact", title: "Launch private beta", content: "Private beta material.", tags: [] });
+    const controller = new AgentForgeController(undefined, memory);
+    const scoped = await controller.inspect("Review the launch checklist", { channelId: "channel-alpha" });
+    expect(scoped.contextPacket.content).toContain("Never skip the signed manifest.");
+    expect(scoped.contextPacket.content).toContain("The launch checklist is current.");
+    expect(scoped.contextPacket.content).not.toContain("Private beta material.");
+    const global = await controller.inspect("Review the launch checklist");
+    expect(global.contextPacket.content).toContain("Never skip the signed manifest.");
+    expect(global.contextPacket.content).not.toContain("The launch checklist is current.");
+    expect(global.contextPacket.content).not.toContain("Private beta material.");
+  });
+
   it("routes natural-language questions without defaulting every request to setup", async () => {
     const controller = new AgentForgeController();
 

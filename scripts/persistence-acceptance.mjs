@@ -9,6 +9,15 @@ const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-launcher
 const portProbe = net.createServer();
 let child;
 let childOutput = "";
+let sessionToken;
+let reviewerUsername;
+const reviewerPassword = "synthetic launcher acceptance password";
+const nativeFetch = globalThis.fetch;
+function fetch(url, options = {}) {
+  const headers = new Headers(options.headers);
+  if (sessionToken) headers.set("Authorization", `Bearer ${sessionToken}`);
+  return nativeFetch(url, { ...options, headers, signal: AbortSignal.timeout(10000) });
+}
 
 async function availablePort() {
   await new Promise((resolve, reject) => {
@@ -24,7 +33,7 @@ async function availablePort() {
 async function startServer(port) {
   child = spawn(process.execPath, ["dist/server/start.js"], {
     cwd: process.cwd(),
-    env: { ...process.env, AGENTFORGE_DATA_DIR: dataDirectory, AGENTFORGE_HOST: "127.0.0.1", PORT: String(port) },
+    env: { ...process.env, AGENTFORGE_DATA_DIR: dataDirectory, AGENTFORGE_DISABLE_SECONDARY: "1", AGENTFORGE_HOST: "127.0.0.1", PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.setEncoding("utf8").on("data", chunk => { childOutput += chunk; });
@@ -34,6 +43,15 @@ async function startServer(port) {
     if (child.exitCode !== null) throw new Error(`Server exited early (${child.exitCode}). ${childOutput}`);
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/status`, { headers: { Connection: "close" } });
+      if (response.status === 401 && reviewerUsername) {
+        const login = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+          method: "POST", headers: { "Content-Type": "application/json", Connection: "close" },
+          body: JSON.stringify({ username: reviewerUsername, password: reviewerPassword }),
+        });
+        assert.equal(login.status, 200, "persisted reviewer must sign in after restart");
+        sessionToken = (await login.json()).token;
+        continue;
+      }
       if (response.ok) {
         const status = await response.json();
         assert.equal(status.storageMode, "local_json", "launcher must report local JSON persistence");
@@ -171,9 +189,18 @@ try {
   const proposalData = await proposed.json();
   const currentBeforeApproval = await fetch(`http://127.0.0.1:${port}/api/processes/${encodeURIComponent(processId)}/revisions`, { headers: { Connection: "close" } });
   assert.equal((await currentBeforeApproval.json()).current.version, 1, "pending proposal must not change the active version");
-  const resolved = await fetch(`http://127.0.0.1:${port}/api/processes/${encodeURIComponent(processId)}/revisions/${encodeURIComponent(proposalData.proposal.id)}/resolve`, {
+  const bootstrap = await fetch(`http://127.0.0.1:${port}/api/auth/bootstrap`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Connection: "close" },
+    body: JSON.stringify({ password: reviewerPassword }),
+  });
+  assert.equal(bootstrap.status, 201, "synthetic reviewer must authenticate before approving");
+  const { token, user } = await bootstrap.json();
+  sessionToken = token;
+  reviewerUsername = user.username;
+  const resolved = await fetch(`http://127.0.0.1:${port}/api/processes/${encodeURIComponent(processId)}/revisions/${encodeURIComponent(proposalData.proposal.id)}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Connection: "close", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ status: "approved", approverUserId: "acceptance-reviewer" }),
   });
   assert.equal(resolved.status, 200, "reviewer must be able to activate the proposed revision");

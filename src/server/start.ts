@@ -1,3 +1,6 @@
+import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
+import {SubscriptionCliModelProvider,readSubscriptionCliConfiguration} from "../providers/models/subscriptionCliModel.js";
+import {configureIndexedServerMode,readIndexedServerConfiguration} from "../memory/indexed/serverMode.js";
 /**
  * AgentForge vNext Web Control Plane Launcher
  */
@@ -52,7 +55,13 @@ const chatProvider = chatModels.length
       ? new OpenAIModelProvider(chatKey, chatBase)
       : undefined
   : undefined;
-const planDraftProvider = chatProvider && chatModels[0] ? new ModelPlanDraftProvider(chatProvider, chatModels[0], ["sh", "node"]) : undefined;
+const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
+const cliPlanConfig=planProviderName==="codex-cli"?readSubscriptionCliConfiguration(process.env.AGENTFORGE_PLAN_CLI_CONFIG??""):undefined;
+const selectedPlanProvider=cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=cliPlanConfig?.model??chatModels[0];
+const planningAccounting = {requireReportedUsage:true,persist:async (audit: import("../core/runtime/executionReceipt.js").PlanningAudit)=>{const task=store.getTask(audit.taskId);if(!task)throw new Error("Planning audit task missing");if(audit.status==="started"&&(task.planningAudits??[]).some(item=>item.id!==audit.id&&item.status!=="completed"))throw new Error("Unresolved planning usage: inspect audit before another invocation.");store.updateTask(task.id,{planningAudits:[...(task.planningAudits??[]).filter(item=>item.id!==audit.id),audit]});}};
+const planDraftProvider = planProviderName === "chatgpt-direct"
+  ? configureChatGPTDirectPlanner(process.env, planningAccounting)
+  : selectedPlanProvider && selectedPlanModel ? new ModelPlanDraftProvider(selectedPlanProvider, selectedPlanModel, ["sh", "node"], undefined, planningAccounting) : undefined;
 let taskRuntime: TaskWorkerRuntime | undefined;
 const executionMode = process.env.AGENTFORGE_EXECUTION_MODE;
 if (executionMode && executionMode !== "off" && executionMode !== "approved-docker") {
@@ -66,12 +75,16 @@ if (executionMode === "approved-docker") {
   await backend.initialize();
   taskRuntime = new TaskWorkerRuntime(store, backend, {
     repoRoot: repository,
+    requireEffectReceipts: true,
+    workspaceIdentity: workspaceFilePath,
     autoStart: false,
     automaticDispatch: false,
     memoryProvider: operationalMemory,
     memoryNamespace: "workspace",
   }, completion);
 }
+const indexedConfigPath = process.env.AGENTFORGE_INDEXED_MEMORY_CONFIG;
+const indexedMemory = indexedConfigPath ? await configureIndexedServerMode(readIndexedServerConfiguration(indexedConfigPath)) : undefined;
 const server = new AgentForgeWebServer(
   store,
   port,
@@ -79,7 +92,7 @@ const server = new AgentForgeWebServer(
   taskRuntime,
   { conversation: chatProvider ? { provider: chatProvider, models: chatModels,
     memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
-    planDraftProvider },
+    planDraftProvider, indexedMemory },
 );
 
 // Telegram is a direct AgentForge-owned MTProto user session and does not

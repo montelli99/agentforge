@@ -339,7 +339,7 @@ describe("AgentForge MiMo Text Smoke — Live or NOT_CONFIGURED", () => {
 
       console.log(`[MiMo Smoke] Pro — latency=${latencyMs}ms usage=${JSON.stringify(result.usage)} content="${result.content}"`);
       expect(result.content).toContain("AGENTFORGE MIMO PRO WORKS");
-      expect(result.usage.promptTokens).toBeGreaterThan(0);
+      expect(result.usage?.promptTokens).toBeGreaterThan(0);
     });
   });
 

@@ -9,7 +9,7 @@ contracts remain the same across modes.
 Use this for evaluation, development, and private single-user work. Clone the
 repository, install dependencies, and run `pnpm vnext`. The control plane binds
 to `127.0.0.1` by default, starts empty, and stays offline until you configure
-a model or channel. Follow [Installation](INSTALLATION.md).
+a model or channel. Follow the [quickstart](../QUICKSTART.md).
 
 ## Approved Docker execution
 

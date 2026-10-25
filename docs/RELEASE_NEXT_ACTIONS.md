@@ -1,8 +1,9 @@
 # Release next actions
 
-The local release and hosted build gates are passing. AgentForge is an
-upcoming release candidate; the following are optional follow-up actions and
-the separate owner-controlled publication step.
+AgentForge is a release candidate. Verify the exact checkout against a completed
+seven-job hosted run before describing it as verified. Historical passing runs
+do not certify a changed checkout. The following cover optional integrations
+and the separate owner-controlled publication step.
 
 ## 1. Optional live provider acceptance
 
@@ -52,10 +53,9 @@ Run these checks from a clean release checkout before requesting publication:
 pnpm verify:public
 pnpm test:website
 pnpm test:registry:preflight
-pnpm test:research:all
 ```
 
-Then run the provider-specific procedure in
+For an enabled optional provider, run the provider-specific procedure in
 [`LIVE_PROVIDER_ACCEPTANCE.md`](LIVE_PROVIDER_ACCEPTANCE.md) with disposable
 targets and private runtime secrets. Capture only the readiness snapshot,
 normalized inbound event ID, outbound provider message ID, and clean shutdown

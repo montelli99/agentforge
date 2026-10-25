@@ -1,3 +1,5 @@
+import { canOptimizeProviderBody, buildOptimizedProviderBody } from "./providerRequestBody.js";
+import { createNoOpTelemetry } from "./telemetry.js";
 import http from "node:http";
 import https from "node:https";
 import httpImport from "node:http";
@@ -400,7 +402,7 @@ function buildEnvelope(prompt: string, model: string, provider: string): Canonic
   };
 }
 
-async function forwardToProvider(params: {
+export async function forwardToProvider(params: {
   prompt: string;
   model: string;
   provider: string;
@@ -423,7 +425,7 @@ async function forwardToProvider(params: {
 
   if (isOllama) {
     const url = new URL(`${OLLAMA_BASE_URL}/v1/chat/completions`);
-    const body = JSON.stringify({ ...params.originalBody, model: params.model });
+    const body = JSON.stringify(buildOptimizedProviderBody(params.originalBody, params.prompt, params.model));
     return new Promise((resolve, reject) => {
       const req = httpImport.request(
         {
@@ -477,7 +479,7 @@ async function forwardToProvider(params: {
         usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
       };
     }
-    const body = JSON.stringify({ ...params.originalBody, model: params.model });
+    const body = JSON.stringify(buildOptimizedProviderBody(params.originalBody, params.prompt, params.model));
     const url = new URL("https://openrouter.ai/api/v1/chat/completions");
     return new Promise((resolve, reject) => {
       const req = https.request(
@@ -520,7 +522,7 @@ async function forwardToProvider(params: {
 
   // OpenAI: use their API endpoint
   if (effectiveProvider === "openai") {
-    const body = JSON.stringify({ ...params.originalBody, model: params.model });
+    const body = JSON.stringify(buildOptimizedProviderBody(params.originalBody, params.prompt, params.model));
     const url = new URL("https://api.openai.com/v1/chat/completions");
     return new Promise((resolve, reject) => {
       const req = https.request(
@@ -570,7 +572,7 @@ async function forwardToProvider(params: {
     }
     // Strip "minimax/" prefix for the API call — MiniMax uses bare model ids.
     const bareModel = params.model.replace(/^minimax\//i, "");
-    const body = JSON.stringify({ ...params.originalBody, model: bareModel });
+    const body = JSON.stringify(buildOptimizedProviderBody(params.originalBody, params.prompt, bareModel));
     const url = new URL("https://api.minimax.io/v1/chat/completions");
     return new Promise((resolve, reject) => {
       const req = https.request(
@@ -657,13 +659,13 @@ async function handleChatCompletions(
   const session = (req.headers["x-agentforge-session"] as string) || "unknown";
 
   const envelope = buildEnvelope(prompt, requestedModel, provider);
-  const result = await optimizer.optimize(envelope, {
+  const result = canOptimizeProviderBody(body) ? await optimizer.optimize(envelope, {
     runtime: "openclaw",
     transport: "public-ingress",
     model: { provider, model: requestedModel },
     payload: body,
     headers: {},
-  });
+  }) : { optimized: false, envelope, telemetry: createNoOpTelemetry(prompt, envelope.model), notes: ["Structured/multi-role request preserved; aggregate optimization not forwarded"] };
 
   telemetryHistory.push(result.telemetry);
 

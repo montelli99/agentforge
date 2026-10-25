@@ -49,3 +49,17 @@ export * from "./core/providers/memory.js";
 export * from "./core/store/workspaceStore.js";
 export * from "./providers/memory/operationalMemory.js";
 
+
+// Reusable optimization SDK; importing it never starts the legacy proxy.
+export { AgentForgeOptimizer, createOptimizer } from "./optimizer.js";
+export { SemanticCache } from "./cache.js";
+export { SemanticMemory } from "./semanticMemory.js";
+export { RealEmbeddingProvider } from "./embeddingAdapter.js";
+export { canOptimizeProviderBody, buildOptimizedProviderBody } from "./providerRequestBody.js";
+
+export {ExplicitIndexedMemory, type ExplicitIndexOptions, type IndexedEmbeddingProvider} from "./memory/indexed/explicitIndex.js";
+export {IndexedServerMode, configureIndexedServerMode, readIndexedServerConfiguration, type IndexedMemoryRuntime, type IndexedServerConfiguration} from "./memory/indexed/serverMode.js";
+export {ContinuousIndexedMemoryLifecycle, extractSyntheticMemorySnapshot, type ContinuousIndexedMemoryConfiguration, type ContinuousMemoryWatchEvent, type ContinuousMemoryWatcher} from "./memory/indexed/continuousLifecycle.js";
+export {SubscriptionCliModelProvider,readSubscriptionCliConfiguration,type SubscriptionCliConfiguration} from "./providers/models/subscriptionCliModel.js";
+export {prepareChatGPTSignIn,chatgptDirectSignInEndpoint} from "./providers/models/chatgptDirectSignIn.js";
+export {exchangeDirectCallback,type DirectTokenExchangeTransport,type SessionCredentials} from "./providers/models/chatgptDirectExchange.js";
