@@ -45,6 +45,22 @@ describe('verifier runtime integrity', () => {
     await fs.appendFile(path.join(runtime, 'offline-id-token-verifier.mjs'), '\n// changed executable bytes\n');
     await expect(loadVerifiedSignInRuntime(runtime)).rejects.toThrow('integrity');
   });
+  it('verifies refresh signatures with optional original nonce without weakening sign-in',async()=>{
+    const factory=await loadVerifiedSignInRuntime(await createRuntimeCopy());
+    const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+    const jwk={...publicKey.export({format:'jwk'}),kid:'renewal-key',alg:'RS256'};
+    const base={iss:'https://auth.openai.com',sub:'qa-subject',aud:'qa-client',exp:Math.floor(Date.now()/1000)+60};
+    const token=(claims:Record<string,unknown>)=>{const input=Buffer.from(JSON.stringify({alg:'RS256',kid:jwk.kid})).toString('base64url')+'.'+Buffer.from(JSON.stringify(claims)).toString('base64url');return input+'.'+sign('RSA-SHA256',Buffer.from(input),privateKey).toString('base64url');};
+    const options={jwks:{keys:[jwk]},issuer:base.iss,audience:base.aud,nonce:'original-nonce'};
+    const refresh=factory({...options,purpose:'refresh'});
+    await expect(refresh.verifySignature(token(base))).resolves.toMatchObject({sub:base.sub});
+    await expect(refresh.verifySignature(token({...base,nonce:'original-nonce'}))).resolves.toMatchObject({sub:base.sub});
+    await expect(refresh.verifySignature(token({...base,nonce:'different-nonce'}))).rejects.toThrow('validation failed');
+    await expect(factory(options).verifySignature(token(base))).rejects.toThrow('validation failed');
+    for(const change of [{aud:'other-client'},{iss:'other-issuer'},{exp:1}])await expect(refresh.verifySignature(token({...base,...change}))).rejects.toThrow('validation failed');
+    const signed=token(base).split('.');signed[1]=Buffer.from(JSON.stringify({...base,sub:'altered'})).toString('base64url');
+    await expect(refresh.verifySignature(signed.join('.'))).rejects.toThrow('validation failed');
+  });
 
   it('rejects a symlinked or junction-substituted runtime path', async () => {
     const parent = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'agentforge-signin-link-')));

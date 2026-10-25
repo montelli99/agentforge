@@ -2,16 +2,18 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import type { IdentityTokenVerifier, ValidatedCallback } from './chatgptDirectOAuth.js';
+import type { DirectCredentials, IdentityTokenVerifier, ValidatedCallback } from './chatgptDirectOAuth.js';
 import type { DirectTokenExchangeTransport } from './chatgptDirectExchange.js';
+import type { DirectTokenStore } from './chatgptDirectTokenStore.js';
+import { renewDirectSession } from './chatgptDirectSession.js';
 
 const TOKEN_ENDPOINT = 'https://auth.openai.com/api/accounts/oauth/token';
 const JWKS_ENDPOINT = 'https://auth.openai.com/.well-known/jwks.json';
 const MODELS_ENDPOINT = 'https://api.openai.com/v1/models';
 const VERIFIER_FILE = 'offline-id-token-verifier.mjs';
-const VERIFIER_SHA256 = 'f766f18cef364d6565b790adbb566197562866b9bca09fd25208e165ee47bc72';
+const VERIFIER_SHA256 = 'ec7b8c4f7fad6c2066b7aa04770e530814f30bed89f0115128bde271dbb4be04';
 
-type VerifierFactory = (options: { jwks: unknown; issuer: string; audience: string; nonce: string }) => IdentityTokenVerifier;
+type VerifierFactory = (options: { jwks: unknown; issuer: string; audience: string; nonce: string; purpose?: 'sign-in'|'refresh' }) => IdentityTokenVerifier;
 type Request = typeof fetch;
 
 function samePath(left: string, right: string): boolean {
@@ -111,6 +113,27 @@ export async function createIsolatedIdentityVerifier(factory: VerifierFactory, c
   signal: AbortSignal, request: Request = fetch): Promise<IdentityTokenVerifier> {
   const jwks = await boundedJson(JWKS_ENDPOINT, { method: 'GET', headers: { Accept: 'application/json' } }, signal, request);
   return factory({ jwks, issuer: 'https://auth.openai.com', audience: callback.clientId, nonce: callback.nonce });
+}
+
+export async function createRefreshIdentityVerifier(factory:VerifierFactory,previous:DirectCredentials,
+  signal:AbortSignal,request:Request=fetch):Promise<IdentityTokenVerifier>{
+  // This nonce came from the validated original OAuth exchange, not a new token.
+  // Retain it when refresh ID tokens omit nonce (OIDC Core 12.2).
+  if(!previous.authenticationNonce || !/^[A-Za-z0-9_-]{43,128}$/.test(previous.authenticationNonce))throw Error('Subscription sign-in required to renew this legacy session');
+  const jwks=await boundedJson(JWKS_ENDPOINT,{method:'GET',headers:{Accept:'application/json'}},signal,request);
+  return factory({jwks,issuer:'https://auth.openai.com',audience:previous.clientId,nonce:previous.authenticationNonce,purpose:'refresh'});
+}
+
+/** Complete protected renewal path; activation must withdraw its old grant
+ * before calling and publish the returned credentials only after this resolves. */
+export async function renewStoredChatGPTSession(store:DirectTokenStore,clientId:string,subject:string,
+  verifierDirectory:string,signal?:AbortSignal,request:Request=fetch):Promise<DirectCredentials>{
+  const factory=await loadVerifiedSignInRuntime(verifierDirectory);
+  return renewDirectSession(store,clientId,subject,{
+    signal,
+    refresh:(client,token,abort)=>createIsolatedRefreshTransport(abort,request).refresh(client,token),
+    verifier:(previous,abort)=>createRefreshIdentityVerifier(factory,previous,abort,request),
+  });
 }
 
 export interface DirectCatalogInspectionTransport {

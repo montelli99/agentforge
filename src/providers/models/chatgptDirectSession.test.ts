@@ -3,16 +3,35 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import {generateKeyPairSync,sign} from 'node:crypto';
 import {once} from 'node:events';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {DirectTokenStore} from './chatgptDirectTokenStore.js';
 import {WindowsDirectCredentialBackend} from './windowsDirectCredentialBackend.js';
 import {renewDirectSession} from './chatgptDirectSession.js';
+import {renewStoredChatGPTSession} from './chatgptDirectSignInRuntime.js';
 import type {DirectCredentials} from './chatgptDirectOAuth.js';
 const credentials=():DirectCredentials=>({clientId:'synthetic-client',subject:'synthetic-subject',issuer:'https://auth.openai.com',resource:'https://api.openai.com/v1',accessToken:'synthetic-access',refreshToken:'synthetic-refresh',idToken:'synthetic-id',tokenType:'Bearer',scopes:['resource.invoke','chatgpt.tokens.use.direct'],expiresAt:Date.now()+10000});
 const verifier={verifySignature:async()=>({iss:'https://auth.openai.com',sub:'synthetic-subject',aud:'synthetic-client',exp:Math.floor(Date.now()/1000)+3600,nonce:'synthetic-nonce'})};
 async function temporary(operation:(directory:string)=>Promise<void>){const directory=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-session-')));try{await operation(directory);}finally{if(!path.basename(directory).startsWith('af-session-'))throw Error('Invalid test directory');await fs.rm(directory,{recursive:true,force:true});}}
 describe.skipIf(process.platform!=='win32')('protected session renewal',()=>{
+  it('runs protected storage, fixed endpoints and pinned signature verification together',async()=>temporary(async directory=>{
+    const store=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));
+    const original={...credentials(),authenticationNonce:'n'.repeat(43)};await store.replace(original);
+    const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+    const jwk={...publicKey.export({format:'jwk'}),kid:'synthetic-key',alg:'RS256'};
+    const input=Buffer.from(JSON.stringify({alg:'RS256',kid:jwk.kid})).toString('base64url')+'.'+Buffer.from(JSON.stringify({iss:original.issuer,sub:original.subject,aud:original.clientId,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');
+    const idToken=input+'.'+sign('RSA-SHA256',Buffer.from(input),privateKey).toString('base64url');
+    const request=vi.fn<typeof fetch>(async url=>{
+      if(String(url)==='https://auth.openai.com/api/accounts/oauth/token')return Response.json({access_token:'renewed-synthetic-access',refresh_token:'renewed-synthetic-refresh',id_token:idToken,token_type:'Bearer',expires_in:3600});
+      if(String(url)==='https://auth.openai.com/.well-known/jwks.json')return Response.json({keys:[jwk]});
+      throw Error('Unexpected endpoint');
+    });
+    const result=await renewStoredChatGPTSession(store,original.clientId,original.subject,fileURLToPath(new URL('./assets',import.meta.url)),undefined,request);
+    expect(result.authenticationNonce).toBe(original.authenticationNonce);expect(result.renewalPending).toBeUndefined();
+    expect(result.accessToken).toBe('renewed-synthetic-access');expect(request).toHaveBeenCalledTimes(2);
+    expect(await store.read(original.clientId,original.subject)).toEqual(result);
+  }),30000);
   it('persists validated replacement and does not renew a fresh session',async()=>temporary(async directory=>{
     const store=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));const original=credentials();await store.replace(original);
     const refresh=vi.fn(async()=>({access_token:'new-synthetic-access',refresh_token:'new-synthetic-refresh',token_type:'Bearer',expires_in:3600}));

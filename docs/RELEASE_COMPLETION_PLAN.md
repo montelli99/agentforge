@@ -193,3 +193,15 @@ and renewal coordination, not completed subscription UI activation. The refresh
 identity verifier, platform coverage beyond Windows, revocation, and live account
 acceptance remain open. Existing in-memory grant snapshots must be invalidated
 by the activation manager when renewal begins; that manager is not yet wired.
+
+The pinned identity verifier now distinguishes initial sign-in from renewal.
+Initial sign-in still requires its nonce. Refresh permits an absent nonce but
+rejects a changed one, retaining the original authentication nonce across token
+rotation (OIDC Core section 12.2). Signature, issuer, audience and expiry checks
+remain enforced. The verifier integrity hash was updated for the changed bytes.
+The protected renewal entry point now joins storage coordination, fixed-endpoint
+exchange, trusted JWKS retrieval, pinned signature verification and replacement.
+A Windows integration test exercised this entire local path using synthetic
+signed tokens and intercepted HTTP, not a live account. Twenty-nine focused
+tests and full typechecking passed. UI activation and live-provider acceptance
+remain open; this test does not authorize or prove real subscription access.

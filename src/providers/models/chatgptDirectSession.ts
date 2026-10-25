@@ -7,7 +7,7 @@ import {DirectTokenStore} from './chatgptDirectTokenStore.js';
  * rather than reusing a possibly consumed rotating refresh token. */
 export async function renewDirectSession(store:DirectTokenStore,clientId:string,subject:string,options:{
   refresh:(clientId:string,refreshToken:string,signal:AbortSignal)=>Promise<unknown>;
-  verifier:IdentityTokenVerifier;
+  verifier:IdentityTokenVerifier|((previous:DirectCredentials,signal:AbortSignal)=>Promise<IdentityTokenVerifier>);
   signal?:AbortSignal;
   now?:()=>number;
 }):Promise<DirectCredentials>{
@@ -23,7 +23,11 @@ export async function renewDirectSession(store:DirectTokenStore,clientId:string,
     try{
       signal.throwIfAborted();
       const interrupted=new Promise<never>((_,reject)=>{abort=()=>reject(Error('interrupted'));signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();});
-      const renewal=(async()=>validateDirectRefreshResponse(current,await options.refresh(clientId,current.refreshToken!,signal),options.verifier,now))();
+      const renewal=(async()=>{
+        const response=await options.refresh(clientId,current.refreshToken!,signal);
+        const verifier=typeof options.verifier==='function'?await options.verifier(current,signal):options.verifier;
+        return validateDirectRefreshResponse(current,response,verifier,now);
+      })();
       const replacement=await Promise.race([renewal,interrupted]);
       signal.throwIfAborted();
       delete replacement.renewalPending;

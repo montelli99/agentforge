@@ -76,7 +76,7 @@ export class DirectOAuthAttempt {
       nonce: this.input.nonce, selectedSubject: this.input.selectedSubject, requestedScopes: [...this.input.requestedScopes] };
   }
 }
-export interface VerifiedIdentity { iss: string; sub: string; aud: string | readonly string[]; exp: number; nonce: string }
+export interface VerifiedIdentity { iss: string; sub: string; aud: string | readonly string[]; exp: number; nonce?: string }
 export interface IdentityTokenVerifier {
   /** Mandatory cryptographic JWT signature verification against trusted OpenAI
    * JWKS, allowed algorithms and issuer. Never merely decode a JWT. No fetch here. */
@@ -88,6 +88,7 @@ export interface DirectCredentials {
   scopes: readonly string[]; expiresAt: number;
   /** Durable marker: an interrupted rotating-token request must not be replayed. */
   renewalPending?: boolean;
+  authenticationNonce?: string;
 }
 /** Validates an injected token response without exchange, storage or auth calls. */
 export async function validateDirectTokenResponse(callback: ValidatedCallback, response: unknown, verifier: IdentityTokenVerifier,
@@ -107,7 +108,7 @@ export async function validateDirectTokenResponse(callback: ValidatedCallback, r
   const expiresAt = Math.min(now() + (r.expires_in as number) * 1000, claims.exp * 1000);
   const credentials: DirectCredentials = { clientId: callback.clientId, subject: claims.sub, issuer, resource,
     accessToken: r.access_token, refreshToken: r.refresh_token as string | undefined, idToken: r.id_token,
-    tokenType: 'Bearer', scopes: Object.freeze(scopes), expiresAt };
+    tokenType: 'Bearer', scopes: Object.freeze(scopes), expiresAt, authenticationNonce: callback.nonce };
   return { credentials, grant: { accountId: claims.sub, grantId, resource, scopes: [...scopes], expiresAt } };
 }
 
