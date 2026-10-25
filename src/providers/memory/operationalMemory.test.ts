@@ -2,6 +2,8 @@ import { describe, expect, it,vi } from "vitest";
 import {HindsightMemoryProvider} from './hindsightMemory.js';
 import { OperationalMemoryProvider } from "./operationalMemory.js";
 import {ObsidianMemoryProvider} from './obsidianMemory.js';
+import {CompositeMemoryProvider} from './compositeMemory.js';
+import {memorySourceIdentity} from '../../core/providers/memory.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -69,6 +71,20 @@ describe("OperationalMemoryProvider", () => {
       expect((await notes.query({namespace:'workspace',projectId:'alpha'}))).toHaveLength(1);
       await fs.writeFile(path.join(vault,'selected.md'),'Updated synthetic correction');
       expect((await notes.get('workspace',found[0].record.id))?.content).toBe('Updated synthetic correction');
+      const combined=new CompositeMemoryProvider('workspace','alpha',[{alias:'notes',provider:notes},{alias:'recall',provider:hindsight}]);
+      const merged=await combined.query({namespace:'workspace',projectId:'alpha',queryText:'correction',tags:['chat-context']});
+      expect(merged.map(item=>item.record.content)).toEqual(['Updated synthetic correction','Selected remote fact']);
+      expect(merged.map(item=>memorySourceIdentity(combined,item.record))).toEqual([
+        {alias:'notes',providerId:'obsidian',recordId:found[0].record.id},
+        {alias:'recall',providerId:'hindsight',recordId:'shared'}
+      ]);
+      expect(new Set(merged.map(item=>item.record.id)).size).toBe(2);
+      remote.mockClear();
+      expect(await combined.query({namespace:'workspace',projectId:'beta',queryText:'correction'})).toEqual([]);
+      expect(await combined.query({namespace:'other',projectId:'alpha',queryText:'correction'})).toEqual([]);
+      expect(remote).not.toHaveBeenCalled();
+      remote.mockResolvedValueOnce(new Response('synthetic-secret-provider-error',{status:401}));
+      await expect(combined.query({namespace:'workspace',projectId:'alpha',queryText:'correction'})).rejects.toThrow(/^Combined memory lookup failed or stopped; no complete result is available$/);
       await expect(notes.delete()).rejects.toThrow('read-only');
       expect(()=>new ObsidianMemoryProvider(vault,'workspace','alpha',['../private.md'])).toThrow('relative');
     }finally{await fs.rm(vault,{recursive:true,force:true});}
