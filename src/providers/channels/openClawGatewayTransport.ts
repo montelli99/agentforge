@@ -53,11 +53,18 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private readonly device;
 
   constructor(private readonly options: { url: string; token?: string; identityPath: string }) {
+    this.options = Object.freeze({...options});
     const parsed = new URL(options.url);
-    if (parsed.protocol !== "wss:" && !(parsed.protocol === "ws:" && ["127.0.0.1", "localhost", "::1"].includes(parsed.hostname))) {
+    if (parsed.protocol !== "wss:" && !(parsed.protocol === "ws:" && ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname))) {
       throw new Error("Gateway URL must use wss://, or ws:// on loopback only.");
     }
     this.device = identity(options.identityPath);
+  }
+
+  /** Configuration binding, not proof of server identity. Credential changes require explicit rebinding. */
+  getConnectionId(): string {
+    return 'openclaw-' + crypto.createHmac('sha256', this.device.privateKeyPem)
+      .update(JSON.stringify({url: new URL(this.options.url).href, token: this.options.token ?? ''})).digest('hex');
   }
 
   // Only an authenticated handshake establishes connection authority.

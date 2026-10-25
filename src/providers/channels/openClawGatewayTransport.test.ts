@@ -37,3 +37,18 @@ it("reuses valid identity bytes and rejects a mismatched fingerprint", () => {
     expect(fs.readFileSync(file, "utf8")).toBe(before);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+it('binds recovery to stable gateway configuration without exposing credentials',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-binding-'));
+ try{
+  const options={url:'ws://127.0.0.1:18789',token:'synthetic-token',identityPath:path.join(dir,'device.json')};
+  const original=new OpenClawGatewayTransport(options), id=original.getConnectionId();
+  expect(new OpenClawGatewayTransport({...options,url:options.url+'/'}).getConnectionId()).toBe(id);
+  expect(new OpenClawGatewayTransport({...options,token:'changed'}).getConnectionId()).not.toBe(id);
+  expect(new OpenClawGatewayTransport({...options,url:'ws://127.0.0.1:18790'}).getConnectionId()).not.toBe(id);
+  expect(new OpenClawGatewayTransport({...options,identityPath:path.join(dir,'other.json')}).getConnectionId()).not.toBe(id);
+  options.token='mutated';expect(original.getConnectionId()).toBe(id);
+  expect(id).toMatch(/^openclaw-[a-f0-9]{64}$/);
+  expect(new OpenClawGatewayTransport({...options,url:'ws://[::1]:18789'}).isConnected()).toBe(false);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

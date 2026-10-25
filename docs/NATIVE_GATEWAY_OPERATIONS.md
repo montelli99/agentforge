@@ -191,3 +191,11 @@ HTTP acceptance covers anonymous and restricted-user denial, method enforcement,
 saved-run selection, persisted timeout, unchanged task status, and provider-error
 redaction. The test and type checking passed. This is a recovery API; chat setup,
 approval creation, delegation UI and verified completion remain unfinished.
+
+Recovery registration is now bound to the normalized gateway URL, credential and
+local device identity, rather than a reusable constant name. A keyed digest keeps
+credential material out of task receipts. Changing any binding component prevents
+an old receipt from silently targeting the new configuration. This is configuration
+binding, not cryptographic proof of the remote server's identity. Six targeted
+transport/HTTP tests and type checking passed, including option mutation and IPv6
+loopback validation. Credential rotation requires explicit future rebinding logic.

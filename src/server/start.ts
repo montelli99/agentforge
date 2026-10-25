@@ -164,7 +164,7 @@ if (gatewayUrl) {
   });
   gatewayRelay = server.telegram.createGatewayRelay(gatewayTransport);
   const registeredGateway = gatewayTransport;
-  server.registerExternalRunConnection({id: 'configured-openclaw', inspectRun: runId => registeredGateway.inspectRun(runId)});
+  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), inspectRun: runId => registeredGateway.inspectRun(runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
 
