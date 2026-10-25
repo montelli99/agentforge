@@ -28,6 +28,32 @@ export interface ClaudeCliPlannerConfiguration {
   model: string;
 }
 
+/** Validate the complete non-streaming-input transcript, not just its final text.
+ * This detects unexpected activity; it cannot undo activity already performed.
+ */
+export function inspectClaudePlannerTranscript(stdout: string) {
+  const events: Record<string, any>[] = [];
+  let malformed = false;
+  for (const line of stdout.split(/\r?\n/).filter(line => line.trim())) {
+    try {
+      const event = JSON.parse(line);
+      if (!event || typeof event !== 'object' || Array.isArray(event)) malformed = true;
+      else events.push(event);
+    } catch { malformed = true; }
+  }
+  const results = events.filter(event => event.type === 'result');
+  const response = results.length === 1 ? results[0] : undefined;
+  const usage = response ? decodeClaudePlannerUsage(response.usage) : undefined;
+  const init = events[0];
+  const empty = (value: unknown) => Array.isArray(value) && value.length === 0;
+  const valid = !malformed && response !== undefined && events.at(-1) === response
+    && init?.type === 'system' && init.subtype === 'init' && empty(init.tools) && empty(init.mcp_servers)
+    && events.slice(1, -1).every(event => event.type === 'assistant' && event.parent_tool_use_id == null
+      && Array.isArray(event.message?.content) && event.message.content.every((block: any) =>
+        block?.type === 'text' && typeof block.text === 'string'));
+  return {valid, response, usage};
+}
+
 /** Opt-in draft generation through the official client. No command execution route.
  * Requested client controls are not an OS sandbox or proof of managed-policy isolation.
  */
@@ -71,20 +97,20 @@ export class ClaudeCliPlanner implements GenerativeModelProvider {
       const result = await runBoundedChild(this.config.executablePath,
         ['--print', '--restricted', '--safe-mode', '--tools', '', '--disallowedTools', '*',
           '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--setting-sources', '',
-          '--no-session-persistence', '--output-format', 'json', '--model', this.config.model, '--max-turns', '1'],
+          '--no-session-persistence', '--verbose', '--output-format', 'stream-json', '--model', this.config.model, '--max-turns', '1'],
         {cwd: directory, env, input, signal: options.signal, timeoutMs: 120000, maxOutputBytes: 2097152});
-      const response = JSON.parse(result.stdout);
-      if (response?.type === 'result') usage = decodeClaudePlannerUsage(response.usage);
+      const transcript = inspectClaudePlannerTranscript(result.stdout);
+      const response = transcript.response;
+      usage = transcript.usage;
       if (result.code !== 0) throw Error('Client failed');
-      if (response.type !== 'result' || response.subtype !== 'success' || response.is_error !== false || typeof response.result !== 'string')
+      if (!transcript.valid || !response || response.subtype !== 'success' || response.is_error !== false || typeof response.result !== 'string')
         throw Error('Invalid client result');
       validateCliPlan(response.result);
       return {id: crypto.randomUUID(), model: this.config.model, content: response.result, usage, finishReason: 'stop'};
     } catch (error) {
       if (error instanceof BoundedChildFailure) {
         try {
-          const response = JSON.parse(error.result.stdout);
-          if (response?.type === 'result') usage = decodeClaudePlannerUsage(response.usage);
+          usage = inspectClaudePlannerTranscript(error.result.stdout).usage;
         } catch { /* Partial or malformed output leaves accounting unknown. */ }
       }
       throw new ModelProviderError('Claude planning failed or was cancelled; no automatic retry', usage);
