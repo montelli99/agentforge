@@ -32,6 +32,9 @@ export class CompositeMemoryProvider implements MemoryProvider {
   }
 
   async query(query: MemoryQuery): Promise<MemorySearchResult[]> {
+    // The caller can reuse its query while adapters are pending. Filtering the
+    // response must use the same selection that was sent to those adapters.
+    query = { ...query, tags: query.tags?.slice(), categories: query.categories?.slice() };
     if (query.namespace !== this.namespace || query.projectId !== this.projectId || query.globalOnly) return [];
     const limit = Number.isFinite(query.limit) ? Math.max(0, Math.min(100, Math.floor(query.limit!))) : 24;
     if (!limit) return [];
