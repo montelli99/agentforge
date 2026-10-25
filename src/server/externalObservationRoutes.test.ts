@@ -19,7 +19,8 @@ it('requires authenticated execution permission and observes only the saved runt
  for(const displayName of ['', ' ', 'bad\nname', 'x'.repeat(101)]){
   expect(()=>server.registerExternalRunConnection({id:'invalid-name',displayName,inspectRun:inspect})).toThrow('Invalid external connection display name');
  }
- const registered={id:'saved-connection',displayName:'OpenClaw test connection',inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop};
+ let submissionConnected=true;
+ const registered={id:'saved-connection',displayName:'OpenClaw test connection',isConnected:()=>submissionConnected,inspectRun:inspect,submitSessionTurn:submit,requestRunStop:stop};
  server.registerExternalRunConnection(registered);
  registered.id='changed-after-registration';registered.displayName='Changed name';
  try{
@@ -30,7 +31,17 @@ it('requires authenticated execution permission and observes only the saved runt
   expect((await connections()).status).toBe(401);
   expect((await connections(reader)).status).toBe(403);
   const listed=await connections(operator);expect(listed.status).toBe(200);
-  expect(await listed.json()).toEqual({connections:[{id:'saved-connection',displayName:'OpenClaw test connection',canSubmit:true,readiness:'not_checked'}]});
+  expect(await listed.json()).toEqual({connections:[{id:'saved-connection',displayName:'OpenClaw test connection',canSubmit:true,readiness:'authenticated'}]});
+  let connected=false;
+  server.registerExternalRunConnection({id:'state-test',inspectRun:inspect,isConnected:()=>connected});
+  const readiness=async()=> (await (await connections(operator)).json()).connections.find((c:{id:string})=>c.id==='state-test').readiness;
+  expect(await readiness()).toBe('disconnected');connected=true;
+  expect(await readiness()).toBe('authenticated');
+  server.registerExternalRunConnection({id:'broken-state',inspectRun:inspect,isConnected:()=>{throw Error('private connection detail');}});
+  const stateBody=await (await connections(operator)).json();
+  expect(stateBody.connections.find((c:{id:string})=>c.id==='broken-state').readiness).toBe('unavailable');
+  expect(JSON.stringify(stateBody)).not.toContain('private connection detail');
+  expect(inspect).not.toHaveBeenCalled();expect(submit).not.toHaveBeenCalled();
   const reviewTask=store.createTask({title:'Synthetic review task',status:'ready',priority:'medium'});
   const review=(token:string,connectionId='saved-connection')=>fetch(base+'/api/tasks/'+reviewTask.id+'/external-review',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({connectionId,sessionKey:'selected-session',message:'Exact synthetic delegation'})});
   expect((await review(reader)).status).toBe(403);
@@ -45,6 +56,11 @@ it('requires authenticated execution permission and observes only the saved runt
   expect((await dispatch()).status).toBe(409);expect(submit).not.toHaveBeenCalled();
   store.resolveApproval({approvalId:preparedBody.approval.id,status:'approved',approverUserId:'synthetic-reviewer',decisionOrigin:'web'});
   expect((await dispatch('Changed after review')).status).toBe(409);expect(submit).not.toHaveBeenCalled();
+  submissionConnected=false;
+  const disconnected=await dispatch();expect(disconnected.status).toBe(409);
+  expect(await disconnected.json()).toMatchObject({submitted:false});
+  expect(store.getTask(reviewTask.id)?.externalTurnReceipts).toBeUndefined();
+  expect(submit).not.toHaveBeenCalled();submissionConnected=true;
   const dispatched=await dispatch();expect(dispatched.status).toBe(200);
   expect(await dispatched.json()).toMatchObject({submitted:true,verified:false,receipt:{runId:'submitted-run',status:'accepted'}});
   expect((await dispatch()).status).toBe(409);expect(submit).toHaveBeenCalledTimes(1);

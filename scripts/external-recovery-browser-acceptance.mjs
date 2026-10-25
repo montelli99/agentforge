@@ -43,7 +43,7 @@ try{
  await page.getByRole('button').filter({has:page.getByText('New synthetic delegation',{exact:true})}).click();
  await page.getByRole('button',{name:'Delegate to connected agent',exact:true}).click();
  const delegation=page.getByRole('dialog',{name:'Delegate task',exact:true});
- await delegation.getByRole('option',{name:'OpenClaw test agent',exact:true}).waitFor({state:'attached'});
+ await delegation.getByRole('option',{name:'OpenClaw test agent · Status not checked',exact:true}).waitFor({state:'attached'});
  assert.equal(await delegation.getByLabel('Connected runtime',{exact:true}).inputValue(),'synthetic-runtime');
  await delegation.getByLabel('Session key',{exact:true}).fill('selected-session');
  await delegation.getByLabel('Exact message to send',{exact:true}).fill('Only the reviewed synthetic message');
