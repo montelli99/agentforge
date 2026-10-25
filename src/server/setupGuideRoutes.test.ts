@@ -20,7 +20,7 @@ async function availablePort(): Promise<number> {
 
 describe("Setup Guide API", () => {
   it('protects saved connections and recovers them after a service restart without exposing keys', async () => {
-    dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-connection-'));
+    dataDirectory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'agentforge-connection-')));
     const store = new WorkspaceStore();
     store.createUser({ username: 'connection-owner', displayName: 'Owner', role: 'owner', password: 'synthetic login password' });
     store.createUser({ username: 'connection-viewer', displayName: 'Viewer', role: 'viewer', password: 'synthetic login password' });

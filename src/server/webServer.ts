@@ -72,7 +72,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
-import type { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
+import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
 
@@ -3930,10 +3930,24 @@ export class AgentForgeWebServer {
         if (!hasPermission(caller.permissions, "tasks:execute")) {
           res.writeHead(403); res.end(JSON.stringify({ error: "Permission denied", required: "tasks:execute" })); return;
         }
-        if (!this.planDraftProvider) {
-          res.writeHead(503); res.end(JSON.stringify({ error: "No model plan-draft provider is configured." })); return;
-        }
         try {
+          const body = await this.readBody(req);
+          let planner = this.planDraftProvider;
+          if (body.model !== undefined) {
+            if (typeof body.model !== 'string') throw Error('Select a configured model.');
+            const connection = this.conversations.modelConnection(body.model);
+            planner = new ModelPlanDraftProvider(connection.provider, connection.model, ['sh', 'node'], 4096, {
+              requireReportedUsage: true,
+              persist: async audit => {
+                const current = this.store.getTask(audit.taskId);
+                if (!current) throw Error('Planning task unavailable.');
+                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && item.status !== 'completed')) throw Error('Unresolved planning usage: inspect the audit before retrying.');
+                this.store.updateTask(current.id, { planningAudits: [...(current.planningAudits ?? []).filter(item => item.id !== audit.id), audit] });
+              },
+            });
+          }
+          if (!planner) { res.writeHead(503); res.end(JSON.stringify({ error: 'Connect and select a model before requesting a plan.' })); return; }
+          if (['in_progress', 'verification_running', 'completed', 'cancelled'].includes(task.status)) throw Error('This task cannot be replanned in its current state.');
           if(this.indexedMemory && (!caller.isAuthenticated || caller.user?.id!==this.indexedMemory.config.userId)) throw Error("Indexed planning user boundary denied");
           const planningInspection = await this.controller.inspect(`review execution plan for task: ${task.title}\n${task.description}`, {
             taskId: task.id,
@@ -3949,7 +3963,7 @@ export class AgentForgeWebServer {
             indexedPlanningContext,
             operationalPlanningContext,
           ]);
-          const draft = await this.planDraftProvider.draft(task, undefined, planningContext);
+          const draft = await planner.draft(task, undefined, planningContext);
           const updated = this.store.updateTask(task.id, { executionPlanDraft: draft });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "user-owner", actorType: "user", action: "EXECUTION_PLAN_DRAFTED", targetType: "task", targetId: task.id, details: {
             commandCount: draft.commands.length,

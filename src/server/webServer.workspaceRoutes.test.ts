@@ -5,6 +5,24 @@ import { executionContractDigest } from "../core/runtime/approvedPlanProvider.js
 import { AgentForgeWebServer } from "./webServer.js";
 
 describe("workspace hierarchy API", () => {
+  it('drafts with an explicitly selected hot-connected model and records usage without approval or execution', async () => {
+    const store = new WorkspaceStore();
+    server = new AgentForgeWebServer(store,0);await server.start();
+    let requests=0;
+    await server.conversations.changeConnection(async()=>({ models:['selected'],provider:{id:'synthetic',name:'Synthetic',defaultTier:1,isAvailable:async()=>true,listModels:async()=>['selected'],generate:async()=>{requests++;return {id:'proof',content:JSON.stringify({commands:[{checkName:'inspect',command:'node --version'}]}),model:'selected',usage:{promptTokens:12,completionTokens:8,totalTokens:20}};},async *stream(){throw Error('unexpected stream');}} }));
+    const base=server.getBaseUrl();
+    const post=(route:string,body:object)=>fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const task=await (await post('/api/tasks',{title:'Synthetic plan',description:'Inspect Node version',status:'ready'})).json();
+    expect((await post('/api/tasks/'+task.id+'/draft-plan',{model:'unconfigured'})).status).toBe(422);
+    expect(requests).toBe(0);
+    const result=await post('/api/tasks/'+task.id+'/draft-plan',{model:'selected'});
+    expect(result.status).toBe(200);expect(requests).toBe(1);
+    const current=store.getTask(task.id)!;
+    expect(current.executionPlanDraft?.commands[0].command).toBe('node --version');
+    expect(current.approvedExecutionPlan).toBeUndefined();
+    expect(current.executionReceipts??[]).toHaveLength(0);
+    expect(current.planningAudits).toEqual(expect.arrayContaining([expect.objectContaining({status:'completed',inputTokens:12,outputTokens:8,model:'selected'})]));
+  });
   let server: AgentForgeWebServer | undefined;
 
   afterEach(async () => {

@@ -39,6 +39,11 @@ export class ConversationRuntime {
       projectMemoryEnabled: Boolean(this.config?.memoryNamespace) };
   }
 
+  modelConnection(model: string) {
+    if (this.changingConnection || !this.config?.models.includes(model)) throw Error('Select an available model connection.');
+    return { provider: this.config.provider, model };
+  }
+
   stop(threadId: string, actorId: string): boolean {
     const run = this.active.get(threadId);
     if (!run || run.actorId !== actorId) return false;

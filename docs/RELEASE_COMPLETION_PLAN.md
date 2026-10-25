@@ -6,12 +6,12 @@ integrations belong in source, evidence, fixtures or release packages.
 
 | Requirement | Completion evidence | Current gap |
 | --- | --- | --- |
-| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Guide exists; credential installation and restart remain manual |
+| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Encrypted save/unlock implemented; clean-install first-task journey still unproven |
 | Supported subscription chat and execution | Official client authentication, bounded workspace access, cancellation and reconnect evidence for each advertised route | Codex planner only; Claude/Gemini managed workers incomplete |
 | Real-model full task completion | Model-generated plan, explicit review, isolated execution, independent checks and useful artifact | Model-generated synthetic report passed isolated execution and checks; end-user approval UI journey still unproven |
 | Recovery and memory reliability | Crash, auth expiry, interrupted tool, conflicting-memory and duplicate-action cases with durable receipts | Disconnect and simple retrieval examples passed; broader faults unproven |
 | Measurable differentiation | Frozen held-out workloads, matched model/budget baselines, repeated trials, completion/cost/latency results including failures | Development examples only; no competitive superiority demonstrated |
-| Finished public release and launch | Exact-build CI/package hashes, clean distribution, coherent UI/docs, reproducible demo and accurate marketing claims | Latest changes merged; release packaging and documentation reconciliation remain |
+| Finished public release and launch | Exact-build CI/package hashes, clean distribution, coherent UI/docs, reproducible demo and accurate marketing claims | Current changes in PR review; exact-build CI and release reconciliation remain |
 
 ## Work order
 
@@ -70,3 +70,12 @@ The browser verification attempt reached the connection setup screen but stopped
 when the external test service exhausted its credits. It is incomplete, not a
 passing UI acceptance result. Typecheck, build, script parsing, focused tests,
 source privacy and npm archive privacy checks passed locally.
+
+Plan review now offers an explicit connected-model selector, with durable usage
+accounting and no automatic fallback. The empty-plan panel previously returned
+before rendering its draft button; it now permits drafting while keeping empty
+plan approval disabled. A synthetic API test confirms selected-model drafting,
+usage accounting, and absence of approval/execution. No live-provider or browser
+acceptance is claimed by that test. Hosted macOS save tests failed with a linked
+temporary path; the fixture now uses its canonical private path while the vault
+still rejects linked locations. Hosted confirmation remains required.
