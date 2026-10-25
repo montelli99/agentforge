@@ -89,12 +89,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agentforge/agentforge.git"
+    "url": "git+https://github.com/montelli99/agentforge.git"
   },
   "keywords": [],
   "author": "",
   "bugs": {
-    "url": "https://github.com/agentforge/agentforge/issues"
+    "url": "https://github.com/montelli99/agentforge/issues"
   },
-  "homepage": "https://github.com/agentforge/agentforge#readme"
+  "homepage": "https://github.com/montelli99/agentforge#readme"
 }

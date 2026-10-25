@@ -50,6 +50,8 @@ all_markdown_files/
 # Local research captures, historic operational outputs, and discarded UI
 # explorations are intentionally never part of the public product repository.
 .playwright-mcp/
+.visual-review-profile/
+release-output/
 reports/
 design/prototypes/
 # Offline ledgers and diagnostics can retain workspace paths and raw model output.
