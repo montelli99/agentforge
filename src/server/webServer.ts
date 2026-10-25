@@ -396,6 +396,7 @@ export class AgentForgeWebServer {
   private readonly connectionSetup: ConnectionSetup;
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
+  private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
 
@@ -413,13 +414,14 @@ export class AgentForgeWebServer {
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
+    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
     this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
+    this.claudeAccountConfiguration = options.claudeAccountConfiguration ? Object.freeze({...options.claudeAccountConfiguration}) : undefined;
     this.indexedMemory = options.indexedMemory;
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
@@ -3089,8 +3091,8 @@ export class AgentForgeWebServer {
       if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
       if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
       // Browser requests cannot select executables or account directories on the host.
-      const executable = process.env.AGENTFORGE_CLAUDE_EXECUTABLE;
-      const profile = process.env.AGENTFORGE_CLAUDE_PROFILE_DIRECTORY;
+      const executable = this.claudeAccountConfiguration?.executablePath ?? process.env.AGENTFORGE_CLAUDE_EXECUTABLE;
+      const profile = this.claudeAccountConfiguration?.configurationDirectory ?? process.env.AGENTFORGE_CLAUDE_PROFILE_DIRECTORY;
       if (!executable || !profile) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferenceVerified:false})); return; }
       if (this.claudeStatusCheck) { res.writeHead(409); res.end(JSON.stringify({error:'An account check is already running.'})); return; }
       const controller = new AbortController();

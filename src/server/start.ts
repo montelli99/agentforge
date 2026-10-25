@@ -97,7 +97,7 @@ const server = new AgentForgeWebServer(
   taskRuntime,
   { conversation: chatProvider ? { provider: chatProvider, models: chatModels,
     connections: configuredConnections?.connections, memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
-    planDraftProvider, indexedMemory },
+    planDraftProvider, indexedMemory, claudeAccountConfiguration: claudePlanConfig },
 );
 
 // Telegram is a direct AgentForge-owned MTProto user session and does not
