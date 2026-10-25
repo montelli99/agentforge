@@ -86,3 +86,17 @@ changed while awaiting the model. A delayed synthetic provider test verified
 that the second request creates no extra invocation, changed-task output is not
 applied, usage remains recorded, and a subsequent explicit request can proceed.
 This is local-service concurrency protection, not a distributed worker lease.
+
+A frozen paired prefetch ablation (runner commit fc01993) completed 16 live
+MiMo V2.6 Flash requests: four declared synthetic families, two fresh random
+instances each, one request per arm, 256 output-token ceiling, alternating arm
+order, no retries. Prefetch scored 6/8; recent-context-only scored 2/8. There
+were no provider failures. Prefetch missed one recall and one correction case.
+All requests reported usage, totaling 222,185 tokens; dollar cost is unmeasured.
+This is not a competitor comparison or a test of the full tool loop. Strict JSON
+scoring and hash-only response retention cannot distinguish answer errors from
+formatting errors after the fact; diagnostic response retention remains a gap.
+Do not tune against these cases and then relabel them held-out.
+
+Report SHA-256: `5b11c9b5dc8b69f79e770dea5b5da1c1244c2ecd724a77b06c895b91c6430f7a`.
+Protocol SHA-256: `cd276efcb47aac72b48e922b651db43595f15cb1d4180c9f46e32f302134f561`.
