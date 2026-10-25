@@ -155,3 +155,11 @@ returns 409 rather than ignoring the upload and importing the fixture. Null is
 invalid input, not an instruction to load example data. The production build and
 built browser-script syntax check passed; interactive browser acceptance is
 still outstanding. Reviewed import and durable rollback remain unfinished.
+
+Generic import preflight now rejects unsupported/unreviewed items, empty plans,
+duplicate or invalid identities, and collisions with existing agents before
+creating any agent. A regression with a collision in the second item verifies
+the first item is not written. The unsupported fixture import reports HTTP 409.
+The migration and end-to-end regression suites passed 25 tests. This preflight
+does not provide crash atomicity or durable rollback, nor does it complete the
+agent policy mapping; those are still required before enabling uploaded imports.

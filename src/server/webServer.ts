@@ -4735,6 +4735,11 @@ export class AgentForgeWebServer {
 
       const insp = await provider.inspect();
       const plan = await provider.plan(insp);
+      if (body.source === 'GENERIC' && !(await provider.dryRun(plan)).dryRunPassed) {
+        res.writeHead(409);
+        res.end(JSON.stringify({ error: 'This generic plan includes unsupported items. Nothing was imported.' }));
+        return;
+      }
       const result = await provider.importToStore(plan, this.store);
       const verification = await provider.verify(result.runId, this.store);
 

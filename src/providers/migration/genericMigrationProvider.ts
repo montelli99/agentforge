@@ -120,7 +120,7 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async dryRun(plan: MigrationPlan): Promise<MigrationDryRun> {
-    const unsupported=plan.items.filter(item=>item.targetCategory!=='agent'||!item.canonicalPayload);
+    const unsupported=plan.items.filter(item=>item.status!=='DIRECT'||item.targetCategory!=='agent'||!item.canonicalPayload);
     return {
       planId: plan.id,
       executedAt: new Date().toISOString(),
@@ -134,6 +134,16 @@ export class GenericMigrationProvider implements MigrationProvider {
   }
 
   async importToStore(plan: MigrationPlan, targetStore: WorkspaceStore) {
+    const preview = await this.dryRun(plan);
+    if (!plan.items.length || !preview.dryRunPassed) {
+      throw new Error('Migration plan contains unsupported or unreviewed items; nothing was imported');
+    }
+    const plannedIds = plan.items.map(item => item.canonicalPayload?.id);
+    if (plannedIds.some(id => typeof id !== 'string' || !id)
+      || new Set(plannedIds).size !== plannedIds.length
+      || plannedIds.some(id => targetStore.getAgent(id as string))) {
+      throw new Error('Migration agent identities are invalid, repeated or already present; nothing was imported');
+    }
     const runId = `run-generic-${randomUUID()}`;
     let importedCount=0;
     const ids:string[]=[];

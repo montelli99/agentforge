@@ -590,10 +590,10 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const insp = await gen.inspect();
       const plan = await gen.plan(insp);
       expect(plan.readinessScore).toBe(50);
-      const res = await gen.importToStore(plan, store);
-      expect(res.importedCount).toBe(1);
-      const verify = await gen.verify(res.runId, store);
-      expect(verify.overallPassed).toBe(false);
+      const beforeImport = store.listAgents().length;
+      await expect(gen.importToStore(plan, store)).rejects.toThrow('unsupported or unreviewed');
+      expect(store.listAgents().length).toBe(beforeImport);
+      expect((await gen.verify('unknown-run', store)).overallPassed).toBe(false);
       const supplied = structuredClone(GENERIC_MIGRATION_FIXTURE);
       supplied.agents[0]!.id = 'custom-manifest-agent';
       supplied.agents[0]!.name = 'Supplied agent';
@@ -602,6 +602,11 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const suppliedPlan = await gen.plan(suppliedInspection);
       expect(suppliedPlan.items[0]!.sourceId).toBe('custom-manifest-agent');
       expect(suppliedPlan.items[0]!.targetName).toBe('Supplied agent');
+      const collisionPlan = structuredClone(suppliedPlan);
+      collisionPlan.items = [structuredClone(suppliedPlan.items[0]!), structuredClone(suppliedPlan.items[0]!)];
+      collisionPlan.items[1]!.canonicalPayload!.id = store.listAgents()[0]!.id;
+      await expect(gen.importToStore(collisionPlan, store)).rejects.toThrow('already present');
+      expect(store.getAgent('custom-manifest-agent')).toBeUndefined();
       await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
       await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
       await expect(gen.inspect(null)).rejects.toThrow('Invalid generic');
