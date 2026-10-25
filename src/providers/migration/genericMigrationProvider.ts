@@ -3,6 +3,7 @@
  * Sections 21 & 22: Generic Migration Manifest & Extensible SDK
  */
 
+import { randomUUID } from "node:crypto";
 import type { MigrationProvider } from "../../core/providers/migration.js";
 import type {
   MigrationSource,
@@ -20,6 +21,7 @@ import type { WorkspaceStore } from "../../core/store/workspaceStore.js";
 import { GENERIC_MIGRATION_FIXTURE } from "./fixtures/generic_manifest.fixture.js";
 
 export class GenericMigrationProvider implements MigrationProvider {
+  private runs=new Map<string,{ids:string[];expected:number}>();
   readonly id = "migration-generic";
   readonly source: MigrationSource = "GENERIC";
 
@@ -83,7 +85,7 @@ export class GenericMigrationProvider implements MigrationProvider {
         sourceName: ch.name,
         targetCategory: "channel",
         targetName: ch.name,
-        status: "DIRECT",
+        status: "UNSUPPORTED",
         canonicalPayload: {
           name: ch.name,
           visibility: ch.visibility,
@@ -99,40 +101,47 @@ export class GenericMigrationProvider implements MigrationProvider {
       items,
       conflicts: [],
       secretRequirements: [],
-      summary: { direct: items.length, transform: 0, manualReview: 0, unsupported: 0, secretRequired: 0, dangerous: 0 },
-      readinessScore: 100,
+      summary: { direct: data.agents.length, transform: 0, manualReview: 0, unsupported: data.channels.length, secretRequired: 0, dangerous: 0 },
+      readinessScore: items.length ? Math.round(100*data.agents.length/items.length) : 0,
     };
   }
 
   async dryRun(plan: MigrationPlan): Promise<MigrationDryRun> {
+    const unsupported=plan.items.filter(item=>item.targetCategory!=='agent'||!item.canonicalPayload);
     return {
       planId: plan.id,
       executedAt: new Date().toISOString(),
-      simulatedImportsCount: plan.items.length,
-      simulatedErrorsCount: 0,
-      validationWarnings: [],
+      simulatedImportsCount: plan.items.length-unsupported.length,
+      simulatedErrorsCount: unsupported.length,
+      validationWarnings: unsupported.map(item=>`Item ${item.id} has no implemented import handler`),
       wouldMutateProduction: false,
       wouldConnectExternalChannels: false,
-      dryRunPassed: true,
+      dryRunPassed: unsupported.length===0,
     };
   }
 
   async importToStore(plan: MigrationPlan, targetStore: WorkspaceStore) {
-    const runId = `run-generic-${Date.now()}`;
+    const runId = `run-generic-${randomUUID()}`;
+    let importedCount=0;
+    const ids:string[]=[];
     for (const item of plan.items) {
       if (item.targetCategory === "agent" && item.canonicalPayload) {
-        targetStore.createAgent(item.canonicalPayload as any);
+        const created=targetStore.createAgent(item.canonicalPayload as any);
+        ids.push(created.id);
+        importedCount++;
       }
     }
-    return { runId, importedCount: plan.items.length };
+    this.runs.set(runId,{ids,expected:plan.items.length});
+    return { runId, importedCount };
   }
 
   async verify(runId: string, targetStore: WorkspaceStore): Promise<MigrationVerification> {
-    const hasAgent = targetStore.listAgents().some(a => a.id === "agent-doc-writer");
+    const run=this.runs.get(runId);
+    const hasAgent=Boolean(run&&run.ids.length>0&&run.ids.length===run.expected&&run.ids.every(id=>targetStore.listAgents().some(agent=>agent.id===id)));
     return {
       migrationRunId: runId,
       verifiedAt: new Date().toISOString(),
-      checks: [{ name: "Generic Agent Imported", passed: hasAgent, details: "Verified in store" }],
+      checks: [{ name: "Generic Agent Imported", passed: hasAgent, details: "Checks created agent identities for this run; partial or unknown runs do not pass" }],
       overallPassed: hasAgent,
       privilegeExpansionDetected: false,
     };

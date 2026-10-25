@@ -588,11 +588,11 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
       const gen = new GenericMigrationProvider();
       const insp = await gen.inspect();
       const plan = await gen.plan(insp);
-      expect(plan.readinessScore).toBe(100);
+      expect(plan.readinessScore).toBe(50);
       const res = await gen.importToStore(plan, store);
-      expect(res.importedCount).toBe(2);
+      expect(res.importedCount).toBe(1);
       const verify = await gen.verify(res.runId, store);
-      expect(verify.overallPassed).toBe(true);
+      expect(verify.overallPassed).toBe(false);
     });
   });
 
