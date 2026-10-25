@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import type { WorkspaceStore } from "../core/store/workspaceStore.js";
 import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import { ApprovedPlanProvider } from "../core/runtime/approvedPlanProvider.js";
+import type { MemoryProvider } from '../core/providers/memory.js';
+import { OperationalMemoryProvider } from '../providers/memory/operationalMemory.js';
 
 export const conversationTools = [
   { name: "read_attachment", description: "Read an attached UTF-8 text file from this conversation. Binary formats are not supported.", properties: { attachmentId: { type: "string" } }, required: ["attachmentId"] },
@@ -13,7 +15,7 @@ export const conversationTools = [
 ].map(({ name, description, properties, required }) => ({ type: "function", function: { name, description, parameters: { type: "object", properties, required, additionalProperties: false } } }));
 
 export async function invokeConversationTool(store: WorkspaceStore, worker: TaskWorkerRuntime | undefined,
-  threadId: string, promptId: string, name: string, raw: string, signal: AbortSignal, memoryNamespace?:string) {
+  threadId: string, promptId: string, name: string, raw: string, signal: AbortSignal, memoryNamespace?:string, memoryProvider?:MemoryProvider) {
   signal.throwIfAborted();
   const thread = store.getThread(threadId);
   const channel = thread && store.getChannel(thread.channelId);
@@ -25,10 +27,14 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
     if(!memoryNamespace)throw Error('Project memory is not enabled for this connection.');
     if(typeof args.query!=='string'||!args.query.trim()||args.query.length>200)throw Error('Supply a search phrase under 200 characters.');
     const query=args.query.trim().toLocaleLowerCase();
-    return store.listOperationalMemories(memoryNamespace)
-      .filter(record=>record.projectId===project.id&&!record.archived&&record.tags.includes('chat-context')&&(record.title+'\n'+record.content).toLocaleLowerCase().includes(query))
+    const provider=memoryProvider??new OperationalMemoryProvider(store);
+    const results=await provider.query({namespace:memoryNamespace,projectId:project.id,tags:['chat-context'],queryText:query,includeArchived:false,limit:24});
+    signal.throwIfAborted();
+    // An adapter's filtering is not a privacy boundary. Enforce scope here too.
+    return results.map(result=>result.record)
+      .filter(record=>record.namespace===memoryNamespace&&record.projectId===project.id&&!record.archived&&record.tags.includes('chat-context'))
       .sort((a,b)=>(b.updatedAt||b.createdAt).localeCompare(a.updatedAt||a.createdAt)).slice(0,8)
-      .map(record=>{const offset=Math.max(0,record.content.toLocaleLowerCase().indexOf(query)-500);return {id:record.id,title:record.title,version:record.version||1,updatedAt:record.updatedAt||record.createdAt,content:record.content.slice(offset,offset+4000),truncated:record.content.length>4000,referenceDataOnly:true};});
+      .map(record=>{const offset=Math.max(0,record.content.toLocaleLowerCase().indexOf(query)-500);return {providerId:provider.id,id:record.id,title:record.title,version:record.version||1,updatedAt:record.updatedAt||record.createdAt,content:record.content.slice(offset,offset+4000),truncated:record.content.length>4000,referenceDataOnly:true};});
   }
   if (name === "read_attachment") {
     const attachment = store.listThreadMessages(threadId).flatMap(message => message.attachments || []).find(file => file.id === args.attachmentId);

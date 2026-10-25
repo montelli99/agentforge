@@ -11,6 +11,7 @@ import type { GenerativeModelProvider, ModelRequestOptions, StreamChunk } from "
 import { ConversationRuntime } from "./conversationRuntime.js";
 import { invokeConversationTool } from "./conversationTools.js";
 import {ChatGPTDirectModel} from '../providers/models/chatgptDirectModel.js';
+import {OperationalMemoryProvider} from '../providers/memory/operationalMemory.js';
 
 function fixture() {
   const store = new WorkspaceStore();
@@ -86,6 +87,12 @@ describe("server-owned conversations", () => {
     f.store.saveOperationalMemory({...memory,id:'archived',archived:true,content:'excluded-archived'});
     f.store.saveOperationalMemory({...memory,id:'private',tags:[],content:'excluded-unshared'});
     f.store.saveOperationalMemory({...memory,id:'other-project',projectId:'another-project',content:'excluded-project'});
+    const adapter=new OperationalMemoryProvider();
+    const query=vi.spyOn(adapter,'query').mockResolvedValue([
+      {record:{...memory,id:'external-current',content:'corrected-value from adapter'},score:1},
+      ...f.store.listOperationalMemories('synthetic-memory').filter(record=>record.id!=='current').map(record=>({record,score:1})),
+      {record:{...memory,id:'other-namespace',namespace:'elsewhere',content:'excluded-namespace'},score:1},
+    ]);
     const other=f.store.createThread(f.channel.id,'Separate conversation');
     f.store.createMessage({channelId:f.channel.id,threadId:other.id,authorId:'owner',authorType:'user',content:'original-decision other-thread-private'});
     const prompt = f.store.createMessage({channelId:f.channel.id,threadId:f.thread.id,authorId:'owner',authorType:'user',content:'Recall the earlier original-decision'}); let round = 0;
@@ -95,10 +102,11 @@ describe("server-owned conversations", () => {
       expect(JSON.stringify(options.messages)).not.toContain('other-thread-private');
       if (!round++) { expect(options.messages.at(-1)?.content).toBe(prompt.content); yield { id: "1", toolCalls: [{ id: "tool1", type: "function", function: { name: "search_history", arguments: '{"query":"original-decision"}' } }], finishReason: "tool_calls" }; }
       else if(round===2){yield {id:'2',toolCalls:[{id:'memory1',type:'function',function:{name:'search_project_memory',arguments:'{"query":"original-decision"}'}}],finishReason:'tool_calls'};}
-      else { expect(options.messages.at(-1)?.content).toContain('corrected-value');expect(options.messages.at(-1)?.content).not.toContain('excluded-');yield { id: "3", deltaText: "Recovered the corrected decision.", finishReason: "stop" }; }
+      else { expect(options.messages.at(-1)?.content).toContain('corrected-value from adapter');expect(options.messages.at(-1)?.content).toContain('providerId');expect(options.messages.at(-1)?.content).not.toContain('excluded-');yield { id: "3", deltaText: "Recovered the corrected decision.", finishReason: "stop" }; }
     });
-    await new ConversationRuntime(f.store, { provider: model, models: ["synthetic"],memoryNamespace:'synthetic-memory' }).respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
+    await new ConversationRuntime(f.store, { provider: model, models: ["synthetic"],memoryNamespace:'synthetic-memory',memoryProvider:adapter }).respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
     expect(round).toBe(3);
+    expect(query).toHaveBeenCalledWith(expect.objectContaining({namespace:'synthetic-memory',projectId:f.project.id,includeArchived:false}));
     await expect(invokeConversationTool(f.store,undefined,f.thread.id,prompt.id,'search_project_memory','{"query":"original-decision"}',new AbortController().signal)).rejects.toThrow('not enabled');
     expect(f.store.listThreadMessages(f.thread.id)[0].content).toContain("original-decision");
   });

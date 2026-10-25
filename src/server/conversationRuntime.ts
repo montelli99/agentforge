@@ -4,6 +4,7 @@ import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import type { ServerResponse } from "node:http";
 import type { GenerativeModelProvider, ModelMessage } from "../core/providers/model.js";
 import type { WorkspaceStore } from "../core/store/workspaceStore.js";
+import type { MemoryProvider } from '../core/providers/memory.js';
 
 export interface ConversationConfiguration {
   provider: GenerativeModelProvider;
@@ -11,6 +12,8 @@ export interface ConversationConfiguration {
   connections?: Array<{ model: string; connection: string; billing: string; status: string }>;
   /** Explicit opt-in; only project-matched records tagged chat-context are used. */
   memoryNamespace?: string;
+  /** Explicit adapter for scoped recall; defaults to the local operational store. */
+  memoryProvider?: MemoryProvider;
   /** Whole agent turn budget; individual model and command timeouts still apply. */
   maxResponseMs?: number;
 }
@@ -77,7 +80,7 @@ export class ConversationRuntime {
 
     const channel = this.store.getChannel(thread.channelId);
     const project = channel ? this.store.getSpace(channel.spaceId) : undefined;
-    const contextMemories = config.memoryNamespace && project ? this.store.listOperationalMemories(config.memoryNamespace)
+    const contextMemories = config.memoryNamespace && !config.memoryProvider && project ? this.store.listOperationalMemories(config.memoryNamespace)
       .filter(record => record.projectId === project.id && !record.archived && record.tags.includes("chat-context"))
       .sort((a, b) => (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt)).slice(0, 8) : [];
     const memoryContext = contextMemories.map(record => ({ id: record.id, title: record.title, version: record.version || 1,
@@ -169,7 +172,7 @@ export class ConversationRuntime {
         for (const call of calls.values()) {
           controller.signal.throwIfAborted();
           let result: unknown;
-          try { result = await invokeConversationTool(this.store, this.worker, threadId, promptId, call.function.name, call.function.arguments, controller.signal, config.memoryNamespace); }
+          try { result = await invokeConversationTool(this.store, this.worker, threadId, promptId, call.function.name, call.function.arguments, controller.signal, config.memoryNamespace, config.memoryProvider); }
           catch (error) { result = { error: (error as Error).message }; }
           const encoded = JSON.stringify(result);
           messages.push({ role: "tool", toolCallId: call.id, content: encoded.length > 20000 ? JSON.stringify({ truncated: true, excerpt: encoded.slice(0, 19500) }) : encoded });
