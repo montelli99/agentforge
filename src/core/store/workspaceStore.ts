@@ -9,6 +9,7 @@
  */
 
 import crypto from "node:crypto";
+import {isDeepStrictEqual} from 'node:util';
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1224,6 +1225,43 @@ export class WorkspaceStore {
       title: record.title,
     });
     this.persistIfConfigured();
+  }
+
+  /** Internal migration primitive. The caller validates the archive and authority.
+   * Commit the entire reviewed batch and its audit receipt in one snapshot.
+   * IDs are never overwritten, and an identical replay is a no-op.
+   */
+  importOperationalMemoryBatch(records: OperationalMemoryRecord[], actorId: string): {imported: number; unchanged: number} {
+    if (!actorId || !Array.isArray(records) || !records.length || records.length > 100
+      || records.some(record => !record || typeof record.id !== 'string' || !record.id || typeof record.namespace !== 'string' || !record.namespace.trim())
+      || new Set(records.map(record => record.id)).size !== records.length) throw Error('Invalid memory import batch');
+    const owned = structuredClone(records);
+    if (Buffer.byteLength(JSON.stringify(owned)) > 1024 * 1024) throw Error('Memory import batch exceeds 1 MiB');
+    const additions: OperationalMemoryRecord[] = [];
+    for (const record of owned) {
+      const existing = this.operationalMemories.get(record.id);
+      if (existing && !isDeepStrictEqual(existing, record)) throw Error('Memory import conflicts with an existing record');
+      if (!existing) additions.push(record);
+    }
+    if (!additions.length) return {imported: 0, unchanged: owned.length};
+    const priorAudit = [...this.auditEntries];
+    const priorCheckpoint = this.auditPrunedCheckpoint ? {...this.auditPrunedCheckpoint} : undefined;
+    try {
+      for (const record of additions) this.operationalMemories.set(record.id, record);
+      this.appendAuditEntry({origin: 'web', actorId, actorType: 'user', action: 'memory_batch_imported',
+        targetType: 'memory', targetId: crypto.randomUUID(), details: {count: additions.length,
+          recordHashes: JSON.stringify(additions.map(record => ({id: record.id, sha256: crypto.createHash('sha256').update(JSON.stringify(record)).digest('hex')})))}});
+      this.persistIfConfigured();
+    } catch (error) {
+      for (const record of additions) this.operationalMemories.delete(record.id);
+      this.auditEntries = priorAudit;
+      this.auditPrunedCheckpoint = priorCheckpoint;
+      throw error;
+    }
+    for (const record of additions) for (const listener of this.realtimeListeners) {
+      try {listener({type: 'operational_memory_saved', entity: 'memory', data: {id: record.id, namespace: record.namespace, category: record.category, title: record.title}});} catch { /* Already committed. */ }
+    }
+    return {imported: additions.length, unchanged: owned.length - additions.length};
   }
 
   deleteOperationalMemory(namespace: string, id: string): boolean {

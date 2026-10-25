@@ -1,4 +1,5 @@
 import { ConnectionSetup } from './connectionSetup.js';
+import {reviewMemoryImport} from './memoryImport.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
 import { inspectClaudeCliAuthentication } from '../providers/models/claudeCliCapabilities.js';
 import { inspectGeminiCliCapabilities } from '../providers/models/geminiCliCapabilities.js';
@@ -2978,6 +2979,25 @@ export class AgentForgeWebServer {
         }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
       }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
+      return;
+    }
+
+    if (path === '/api/memory/import') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+      if (!hasPermission(caller.permissions, 'memory:write') || !hasPermission(caller.permissions, 'memory:read')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+      const body = await this.readBody(req);
+      try {
+        if (typeof body.namespace !== 'string' || !['review','commit'].includes(String(body.action))) throw Error('Choose review or commit and a collection.');
+        const review = reviewMemoryImport(body.archive, body.namespace, this.store);
+        if (body.action === 'review') {
+          res.writeHead(200); res.end(JSON.stringify({digest: review.digest, items: review.items, imported: review.imported, unchanged: review.unchanged})); return;
+        }
+        if (body.confirm !== true || body.digest !== review.digest) throw Error('Review this exact batch again before confirming import.');
+        const result = this.store.importOperationalMemoryBatch(review.records, caller.user?.id || 'local-owner');
+        res.writeHead(200); res.end(JSON.stringify(result));
+      } catch { res.writeHead(409); res.end(JSON.stringify({error: 'Import could not proceed. Check the collection, active project identities, supported export format and conflicting records; review again. Nothing was overwritten.'})); }
       return;
     }
 
