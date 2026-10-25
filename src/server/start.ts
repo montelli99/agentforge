@@ -1,3 +1,4 @@
+import { readModelConnections } from "../providers/models/modelConnections.js";
 import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
 import {SubscriptionCliModelProvider,readSubscriptionCliConfiguration} from "../providers/models/subscriptionCliModel.js";
 import {configureIndexedServerMode,readIndexedServerConfiguration} from "../memory/indexed/serverMode.js";
@@ -37,7 +38,8 @@ const workspaceFilePath = getDefaultWorkspaceFilePath();
 const completionStorePath = path.join(path.dirname(workspaceFilePath), "completion-sessions.json");
 // Dedicated opt-in only: never adopt production or unrelated application credentials.
 const chatKey = process.env.AGENTFORGE_CHAT_API_KEY;
-const chatModels = (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
+const configuredConnections = process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE ? readModelConnections(process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE) : undefined;
+const chatModels = configuredConnections?.models ?? (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
 const chatBase = process.env.AGENTFORGE_CHAT_BASE_URL || "https://api.openai.com/v1";
 const chatProviderName = process.env.AGENTFORGE_CHAT_PROVIDER || "openai-compatible";
 if (!["openai-compatible", "mimo"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
@@ -48,13 +50,13 @@ if (chatKey && chatModels.length) {
 const store = new WorkspaceStore(workspaceFilePath);
 const operationalMemory = new OperationalMemoryProvider(store);
 const completion = new CompletionEngine(undefined, new JsonCompletionSessionStore(completionStorePath));
-const chatProvider = chatModels.length
+const chatProvider = configuredConnections?.provider ?? (chatModels.length
   ? chatProviderName === "mimo" && process.env.MIMO_API_KEY
     ? new MiMoModelProvider()
     : chatProviderName === "openai-compatible" && chatKey
       ? new OpenAIModelProvider(chatKey, chatBase)
       : undefined
-  : undefined;
+  : undefined);
 const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
 const cliPlanConfig=planProviderName==="codex-cli"?readSubscriptionCliConfiguration(process.env.AGENTFORGE_PLAN_CLI_CONFIG??""):undefined;
 const selectedPlanProvider=cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=cliPlanConfig?.model??chatModels[0];
@@ -91,7 +93,7 @@ const server = new AgentForgeWebServer(
   completion,
   taskRuntime,
   { conversation: chatProvider ? { provider: chatProvider, models: chatModels,
-    memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
+    connections: configuredConnections?.connections, memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
     planDraftProvider, indexedMemory },
 );
 

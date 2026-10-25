@@ -1,3 +1,4 @@
+import { modelConnectionCatalog, subscriptionConnectionCatalog } from "../providers/models/modelConnections.js";
 import { conversationTools, invokeConversationTool } from "./conversationTools.js";
 import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import type { ServerResponse } from "node:http";
@@ -7,6 +8,7 @@ import type { WorkspaceStore } from "../core/store/workspaceStore.js";
 export interface ConversationConfiguration {
   provider: GenerativeModelProvider;
   models: string[];
+  connections?: Array<{ model: string; connection: string; billing: string; status: string }>;
   /** Explicit opt-in; only project-matched records tagged chat-context are used. */
   memoryNamespace?: string;
   /** Whole agent turn budget; individual model and command timeouts still apply. */
@@ -25,7 +27,7 @@ export class ConversationRuntime {
   }
 
   status() {
-    return { configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null,
+    return { connectionCatalog: modelConnectionCatalog, subscriptionCatalog: subscriptionConnectionCatalog, connections: this.config?.connections || [], configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null,
       models: this.config?.models || [], activeThreads: [...this.active.keys()], supportsAttachments: true, attachmentFormats: ["text/plain", "text/markdown", "text/csv", "application/json"], execution: this.worker?.getExecutionReadiness(),
       projectMemoryEnabled: Boolean(this.config?.memoryNamespace) };
   }
