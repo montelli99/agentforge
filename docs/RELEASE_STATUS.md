@@ -1,4 +1,34 @@
-## Exact-build checkpoint — 2026-10-25
+## Latest verified package checkpoint — 2026-10-25
+
+Revision `c81a3826eeaf2eb38c4f07685f18b6a4c7fc060c` passed all seven
+[hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40227194169),
+including Windows, macOS and Linux on Node 22/24 and public package acceptance.
+The downloaded artifact's commit record matches that revision. Its npm tarball
+SHA-256 is `a6466e0406ea70a5f53d6c4f8a442c2537fc5ddd209c333c041a937b38a7e0a1`.
+The installed package's starter initialization/validation and Gemini installation
+inspection passed in a disposable directory. This does not establish live
+Gemini authentication or a managed Gemini worker.
+
+Later revisions add shutdown admission protection, UTF-8 child-output decoding,
+Gemini transcript validation and prompt encoding. Their local component checks
+are not substitutes for exact-build hosted acceptance or a complete user journey.
+The Gemini helpers remain internal and are not an activated connection.
+
+Still required before claiming the full release goal is complete:
+
+- Clean-install rendered onboarding, explicit approval and first-task acceptance.
+- Live subscription lifecycle and isolation acceptance, completed managed workers
+  and supported protected storage on other advertised operating systems.
+- Broader recovery evidence and matched, repeated comparative evaluation.
+- Final tested-revision merge, distribution, demonstration and accurate launch
+  material; npm publication requires the publisher's registry authentication.
+
+Browser acceptance was blocked by exhausted external test-service credits, not
+by a demonstrated product failure. An alternative browser route is awaiting
+owner direction. Historical private-cache removal awaits hosting-provider
+confirmation separately from clean source/package verification.
+
+## Earlier exact-build checkpoint — 2026-10-25
 
 Revision `3a6d259e881e117d3d6b80575ba0c7e431206b1e` passed all seven
 [hosted CI jobs](https://github.com/montelli99/agentforge/actions/runs/40225338010).
