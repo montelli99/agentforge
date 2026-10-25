@@ -129,3 +129,11 @@ event size, honors cancellation and never retries. Synthetic transport tests
 cover matching/mismatched grants, complete/truncated events, one-request behavior
 and safe network errors. This transport has not yet been activated by the UI or
 verified with a real subscription grant; renewal remains unfinished.
+
+Hosted Windows Node 22/24 checks failed in protected credential storage. Fixed
+stage diagnostics located the Node 22 timeout after PowerShell startup and before
+assembly load completion, at Add-Type. The backend now loads the installed
+System.Security assembly directly, without Add-Type. The 15-second deadline,
+CurrentUser protection, namespace entropy and secret-free errors remain intact.
+Six focused tests passed locally, including real DPAPI round-trip/rotation/tamper
+checks and error-output privacy. Hosted confirmation of this fix remains pending.
