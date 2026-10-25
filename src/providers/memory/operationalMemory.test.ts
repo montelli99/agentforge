@@ -52,6 +52,8 @@ describe("OperationalMemoryProvider", () => {
     expect(await queryMemoryBounded(thirdParty, { namespace: 'other', limit: 2 })).toEqual([]);
     thirdParty.query.mockResolvedValueOnce([{ record: { ...projectRule, content: 'x'.repeat(65537) }, score: 1 }]);
     await expect(queryMemoryBounded(thirdParty, { namespace: 'workspace' })).rejects.toThrow('Invalid memory provider');
+    thirdParty.query.mockRejectedValueOnce(Error('synthetic-private-api-key'));
+    await expect(queryMemoryBounded(thirdParty, { namespace: 'workspace' })).rejects.toThrow(/^Memory provider lookup failed$/);
     const globalOnly = await memory.query({ namespace: "workspace", globalOnly: true });
     expect(globalOnly.map(result => result.record.id)).toEqual([globalRule.id]);
     expect(await memory.getDoNotRepeatRules("workspace", "alpha")).toEqual([globalRule, projectRule]);

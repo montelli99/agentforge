@@ -104,7 +104,9 @@ export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQue
   let interrupt:()=>void=()=>{};
   const stopped=new Promise<never>((_,reject)=>{interrupt=()=>reject(Error('Memory lookup stopped or timed out'));signal.addEventListener('abort',interrupt,{once:true});if(signal.aborted)interrupt();});
   try{
-    const results = await Promise.race([stopped,provider.query({...query,categories:query.categories?.slice(),tags:query.tags?.slice(),limit,signal})]);
+    const request = Promise.resolve().then(() => provider.query({...query,categories:query.categories?.slice(),tags:query.tags?.slice(),limit,signal}))
+      .catch(() => { throw Error('Memory provider lookup failed'); });
+    const results = await Promise.race([stopped,request]);
     if (!Array.isArray(results) || results.length > 1000) throw Error('Invalid memory provider response');
     const accepted: MemorySearchResult[] = [];
     for (const result of results) {

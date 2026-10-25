@@ -220,3 +220,12 @@ custom connection, encrypted secret storage, service reconstruction/restore,
 credential-free catalog responses and rejected version mismatch preserving the
 active source. Ten setup tests and the production build/browser syntax check
 passed; actual browser interaction with generated fields remains unverified.
+
+Registered synthetic memory factories now participate in the existing chat
+tool-loop and worker-context tests: the chat receives the selected corrected
+record and provenance, while task context receives its selected project source.
+Cross-project/namespace exclusions and cancellation remain covered. Shared
+lookup handling now replaces raw adapter exceptions with a fixed error so
+third-party exception text cannot expose credentials. The 24 focused tests and
+full typecheck passed. This is synthetic integration evidence, not a live
+third-party service or browser journey result.

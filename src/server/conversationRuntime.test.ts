@@ -12,6 +12,7 @@ import { ConversationRuntime } from "./conversationRuntime.js";
 import { invokeConversationTool } from "./conversationTools.js";
 import {ChatGPTDirectModel} from '../providers/models/chatgptDirectModel.js';
 import {OperationalMemoryProvider} from '../providers/memory/operationalMemory.js';
+import {MemoryConnectionRegistry} from '../providers/memory/memoryConnections.js';
 
 function fixture() {
   const store = new WorkspaceStore();
@@ -105,7 +106,9 @@ describe("server-owned conversations", () => {
       else { expect(options.messages.at(-1)?.content).toContain('corrected-value from adapter');expect(options.messages.at(-1)?.content).toContain('providerId');expect(options.messages.at(-1)?.content).not.toContain('excluded-');yield { id: "3", deltaText: "Recovered the corrected decision.", finishReason: "stop" }; }
     });
     const runtime=new ConversationRuntime(f.store, { provider: model, models: ["synthetic"] });
-    await runtime.changeMemory(async()=>({projectId:f.project.id,memoryNamespace:'synthetic-memory',memoryProvider:adapter}));
+    const registry=new MemoryConnectionRegistry([{id:'example-memory',version:'1',name:'Example',description:'Synthetic provider',fields:[],create:()=>adapter}]);
+    const connection=registry.connect('example-memory','1',{},'synthetic-memory',f.project.id);
+    await runtime.changeMemory(async()=>({projectId:f.project.id,memoryNamespace:'synthetic-memory',memoryProvider:connection.provider}));
     await runtime.changeMemory(async()=>({projectId:'unrelated-project',memoryNamespace:'other',memoryProvider:new OperationalMemoryProvider()}));
     await runtime.respond(f.thread.id, prompt.id, "synthetic", "owner", f.response);
     expect(round).toBe(3);

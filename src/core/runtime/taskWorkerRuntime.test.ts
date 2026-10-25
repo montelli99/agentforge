@@ -4,6 +4,7 @@ import { TaskWorkerRuntime, type TaskExecutionBackend } from "./taskWorkerRuntim
 import { AgentForgeWebServer } from "../../server/webServer.js";
 import type { Task } from "../types/task.js";
 import { OperationalMemoryProvider } from "../../providers/memory/operationalMemory.js";
+import { MemoryConnectionRegistry } from '../../providers/memory/memoryConnections.js';
 
 /** Explicit test double. Production never receives a fake executor. */
 function testExecutionBackend(): TaskExecutionBackend {
@@ -436,7 +437,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       await expect(runtimeWithMemory.withMemoryChange(async()=>{throw Error('synthetic failed setup');})).rejects.toThrow('synthetic failed setup');
       await expect(runtimeWithMemory.withMemoryChange(async()=>true)).resolves.toBe(true);
       await selected.record({namespace:'selected',projectId:'project-alpha',category:'general_fact',title:'Selected release source',content:'Selected release evidence',tags:['chat-context']});
-      runtimeWithMemory.setProjectMemory('project-alpha',selected,'selected');
+      const registry=new MemoryConnectionRegistry([{id:'example-memory',version:'1',name:'Example',description:'Synthetic provider',fields:[],create:()=>selected}]);
+      runtimeWithMemory.setProjectMemory('project-alpha',registry.connect('example-memory','1',{},'selected','project-alpha').provider,'selected');
       const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
       expect(selectedContext.content).toContain('Selected release source');
       expect(selectedContext.content).not.toContain('Alpha delivery rule');
