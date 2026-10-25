@@ -166,5 +166,9 @@ its operation UUID into each command container's labels. The authenticated
 `GET /api/tasks/:id/survivors` endpoint requires task-read permission, validates
 the receipt and scopes discovery to both its workspace and operation. A changed
 task invalidates the lookup. Empty results do not prove that effects never
-occurred. Orphan review UI and crash-during-Docker acceptance remain unfinished.
+occurred. The recorded-execution review now offers **Check for surviving
+execution**, with readable guidance and optional technical details. It refuses
+to display a lookup for a different operation than the review opened with.
+The build and emitted-browser-script syntax checks passed; rendered UI and
+crash-during-Docker acceptance remain unfinished.
 
