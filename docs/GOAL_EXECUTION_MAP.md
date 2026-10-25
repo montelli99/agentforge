@@ -325,3 +325,7 @@ Migration lab now offers Review uploaded import for generic manifests. Its dialo
 ### Import history supports reconnect recovery
 
 Added authenticated owner/admin import-history lookup from retained audit receipts, with imported-unchanged, rolled-back and needs-review states. Audit corruption cannot produce a verified state; bounded/pruned history is disclosed. Migration lab now offers Saved imports / recovery with explicit rollback for unchanged runs, allowing users to inspect results after a lost response without resubmitting a manifest. Existing API coverage confirms anonymous denial and state transitions before/after rollback. All 14 migration tests, type checking and build/browser syntax passed. Browser interaction and process-kill migration proof remain open.
+
+### Actual process termination at migration snapshot replacement
+
+Extended the existing migration integration case with real child processes using synthetic two-agent manifests. The child terminates itself with SIGKILL immediately before or after the workspace snapshot rename. Reopening proves all-or-none agents and completion receipts: before replacement neither appears, after replacement both agents and the receipt survive and verify through a fresh provider. Audit chains remain valid. All 14 migration tests and typecheck:all passed locally. This tests process termination at the commit boundary, not filesystem power-loss durability or browser interaction; hosted cross-platform execution remains pending.

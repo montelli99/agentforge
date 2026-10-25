@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { WorkspaceStore } from "./core/store/workspaceStore.js";
 import { AgentForgeWebServer } from "./server/webServer.js";
 import { OpenClawMigrationProvider } from "./providers/migration/openclawMigrationProvider.js";
@@ -681,6 +683,42 @@ describe("AgentForge vNext Master Validation, Migration & Release Hardening Suit
           action: 'generic_migration_started', targetType: 'system', targetId: 'unfinished-run',
           details: { schema: 1, expectedIds: JSON.stringify(['custom-manifest-agent']) } });
         expect((await restoredProvider.verify('unfinished-run', new WorkspaceStore(file))).overallPassed).toBe(false);
+        for (const boundary of ['before', 'after']) {
+          const crashFile = path.join(receiptDirectory, 'crash-'+boundary+'.json');
+          new WorkspaceStore(crashFile);
+          const childCode = `
+            import fs from 'node:fs';
+            import { WorkspaceStore } from ${JSON.stringify(pathToFileURL(path.resolve('src/core/store/workspaceStore.ts')).href)};
+            import { GenericMigrationProvider } from ${JSON.stringify(pathToFileURL(path.resolve('src/providers/migration/genericMigrationProvider.ts')).href)};
+            const file = ${JSON.stringify(crashFile)};
+            const store = new WorkspaceStore(file);
+            const provider = new GenericMigrationProvider();
+            const plan = await provider.plan(await provider.inspect(${JSON.stringify(batchManifest)}));
+            const rename = fs.renameSync;
+            fs.renameSync = function(from, to) {
+              if (to !== file) return rename(from, to);
+              if (${JSON.stringify(boundary)} === 'after') rename(from, to);
+              fs.writeSync(1, 'snapshot-boundary');
+              process.kill(process.pid, 'SIGKILL');
+            };
+            await provider.importToStore(plan, store);
+            throw Error('Expected process termination');
+          `;
+          const child = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', childCode], {
+            cwd: process.cwd(), encoding: 'utf8', timeout: 20000, windowsHide: true,
+          });
+          expect(child.error).toBeUndefined();
+          expect(child.stdout).toContain('snapshot-boundary');
+          expect(child.status).not.toBe(0);
+          const recovered = new WorkspaceStore(crashFile);
+          const importedIds = ['custom-manifest-agent', 'second-batch-agent'];
+          expect(importedIds.filter(id => recovered.getAgent(id))).toHaveLength(boundary === 'after' ? 2 : 0);
+          expect(recovered.verifyAuditChain().valid).toBe(true);
+          const completedReceipts = recovered.listAuditEntries({ actorId: 'migration-generic', limit: 100 })
+            .filter(entry => entry.action === 'generic_migration_completed');
+          expect(completedReceipts).toHaveLength(boundary === 'after' ? 1 : 0);
+          if (boundary === 'after') expect((await new GenericMigrationProvider().verify(completedReceipts[0].targetId, recovered)).overallPassed).toBe(true);
+        }
       } finally { fs.rmSync(receiptDirectory, { recursive: true, force: true }); }
       await expect(gen.plan({ ...suppliedInspection })).rejects.toThrow('Inspect the manifest');
       await expect(gen.inspect({ agents: 'invalid' })).rejects.toThrow('Invalid generic');
