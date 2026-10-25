@@ -401,3 +401,7 @@ The web account check now owns an AbortController and in-flight promise. Closing
 ### Distinguish official-client authentication routes
 
 Claude account inspection now returns a sanitized connectionKind alongside loggedIn. The documented claude.ai method is classified subscription; API-key/helper and third-party methods are labeled separately. OAuth-token and unknown methods remain unverified. Guided setup explains the distinction without enabling a model or changing billing. The real isolated client returned signed-out; source/script type checks and build/browser syntax passed. Signed-in branches have not been verified against live accounts. This closes a misleading status presentation gap, not the outstanding managed execution requirement.
+
+### Remove the single-model restriction from the Codex planner
+
+The existing subscription planner accepts explicit syntactically valid GPT model identifiers instead of requiring gpt-5.6-luna. It snapshots configuration at construction so caller mutation cannot change the chosen model or paths afterward. A synthetic injected runner verified selected-model forwarding and response attribution after caller mutation; empty, option-like and newline-containing identifiers were rejected. No child process, account or inference was used in that diagnostic. Source/script type checks passed. Model availability remains account-specific and unverified by listModels; existing request bounds, plan approval, isolation requests and no-fallback behavior remain unchanged.
