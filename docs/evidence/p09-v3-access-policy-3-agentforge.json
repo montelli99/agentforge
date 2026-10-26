@@ -1,0 +1,117 @@
+{
+  "attempt": "access-policy-3-agentforge",
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 5,
+    "passed": true,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 32822.447499999995,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1744,
+        "outputTokens": 302
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1180,
+          "outputTokens": 43
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2080,
+          "outputTokens": 220
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1545,
+          "outputTokens": 53
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 4,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1744,
+          "outputTokens": 302
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 364,
+      "prompt_tokens": 2580,
+      "total_tokens": 2944,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 19328.6198,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "evaluationCase": "access-policy",
+    "independentEvaluation": {
+      "passed": true,
+      "reason": "match",
+      "outputSha256": "e5e1ce683ec985650b4d8e196d4899cc8caca4450b20e8c932e059564e0e39a5"
+    },
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "verifiedArtifactReadByLiveChat": true,
+    "finalChatSurvivedReloadWithoutResend": true,
+    "verifiedArtifactSha256": "e5e1ce683ec985650b4d8e196d4899cc8caca4450b20e8c932e059564e0e39a5",
+    "missingRepositoryRepairedInBrowser": true,
+    "repairDidNotEnableExecution": true,
+    "savedDockerFromBrowser": true,
+    "invalidRepositoryRejected": true,
+    "pendingSelectionSurvivedReload": true,
+    "setupDidNotStartTask": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false,
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "totalElapsedMs": 62362.1614,
+    "providerRequests": 5,
+    "chatRequests": 4
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "2338624630a266050e10dfc9f93494c2cee54696",
+  "fixtureRepairCommit": "8ad0611",
+  "limitation": "Final scheduled AgentForge trial; prior failures retained. Full release remains open."
+}

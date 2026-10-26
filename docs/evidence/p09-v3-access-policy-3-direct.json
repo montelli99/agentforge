@@ -1,0 +1,55 @@
+{
+  "attempt": "access-policy-3-direct",
+  "result": {
+    "id": "access-policy",
+    "trial": 3,
+    "arm": "direct",
+    "status": "passed",
+    "startedAt": "2026-10-26T13:05:41.322Z",
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "inputSha256": "3134c19c221a0f932a1aba204fc09f3338668dffcd875a79cd9279e988f62e5b",
+    "requests": 1,
+    "usage": {
+      "completion_tokens": 182,
+      "prompt_tokens": 461,
+      "total_tokens": 643,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 448
+      }
+    },
+    "cost": null,
+    "providerElapsedMs": 9119.7255,
+    "httpStatus": 200,
+    "planSha256": "4fd5a9e79d01604dfdafa43604531981ae46ca5741f3ec2927701a6d3cbe5db8",
+    "reviewReadyAt": "2026-10-26T13:05:50.453Z",
+    "planningElapsedMs": 9131.0049,
+    "reviewWaitMs": 18636,
+    "commands": [
+      {
+        "checkName": "evaluate access rules and write result",
+        "exitCode": 0,
+        "stdout": "{\"allowed\":[\"q4\"],\"denied\":[\"q1\",\"q2\",\"q3\",\"q5\"]}\n",
+        "stderr": ""
+      }
+    ],
+    "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+    "score": {
+      "passed": true,
+      "reason": "match",
+      "outputSha256": "6e71a0ce6eb0d38326c29b0bd92c68e58636e844838f5b9c7f5bff71a6bd8619"
+    },
+    "executionElapsedMs": 1637.9525,
+    "wallElapsedMs": 29405
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "2338624630a266050e10dfc9f93494c2cee54696",
+  "limitation": "Final scheduled baseline; prior failures retained. No superiority claim."
+}
