@@ -957,3 +957,16 @@ An initial harness assertion expected bootstrap 200 instead of its actual 201;
 correcting the assertion produced the passing run. No provider requests occurred.
 Browser save, restart, and a reviewed task through this newly configured worker
 still require acceptance. This is not yet full P01 completion.
+
+### Browser execution setup acceptance
+
+The real-launcher browser flow now passes account/project/conversation setup,
+Compute selection, invalid relative-path rejection, valid Docker repository save,
+reload persistence and a direct assertion that active compute remains off and no
+task exists. Evidence: `evidence/p01-browser-execution-setup.json`. A second pass
+verified the improved form layout with clearly separated full-width controls.
+Screenshots were inspected locally, not published because they contain local paths.
+The installed-package gate now runs this browser case too. The setup guide's
+execution status now reads active runtime compute capability rather than assuming
+an environment variable is the only configuration source. Combined restart plus
+reviewed task execution and fresh archive acceptance remain open.

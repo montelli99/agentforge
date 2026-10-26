@@ -508,7 +508,7 @@ export class AgentForgeWebServer {
     const discord = inspectDiscordBotConfig();
     const slack = inspectSlackSocketModeConfig();
     const modelConfigured = this.conversations.status().configured;
-    const executionMode = process.env.AGENTFORGE_EXECUTION_MODE?.trim() || "off";
+    const executionMode = this.taskWorkerRuntime.getExecutionReadiness().capabilities.isolatedCompute ? "approved-docker" : "off";
     const channelStates = new Map(this.nativeGateway.snapshot().channels.map(channel => [channel.provider, channel.state]));
     const capabilities = [
       { id: "model", label: "Model planning", configured: modelConfigured, state: modelConfigured ? "configured" : "needs_configuration", detail: modelConfigured ? "A private model route is configured for this runtime." : "No model route is configured. The guide can still prepare a workspace and reviewable plan." },
