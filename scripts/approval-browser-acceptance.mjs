@@ -49,11 +49,22 @@ const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({de
 assert.equal((await backend.initialize()).ready,true);
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
 let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(privateSettings,'settings.json')});let browser;
-let modelRequests=0,chatRequests=0;
+let modelRequests=0,chatRequests=0;const verifiedChatReads=[];
 const plannedCommands=[{checkName:'unit_tests',command,timeoutMs:10000}];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw);
+ if(chatJourney&&body.stream&&taskId&&store.getTask(taskId)?.status==='completed'){
+  for(const message of body.messages.filter(m=>m.role==='tool')){
+   const call=body.messages.flatMap(m=>m.tool_calls||[]).find(c=>c.id===message.tool_call_id);
+   if(call?.function?.name!=='read_task_artifact')continue;
+   const args=JSON.parse(call.function.arguments),result=JSON.parse(message.content);
+   assert.equal(args.taskId,taskId);assert.equal(args.path,artifactPath);assert.equal(result.path,artifactPath);assert.equal(result.referenceDataOnly,true);
+   const artifact=store.getTask(taskId).evidencePack.artifacts.find(a=>a.path===artifactPath);assert.equal(result.sha256,artifact.sha256);assert.equal(createHash('sha256').update(result.content).digest('hex'),artifact.sha256);
+   if(!verifiedChatReads.some(r=>r.callId===call.id))verifiedChatReads.push({callId:call.id,taskId,path:artifactPath,sha256:artifact.sha256});
+  }
+ }
+
  if(chatJourney&&body.stream&&liveModel){
  chatRequests++;try{if(chatRequests>6)throw Error('Live chat request ceiling reached');const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:3000,thinking:{type:'disabled'}})});const response=await upstream.text();await writeFile(path.join(root,'live-chat-response-'+chatRequests+'.txt'),response);res.writeHead(upstream.status,{'Content-Type':upstream.headers.get('content-type')||'text/event-stream'});res.end(response);}catch{res.writeHead(502);res.end('Live chat failed; no automatic retry');}return;
  }
@@ -222,9 +233,10 @@ const created=store.listTasks().find(t=>t.originThreadId===thread.id);assert.ok(
  await page.getByLabel('Models and routing',{exact:true}).click();await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic proof vault password');await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
  await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');await page.getByLabel('Message',{exact:true}).fill('Read '+artifactPath+' from completed task '+taskId+' using read_task_artifact and summarize its actual contents.');await page.getByRole('button',{name:'Send ↑',exact:true}).click();if(liveModel){const until=Date.now()+120000;const initial=chatRequests;while(Date.now()<until){const answer=store.listThreadMessages(thread.id).at(-1);if(chatRequests>initial&&answer?.generation?.status==='complete')break;await new Promise(r=>setTimeout(r,200));}const answer=store.listThreadMessages(thread.id).at(-1);assert.equal(answer.generation?.status,'complete');assert.ok(answer.content.includes('950'));await writeFile(path.join(root,'final-chat-answer.json'),JSON.stringify(answer,null,2));}else{await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,4);}const count=chatRequests;const receipts=JSON.stringify(store.getTask(taskId).executionReceipts);await page.reload();if(liveModel)await page.locator('#conversation-feed').getByText('950',{exact:false}).first().waitFor();else await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,count);assert.equal(JSON.stringify(store.getTask(taskId).executionReceipts),receipts);
  }
+ if(chatJourney)assert.ok(verifiedChatReads.length>0,'Final chat must consume the exact verified artifact tool result');
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- const proof={passed:true,chatJourney,chatRequests,verifiedArtifactReturnedToChat:chatJourney,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests+chatRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
+ const proof={passed:true,chatJourney,chatRequests,verifiedChatReads,verifiedArtifactReturnedToChat:chatJourney,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests+chatRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
  proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
  proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
  proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
