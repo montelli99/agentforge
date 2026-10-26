@@ -41,6 +41,7 @@ describe("ModelPlanDraftProvider", () => {
     const model = { generate: async (options: { messages: Array<{ content: string }> }) => {
       const input = JSON.parse(options.messages[1].content) as Record<string, unknown>;
       expect(input.description).toBe("Write a synthetic artifact");
+      expect((input.executionFilesystem as any).newWorkspaceFiles).toContain('requiredArtifacts');
       expect(input.requiredCheckEntries).toEqual([{checkName: 'custom_script', command: 'node -v'}]);
       expect((input.outputSchema as any).properties.commands.items.required).toEqual(['checkName', 'command']);
       expect(input.scope).toEqual({ allowedPaths: ["artifacts/**"], protectedPaths: [".env"] });

@@ -1092,3 +1092,8 @@ The same af90640 archive passed with actual MiMo chat and actual MiMo invoice pl
 
 The clean installed af90640 journey now uses live prepare_task rather than the task creation form. Owner review supplies boundaries and exact checks; live planning, reviewed Docker execution, frozen invoice verification, actual launcher restart, recorded-result recovery and final approval all passed. Evidence: evidence/p01-installed-live-chat-created-invoice.json. Three requests used 7450 tokens (two chat/tool rounds and planning); cost unknown. Remaining P01 join: verified-artifact retrieval and report back into chat after recovery. Wider matrices remain open.
 
+
+### Helper-file planning mismatch found
+
+The next installed chat-created invoice attempt failed execution: generated artifacts/reconcile.js was within the allowed glob but not a declared new output. The non-deleting worker mounts only existing allowed files and declared output files writable. Evidence: evidence/p01-live-helper-file-failure.json. Planner input now explains this distinction and recommends inline helper code. Strict file protections are unchanged; 13 planner tests pass. Final artifact-to-chat proof remains pending. Hosted 7c8e06f passed all seven jobs (evidence/ci-7c8e06f.json), predating this correction.
+
