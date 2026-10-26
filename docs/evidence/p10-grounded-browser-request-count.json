@@ -1,0 +1,106 @@
+{
+  "requirement": "P10",
+  "hostedFailure": {
+    "run": 40328479391,
+    "commit": "b6d9429041a094322025c1fe17a42696c3e46882",
+    "reason": "Obsolete four-request assertion; grounding now requires three chat requests"
+  },
+  "repair": "Require verified artifact data before the first final-answer request; retain exact content hash, provenance, recovery and receipt checks",
+  "runnerSha256": "27797290ca4aba0725b7a8af5d36f7136752f3e2b4452bf4ab62110403e0b22d",
+  "results": [
+    {
+      "sourceEvidenceSha256": "1b1bc27c0f8747b1b28d5dee0771e82234fc3d37c429f923ad8f96daf32fb00c",
+      "proof": {
+        "passed": true,
+        "chatJourney": true,
+        "chatRequests": 3,
+        "verifiedChatReads": [
+          {
+            "callId": "grounded-artifact-0",
+            "taskId": "chat-911546df2b683b45e02752a7",
+            "path": "artifacts/verified.txt",
+            "sha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9"
+          }
+        ],
+        "verifiedArtifactReturnedToChat": true,
+        "invoiceCase": false,
+        "syntheticOnly": true,
+        "syntheticTaskData": true,
+        "liveModel": null,
+        "credentialMediatedByLocalProxy": false,
+        "syntheticModelDraft": true,
+        "recordedProviderResponse": false,
+        "paidModelRequests": 0,
+        "onePlanningProviderRequest": true,
+        "totalProviderRequests": 4,
+        "createdTaskExecuted": true,
+        "guidedRepositoryRevision": false,
+        "concurrentEditsPreserved": false,
+        "browserCommandReview": true,
+        "authenticatedApproval": true,
+        "approvalDidNotExecute": true,
+        "realDocker": true,
+        "verifiedArtifact": true,
+        "serviceRestartBeforeReview": true,
+        "recordedResultRestored": true,
+        "receiptsUnchanged": true,
+        "finalReviewConfirmed": true,
+        "durableCompletion": true,
+        "completedEvidenceReadableAfterReopen": true,
+        "runnerSourceCommit": "5c0a3ba686705ff8bc04af0227a65e6f5a039725",
+        "installedPackage": false,
+        "runnerSha256": "27797290ca4aba0725b7a8af5d36f7136752f3e2b4452bf4ab62110403e0b22d"
+      }
+    },
+    {
+      "sourceEvidenceSha256": "6e0162bd16f03b36bb8aa15e62e7e5a77d1ae74d49327ac66a4c7b4282e1f079",
+      "proof": {
+        "passed": true,
+        "chatJourney": true,
+        "chatRequests": 3,
+        "verifiedChatReads": [
+          {
+            "callId": "grounded-artifact-0",
+            "taskId": "chat-2c3640b287466db3add29158",
+            "path": "artifacts/verified.txt",
+            "sha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9"
+          }
+        ],
+        "verifiedArtifactReturnedToChat": true,
+        "invoiceCase": false,
+        "syntheticOnly": true,
+        "syntheticTaskData": true,
+        "liveModel": null,
+        "credentialMediatedByLocalProxy": false,
+        "syntheticModelDraft": true,
+        "recordedProviderResponse": false,
+        "paidModelRequests": 0,
+        "onePlanningProviderRequest": true,
+        "totalProviderRequests": 4,
+        "createdTaskExecuted": true,
+        "guidedRepositoryRevision": false,
+        "concurrentEditsPreserved": false,
+        "browserCommandReview": true,
+        "authenticatedApproval": true,
+        "approvalDidNotExecute": true,
+        "realDocker": true,
+        "verifiedArtifact": true,
+        "serviceRestartBeforeReview": true,
+        "recordedResultRestored": true,
+        "receiptsUnchanged": true,
+        "finalReviewConfirmed": true,
+        "durableCompletion": true,
+        "completedEvidenceReadableAfterReopen": true,
+        "runnerSourceCommit": "5c0a3ba686705ff8bc04af0227a65e6f5a039725",
+        "installedPackage": true,
+        "runnerSha256": "27797290ca4aba0725b7a8af5d36f7136752f3e2b4452bf4ab62110403e0b22d"
+      }
+    }
+  ],
+  "installedArchiveSha256": "36370829bf35ee80a756b2863600f0d31fda6d7d1197836f1a8514cf0d2fec34",
+  "limits": [
+    "Synthetic provider with real browser and Docker; no paid inference",
+    "Installed archive is an earlier grounding build, not the latest subscription changes",
+    "Hosted verification of the new commit remains required"
+  ]
+}
