@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-10-26T15:59:07.8200266Z",
+  "scope": "Full official Gemini CLI process using a local synthetic Gemini API service and host-approved synthetic request",
+  "clientVersion": "0.65.0",
+  "phases": [
+    "request review",
+    "approve through store",
+    "execute reviewed tool",
+    "final text"
+  ],
+  "modelRequests": 3,
+  "externalModelRequests": 0,
+  "effects": 1,
+  "subscriptionAccountUsed": false,
+  "realModelReasoningProven": false,
+  "dockerUsed": false,
+  "scriptSha256": "02dc4e08df4f13f83acc7e8ac7537779ccce9c2cdf07fa66a86f2405d203c480"
+}
