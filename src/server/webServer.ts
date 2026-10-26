@@ -1508,7 +1508,7 @@ export class AgentForgeWebServer {
           res.writeHead(200);res.end(JSON.stringify({disconnected:true,remoteWorkStopped:false}));return;
         }
         if(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024)throw Error('passphrase');
-        if(body.action==='save'){await this.agentSetup.save(body.profile as any,body.passphrase);res.writeHead(200);res.end(JSON.stringify({saved:true,connected:false}));return;}
+        if(body.action==='save'){await this.agentSetup.save(body.profile as any,body.passphrase);res.writeHead(200);res.end(JSON.stringify({saved:true,activationRequired:true,activeConnectionUnchanged:true}));return;}
         if(body.action==='forget'){
           if(body.provider!=='openclaw'&&body.provider!=='hermes')throw Error('provider');
           await this.agentSetup.forget(body.provider,body.passphrase);const current=this.managedAgentConnections.get(body.provider);if(current){current.stop();this.externalRunConnections.delete(current.id);this.managedAgentConnections.delete(body.provider);}
