@@ -20,8 +20,9 @@ try{
  await docker(['cp','dist/providers/channels/openClawGatewayTransport.js',name+':/tmp/transport.mjs']);
  await docker(['start',name]);console.log('Evidence directory: '+root);
  const output=await docker(['exec',name,'node','/tmp/probe.mjs']);await fs.writeFile(path.join(root,'result.txt'),output);
- const observed=JSON.parse(output);if(observed.result?.status!=='ok'||!(/\\b1250\\b/.test(observed.result?.terminalReply?.text??'')))throw Error('OpenClaw result did not pass the independent arithmetic check'); console.log(JSON.stringify({container:name,requests,runId:observed.receipt.runId,status:observed.result.status,response:observed.result.terminalReply.text,evidenceDirectory:root}));
+ const observed=JSON.parse(output);if(observed.result?.status!=='ok'||!(/\b1250\b/.test(observed.result?.terminalReply?.text??'')))throw Error('OpenClaw result did not pass the independent arithmetic check'); console.log(JSON.stringify({container:name,requests,runId:observed.receipt.runId,status:observed.result.status,response:observed.result.terminalReply.text,evidenceDirectory:root}));
 }catch(error){await fs.writeFile(path.join(root,'failure.json'),JSON.stringify({message:error.message,requests}));console.log('Failed proof retained: '+root);throw error;}
 finally{if(created)await docker(['stop','--time','5',name]);proxy.closeAllConnections();await new Promise(r=>proxy.close(r));}
+
 
 
