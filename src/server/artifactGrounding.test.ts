@@ -12,3 +12,8 @@ it('requires task identity for ambiguous paths',()=>{
  expect(()=>requestedArtifactReads(tasks,'Read artifacts/output.json')).toThrow('task ID');
  expect(requestedArtifactReads(tasks,'Read task-two artifacts/output.json')).toEqual([{taskId:'task-two',path:'artifacts/output.json'}]);
 });
+it('does not treat longer filenames or task IDs as exact references',()=>{
+ const tasks=[task('task-one'),task('task-one-extra')];
+ expect(requestedArtifactReads(tasks,'Read task-one-extra `artifacts/output.json`.')).toEqual([{taskId:'task-one-extra',path:'artifacts/output.json'}]);
+ for(const prompt of ['Read artifacts/output.json.bak','Read other/artifacts/output.json','Read artifacts/output.json/child'])expect(requestedArtifactReads(tasks,prompt)).toEqual([]);
+});
