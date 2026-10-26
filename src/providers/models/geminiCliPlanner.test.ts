@@ -22,10 +22,15 @@ it('uses only the selected profile, bounded draft protocol and no inherited API 
   });
   const request={model:'gemini-synthetic',messages:[{role:'user' as const,content:'Draft a version check'}],responseFormat:'json' as const};
   expect((await planner.generate(request)).content).toBe(plan);
+  const successfulClient=mocks.run.getMockImplementation()!;
   const controller=new AbortController();controller.abort();await expect(planner.generate({...request,signal:controller.signal})).rejects.toThrow('cancelled');
   expect(mocks.run).toHaveBeenCalledTimes(1);
   mocks.run.mockResolvedValue({code:0,stdout:'{"type":"tool_use"}',stderr:''});await expect(planner.generate(request)).rejects.toThrow('no automatic retry');
   expect(mocks.run).toHaveBeenCalledTimes(2);
+  const lateStop=new AbortController();mocks.run.mockImplementation(async(...args)=>{const reply=await successfulClient(...args);lateStop.abort();return reply;});
+  await expect(planner.generate({...request,signal:lateStop.signal})).rejects.toMatchObject({usage:{totalTokens:15},message:expect.stringContaining('cancelled before response delivery')});
+  expect(mocks.run).toHaveBeenCalledTimes(3);
+  await expect(fs.access(mocks.run.mock.calls[2][2].cwd)).rejects.toThrow();
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 it('rejects a redirected profile before reading settings or launching Gemini',async()=>{

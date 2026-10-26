@@ -81,7 +81,9 @@ export class ClaudeCliPlanner implements GenerativeModelProvider {
       isolationVerified: false, automaticRetry: false, apiFallback: false});
   }
   async generate(options: ModelRequestOptions): Promise<ModelResponse> {
-    return this.invoke(options,false);
+    const reply=await this.invoke(options,false);
+    if(options.signal?.aborted)throw new ModelProviderError('Claude planning cancelled before response delivery; no automatic retry',reply.usage);
+    return reply;
   }
   private async invoke(options:ModelRequestOptions,chat:boolean):Promise<ModelResponse>{
     if (options.signal?.aborted) throw Error('Claude planning cancelled before launch');

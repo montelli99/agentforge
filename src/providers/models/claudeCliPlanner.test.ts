@@ -67,3 +67,9 @@ it('discards completed chat when cancelled before delivery and retains usage',as
  await expect(consume()).rejects.toMatchObject({usage:{totalTokens:14},message:expect.stringContaining('cancelled before response delivery')});
  expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
 });
+
+it('discards a completed plan cancelled during client completion while preserving usage',async()=>{
+ const controller=new AbortController();mocks.run.mockImplementation(async()=>{controller.abort();return result();});
+ await expect(new ClaudeCliPlanner(config).generate({...request,signal:controller.signal})).rejects.toMatchObject({usage:{totalTokens:14},message:expect.stringContaining('cancelled before response delivery')});
+ expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});

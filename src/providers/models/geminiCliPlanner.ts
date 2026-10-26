@@ -50,7 +50,9 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
  }
  async isAvailable(){try{await this.checkProfile();return (await inspectGeminiCliCapabilities(this.config.bundlePath)).controlsAvailable;}catch{return false;}}
  async listModels(){return [this.config.model];}
- async generate(options:ModelRequestOptions):Promise<ModelResponse>{return this.invoke(options,false);}
+ async generate(options:ModelRequestOptions):Promise<ModelResponse>{const reply=await this.invoke(options,false);
+    if(options.signal?.aborted)throw new ModelProviderError('Gemini planning cancelled before response delivery; no automatic retry',reply.usage);
+    return reply;}
  private async invoke(options:ModelRequestOptions,chat:boolean):Promise<ModelResponse>{
   if(options.signal?.aborted)throw Error('Gemini planning cancelled before launch');
   if(options.model!==this.config.model||(!chat&&(options.tools?.length||options.stream||options.responseFormat!=='json'))||options.maxTokens!==undefined)throw Error('Unsupported Gemini planner request; no hard token-cap claim');
