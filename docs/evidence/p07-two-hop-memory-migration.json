@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "exportSha256": "eec27c4cc772d6bc94783b90c5009f1e2b269d56c1002db7cb85a7539cc9c873",
+  "reviewSha256": "3a383904997c60f70398a73af6cfc906ee94f9509eb70306a378e8616837a9d7",
+  "secondReviewSha256": "f5ae20055f3d086cbf47d8866ae570b1d7d4ece64b3da01c4fa55dbc8ae14c1c",
+  "conflictingOverwriteRefused": true,
+  "twoHopProjectHistory": true,
+  "revisionHistoryPreserved": true,
+  "freshProcessRestored": 2,
+  "deleted": 2,
+  "remainingAfterAnotherProcess": 0,
+  "scope": "Two-hop built-in memory migration and durable deletion; no live external-provider or browser claim"
+}
