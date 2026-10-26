@@ -40,3 +40,28 @@ it('cancels a pending owner review without launching the client',async()=>{
  expect(launches).toBe(0);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+it.each(['rejected','expired','cancelled-after-approval'] as const)('does not launch after %s',async scenario=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-native-review-stop-'));
+ try{
+  const work=path.join(root,'work');await fs.mkdir(work);
+  const store=new WorkspaceStore(path.join(root,'store.json'));
+  const task=store.createTask({title:'Synthetic review stop',status:'ready',priority:'medium'});
+  task.contract.workspace.requireIsolatedWorktree=true;
+  let launches=0;
+  const docker={getReadiness:()=>({ready:true,blockers:[]})} as unknown as ContractedDockerExecutionBackend;
+  const backend=new NativeClientExecutionBackend(docker,{getReadiness:()=>({ready:true}),run:async()=>{launches++;}},store,path.join(root,'host'));
+  const pending=backend.execute({task,worktreePath:work,operationId:'stop-operation',signal:new AbortController().signal});
+  const rejected=expect(pending).rejects.toThrow();
+  await new Promise(resolve=>setTimeout(resolve,20));
+  const review=store.listApprovals()[0]!;
+  if(scenario==='expired'){
+   review.expiresAt=new Date(Date.now()-1000).toISOString();
+   store.emit('approval_updated','approval',review);
+  }else{
+   store.resolveApproval({approvalId:review.id,status:scenario==='rejected'?'rejected':'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});
+   if(scenario==='cancelled-after-approval')store.updateTask(task.id,{status:'cancelled'});
+  }
+  await rejected;expect(launches).toBe(0);
+  if(scenario==='cancelled-after-approval')expect(store.getTask(task.id)?.status).toBe('cancelled');
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});

@@ -56,6 +56,8 @@ export class NativeClientExecutionBackend implements TaskExecutionBackend {
    check();
   });
   if(signal.aborted)throw new TaskExecutionCancelledError();
+  const current=this.store.getTask(taskId);
+  if(!current||current.status!=='waiting_approval')throw Error('Native task changed after review');
   this.store.updateTask(taskId,{status:previous});
  }
  execute:TaskExecutionBackend['execute']=async input=>{
