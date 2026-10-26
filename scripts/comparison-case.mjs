@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import {createHash} from 'node:crypto';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 export async function comparisonCase(id){
@@ -16,7 +16,15 @@ export async function comparisonCase(id){
  return {id,prompt:c.prompt,inputSha256:hash(bytes),async stage(root){await fs.mkdir(root,{recursive:true});await fs.writeFile(path.join(root,'input.json'),bytes,{flag:'wx'});},async score(root){
  try{for(const [name,dir,max] of [['input.json',false,bytes.length],['artifacts',true,0],['artifacts/result.json',false,65536]]){const s=await fs.lstat(path.join(root,name));if(s.isSymbolicLink()||(dir?!s.isDirectory():!s.isFile())||(!dir&&s.size>max))return {passed:false,reason:'invalid-file'};}
  if(hash(await fs.readFile(path.join(root,'input.json')))!==hash(bytes))return {passed:false,reason:'input-changed'};
- const actual=JSON.parse(await fs.readFile(path.join(root,'artifacts/result.json'),'utf8'));assert.deepEqual(actual,expected);return {passed:true};
- }catch{return {passed:false,reason:'missing-or-incorrect-output'};}
+ const raw=await fs.readFile(path.join(root,'artifacts/result.json'),'utf8');
+ let actual;try{actual=JSON.parse(raw);}catch{return {passed:false,reason:'invalid-json'};}
+ if(!isDeepStrictEqual(actual,expected)){
+  // Only fixture-owned field names are emitted; never copy model output into diagnostics.
+  const fields=Object.keys(expected).filter(key=>!isDeepStrictEqual(actual?.[key],expected[key]));
+  const extraFields=actual&&typeof actual==='object'&&!Array.isArray(actual)?Object.keys(actual).filter(key=>!Object.hasOwn(expected,key)).length:0;
+  return {passed:false,reason:'incorrect-output',mismatchedFields:fields,extraFieldCount:extraFields};
+ }
+ return {passed:true};
+ }catch(error){return {passed:false,reason:error?.code==='ENOENT'?'missing-output':'unreadable-output'};}
  }};
 }

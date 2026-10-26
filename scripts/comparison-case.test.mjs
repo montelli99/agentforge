@@ -25,3 +25,15 @@ test('wrong result values and changed array ordering cannot pass',async()=>{
  const wrong=structuredClone(answers['invoice-adjustments']);wrong.totalBalanceCents++;await fs.writeFile(output,JSON.stringify(wrong));assert.equal((await c.score(root)).passed,false);
  const reordered=structuredClone(answers['invoice-adjustments']);reordered.invoices.reverse();await fs.writeFile(output,JSON.stringify(reordered));assert.equal((await c.score(root)).passed,false);
 });
+test('failure diagnostics distinguish invalid JSON and mismatch without copying model text',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-diagnostic-'));
+ try{
+  const c=await comparisonCase('stock-allocation');await c.stage(root);await fs.mkdir(path.join(root,'artifacts'));
+  const output=path.join(root,'artifacts/result.json');await fs.writeFile(output,'not JSON synthetic-private-text');
+  assert.deepEqual(await c.score(root),{passed:false,reason:'invalid-json'});
+  await fs.writeFile(output,JSON.stringify({...answers['stock-allocation'],remaining:{blue:99},'synthetic-private-field':'synthetic-private-value'}));
+  const result=await c.score(root);
+  assert.deepEqual(result,{passed:false,reason:'incorrect-output',mismatchedFields:['remaining'],extraFieldCount:1});
+  assert(!JSON.stringify(result).includes('synthetic-private'));
+ }finally{assert.equal(path.dirname(root),os.tmpdir());await fs.rm(root,{recursive:true,force:true});}
+});
