@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-26T18:06:53.570Z",
+  "status": "failed",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "model": "mimo-v2.6-flash",
+  "maxRequests": 3,
+  "maxOutputTokens": 1000,
+  "syntheticTask": true,
+  "scoredComparison": false,
+  "providerCredentialInClient": false,
+  "caseId": "stock-allocation",
+  "inputSha256": "5fc90029a29da7fc88733d9b5788165a38b48cd57e44663d6aa43d5dc995f8e3",
+  "proxySha256": "7a8e68d14e0352d2f025ebe737b4d8a83dd0cf05eda7db5754d4b6d5e89689ba",
+  "elapsedMs": 19193.9408,
+  "exitCode": 1,
+  "artifactMatches": false,
+  "inputUnchanged": true,
+  "score": {
+    "passed": false,
+    "reason": "missing-or-incorrect-output"
+  },
+  "artifactSha256": "8154fac7ef9601f39c6381b2d5e83f4b17f9da7c6b25236eabb11c64d4ee2c62",
+  "audits": [
+    {
+      "request": 1,
+      "status": "response",
+      "usage": {
+        "inputTokens": 5739,
+        "outputTokens": 65
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 4896.430811000001
+    },
+    {
+      "request": 2,
+      "status": "response",
+      "usage": {
+        "inputTokens": 6179,
+        "outputTokens": 91
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 2425.0735760000007
+    },
+    {
+      "request": 3,
+      "status": "response",
+      "usage": {
+        "inputTokens": 6305,
+        "outputTokens": 230
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 7114.628094999998
+    }
+  ],
+  "error": "Acceptance assertion failed"
+}
