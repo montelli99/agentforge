@@ -1255,3 +1255,17 @@ The following closes specific proof gaps, not the full P01–P10 goal:
 - P10: source `7dd8c9a` passed all seven hosted jobs (`evidence/ci-7dd8c9a.json`). Later memory integration passed 927 local tests, with two live tests skipped (`evidence/p10-memory-integrated-regression.json`). Later commits are not covered by that hosted result. Final exact-build acceptance, release/merge, hosted demonstration, soak and cache-removal confirmation remain open.
 
 Do not summarize the remaining goal as only two missing provider accounts: native worker implementation, broader acceptance, final distribution and launch reconciliation remain required work.
+
+### P09 baseline installation and hosted integration
+
+The official DeepSeek Harness npm package 0.2.1-rc.3 installed with lifecycle
+scripts disabled. Its CLI help exited successfully in a fresh isolated home
+without inherited credential environment variables. Package integrity, lock
+and entry hashes are recorded in `evidence/p09-deepseek-installed-cli.json`.
+This establishes installation only; no comparative task has run. Freeze matched
+inputs, scoring and budgets before using it for performance evidence.
+
+Hosted run 40340652681 passed for exact source
+b92b63219ee4a20ec31fe5c6851b483dae8ddb54, recorded in
+`evidence/ci-b92b632.json`. This is not final release acceptance and does not
+cover later changes.
