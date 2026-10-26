@@ -820,3 +820,7 @@ P04 real pairing/reconnect lifecycle now passed against pinned OpenClaw 2026.10.
 P04 live browser invoice delegation passed: paired pinned gateway, exact message reviewed in browser before submission, one accepted external receipt, five live provider requests, independent invoice verifier passed, external response displayed, reload did not resend, local task remained paused rather than claiming verified completion. Evidence: evidence/p04-live-browser-invoice.json. Gateway stopped. Combined gateway restart/Stop lifecycle and usage/cost capture remain open.
 
 P04 live runner now persists a started audit before each provider request and records HTTP status, timestamps and reported input/output tokens after responses. Interrupted/missing accounting stays unknown; cost remains unknown rather than inferred. JSON/SSE parser tests (3) passed and are added to CI. Evidence: evidence/p04-provider-accounting-parser.json. New live capture still needs execution alongside remaining lifecycle case.
+
+### P04 integrated browser lifecycle evidence
+
+`evidence/p04-browser-reconnect-stop.json` records the live invoice, explicit review, independent artifact check, client reconnect without resend, and browser Stop with exact-run activity and eventual RPC termination. The invoice remains unchanged after Stop. Failed harness assumptions are retained in the evidence. Interrupted-request usage and cost remain unknown. Gateway process restart, installed-package repetition and broader partial-effect inspection remain open; P04 is not closed.
