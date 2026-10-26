@@ -180,10 +180,10 @@ and validates initialization/activity/result events. It rejects exposed tools,
 tool activity and ambiguous results, and preserves validated usage on failures.
 Synthetic validation and a real signed-out refusal have passed. Signed-in
 inference, managed-policy isolation and the complete approval journey have not.
-It is therefore not activated by the server or advertised as a working connection.
+It can be explicitly selected for draft generation with `AGENTFORGE_PLAN_PROVIDER=claude-cli` and an absolute `AGENTFORGE_PLAN_CLAUDE_CONFIG` file. This experimental opt-in is not proof of signed-in lifecycle acceptance. Generated commands still require review and the separate approved Docker execution backend.
 Event rejection detects activity; it cannot reverse an already performed effect.
 
-Gemini managed planning remains disabled and incomplete. Its internal stream
+Gemini draft generation can be explicitly selected with `AGENTFORGE_PLAN_PROVIDER=gemini-cli` and an absolute `AGENTFORGE_PLAN_GEMINI_CONFIG` file. Its full managed lifecycle remains incomplete. Its internal stream
 validator now checks a single initialization, the exact requested model and
 prompt, assistant text deltas, a final successful result and zero tool calls.
 It rejects unexpected activity and retains valid usage when rejecting a result.

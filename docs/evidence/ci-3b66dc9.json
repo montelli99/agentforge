@@ -1,0 +1,38 @@
+{
+  "recordedAt": "2026-10-26T10:26:39.154Z",
+  "headSha": "3b66dc9b7a0b08c963a1f3abc75479d66990c327",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40306502251",
+  "jobs": [
+    {
+      "name": "Public package and isolated execution acceptance",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (ubuntu-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (ubuntu-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 24.x)",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Exact preceding revision only. Later commits require their own hosted acceptance."
+}
