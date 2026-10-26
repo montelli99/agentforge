@@ -24,7 +24,9 @@ export async function startNativeBrokerEndpoint(session:NativeBrokerSession){
    if(id===null)throw Error('Request id required');
    let result:unknown;
    if(input.method==='initialize'){
-    if(input.params?.protocolVersion!=='2025-06-18')throw Error('Unsupported protocol');
+    // Offer our supported version when a newer client proposes another version.
+    // The client decides whether it can continue with this negotiated version.
+    if(typeof input.params?.protocolVersion!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(input.params.protocolVersion))throw Error('Invalid protocol version');
     initialized=true;result={protocolVersion:'2025-06-18',capabilities:{tools:{}},serverInfo:{name:'agentforge-broker',version:'0.1.2'}};
    }else{
     if(!initialized)throw Error('Initialize first');

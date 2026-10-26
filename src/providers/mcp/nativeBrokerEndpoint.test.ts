@@ -20,6 +20,8 @@ it('enforces credentials and session approvals over real HTTP before one physica
  try{
   expect((await fetch(connection.endpoint,{method:'POST',body:'{}'})).status).toBe(401);
   expect((await fetch(connection.endpoint,{method:'POST',headers:{Authorization:'Bearer '+connection.token,Origin:'https://untrusted.example'},body:'{}'})).status).toBe(403);
+  const negotiate=await fetch(connection.endpoint,{method:'POST',headers:{Authorization:'Bearer '+connection.token,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25'}})});
+  expect((await negotiate.json()).result.protocolVersion).toBe('2025-06-18');
   const client=new McpJsonRpcClient({endpoint:connection.endpoint,headers:{Authorization:'Bearer '+connection.token}});
   await client.initialize();expect((await client.listTools()).map(tool=>tool.name)).toEqual(['dispatch']);
   expect((await client.callTool('dispatch',{approvalId,...args})).isError).toBe(true);
