@@ -1161,3 +1161,42 @@ Added stale-writer save/delete tests: both refuse a changed disk snapshot, resto
 ### Fresh evaluation fixtures prepared
 Added three new v2 fixtures with exact output schemas: stock transfer balances, deadline classification and approved revision selection. Fixture hashes are frozen before model runs; evaluator-only expected answers are not staged. Contract test passes and rejects extra output keys. No model run or score exists yet. Full-product baseline design and equal budgets must be specified before scoring; v1 remains unchanged and its limitations remain recorded.
 
+
+## October 26 integration reconciliation
+
+These results close specific evidence gaps, not the whole numbered requirement.
+
+- P01/P02: `evidence/p01-installed-full-live-invoice-chat.json` records the
+  installed live invoice journey through chat, review, Docker, recovery and
+  artifact-grounded final chat. The older paragraphs saying this combination
+  is wholly unproven are historical. General task reliability remains open.
+- P05: `evidence/p05-hermes-credential-receipt-binding.json` proves local
+  credential-derived binding rejection for saved receipts, without network
+  access or state changes. `evidence/p05-installed-hermes-reconnect-auth.json`
+  proves installed-client reconnect to the actual disposable Hermes server,
+  wrong-key HTTP 401 and unchanged saved output, with zero submissions.
+  Neither proves changing the server's configured credential.
+- P07: `evidence/p07-installed-migration.json` proves fresh-workspace migration
+  from an installed archive, exact multiline titles and content, explicit
+  project mapping, provenance, reopen, selected-note recall and isolation.
+  Later fixes reject cross-collection ID overwrites and detach standalone
+  adapter inputs/results/history. Live Hindsight and full provider migration
+  coverage remain required.
+- P08: `evidence/p08-agent-setup-keyboard.json` covers agent-setup keyboard
+  saving, focus restoration and passphrase recovery. The model connection
+  browser harness now also checks keyboard save/unlock and retained focus.
+  This is not a complete keyboard or accessibility audit.
+- P09: version 2's first live attempt is retained in
+  `evidence/p09-v2-first-live-attempt.json`. Its asymmetric timeout instructions
+  invalidate comparative scoring. Its disposition disables live runs before
+  external work. Shared instructions repair the harness; a new frozen workload
+  is required, not replacement of the failed attempt. No superiority claim.
+- P10: `evidence/ci-e95f1f6.json` and `evidence/ci-bf83413.json` record seven
+  passing hosted jobs for those exact commits. They do not validate subsequent
+  source changes. The public release has not been replaced by these candidates.
+
+Next dependencies remain the full P01–P10 scope above: dedicated-account
+provider lifecycles, missing managed subscription execution, broader recovery,
+completed UI matrix, valid comparative evaluation, exact final CI/archive,
+publication and launch reconciliation. Keep private integrations out of all
+public artifacts. Do not mark an item complete from this reconciliation alone.
