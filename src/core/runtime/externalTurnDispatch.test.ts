@@ -70,6 +70,13 @@ it('recovers a saved run observation without replay or claiming verified complet
   expect(recovered.getTask(task.id)?.externalTurnReceipts?.[0].observation?.remoteStatus).toBe('timeout');
   inspect.mockResolvedValueOnce({runId:'saved-run',status:'ok'});
   await observeExternalTurn(recovered,task.id,connection);
+  const afterRestart = new WorkspaceStore(file);
+  await observeExternalTurn(afterRestart,task.id,connection);
+  await observeExternalTurn(afterRestart,task.id,connection);
+  const persisted = new WorkspaceStore(file).getTask(task.id);
+  expect(persisted?.externalTurnReceipts?.[0].observation?.remoteStatus).toBe('timeout');
+  expect(persisted?.externalTurnReceipts?.[0].observationHistory?.map(item=>item.remoteStatus)).toEqual(['timeout','ok']);
+  expect(persisted?.status).toBe('paused');
   expect(recovered.getTask(task.id)?.status).toBe('paused');
   expect(submit).toHaveBeenCalledTimes(1);
   expect(inspect).toHaveBeenCalledWith('saved-run');

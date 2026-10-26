@@ -4,7 +4,7 @@ import type {Task} from '../types/task.js';
 import {executionContractDigest} from './approvedPlanProvider.js';
 
 export interface ExternalTurnRequest { connectionId: string; sessionKey: string; message: string; }
-export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; stop?: {requestedAt:string; requestedBy:string; status:'requested'|'acknowledged'|'not_acknowledged'}; }
+export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; observationHistory?: Array<{remoteStatus:string;observedAt:string}>; stop?: {requestedAt:string; requestedBy:string; status:'requested'|'acknowledged'|'not_acknowledged'}; }
 function validateRequest(request: ExternalTurnRequest): void {
   for (const [value, maximum] of [[request.connectionId,512],[request.sessionKey,512],[request.message,32000]] as const) {
     if (typeof value !== 'string' || !value.trim() || value.length > maximum) throw Error('External destination and message must be explicit and within limits');
@@ -65,7 +65,12 @@ export async function observeExternalTurn(store: WorkspaceStore, taskId: string,
   if (result.runId !== receipt.runId || typeof result.status !== 'string' || !result.status.trim() || result.status.length > 128) throw Error('Invalid or mismatched external observation');
   const current = store.getTask(taskId)?.externalTurnReceipts?.[0];
   if (!current || current.requestId !== receipt.requestId || current.runId !== receipt.runId || current.connectionId !== connection.id) throw Error('External receipt changed during observation');
-  const observed: ExternalTurnReceipt = {...current, observation: {remoteStatus: result.status, observedAt: new Date().toISOString()}};
+  const history = [...(current.observationHistory ?? [])];
+  // Preserve status transitions across upstream restarts. Repeated polls must not
+  // evict a prior report; none of these reports establishes local completion.
+  if (current.observation && current.observation.remoteStatus !== result.status
+      && history.at(-1)?.remoteStatus !== current.observation.remoteStatus) history.push(current.observation);
+  const observed: ExternalTurnReceipt = {...current, observationHistory: history.slice(-16), observation: {remoteStatus: result.status, observedAt: new Date().toISOString()}};
   // Retain only bounded status metadata, not unsolicited remote transcript content.
   // In particular, never revive a cancelled task or mark an unverified task complete.
   store.updateTask(taskId, {externalTurnReceipts: [observed]});
