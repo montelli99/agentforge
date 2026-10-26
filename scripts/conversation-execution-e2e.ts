@@ -57,7 +57,9 @@ function git(cwd: string, args: string[]): string {
 
 async function main(): Promise<void> {
   const image = process.env.AGENTFORGE_APPROVED_DOCKER_IMAGE?.trim() || "node:22-alpine";
-  const root = await mkdtemp(path.join(os.tmpdir(), "agentforge-approved-docker-"));
+  const crashRoot=process.env.AGENTFORGE_PROOF_CRASH_ROOT;
+  if(crashRoot && (process.env.AGENTFORGE_PROOF_CRASH_CHILD!=='1'||path.dirname(await realpath(crashRoot))!==await realpath(os.tmpdir())||!path.basename(crashRoot).startsWith('af-chatgpt-crash-')))throw Error('Explicit disposable crash child root required');
+  const root = crashRoot ?? await mkdtemp(path.join(os.tmpdir(), "agentforge-approved-docker-"));
   try {
     git(root, ["init", "--initial-branch=main"]);
     await writeFile(path.join(root, "README.md"), "# AgentForge Docker E2E\n", "utf8");
@@ -108,7 +110,7 @@ async function main(): Promise<void> {
     const backend = new ContractedDockerExecutionBackend(
       new DockerComputeProvider({ defaultImage: image, maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1 }),
       planProvider,
-      { agentId: "agentforge-e2e" },
+      { agentId: "agentforge-e2e", resultJournalDirectory:path.join(root,'results') },
     );
     const readiness = await backend.initialize();
     if (!readiness.ready) {
@@ -124,6 +126,18 @@ async function main(): Promise<void> {
     store.createTask(task);
     store.updateTask(taskId, { worktree, approvedExecutionPlan: { plan, contractDigest: executionContractDigest(task), approvedBy: "synthetic-owner", approvedAt: new Date(now-60000).toISOString(), expiresAt: new Date(now+3600000).toISOString() } });
     const worker = new TaskWorkerRuntime(store, backend, { repoRoot: root, requireEffectReceipts: true, workspaceIdentity: workspace.id });
+    if(crashRoot){
+      const execute=backend.execute.bind(backend);
+      backend.execute=async input=>{
+        await execute(input);
+        await writeFile(path.join(root,'checkpoint.json'),JSON.stringify({workspaceId:workspace.id,taskId,requests:proof.requests,toolCalls:proof.toolCalls}));
+        // Terminate this acceptance child after durable result publication, before
+        // returning it to the worker. No receipt-finalization or finally runs.
+        process.kill(process.pid,'SIGKILL');
+        await new Promise(()=>{});
+        throw Error('Unreachable crash checkpoint');
+      };
+    }
     const response = Object.assign(new EventEmitter(), { destroyed: false, writeHead() {}, write() {}, end() {} }) as unknown as ServerResponse;
     let round = 0;
     const model: GenerativeModelProvider = { id: "synthetic", name: "Scripted acceptance model", defaultTier: 1,

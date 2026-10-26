@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "liveProvider": "chatgpt-subscription",
+  "model": "gpt-6-luna",
+  "requests": 2,
+  "recoveryExecutions": 0,
+  "duplicateRecoveryRefused": true,
+  "artifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+  "scope": "Real chat/worker child terminated after durable Docker result but before observed receipt; recovery in a separate process. Pre-approved synthetic command, not browser or mid-command partial-effect recovery."
+}

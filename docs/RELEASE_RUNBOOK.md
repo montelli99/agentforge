@@ -183,3 +183,13 @@ facts and provenance through explicit project remapping, checks duplicate-import
 idempotency, restores and deletes the facts in a fresh process, then verifies
 their absence in another fresh process. The CI platform matrix retains its JSON
 output. It does not prove Hindsight access or external-provider deletion.
+
+### Live ChatGPT worker termination and durable-result recovery
+
+With a dedicated signed-in profile, an explicitly selected model and a locally available digest-pinned Docker image:
+
+```text
+node --import tsx scripts/chatgpt-runtime-crash.ts ABSOLUTE_SUBSCRIPTION_ROOT ACTOR MODEL sha256:IMAGE_DIGEST ABSOLUTE_NEW_EVIDENCE_FILE
+```
+
+This spends up to four bounded subscription requests on a synthetic pre-approved task. It terminates only its generated acceptance child after durable Docker result publication and before worker receipt finalization. The parent recovers the result without model requests or execution, checks the artifact independently, requires pending final approval, rejects duplicate recovery and reopens the saved store. The profile is preserved; generated fixture files and owned containers are cleaned. This does not prove recovery of a partial command, automatic approval, or browser reconnection. Evidence output must not already exist. Keep account data and evidence paths outside the checkout; publish only the sanitized result.
