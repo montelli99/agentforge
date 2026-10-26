@@ -1,3 +1,4 @@
+import {readExecutionSetup,saveExecutionSetup} from './executionSetup.js';
 import {AgentConnectionSetup} from './agentConnectionSetup.js';
 import {configureHermesRunConnection} from '../providers/channels/hermesRunConnection.js';
 import {OpenClawGatewayTransport} from '../providers/channels/openClawGatewayTransport.js';
@@ -398,6 +399,7 @@ export class AgentForgeWebServer {
   /** Optional deployment credential; it is never returned by any status route. */
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
+  private readonly executionSetupFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
   private readonly agentSetup: AgentConnectionSetup;
   private agentSetupBusy=false;
@@ -430,9 +432,10 @@ export class AgentForgeWebServer {
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
+    options: { executionSetupFilePath?: string; settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
+    this.executionSetupFilePath=options.executionSetupFilePath||pathModule.join(pathModule.dirname(this.settingsFilePath),"execution-setup.json");
     this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
     this.agentSetup=new AgentConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath),'agent-connections.encrypted.json'));
@@ -1492,6 +1495,21 @@ export class AgentForgeWebServer {
       return;
     }
 
+    if(path==='/api/execution-setup'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}
+      if(caller.role!=='owner'||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end();return;}
+      try{
+        if(req.method==='GET'){res.writeHead(200);res.end(JSON.stringify({saved:readExecutionSetup(this.executionSetupFilePath),environmentOverride:process.env.AGENTFORGE_EXECUTION_MODE!==undefined,activeReadiness:this.taskWorkerRuntime.getExecutionReadiness()}));return;}
+        if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+        if(process.env.AGENTFORGE_EXECUTION_MODE!==undefined)throw Error('Execution is controlled by startup settings. Remove that override before using guided setup.');
+        const body=await this.readBody(req);
+        if(this.taskWorkerRuntime.getActiveTaskIds().length)throw Error('Finish active tasks before changing execution setup');
+        const saved=saveExecutionSetup(this.executionSetupFilePath,body);
+        res.writeHead(200);res.end(JSON.stringify({saved,restartRequired:true,activated:false}));
+      }catch(error){res.writeHead(409);res.end(JSON.stringify({error:error instanceof Error?error.message:'Execution setup failed'}));}
+      return;
+    }
     if(path==='/api/agent-connections'){
       res.setHeader('Cache-Control','no-store');
       if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}

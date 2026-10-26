@@ -1,3 +1,4 @@
+import {readExecutionSetup} from './executionSetup.js';
 import {GeminiCliPlanner,readGeminiCliPlannerConfiguration} from '../providers/models/geminiCliPlanner.js';
 import { readModelConnections } from "../providers/models/modelConnections.js";
 import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
@@ -71,12 +72,15 @@ const planDraftProvider = planProviderName === "chatgpt-direct"
   ? configureChatGPTDirectPlanner(process.env, planningAccounting)
   : selectedPlanProvider && selectedPlanModel ? new ModelPlanDraftProvider(selectedPlanProvider, selectedPlanModel, ["sh", "node"], undefined, planningAccounting) : undefined;
 let taskRuntime: TaskWorkerRuntime | undefined;
-const executionMode = process.env.AGENTFORGE_EXECUTION_MODE;
+const executionSetupFilePath=path.join(path.dirname(workspaceFilePath),"execution-setup.json");
+let savedExecution: ReturnType<typeof readExecutionSetup> | undefined;
+if(process.env.AGENTFORGE_EXECUTION_MODE===undefined){try{savedExecution=readExecutionSetup(executionSetupFilePath);}catch{console.error("Saved execution setup is invalid or its repository is unavailable. Execution remains off; repair it in Compute setup.");savedExecution={version:1,mode:"off"};}}
+const executionMode = process.env.AGENTFORGE_EXECUTION_MODE ?? savedExecution?.mode;
 if (executionMode && executionMode !== "off" && executionMode !== "approved-docker") {
   throw new Error("Unknown AgentForge execution mode. Use off or approved-docker.");
 }
 if (executionMode === "approved-docker") {
-  const repository = process.env.AGENTFORGE_EXECUTION_REPO;
+  const repository = process.env.AGENTFORGE_EXECUTION_MODE!==undefined?process.env.AGENTFORGE_EXECUTION_REPO:(savedExecution?.mode==="approved-docker"?savedExecution.repository:undefined);
   if (!repository || !path.isAbsolute(repository)) throw new Error("Approved Docker execution requires an explicit absolute AGENTFORGE_EXECUTION_REPO.");
   const plans = new ApprovedPlanProvider(async taskId => store.getTask(taskId)?.approvedExecutionPlan);
   const backend = new ContractedDockerExecutionBackend(new DockerComputeProvider({ maxMemoryBytes: 1024 * 1024 * 1024, cpuQuota: 1 }), plans, {resultJournalDirectory:path.join(path.dirname(workspaceFilePath),'execution-results')});
@@ -98,7 +102,7 @@ const server = new AgentForgeWebServer(
   port,
   completion,
   taskRuntime,
-  { conversation: chatProvider ? { provider: chatProvider, models: chatModels,
+  { executionSetupFilePath, conversation: chatProvider ? { provider: chatProvider, models: chatModels,
     connections: configuredConnections?.connections, memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
     planDraftProvider, indexedMemory, claudeAccountConfiguration: claudePlanConfig },
 );

@@ -940,3 +940,20 @@ verifies the original task can finish, the worker stays running on rejection, an
 the current ready backend remains available. All 15 runtime tests and TypeScript
 checking passed. This is a prerequisite for guided activation, not that feature's
 completion; repository binding, persistence and UI activation are still required.
+
+### Saved execution setup and launcher restoration
+
+Compute now offers an owner-only saved choice between planning and reviewed Docker
+execution, with a committed repository folder. Saving is explicit and reports
+restart required; it neither swaps the live worker nor starts a task. The launcher
+restores the selection with effect receipts and automatic dispatch disabled.
+Explicit environment configuration takes precedence and prevents guided changes.
+Invalid saved state leaves execution off and allows the UI to repair it.
+
+Seventeen configuration/runtime tests passed. Real-launcher HTTP acceptance proved
+anonymous rejection, save without activation, restart restoring actual Docker
+compute capability, and zero tasks created (`evidence/p01-execution-setup-restore.json`).
+An initial harness assertion expected bootstrap 200 instead of its actual 201;
+correcting the assertion produced the passing run. No provider requests occurred.
+Browser save, restart, and a reviewed task through this newly configured worker
+still require acceptance. This is not yet full P01 completion.
