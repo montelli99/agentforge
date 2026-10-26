@@ -157,7 +157,7 @@ jobs:
       - name: Verify selected-note memory lifecycle across restart
         run: node scripts/obsidian-lifecycle-acceptance.mjs "${{ runner.temp }}/obsidian-lifecycle.json"
       - name: Provider accounting parser
-        run: node --test scripts/reported-provider-usage.test.mjs
+        run: node --test scripts/reported-provider-usage.test.mjs scripts/atomic-proof-journal.test.mjs
       - name: Composed local memory lifecycle
         run: node scripts/composed-memory-lifecycle-acceptance.mjs
 
