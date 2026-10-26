@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "b6d9429",
+  "command": "pnpm test:package:surface",
+  "passed": true,
+  "actualArchiveContentsScanned": true,
+  "scannedFileCount": 480,
+  "archiveSha256": "36370829bf35ee80a756b2863600f0d31fda6d7d1197836f1a8514cf0d2fec34",
+  "limitation": "Known private-data signatures in shipped text files only; not proof of absence of all sensitive content. Installed live acceptance remains outstanding."
+}
