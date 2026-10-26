@@ -723,3 +723,8 @@ Journal placement now validates canonical filesystem paths before execution and 
 ### P07 selected-note lifecycle — 2026-10-26
 
 Actual temporary Markdown files passed selected-file isolation, visible edit with stable record ID/new content hash, missing-file failure, restored content in a separate process, project isolation, and disconnect without deletion. Evidence: evidence/p07-obsidian-lifecycle.json (SHA-256 eafaf0ee1584f93f507183b1b78df48e05a844c6f98e1b0316c41440256e99fa). This is local adapter acceptance, not the Obsidian application UI or live Hindsight/composed-provider acceptance. Those requirements remain open.
+
+
+### P07/P08 browser memory lifecycle — 2026-10-26
+
+Extended the hosted memory browser acceptance to perform visible synthetic model setup, connect a selected local note, save encrypted selection, clear secret fields, disconnect, restore, and forget without modifying the note. Real installed Chrome passed with no page errors. The first attempt correctly refused setup before a chat model existed; the harness now includes that visible prerequisite. Evidence: evidence/p07-memory-connection-browser.json. This is same-process restore and does not establish server-restart or live cloud composition.
