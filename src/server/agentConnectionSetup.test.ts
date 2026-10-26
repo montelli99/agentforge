@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {AgentConnectionSetup,validateAgentConnection} from './agentConnectionSetup.js';
 it('encrypts separate agent credentials, restores explicitly and forgets only the selected agent',async()=>{
- const dir=await fs.mkdtemp(path.join(os.tmpdir(),'af-agent-setup-')),file=path.join(dir,'agents.json'),pass='synthetic passphrase for proof';const setup=new AgentConnectionSetup(file);
+ const dir=await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()),'af-agent-setup-')),file=path.join(dir,'agents.json'),pass='synthetic passphrase for proof';const setup=new AgentConnectionSetup(file);
  await Promise.all([setup.save({provider:'hermes',url:'http://127.0.0.1:8642',token:'hermes-synthetic-secret'},pass),setup.save({provider:'openclaw',url:'ws://127.0.0.1:18789',token:'openclaw-synthetic-secret'},pass)]);
  const raw=await fs.readFile(file,'utf8');expect(raw).not.toContain('synthetic-secret');expect(raw).not.toContain('127.0.0.1');const restored=new AgentConnectionSetup(file);expect(await restored.restore(pass)).toHaveLength(2);await expect(restored.restore('wrong')).rejects.toThrow('unlock');await restored.forget('hermes',pass);expect((await restored.restore(pass)).map(p=>p.provider)).toEqual(['openclaw']);await restored.forget('openclaw',pass);expect(await restored.restore(pass)).toEqual([]);
 });
