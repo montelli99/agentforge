@@ -1,0 +1,22 @@
+{
+  "requirement": "P07",
+  "checks": {
+    "selectedFileOnly": true,
+    "editVisibleWithoutReconnect": true,
+    "missingFileFailsVisibly": true,
+    "newProcessReadsRestoredContent": true,
+    "stableRecordId": true,
+    "changedContentHash": true,
+    "projectIsolation": true,
+    "disconnectStopsRecallWithoutDeletingNote": true
+  },
+  "source": {
+    "providerId": "obsidian",
+    "recordId": "6adc91ca3f49608dfb12cf261b9b8e0d2f77ca7955d60afc32a27ed341fe525f"
+  },
+  "limits": [
+    "Actual local-file adapter proof, not Obsidian application UI.",
+    "Hindsight live account, combined live providers, migration and guided browser lifecycle remain separate."
+  ],
+  "recordedAt": "2026-10-26T07:29:22.842Z"
+}

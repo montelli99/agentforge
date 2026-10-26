@@ -718,3 +718,8 @@ All seven jobs passed for 9b4538e in run 40284746678. Downloaded CI archive hash
 ### P03 recovery journal placement — 2026-10-26
 
 Journal placement now validates canonical filesystem paths before execution and on save/read, rejecting directory links into the task workspace. Twelve focused tests and build passed. Real Docker crash output recovered through authenticated Chrome with zero execution during recovery, independent invoice verification, and pending approval retained after reopen. The initial browser launch failed because bundled Chromium was absent; recovery continued against the same saved run using installed Chrome, not by repeating execution. Evidence: evidence/p03-journal-placement-recovery.json.
+
+
+### P07 selected-note lifecycle — 2026-10-26
+
+Actual temporary Markdown files passed selected-file isolation, visible edit with stable record ID/new content hash, missing-file failure, restored content in a separate process, project isolation, and disconnect without deletion. Evidence: evidence/p07-obsidian-lifecycle.json (SHA-256 eafaf0ee1584f93f507183b1b78df48e05a844c6f98e1b0316c41440256e99fa). This is local adapter acceptance, not the Obsidian application UI or live Hindsight/composed-provider acceptance. Those requirements remain open.
