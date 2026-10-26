@@ -1,4 +1,5 @@
 import {readExecutionSetup} from './executionSetup.js';
+import {configureClaudeChat} from '../providers/models/claudeChatConfiguration.js';
 import {GeminiCliPlanner,readGeminiCliPlannerConfiguration} from '../providers/models/geminiCliPlanner.js';
 import { readModelConnections } from "../providers/models/modelConnections.js";
 import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
@@ -43,11 +44,12 @@ const workspaceFilePath = getDefaultWorkspaceFilePath();
 const completionStorePath = path.join(path.dirname(workspaceFilePath), "completion-sessions.json");
 // Dedicated opt-in only: never adopt production or unrelated application credentials.
 const chatKey = process.env.AGENTFORGE_CHAT_API_KEY;
+const claudeChat=configureClaudeChat(process.env);
 const configuredConnections = process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE ? readModelConnections(process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE) : undefined;
-const chatModels = configuredConnections?.models ?? (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
+const chatModels = claudeChat?.models ?? configuredConnections?.models ?? (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
 const chatBase = process.env.AGENTFORGE_CHAT_BASE_URL || "https://api.openai.com/v1";
 const chatProviderName = process.env.AGENTFORGE_CHAT_PROVIDER || "openai-compatible";
-if (!["openai-compatible", "mimo"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
+if (!["openai-compatible", "mimo", "claude-cli"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
 if (chatKey && chatModels.length) {
   const endpoint = new URL(chatBase);
   if (endpoint.username || endpoint.password || (endpoint.protocol !== "https:" && !(endpoint.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname)))) throw new Error("Chat endpoint requires HTTPS or localhost HTTP.");
@@ -55,7 +57,7 @@ if (chatKey && chatModels.length) {
 const store = new WorkspaceStore(workspaceFilePath);
 const operationalMemory = new OperationalMemoryProvider(store);
 const completion = new CompletionEngine(undefined, new JsonCompletionSessionStore(completionStorePath));
-const chatProvider = configuredConnections?.provider ?? (chatModels.length
+const chatProvider = claudeChat?.provider ?? configuredConnections?.provider ?? (chatModels.length
   ? chatProviderName === "mimo" && process.env.MIMO_API_KEY
     ? new MiMoModelProvider()
     : chatProviderName === "openai-compatible" && chatKey
