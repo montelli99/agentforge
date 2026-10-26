@@ -14,11 +14,35 @@ function digest(request:NativeToolRequest){
 export class NativeToolAuthorization {
  constructor(private directory:string,private worktree:string){if(!path.isAbsolute(directory)||!path.isAbsolute(worktree))throw Error('Absolute authorization paths required');}
  private async placement(){
+  const lexical=path.relative(this.worktree,this.directory);if(!lexical||(!lexical.startsWith('..'+path.sep)&&lexical!=='..'&&!path.isAbsolute(lexical)))throw Error('Authorization directory must be outside client worktree');
   await fs.mkdir(this.directory,{recursive:true,mode:0o700});
   const [root,dir]=await Promise.all([fs.realpath(this.worktree),fs.realpath(this.directory)]);
   const relative=path.relative(root,dir);if(!relative||(!relative.startsWith('..'+path.sep)&&relative!=='..'&&!path.isAbsolute(relative)))throw Error('Authorization directory must be outside client worktree');
  }
  private file(id:string){if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Invalid approval identity');return path.join(this.directory,id+'.json');}
+ private async record(file:string):Promise<Record<string,unknown>|null>{
+  let stat;try{stat=await fs.lstat(file);}catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return null;throw error;}
+  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>4096)throw Error('Invalid authorization record');
+  const value:unknown=JSON.parse(await fs.readFile(file,'utf8'));if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid authorization record');return value as Record<string,unknown>;
+ }
+ /** Inspection never grants permission. Corrupt/partial receipts fail closed. */
+ async inspect(id:string,request:NativeToolRequest){
+  const requestHash=digest(request);await this.placement();const file=this.file(id);
+  const approval=await this.record(file);if(!approval||approval.version!==1||approval.requestHash!==requestHash)throw Error('Approval missing or bound to another request');
+  const claim=await this.record(file+'.consumed');const observed=await this.record(file+'.observed');
+  if(!claim){if(observed)throw Error('Observation without claim');return {state:'unused' as const,requestHash};}
+  if(claim.requestHash!==requestHash||claim.effectStatus!=='unconfirmed'||typeof claim.claimedAt!=='string'||!Number.isFinite(Date.parse(claim.claimedAt)))throw Error('Invalid claim receipt');
+  if(!observed)return {state:'unconfirmed' as const,requestHash};
+  if(observed.requestHash!==requestHash||typeof observed.evidenceSha256!=='string'||! /^[a-f0-9]{64}$/.test(observed.evidenceSha256))throw Error('Invalid observation receipt');
+  return {state:'observed' as const,requestHash,evidenceSha256:observed.evidenceSha256};
+ }
+ /** Host records independently collected evidence; observation is not task acceptance. */
+ async observe(id:string,request:NativeToolRequest,evidenceSha256:string){
+  if(!/^[a-f0-9]{64}$/.test(evidenceSha256))throw Error('Invalid evidence hash');
+  const state=await this.inspect(id,request);if(state.state!=='unconfirmed')throw Error('Unconfirmed claim required');
+  const handle=await fs.open(this.file(id)+'.observed','wx',0o600);
+  try{await handle.writeFile(JSON.stringify({requestHash:state.requestHash,evidenceSha256,observedAt:new Date().toISOString()}));await handle.sync();}finally{await handle.close();}
+ }
  async approve(id:string,request:NativeToolRequest,approver:string,expiresAt:number){
   if(typeof approver!=='string'||!approver.trim()||approver.length>256||!Number.isSafeInteger(expiresAt)||expiresAt<=Date.now())throw Error('Valid approver and future expiration required');
   const requestHash=digest(request);await this.placement();

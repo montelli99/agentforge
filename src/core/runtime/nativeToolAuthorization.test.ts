@@ -4,3 +4,24 @@ it('consumes exact approval once across concurrent and restarted callers',async(
 it('rejects changed operation session tool and arguments without consuming approval',async()=>{const f=await fixture();await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);for(const request of [{...f.request,operationId:'other'},{...f.request,sessionId:'other'},{...f.request,tool:'shell'},{...f.request,input:{path:'other'}}])await expect(f.gate.consume(f.id,request)).rejects.toThrow(/another request/);expect((await f.gate.consume(f.id,f.request)).effectStatus).toBe('unconfirmed');});
 it('rejects missing and expired approvals',async()=>{const f=await fixture();await expect(f.gate.consume(f.id,f.request)).rejects.toThrow();await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);const file=path.join(f.directory,f.id+'.json');const record=JSON.parse(await fs.readFile(file,'utf8'));record.expiresAt=Date.now()-1;await fs.writeFile(file,JSON.stringify(record));await expect(f.gate.consume(f.id,f.request)).rejects.toThrow(/expired/);});
 it('refuses approval storage inside client worktree',async()=>{const f=await fixture();await expect(new NativeToolAuthorization(path.join(f.worktree,'approvals'),f.worktree).approve(f.id,f.request,'owner',Date.now()+60000)).rejects.toThrow(/outside/);});
+it('recovers unused, uncertain and observed states without granting replay',async()=>{
+ const f=await fixture();await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);
+ expect((await f.gate.inspect(f.id,f.request)).state).toBe('unused');
+ await expect(f.gate.observe(f.id,f.request,'a'.repeat(64))).rejects.toThrow();
+ await f.gate.consume(f.id,f.request);
+ const restarted=new NativeToolAuthorization(f.directory,f.worktree);
+ expect((await restarted.inspect(f.id,f.request)).state).toBe('unconfirmed');
+ await expect(restarted.observe(f.id,{...f.request,callId:'different'},'a'.repeat(64))).rejects.toThrow();
+ const results=await Promise.allSettled([restarted.observe(f.id,f.request,'a'.repeat(64)),restarted.observe(f.id,f.request,'b'.repeat(64))]);
+ expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+ expect((await new NativeToolAuthorization(f.directory,f.worktree).inspect(f.id,f.request)).state).toBe('observed');
+ await expect(restarted.consume(f.id,f.request)).rejects.toThrow();
+});
+it('partial claim after process death is never classified as unused or replayed',async()=>{
+ const f=await fixture();await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);
+ await fs.writeFile(path.join(f.directory,f.id+'.json.consumed'),'{');
+ const restarted=new NativeToolAuthorization(f.directory,f.worktree);
+ await expect(restarted.inspect(f.id,f.request)).rejects.toThrow();
+ await expect(restarted.consume(f.id,f.request)).rejects.toThrow();
+ await expect(restarted.observe(f.id,f.request,'a'.repeat(64))).rejects.toThrow();
+});
