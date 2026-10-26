@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "c223a53cc4e17bea5c9fd21a4f98a3ab890e9194",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613280",
+      "name": "Public package and isolated execution acceptance"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613308",
+      "name": "Build & Test (macos-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613373",
+      "name": "Build & Test (ubuntu-latest, Node 24.x)"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613428",
+      "name": "Build & Test (macos-latest, Node 24.x)"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613467",
+      "name": "Build & Test (ubuntu-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613700",
+      "name": "Build & Test (windows-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40372772007/job/121747613842",
+      "name": "Build & Test (windows-latest, Node 24.x)"
+    }
+  ],
+  "scope": "Exact recorded commit only; subsequent recovery fixes require new CI."
+}
