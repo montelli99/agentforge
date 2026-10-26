@@ -1027,3 +1027,8 @@ Exact source 91dd007 was built, packed, installed into a fresh temporary directo
 
 The clean browser journey now supplies its repository in New project, saves Docker setup, restarts the actual launcher, signs in, and proves the project baseline matches the repository HEAD with execution available and no task started. It then repeats missing-repository recovery. Evidence: evidence/p01-browser-project-worker-setup.json. The first extension checked readiness before asynchronous sign-in completed; the harness now waits for the login gate to close. Live-model drafting and execution still need to be joined into this clean-launcher journey.
 
+
+### Combined launcher model and worker setup
+
+Clean browser setup now saves encrypted model configuration and Docker selection, restarts, signs in, unlocks the model, receives one synthetic streamed chat response, validates project/worker revision agreement, then repairs missing-repository setup. Evidence: evidence/p01-launcher-model-worker-setup.json. The first provider fixture returned JSON to a streaming request and failed; corrected to SSE, the repeat passes. This is synthetic connection wiring, not live-model task execution. Hosted exact 71faec4 passed all seven jobs: evidence/ci-71faec4.json.
+
