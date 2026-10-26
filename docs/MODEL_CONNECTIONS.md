@@ -310,3 +310,26 @@ Official 0.65.0 user-setting authentication mismatch rejection and policy-engine
 tool denial have been exercised without an account. Complete live login,
 inference and full-client enforcement remain acceptance work; engine checks
 and requested flags are not an operating-system sandbox.
+
+### Experimental Claude subscription chat
+
+To select the bounded Claude chat adapter, set AGENTFORGE_CHAT_PROVIDER to
+claude-cli and AGENTFORGE_CHAT_CLAUDE_CONFIG to an absolute JSON configuration
+path. The configuration has the same executablePath, configurationDirectory
+and model fields as the planner above. Use a dedicated, explicitly selected
+official-client profile; never include credentials in this file or the repository.
+Remove AGENTFORGE_CHAT_API_KEY and AGENTFORGE_MODEL_CONNECTIONS_FILE from this
+launch configuration: ambiguous API fallback is rejected. Restart the service
+after changing host configuration.
+
+In guided subscription setup, Check Claude client account reports the selected
+profile's sign-in separately from whether Claude is configured for chat. A
+configured route is not proof of working inference. Send a short synthetic
+message to check a full response. The adapter validates the complete client
+transcript before emitting its buffered response; it does not stream tokens
+as they arrive. Tool proposals go through AgentForge's existing permissions;
+client-native tools remain disabled. Task execution still requires reviewed
+plans and the separately configured execution backend.
+
+Signed-in live acceptance and managed native-client execution remain incomplete.
+This experimental route does not change those release requirements.

@@ -66,7 +66,7 @@ export class ConversationRuntime {
   }
 
   status() {
-    return { connectionCatalog: modelConnectionCatalog, subscriptionCatalog: subscriptionConnectionCatalog, connections: this.config?.connections || [], configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null,
+    return { connectionCatalog: modelConnectionCatalog, subscriptionCatalog: subscriptionConnectionCatalog, connections: this.config?.connections || [], configured: Boolean(this.config?.models.length), provider: this.config?.provider.name || null, providerId: this.config?.provider.id || null,
       models: this.config?.models || [], activeThreads: [...this.active.keys()], supportsAttachments: true, attachmentFormats: ["text/plain", "text/markdown", "text/csv", "application/json"], execution: this.worker?.getExecutionReadiness(),
       projectMemoryEnabled: Boolean(this.config?.memoryNamespace||this.projectMemory.size),memoryProvider:this.lastMemoryProject?this.projectMemory.get(this.lastMemoryProject)?.memoryProvider.id:this.config?.memoryNamespace?(this.config.memoryProvider?.id??'agentforge_operational'):null,
       projectMemoryConnections:[...this.projectMemory].map(([projectId,source])=>({projectId,providerId:source.memoryProvider.id})) };

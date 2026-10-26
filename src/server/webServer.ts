@@ -3209,7 +3209,9 @@ export class AgentForgeWebServer {
       res.once('close', disconnect);
       try {
         const result = await check.result;
-        res.writeHead(200); res.end(JSON.stringify({configured:true,...result}));
+        const chat = this.conversations.status();
+        const chatConfigured = chat.configured && chat.providerId === 'claude-subscription-cli';
+        res.writeHead(200); res.end(JSON.stringify({configured:true,...result,chatConfigured,chatModels:chatConfigured?chat.models:[]}));
       } catch { res.writeHead(400); res.end(JSON.stringify({error:'The official Claude client could not verify account status. Check the host configuration and official client sign-in.'})); }
       finally {
         res.removeListener('close', disconnect);
