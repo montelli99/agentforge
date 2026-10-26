@@ -1149,3 +1149,7 @@ Creation/edit had the same notification-before-persist ordering. The store now o
 ### Detached memory reads
 Memory list/search results now return deep copies so callers cannot mutate durable store state through a read reference. Forty-six store, memory-adapter and import-route tests pass, including input/output ownership, failed-save rollback, restart and migration isolation. Current runtime build/hosted verification must still include these new store changes.
 
+
+### Runtime verification after memory durability fixes
+Build 9f561e7 passed rendered memory setup/import, encrypted save/disconnect/restore/forget, wrong-password refusal, explicit restore after restart, composed local recall with provenance and outage refusal, and forced-process termination recovery. Evidence: evidence/p07-durable-memory-runtime-regression.json. No live cloud or installed archive claim for this run.
+
