@@ -7,12 +7,12 @@ if(source==='recover'){
  const backend={getReadiness:()=>({ready:true,blockers:[]}),initialize:async()=>({ready:true,blockers:[]}),validateTask:async()=>{},execute:async()=>{executions++;throw Error('Unexpected replay');}};
  const worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:saved.workspaceId});
  try{
-  const result=await worker.executeTask(saved.taskId);assert.equal(result.status,'waiting_approval');assert.equal(executions,0);
+  let result;if(saved.uncertain){await assert.rejects(worker.executeTask(saved.taskId),/no replay permitted/);assert.throws(()=>worker.reconcileObservedExecution(saved.taskId),/Uncertain/);result=store.getTask(saved.taskId);assert.notEqual(result.status,'completed');}else{result=await worker.executeTask(saved.taskId);assert.equal(result.status,'waiting_approval');}assert.equal(executions,0);
   assert.equal(JSON.stringify(result.executionReceipts),saved.receipts);
   const artifact=path.join(result.worktree.worktreePath,'artifacts/report.json');const content=await fs.readFile(artifact);
   assert.equal(createHash('sha256').update(content).digest('hex'),saved.artifactSha256);
   execFileSync(process.execPath,['scripts/fixtures/useful-task/verify.mjs',artifact],{stdio:'pipe'});
-  const proof={passed:true,scope:'Fresh process after abrupt exit following observed receipt; pre-receipt interruption still pending',taskId:saved.taskId,recoveryExecutions:executions,artifactSha256:saved.artifactSha256,receiptSha256:createHash('sha256').update(saved.receipts).digest('hex')};
+  const proof={passed:true,scope:saved.uncertain?'Fresh process after effect before result receipt: replay and automatic completion refused':'Fresh process after abrupt exit following observed receipt',taskId:saved.taskId,recoveryExecutions:executions,artifactSha256:saved.artifactSha256,receiptSha256:createHash('sha256').update(saved.receipts).digest('hex')};
   await fs.writeFile(path.join(root,'process-recovery.json'),JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));
  }finally{worker.stop();}
  process.exit(0);
@@ -26,7 +26,7 @@ const task=store.createTask({title:original.title,description:original.descripti
 const contract={...original.contract,taskId:task.id,repository:{baseBranch:'main',baseSha:git(['rev-parse','HEAD'])}};store.updateTask(task.id,{contract});
 const approved={plan:{...JSON.parse(raw),taskId:task.id,source:'human_approved'},contractDigest:executionContractDigest(store.getTask(task.id)),approvedBy:'user-authorized-acceptance-operator',approvedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString()};store.updateTask(task.id,{approvedExecutionPlan:approved});
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan));assert.equal((await backend.initialize()).ready,true);
-let executions=0;const execute=backend.execute.bind(backend);backend.execute=async args=>{executions++;return execute(args);};
+let executions=0;const execute=backend.execute.bind(backend);backend.execute=async args=>{executions++;const output=await execute(args);if(process.env.AGENTFORGE_PROOF_CRASH_BEFORE_RECEIPT==='1'){const current=store.getTask(task.id);const content=await fs.readFile(path.join(current.worktree.worktreePath,'artifacts/report.json'));await fs.writeFile(path.join(root,'crash-checkpoint.json'),JSON.stringify({uncertain:true,taskId:task.id,workspaceId:workspace.id,receipts:JSON.stringify(current.executionReceipts),artifactSha256:createHash('sha256').update(content).digest('hex')}));process.exit(74);}return output;};
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
 try{
  const result=await worker.executeTask(task.id);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);

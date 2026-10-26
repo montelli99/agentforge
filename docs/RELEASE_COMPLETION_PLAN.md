@@ -526,3 +526,13 @@ attempt failed because the test backend omitted getReadiness; that harness metho
 was added and the SAME saved task recovered without re-executing the workload.
 This closes the post-observed-receipt process-exit case only. Kill during execution,
 post-effect/pre-receipt uncertainty, browser recovery and other P03 cases remain.
+
+P03 post-effect/pre-result-receipt interruption safety passed. The real Docker
+invoice execution completed, then its host process exited before returning the
+result to TaskWorkerRuntime. A fresh process preserved the started receipt and
+artifact, refused executeTask replay and refused observed-result reconciliation.
+Recovery made zero backend execution calls; independent artifact validation passed.
+Evidence: evidence/p03-invoice-uncertain-effect.json. This closes duplicate-action
+prevention for this interruption point, not user resolution of the uncertain
+outcome. A reviewed reconciliation path for incomplete receipts remains required;
+never infer complete execution from a correct artifact alone.

@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "scope": "Fresh process after effect before result receipt: replay and automatic completion refused",
+  "taskId": "AF-B64B05A8",
+  "recoveryExecutions": 0,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "receiptSha256": "745b02c8a0308b6c134412726b2753028f6083e31d0c63aeff2296b9ab4d33c9"
+}
