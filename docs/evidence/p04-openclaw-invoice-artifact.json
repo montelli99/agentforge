@@ -1,0 +1,29 @@
+{
+  "requirement": "P04",
+  "runtime": "OpenClaw 2026.10.7",
+  "baseCommit": "a6ecb29b40e5c1bef2e693814ca2c32de0b6a666",
+  "scriptSha256": "f342b15a5c7ca697c0ca400c1daad0a57c22e0f2b00264ba17a35d6b16f0f283",
+  "runId": "proof-1793002057880",
+  "model": "mimo-v2.6-flash",
+  "providerRequests": 4,
+  "status": "ok",
+  "successfulTools": [
+    "read",
+    "write",
+    "exec"
+  ],
+  "independentCheck": "PASS: independently checked invoice report",
+  "fixtureHashes": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+  },
+  "reportSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "inputAfterSha256": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+  "inputUnchanged": true,
+  "privateProfilesMounted": false,
+  "browserReviewProven": false,
+  "fullWorkflowAccepted": false,
+  "costUsd": "unknown",
+  "scope": "Real adapter dispatch and upstream read/write/exec produced independently verified synthetic artifact; not browser approval, cancellation or general competence proof"
+}
