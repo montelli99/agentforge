@@ -1,0 +1,11 @@
+{
+  "scope": "Accounting parser regression; live accounting capture not yet exercised",
+  "testsPassed": 3,
+  "coverage": [
+    "JSON reported usage",
+    "SSE cumulative usage without double-counting",
+    "Unknown missing malformed negative or fractional tokens",
+    "No invented cost"
+  ],
+  "runnerSha256": "ae023335cb37a122ec613307f8f305ebc9af5c4d6843a2185b90ef1bf9b4f52e"
+}
