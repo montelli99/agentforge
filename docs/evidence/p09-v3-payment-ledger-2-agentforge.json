@@ -1,0 +1,117 @@
+{
+  "attempt": "payment-ledger-2-agentforge",
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 5,
+    "passed": true,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 33757.996600000006,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1514,
+        "outputTokens": 152
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1100,
+          "outputTokens": 27
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1861,
+          "outputTokens": 66
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1290,
+          "outputTokens": 50
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 4,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1514,
+          "outputTokens": 152
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 656,
+      "prompt_tokens": 2181,
+      "total_tokens": 2837,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 14197.806499999999,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "evaluationCase": "payment-ledger",
+    "independentEvaluation": {
+      "passed": true,
+      "reason": "match",
+      "outputSha256": "c2dfc42575731ff8a6902e55c333aab73c35d026b1b90f227fe288cf31bdd367"
+    },
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "verifiedArtifactReadByLiveChat": true,
+    "finalChatSurvivedReloadWithoutResend": true,
+    "verifiedArtifactSha256": "c2dfc42575731ff8a6902e55c333aab73c35d026b1b90f227fe288cf31bdd367",
+    "missingRepositoryRepairedInBrowser": true,
+    "repairDidNotEnableExecution": true,
+    "savedDockerFromBrowser": true,
+    "invalidRepositoryRejected": true,
+    "pendingSelectionSurvivedReload": true,
+    "setupDidNotStartTask": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false,
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "totalElapsedMs": 63034.081099999996,
+    "providerRequests": 5,
+    "chatRequests": 4
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "870a1436162da3db9b340d7f9c0d3bc9b7015669",
+  "fixtureRepairCommit": "8ad0611",
+  "limitation": "Second planned trial, not replacement of trial 1. Trial 1 infrastructure failure remains. One complete journey does not establish general reliability."
+}

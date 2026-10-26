@@ -1,0 +1,50 @@
+{
+  "conclusion": "success",
+  "headSha": "a2b1c6d91cc60b32f8dde41961aae33f1b5d8a7a",
+  "jobs": [
+    {
+      "name": "Public package and isolated execution acceptance",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094128"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 24.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094378"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 22.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094562"
+    },
+    {
+      "name": "Build & Test (ubuntu-latest, Node 24.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094564"
+    },
+    {
+      "name": "Build & Test (ubuntu-latest, Node 22.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094595"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 24.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094601"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 22.x)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931/job/121575094873"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40323778931"
+}

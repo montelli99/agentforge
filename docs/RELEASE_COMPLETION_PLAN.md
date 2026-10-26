@@ -1200,3 +1200,17 @@ provider lifecycles, missing managed subscription execution, broader recovery,
 completed UI matrix, valid comparative evaluation, exact final CI/archive,
 publication and launch reconciliation. Keep private integrations out of all
 public artifacts. Do not mark an item complete from this reconciliation alone.
+
+### Version 3 live evaluation progress
+Payment-ledger trial 1 direct baseline and trial 2 direct baseline passed exact
+artifact scoring with unchanged inputs. AgentForge trial 1 remains a recorded
+Git line-ending infrastructure failure. After the fixture-byte repair, the
+scheduled AgentForge trial 2 passed the installed live chat-to-task journey,
+reviewed Docker execution, independent scoring, launcher restart, unchanged
+receipts, final approval and artifact-grounded chat surviving reload. Evidence:
+`evidence/p09-v3-payment-ledger-1-direct.json`,
+`evidence/p09-v3-payment-ledger-2-direct.json`, and
+`evidence/p09-v3-payment-ledger-2-agentforge.json`. Four of eighteen scheduled
+attempts are recorded; the harness change is disclosed and no superiority or
+full-release claim follows. Hosted commit a2b1c6d passed all seven jobs in
+`evidence/ci-a2b1c6d.json`; later changes still require hosted verification.
