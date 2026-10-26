@@ -17,6 +17,8 @@ function runNpm(args, cwd) {
     : "npm";
   const command = process.platform === "win32" ? process.execPath : npmCli;
   const commandArgs = process.platform === "win32" ? [npmCli, ...args] : args;
+  const started = performance.now();
+  console.log(JSON.stringify({stage: 'npm-' + args[0], state: 'started'}));
   const result = spawnSync(command, commandArgs, {
     cwd,
     encoding: "utf8",
