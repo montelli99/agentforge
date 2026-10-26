@@ -45,6 +45,14 @@ try{
  assert.equal(outputReads,1);assert.equal(submissions,0);assert.equal(store.getTask(task.id).status,'paused');
  assert.equal(await page.evaluate(()=>window.externalResultExecuted),undefined);
  await page.screenshot({path:path.join(root,'external-result.png'),fullPage:true});
+ await page.getByRole('button',{name:'Read external result',exact:true}).click();
+ await page.getByText('Saved external result — captured earlier, not locally verified:',{exact:true}).waitFor();assert.equal(outputReads,1);
+ await page.getByRole('button',{name:'Cancel task',exact:true}).click();
+ await page.getByText('Cancel this task locally? The external run will not be stopped and may continue. Stop it in its own runtime. The saved run remains available for review.',{exact:true}).waitFor();
+ const cancelledResponse=page.waitForResponse(r=>r.url().endsWith('/cancel')&&r.status()===200);
+ await page.getByRole('button',{name:'Confirm cancellation',exact:true}).click();await cancelledResponse;
+ assert.equal(store.getTask(task.id).status,'cancelled');assert.equal(stops,1);assert.equal(submissions,0);assert.equal(store.getTask(task.id).externalTurnReceipts[0].output.content,'Synthetic saved response <script>window.externalResultExecuted=true</script>');
+
 
  assert.equal(await page.getByRole('dialog',{name:'Task review',exact:true}).getByRole('button',{name:'Resume',exact:true}).count(),0);
  await page.getByRole('button',{name:'Close task',exact:true}).click();
@@ -119,6 +127,6 @@ try{
   assert.equal(await restored.getByRole('button',{name:'Resume',exact:true}).count(),0);
   assert.equal(stops,1);assert.equal(reads,1);assert.equal(submissions,2);
  }
- console.log(JSON.stringify({passed:true,runReads:reads,submissions,taskStatus:'paused',modelCalls:0}));
+ console.log(JSON.stringify({passed:true,runReads:reads,submissions,taskStatus:store.getTask(task.id).status,savedResultLabel:true,localCancelPreservesExternalReceipt:true,modelCalls:0}));
 }finally{await browser?.close();await server.stop();}
 
