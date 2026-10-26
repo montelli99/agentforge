@@ -21,8 +21,8 @@ export function comparisonProxy({token,apiKey,endpoint,model,maxRequests,maxOutp
    controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);
    res.on('close',()=>{if(!res.writableEnded)controller.abort();});
    try{
-    const pinned={...body,model,max_tokens:maxOutputTokens,thinking:{type:'disabled'}};
-    delete pinned.max_completion_tokens;delete pinned.max_output_tokens;
+    const pinned={...body,model,n:1,max_tokens:maxOutputTokens,thinking:{type:'disabled'}};
+    delete pinned.max_completion_tokens;delete pinned.max_output_tokens;delete pinned.best_of;
     const start=performance.now();
     const response=await fetchImpl(endpoint,{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify(pinned),signal:controller.signal,redirect:'error'});
     const type=response.headers.get('content-type')||'application/json';

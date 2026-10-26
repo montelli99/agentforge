@@ -17,6 +17,13 @@ test('concurrent dispatch respects budget and pins provider settings',async t=>{
 test('unauthorized and malformed calls never consume provider budget',async t=>{
  const {proxy,send,calls}=await fixture(t);assert.equal((await send({},'bad')).status,401);assert.equal((await send({})).status,400);assert.equal(calls.length,0);assert.equal(proxy.dispatched,0);
 });
+
+test('an arm cannot buy multiple candidates inside a single counted request',async t=>{
+ const {calls,send}=await fixture(t);
+ assert.equal((await send({messages:[],n:20,best_of:50,max_output_tokens:9999})).status,200);
+ const body=JSON.parse(calls[0].init.body);
+ assert.equal(body.n,1);assert.equal(body.best_of,undefined);assert.equal(body.max_output_tokens,undefined);assert.equal(body.max_tokens,100);
+});
 test('failure is recorded and consumes its reserved request',async t=>{
  const {proxy,send}=await fixture(t,{maxRequests:1,fetchImpl:async()=>{throw Error('sensitive upstream detail');}});assert.equal((await send()).status,502);assert.equal((await send()).status,429);assert.equal(proxy.audits[0].status,'failed');assert.equal(proxy.audits[0].usage,null);assert(!JSON.stringify(proxy.audits).includes('sensitive'));
 });
