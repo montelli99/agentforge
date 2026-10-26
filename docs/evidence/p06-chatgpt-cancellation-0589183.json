@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "model": "gpt-6-luna",
+  "inferenceRequests": 2,
+  "successfulResponseHeadersSeen": true,
+  "cancelledRequestRejected": true,
+  "deliveredChunks": 0,
+  "deliveredToolCalls": 0,
+  "explicitRestoreSucceeded": true,
+  "scope": "Live cancellation after response headers, no delivered model actions, no automatic inference retry; explicit saved-profile restore and a new successful request. Does not prove server-side billing cancellation or wall-clock expiry.",
+  "sourceCommit": "058918338beccc1838a20130f54d417453ed4a63",
+  "recordedAtUtc": "2026-10-26T17:52:55.6180007Z",
+  "scriptSha256": "c7539948c7e36641862179618d54cb8c50c3d485ee63accddd0fe1ab38dfeb90",
+  "limitation": "Shared preparation cancellation is covered by focused unit tests; this live check covers post-header cancellation and restoration, not cancellation during live renewal."
+}
