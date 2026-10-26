@@ -12,6 +12,7 @@ const run=(command,args,env=process.env)=>{const result=spawnSync(command,args,{
 run(process.platform==='win32'?process.execPath:'npm',[...(process.platform==='win32'?[npm]:[]),'install','--ignore-scripts','--no-audit','--no-fund','--registry=https://registry.npmjs.org',archive]);
 const env={...process.env,AGENTFORGE_PACKAGE_ROOT:path.join(root,'node_modules','agentforge'),AGENTFORGE_BROWSER_LOCAL:'0'};
 for(const name of ['memory','connection','approval','migration','external-recovery','repair'])console.log(run(process.execPath,[path.join(scripts,name+'-browser-acceptance.mjs')],name==='repair'?{...env,AGENTFORGE_REPAIR_AUTH_LOSS:'1'}:env));
+console.log(run(process.execPath,[path.join(scripts,'approval-browser-acceptance.mjs')],{...env,AGENTFORGE_BROWSER_CHAT_JOURNEY:'1'}));
 console.log(run(process.execPath,[path.join(scripts,'connection-browser-acceptance.mjs')],{...env,AGENTFORGE_BROWSER_LOCAL:'1'}));
 console.log(run(process.execPath,[path.join(scripts,'repair-browser-acceptance.mjs')],{...env,AGENTFORGE_REPAIR_AUTH_EXPIRY:'1'}));
 console.log(JSON.stringify({passed:true,installedArchive:true,archiveSha256:createHash('sha256').update(fs.readFileSync(archive)).digest('hex'),syntheticOnly:true,consumerDirectory:root}));
