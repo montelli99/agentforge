@@ -1032,3 +1032,8 @@ The clean browser journey now supplies its repository in New project, saves Dock
 
 Clean browser setup now saves encrypted model configuration and Docker selection, restarts, signs in, unlocks the model, receives one synthetic streamed chat response, validates project/worker revision agreement, then repairs missing-repository setup. Evidence: evidence/p01-launcher-model-worker-setup.json. The first provider fixture returned JSON to a streaming request and failed; corrected to SSE, the repeat passes. This is synthetic connection wiring, not live-model task execution. Hosted exact 71faec4 passed all seven jobs: evidence/ci-71faec4.json.
 
+
+### Clean launcher setup through reviewed execution
+
+The combined browser journey now creates a task, fills its repository revision, drafts through the restored synthetic model, verifies drafting has no execution effect, explicitly approves and runs the plan in Docker, and observes verified output awaiting final approval. Evidence: evidence/p01-launcher-restored-model-execution.json. The task only runs node --version; this is integration evidence, not a useful invoice artifact or live-model competence proof. Final approval/restart result reconciliation and the useful live task remain to be joined to this journey.
+
