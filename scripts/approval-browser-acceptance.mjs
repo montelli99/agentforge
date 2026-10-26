@@ -192,14 +192,16 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
+ const {readVerifiedTaskArtifact}=await builtModule('server/taskArtifactReader.js');
+ const verifiedOutput=await readVerifiedTaskArtifact(restored.getTask(taskId),artifactPath);
+ assert.equal(verifiedOutput.referenceDataOnly,true);
+ assert.ok(verifiedOutput.content.length>0);
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- const proof={passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true};
+ const proof={passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
  proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
  proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
  proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
  await writeFile(path.join(root,"browser-proof.json"),JSON.stringify(proof,null,2));
  console.log(JSON.stringify({...proof,evidenceDirectory:root}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
-
-

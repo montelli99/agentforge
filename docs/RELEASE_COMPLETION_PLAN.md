@@ -570,3 +570,16 @@ The 15 focused conversation/output tests and typechecks passed. Hosted run
 the harness incorrectly queried Git in the consumer directory. Fixed to identify
 the runner checkout separately from the installed package; run 40280825006 tests
 that correction. This is not recorded as a product execution failure or CI pass.
+
+Approval integrity regression found and repaired: adding reviewer provenance to
+an evidence pack left its old hash, so completed output failed intact-evidence
+reading. Approval now checks the original hash before consuming a pending decision
+and seals the updated evidence after recording provenance. Two targeted regressions
+cover valid completion and tampered-evidence refusal without consuming approval.
+Browser invoice approval/restart completed on b4636de, and its saved completed
+output was independently reopened and read with the hardened artifact reader.
+Evidence: evidence/p02-invoice-final-approval-integrity.json. The browser harness
+now checks this boundary on every run. Older affected records are not blindly
+re-sealed; their reconciliation remains open.
+
+Hosted run 40280825006 completed successfully: all seven jobs on exact commit 5af4d4ba7648bceae99ac5cc9e89c225ab4fbe43, including installed-package browser acceptance. Later evidence-integrity changes require their own hosted result.
