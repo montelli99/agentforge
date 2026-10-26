@@ -13,3 +13,24 @@ expect((await post({action:'disconnect',provider:'hermes'})).status).toBe(200);e
  }finally{await server.stop();upstream.closeAllConnections();await new Promise<void>(r=>upstream.close(()=>r()));}
 });
 
+
+it('does not register a connection whose upstream check finishes during shutdown',async()=>{
+ let release!:()=>void;let observed!:()=>void;
+ const requested=new Promise<void>(resolve=>{observed=resolve;});
+ const upstream=http.createServer((_req,res)=>{release=()=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({object:'list',limit:1,offset:0,has_more:false,data:[]}));};observed();});
+ upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'af-setup-shutdown-'));const store=new WorkspaceStore(path.join(dir,'workspace.json'));
+ store.createUser({username:'shutdown-owner',displayName:'Owner',role:'owner',permissions:['settings:write'],password:'synthetic test password'});
+ const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(dir,'settings.json')});
+ try{
+ await server.start();const base=server.getBaseUrl();const token=(await(await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'shutdown-owner',password:'synthetic test password'})})).json()).token;
+ const post=(body:unknown)=>fetch(base+'/api/agent-connections',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const passphrase='synthetic setup passphrase';expect((await post({action:'save',passphrase,profile:{provider:'hermes',url:'http://127.0.0.1:'+(upstream.address() as {port:number}).port,token:'synthetic-token'}})).status).toBe(200);
+ const pending=post({action:'connect',provider:'hermes',passphrase}).catch(()=>undefined);await requested;
+ const stopping=server.stop();release();await pending;await stopping;
+ for(let n=0;n<100&&(server as any).agentSetupBusy;n++)await new Promise(resolve=>setTimeout(resolve,10));
+ expect((server as any).agentSetupBusy).toBe(false);
+ expect((server as any).managedAgentConnections.size).toBe(0);
+ expect((server as any).externalRunConnections.size).toBe(0);
+ }finally{await server.stop();upstream.closeAllConnections();await new Promise<void>(resolve=>upstream.close(()=>resolve()));}
+});

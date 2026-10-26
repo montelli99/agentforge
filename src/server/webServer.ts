@@ -1525,6 +1525,7 @@ export class AgentForgeWebServer {
           try{await client.connectWhenReady(15000);}catch(error){client.stop();if(error instanceof Error&&error.message.includes('device pairing required')){res.writeHead(409);res.end(JSON.stringify({error:'OpenClaw requires device approval. Match device fingerprint '+client.getDeviceFingerprint()+' in OpenClaw, approve that device, then select Connect again.',pairingRequired:true}));return;}throw error;}
           stop=()=>client.stop();connection={id:client.getConnectionId(),displayName:'OpenClaw (experimental)',isConnected:()=>client.isConnected(),listSessions:(limit:number,offset:number)=>client.listSessions(limit,offset),inspectRun:(id:string)=>client.inspectRun(id),readRunOutput:(id:string,sessionKey?:string)=>client.readRunOutput(id,sessionKey),submitSessionTurn:(sessionKey:string,message:string,requestId:string)=>client.submitSessionTurn(sessionKey,message,requestId),requestRunStop:(sessionKey:string,id:string)=>client.requestRunStop(sessionKey,id)};
         }
+        if(this.stopping){stop();throw Error("Server is stopping");}
         const old=this.managedAgentConnections.get(profile.provider);if(old){old.stop();this.externalRunConnections.delete(old.id);}
         this.registerExternalRunConnection(connection);this.managedAgentConnections.set(profile.provider,{id:connection.id,stop});res.writeHead(200);res.end(JSON.stringify({connected:true,provider:profile.provider,id:connection.id,workSubmitted:false}));
       }catch{res.writeHead(400);res.end(JSON.stringify({error:'Agent setup could not be completed. Check the endpoint, credential, unlock passphrase and running agent. No task was sent.'}));}
@@ -5100,7 +5101,7 @@ export class AgentForgeWebServer {
 
   async stop(): Promise<void> {
     this.stopping = true;
-    for(const connection of this.managedAgentConnections.values())connection.stop();
+    for(const connection of this.managedAgentConnections.values()){connection.stop();this.externalRunConnections.delete(connection.id);}
     this.managedAgentConnections.clear();
     this.conversations.shutdown();
     const geminiCheck = this.geminiClientCheck;
