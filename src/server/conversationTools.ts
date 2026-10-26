@@ -67,7 +67,7 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
   if (name !== "inspect_task" && name !== "execute_task" && name !== 'read_task_artifact') throw new Error("Unknown conversation tool.");
   const task = typeof args.taskId === "string" ? store.getTask(args.taskId) : undefined;
   if (!task || task.originThreadId !== threadId || task.projectId !== project.id) throw new Error("Task is not in this conversation.");
-  if(name==='read_task_artifact')return readVerifiedTaskArtifact(task,args.path);
+  if(name==='read_task_artifact')return readVerifiedTaskArtifact(store.recoverCompletedApprovalEvidence(task.id),args.path);
   if (name === "inspect_task") return { task: worker?.presentTask(task) ?? task, readiness: worker?.getExecutionReadiness() };
   if (!worker || !worker.canExecuteTasks()) throw new Error(worker?.getExecutionBlockReason() || "Execution is not configured.");
   if (!task.approvedExecutionPlan || !["ready", "approved"].includes(task.status)) throw new Error("An approved execution plan and ready task are required. Review this task before execution.");
@@ -79,3 +79,4 @@ export async function invokeConversationTool(store: WorkspaceStore, worker: Task
   try { return await worker.executeTask(task.id); }
   finally { signal.removeEventListener("abort", stop); if (stopping) await stopping; }
 }
+

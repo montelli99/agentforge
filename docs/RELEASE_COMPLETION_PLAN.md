@@ -593,3 +593,15 @@ The first harness attempt used the wrong navigation label (Conversations rather
 than Messages) and timed out before inspecting chat; corrected selector passed.
 This closes the saved-answer presentation case, not a single uninterrupted live
 first-user journey. Full local suite at b4636de: 141 files, 828 passed, 2 skipped.
+
+Historical approval recovery is implemented as a narrow store operation used by
+same-conversation artifact reading. It accepts only completed tasks whose approved
+reviewer/source match the saved decision and whose evidence hash validates after
+removing exactly the two historically appended approval fields. It does not repair
+changed outputs, unrelated metadata, mismatched reviewers or unapproved tasks.
+On a copy of the actual older invoice browser state, the original integrity failure
+was confirmed, repair persisted, the reopened output passed its hash check, and
+execution receipts remained byte-identical. No execution or original-record edit.
+Evidence: evidence/p03-historical-approval-recovery.json. Twenty focused tests,
+full typechecks and build passed. This repairs this known record defect only;
+started receipts with an unknown outcome still require separate reconciliation.

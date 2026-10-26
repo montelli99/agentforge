@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "originalRecordPreserved": true,
+  "copiedHistoricalRecord": true,
+  "originalMismatchConfirmed": true,
+  "verifiedOriginalEvidenceBeforeRepair": true,
+  "reopenedOutputReadable": true,
+  "receiptsUnchanged": true,
+  "noExecution": true,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e"
+}

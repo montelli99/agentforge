@@ -1,3 +1,4 @@
+import {recoverApprovalEvidence} from '../evidence/recoverApprovalEvidence.js';
 import {sealEvidencePack,verifyEvidencePackIntegrity} from '../evidence/evidencePackIntegrity.js';
 /**
  * Canonical Workspace State Engine & In-Memory / File Store
@@ -725,6 +726,13 @@ export class WorkspaceStore {
     this.tasks.set(id, updated);
     this.emit("task_updated", "task", updated);
     return updated;
+  }
+
+  recoverCompletedApprovalEvidence(taskId:string):Task {
+    const task=this.getTask(taskId);if(!task)throw Error('Task unavailable');
+    const repaired=recoverApprovalEvidence(task,task.evidencePack?.approvalId?this.getApproval(task.evidencePack.approvalId):undefined);
+    if(!repaired)return task;
+    return this.updateTask(taskId,{evidencePack:repaired});
   }
 
   listTasks(status?: TaskStatus): Task[] {
@@ -1986,4 +1994,5 @@ export function getDefaultWorkspaceFilePath(): string {
 
 // Test and embedded callers get an isolated in-memory store unless they opt into persistence.
 export const globalStore = new WorkspaceStore();
+
 
