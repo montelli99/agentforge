@@ -60,6 +60,11 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   Also expire authentication and introduce conflicting memory. Reopen, recover
   context, reconcile effects, and count executions to prove no duplicates.
   Save before/after journals and independently counted outputs for every case.
+  A fresh-process built-in-memory recovery followed by a live ChatGPT decision
+  now passes (`evidence/p03-live-recovered-memory-conflict.json`): both conflicting
+  facts and record citations are returned with `needs_clarification`, no selected
+  value, and no unrelated-project fact. This is one structured planning decision,
+  not an executed task or a browser conflict-resolution journey.
   Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Additional evidence: `evidence/p03-invoice-uncertain-effect.json` records refusal to replay after an effect without a receipt; `evidence/p03-timed-session-expiry.json` records real local owner-session expiry and recovered approval. Next: complete provider-token expiry and the remaining effect-reconciliation/conflicting-memory matrix; local session expiry does not prove provider renewal.
 - [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
   session, review/send one useful task, observe and verify its returned artifact,
