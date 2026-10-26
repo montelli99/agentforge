@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "clientVersion": "2.1.310",
+  "exitCode": 0,
+  "requests": 2,
+  "tools": [
+    "mcp__agentforge-broker__execute_reviewed",
+    "mcp__agentforge-broker__read_result",
+    "mcp__agentforge-broker__request_review"
+  ],
+  "command": "node --import tsx scripts/claude-native-tool-surface.ts <pinned-official-executable>",
+  "priorAttempt": {
+    "passed": false,
+    "failure": "Acceptance broker did not handle GET before JSON parsing; harness repaired to return 405 for non-POST"
+  },
+  "scope": "Installed CLI tool advertisement against local synthetic API; no subscription, tool effects or OS isolation proof"
+}
