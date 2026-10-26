@@ -1047,3 +1047,8 @@ Clean browser onboarding now continues through restored model drafting, reviewed
 
 The live invoice extension reached planning but MiMo renamed required unit_tests to node_version. Existing exact-check validation rejected the draft; no execution was approved. Evidence: evidence/p01-live-launcher-invalid-plan.json records one request and 3589 tokens. The harness initially reported zero paid requests because counting occurred after execution; counting now occurs before dispatch, with returned usage retained. No success claimed. Review/independent invoice validation remain required on the next valid plan.
 
+
+### Required check templates and second live failure
+
+Planner requests now include requiredCheckEntries in output schema, preserving exact owner names and commands. Thirteen planner tests and build passed. The next live response retained unit_tests but omitted checkName on its work command, correctly rejected by schema validation. Evidence: evidence/p01-live-launcher-missing-command-name.json, one request, 3898 tokens. No execution or success claimed; reliable structured plan generation remains open.
+

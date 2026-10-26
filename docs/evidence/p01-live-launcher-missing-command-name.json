@@ -1,0 +1,19 @@
+{
+  "passed": false,
+  "paidRequests": 1,
+  "model": "mimo-v2.6-flash",
+  "usage": {
+    "completion_tokens": 1036,
+    "prompt_tokens": 2862,
+    "total_tokens": 3898,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "failure": "Work command omitted checkName; schema validation rejected plan",
+  "responseSha256": "b9ef5ddca7329ed0cc4291d2d15fd80205b191c191132cc2d09f3e247833408a",
+  "scope": "Live planner; exact required entries added; no commands approved"
+}
