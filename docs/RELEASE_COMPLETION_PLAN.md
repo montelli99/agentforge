@@ -679,3 +679,9 @@ browser acceptance of the output action remain open; fixture tests do not close 
 ### P05 live runtime result — 2026-10-26
 
 The pinned Hermes runtime completed a live MiMo calculation and returned the expected 1250. Evidence: vidence/p05-hermes-live-runtime.json (SHA-256: 4baf42f49b3d7b34640f63ba511ff6418e7382ef6440590cd0a6142fce146d75). The prior authentication failure is retained in the attempt record. This closes the direct live-runtime probe only: the registered AgentForge connector workflow, selected-session continuity, credential-change refusal, reconnect and cancellation remain required. The acceptance runner now rejects non-completion and an incorrect total instead of exiting successfully on a failed run. Hosted CI run 40283094567 passed for 2567554ba7ea136eebe934eba8a97439b685048f; it does not cover these subsequent changes.
+
+### P05 restart failure — 2026-10-26
+
+The real saved Hermes run returned HTTP 404 after restarting its disposable container through the registered AgentForge connector. Evidence: evidence/p05-hermes-connector-reconnect.json. No task submission was made by the reconnect probe. The first diagnostic attempt discarded the response detail; the second preserved the 404. The image creates an anonymous /opt/data volume, so the harness now distinguishes that from prohibited host bind mounts. This failure remains open: investigate upstream run persistence and preserve AgentForge receipts without replaying the task. Runtime logs also show a blocked execute_code attempt during the earlier calculation; the final numeric answer is not proof of successful tool execution.
+
+The transport now bounds response bytes before JSON parsing and refuses partial/interrupted completion output. Thirteen connector tests and the production build passed locally. These changes are not yet exact-package acceptance.

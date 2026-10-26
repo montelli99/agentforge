@@ -27,7 +27,22 @@ export class HermesRunTransport {
     catch{throw Error('Hermes request interrupted; do not automatically retry a submission');}
     if(!response.ok)throw Error('Hermes request rejected ('+response.status+'); inspect the saved operation before retrying');
     let result:unknown;
-    try {result=await response.json();} catch {throw Error('Invalid Hermes response; operation outcome may be uncertain');}
+    try {
+      // Bound the wire response before parsing, including chunked responses and
+      // metadata that is discarded by the public adapter methods.
+      const limit=1024*1024;
+      const declared=response.headers.get('content-length');
+      if(declared!==null&&Number(declared)>limit){await response.body?.cancel();throw Error('oversized');}
+      if(!response.body)throw Error('empty');
+      const reader=response.body.getReader();
+      const chunks:Uint8Array[]=[];let size=0;
+      try{
+        for(;;){const {done,value}=await reader.read();if(done)break;
+          size+=value.byteLength;if(size>limit){await reader.cancel();throw Error('oversized');}chunks.push(value);
+        }
+      }finally{reader.releaseLock();}
+      result=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,size)));
+    } catch {throw Error('Invalid Hermes response; operation outcome may be uncertain');}
     if(!result||typeof result!=='object'||Array.isArray(result))throw Error('Invalid Hermes response');
     return result as Record<string,unknown>;
   }
@@ -76,7 +91,7 @@ export class HermesRunTransport {
   }
   async readRunOutput(runId:string):Promise<{runId:string;content:string}>{
     const result=await this.request('/v1/runs/'+this.identifier(runId));
-    if(result.run_id!==runId||result.status!=='completed'||typeof result.output!=='string'||Buffer.byteLength(result.output,'utf8')>60000)throw Error('Completed Hermes text output unavailable or exceeds 60 KB');
+    if(result.run_id!==runId||result.status!=='completed'||result.partial===true||result.interrupted===true||result.completed===false||typeof result.output!=='string'||Buffer.byteLength(result.output,'utf8')>60000)throw Error('Completed Hermes text output unavailable or exceeds 60 KB');
     return {runId,content:result.output};
   }
   async requestRunStop(_sessionKey:string,runId:string):Promise<{acknowledged:boolean}>{

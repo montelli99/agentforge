@@ -109,3 +109,18 @@ it('reads only bounded completed output for the exact saved run',async()=>{
  expect(fetcher.mock.calls.every(call=>call[1].method==='GET')).toBe(true);
  vi.unstubAllGlobals();
 });
+
+it('rejects partial completion and oversized chunked metadata without retrying',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ try{
+  for(const flags of [{partial:true},{interrupted:true},{completed:false}]){
+   fetcher.mockResolvedValueOnce(Response.json({run_id:'saved',status:'completed',output:'1250',...flags}));
+   await expect(client().readRunOutput('saved')).rejects.toThrow('unavailable');
+  }
+  let cancelled=false;
+  const stream=new ReadableStream<Uint8Array>({pull(controller){controller.enqueue(new Uint8Array(262144));},cancel(){cancelled=true;}});
+  fetcher.mockResolvedValueOnce(new Response(stream));
+  await expect(client().inspectRun('saved')).rejects.toThrow('Invalid Hermes response');
+  expect(cancelled).toBe(true);expect(fetcher).toHaveBeenCalledTimes(4);
+ }finally{vi.unstubAllGlobals();}
+});
