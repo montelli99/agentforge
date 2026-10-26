@@ -1,0 +1,23 @@
+{
+  "requirement": "P05",
+  "runId": "run_541c7f2062214fc7ace09429cafd835b",
+  "status": "completed",
+  "output": "1250\n\nCalculation: 1200 − 250 = 950, then 950 + 300 = 1250.",
+  "checks": {
+    "containerRestart": true,
+    "registeredConnectorOutput": true,
+    "newConnectorSameOutput": true,
+    "apiSessionListed": true,
+    "rotatedCredentialChangesBinding": true,
+    "serverRejectsWrongCredential": true,
+    "originalCredentialStillReadsSameOutput": true
+  },
+  "submissionCalls": 0,
+  "limits": [
+    "No governed AgentForge approval or cancellation is exercised.",
+    "Binding change is not proof of server-side credential rotation or receipt refusal."
+  ],
+  "recordedAt": "2026-10-26T12:32:55.612Z",
+  "installedPackage": true,
+  "archiveSha256": "2930f9339719c1153c47f3fc58bb26fcd7078ca3e7a8d2dced4e256e13b61437"
+}
