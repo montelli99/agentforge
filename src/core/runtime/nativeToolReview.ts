@@ -10,7 +10,7 @@ function reviewDescription(request:NativeToolRequest){
 export function prepareNativeToolReview(store:WorkspaceStore,request:NativeToolRequest){
  const description=reviewDescription(request);
  if(!store.getTask(request.taskId))throw Error('Native tool task does not exist');
- const existing=store.listApprovals().find(item=>item.taskId===request.taskId&&item.description===description&&item.status==='pending'&&Date.parse(item.expiresAt??'')>Date.now());
+ const existing=store.listApprovals().find(item=>item.taskId===request.taskId&&item.description===description&&(item.status==='pending'||item.status==='approved')&&Date.parse(item.expiresAt??'')>Date.now());
  if(existing)return existing;
  return store.createApproval({taskId:request.taskId,requesterAgentId:'native-client',action:`Review native tool: ${request.tool}`,description,risk:'high',expiresAt:new Date(Date.now()+10*60*1000).toISOString()});
 }

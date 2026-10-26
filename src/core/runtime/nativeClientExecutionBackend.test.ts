@@ -12,8 +12,31 @@ it('requires an operation receipt and rejects client completion without verified
  const backend=new NativeClientExecutionBackend(docker,{getReadiness:()=>({ready:true}),run:async input=>{launches++;endpoint=input.connection.endpoint;}},store,path.join(root,'host'));
  const input={task,worktreePath:work,signal:new AbortController().signal};
  await expect(backend.execute(input)).rejects.toThrow('operation receipt');expect(launches).toBe(0);
- await expect(backend.execute({...input,operationId:'operation'})).rejects.toThrow('No verified execution result');
+ const pending=backend.execute({...input,operationId:'operation'});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ expect(launches).toBe(0);expect(store.getTask(task.id)?.status).toBe('waiting_approval');
+ const review=store.listApprovals()[0]!;
+ store.resolveApproval({approvalId:review.id,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});
+ await expect(pending).rejects.toThrow('No verified execution result');
  expect(launches).toBe(1);expect(recoveries).toBe(1);
  await expect(fetch(endpoint,{signal:AbortSignal.timeout(1000)})).rejects.toThrow();
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
+
+it('cancels a pending owner review without launching the client',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-native-cancel-'));try{
+ const work=path.join(root,'work');await fs.mkdir(work);
+ const store=new WorkspaceStore(path.join(root,'store.json'));
+ const task=store.createTask({title:'Synthetic cancellation',status:'ready',priority:'medium'});
+ task.contract.workspace.requireIsolatedWorktree=true;
+ let launches=0;
+ const docker={getReadiness:()=>({ready:true,blockers:[]})} as unknown as ContractedDockerExecutionBackend;
+ const backend=new NativeClientExecutionBackend(docker,{getReadiness:()=>({ready:true}),run:async()=>{launches++;}},store,path.join(root,'host'));
+ const controller=new AbortController();
+ const pending=backend.execute({task,worktreePath:work,operationId:'cancel-operation',signal:controller.signal});
+ const rejected=expect(pending).rejects.toThrow();
+ await new Promise(resolve=>setTimeout(resolve,20));
+ controller.abort();await rejected;
+ expect(launches).toBe(0);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
