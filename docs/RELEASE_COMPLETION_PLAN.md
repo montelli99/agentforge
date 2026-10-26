@@ -558,3 +558,15 @@ evidence/p02-p03-invoice-browser.json with source revision and runner hash. Host
 CI now includes this case; its next run must pass before claiming hosted acceptance.
 
 Historical eight-hour service soak completed: 97 samples, zero failed probes, elapsed 28,800,350.8709 ms. Tested archive SHA-256 was 059a26c5b318251f545bb5dd16918db839030317d60f4caec8d1bccd3d6eb43f, NOT the current candidate. Full journal: evidence/historical-eight-hour-soak.jsonl (SHA-256 f756603db178002dc9d04ef74dab5a9e64905dc36fa63aa711c79af78fa949c9). P10 current-build soak remains open; do not transfer this result to subsequent code.
+
+P02 live chat output retrieval passed on build 5af4d4b. MiMo v2.6-flash made two
+provider requests, called read_task_artifact, and returned all five invoice groups
+and all three summary counts correctly against the frozen independent oracle.
+The task was not re-executed. Evidence: evidence/p02-live-invoice-chat.json.
+This proves real-model result retrieval through ConversationRuntime and persisted
+chat, not browser rendering of this answer or a fully live first-user journey.
+The 15 focused conversation/output tests and typechecks passed. Hosted run
+40279938374 failed at proof provenance collection in the installed-package test:
+the harness incorrectly queried Git in the consumer directory. Fixed to identify
+the runner checkout separately from the installed package; run 40280825006 tests
+that correction. This is not recorded as a product execution failure or CI pass.

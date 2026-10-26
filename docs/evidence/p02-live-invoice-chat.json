@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "liveModel": "mimo-v2.6-flash",
+  "requests": 2,
+  "tools": [
+    "read_task_artifact",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "answer": "Verified report from task AF-90D55DE5 (sha256 0a95c013…84f58e), read via `read_task_artifact`:\n\n**Per customer/currency (netCents, count)**\n\n| Customer | Currency | Net (cents) | Invoices |\n|---|---|---|---|\n| Acme | EUR | 500 | 1 |\n| Acme | USD | 950 | 2 |\n| Beta | EUR | -75 | 1 |\n| Beta | USD | 300 | 1 |\n| Gamma | USD | 0 | 1 |\n\n**Totals**\n\n- Included invoices: 6\n- Void invoices: 1\n- Superseded rows: 2\n\nNote: Beta/EUR is negative (-75 cents) and Gamma/USD nets to 0 — flagging in case those are unexpected. This is reference data from the artifact only; nothing was executed.",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerSha256": "23aa55352c5ecd6d827aad772d61db1f9861a166ed21967bf88db06eb6ed7472",
+  "scope": "Real model reads existing verified invoice output through conversation runtime; answer accuracy requires independent review",
+  "answerReview": "Compared with frozen independent invoice oracle: all five rows, amounts, row counts and included/void/superseded counts match.",
+  "sourceCommit": "5af4d4ba7648bceae99ac5cc9e89c225ab4fbe43"
+}
