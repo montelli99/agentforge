@@ -708,3 +708,8 @@ Read-only inspection of the disposable Hermes session database confirms the sele
 ### P05 useful invoice artifact — 2026-10-26
 
 Hermes generated the invoice report through its real model and tools. The host independently copied the actual file and passed the frozen invoice checker; a separate copy/hash check confirmed unchanged input. Evidence: evidence/p05-hermes-invoice-artifact.json (SHA-256 903c3fdf0cc6ca51e67123854ba500bb8790b2ef3ffca15184fc809e8c4098fb). First failed attempt retained in p05-hermes-invoice-attempt1.json. Corrected paths use the existing permitted /opt/data directory and eight turns, without weakening runtime controls. This direct runtime case does not close the unified browser workflow or tool-effect cancellation.
+
+
+### Hosted archive checkpoint — 2026-10-26
+
+All seven jobs passed for 9b4538e in run 40284746678. Downloaded CI archive hash independently matched 686294ae27e39aa2f3b89238f6aa33d751510173266d09ca307b4979a778c448. Evidence: evidence/hosted-ci-9b4538e.json. Current local public privacy tests passed 27/27 and the archive boundary inspected 464 files without private signatures. Later proof records require the next hosted build; this checkpoint does not close the release backlog.
