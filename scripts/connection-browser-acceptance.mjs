@@ -50,8 +50,9 @@ try{
  await page.getByLabel('Model name',{exact:true}).fill('synthetic-model');
  if(!local)await page.getByLabel('Dedicated API key',{exact:true}).fill(key);
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
- await page.getByRole('button',{name:'Save and connect',exact:true}).click();
+ await page.getByLabel('Private connection-store passphrase',{exact:true}).focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Save and connect');await page.keyboard.press('Enter');
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Save and connect');
  if(!local)assert.equal(await page.getByLabel('Dedicated API key',{exact:true}).inputValue(),'');
  assert.equal(await page.getByLabel('Private connection-store passphrase',{exact:true}).inputValue(),'');
  const vault=fs.readFileSync(path.join(root,'connections.encrypted.json'),'utf8');
@@ -67,8 +68,9 @@ try{
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
   const before=await page.request.get(oldUrl+'/api/chat/status');assert.equal((await before.json()).configured,false);
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
- await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
+ await page.getByRole('button',{name:'Unlock saved connections',exact:true}).focus();await page.keyboard.press('Enter');
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Unlock saved connections');
  const after=await page.request.get(oldUrl+'/api/chat/status');const status=await after.json();assert.equal(status.configured,true);assert.ok(status.models.includes(route+'::synthetic-model'));
  const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage}}));assert.ok(!storage.includes(key)&&!storage.includes(passphrase));
  assert.equal(requests,0);
