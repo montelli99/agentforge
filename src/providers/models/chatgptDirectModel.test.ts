@@ -107,3 +107,16 @@ describe('offline ChatGPT direct planning seam', () => {
     await expect(stalled.generate(options)).rejects.toThrow('deadline'); expect(signal?.aborted).toBe(true);
   });
 });
+
+it('uses completed items when terminal output omits their repeated content',async()=>{
+ const final=terminal();const item={...final.response.output[0],id:'synthetic-item',status:'completed'};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item},{...final,response:{...final.response,output:[]}}]);
+ expect((await f.provider.generate(options)).content).toBe('{}');
+});
+it('rejects mismatched completed-item text and missing item indexes',async()=>{
+ for(const [index,text] of [[0,'changed'],[1,'{}']] as const){
+ const final=terminal();const item={id:'synthetic-item',type:'message',content:[{type:'output_text',text}]};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:index,item},{...final,response:{...final.response,output:[]}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow();
+ }
+});
