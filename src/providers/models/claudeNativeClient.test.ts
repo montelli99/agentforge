@@ -34,7 +34,7 @@ it('refuses a replaced executable before invoking authentication or launching wo
   mocks.auth.mockReset().mockResolvedValue({connectionKind:'subscription'});mocks.capabilities.mockReset().mockResolvedValue({version:'2.1.310',controlsAvailable:true});mocks.run.mockReset();
   const client=new ClaudeNativeClient({executablePath,configurationDirectory:root,model:'claude-synthetic'});await client.initialize();
   await fs.writeFile(executablePath,'replacement synthetic client');
-  await expect(client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token:'c'.repeat(64)},request:{callId:'call',tool:'tool',input:{}},signal:new AbortController().signal})).rejects.toThrow('Native executable changed');
+  await expect(client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token:'c'.repeat(64)},request:{callId:'call',tool:'tool',input:{contractDigest:'d'.repeat(64)}},signal:new AbortController().signal})).rejects.toThrow('Native executable changed');
   expect(mocks.auth).toHaveBeenCalledTimes(1);expect(mocks.capabilities).toHaveBeenCalledTimes(1);expect(mocks.run).not.toHaveBeenCalled();expect(client.getReadiness().ready).toBe(false);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
