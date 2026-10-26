@@ -61,6 +61,8 @@ describe.skipIf(process.platform!=='win32')('protected session renewal',()=>{
     const reopened=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));
     expect(await reopened.read(original.clientId,original.subject)).toEqual(result);
     await renewDirectSession(reopened,original.clientId,original.subject,{refresh,verifier});expect(refresh).toHaveBeenCalledTimes(1);
+    await renewDirectSession(reopened,original.clientId,original.subject,{refresh,verifier,force:true});expect(refresh).toHaveBeenCalledTimes(2);
+
   }),30000);
   it('keeps uncertain renewal durable across reopen and refuses replay',async()=>temporary(async directory=>{
     const store=new DirectTokenStore(new WindowsDirectCredentialBackend(directory));const original=credentials();await store.replace(original);

@@ -127,10 +127,10 @@ export async function createRefreshIdentityVerifier(factory:VerifierFactory,prev
 /** Complete protected renewal path; activation must withdraw its old grant
  * before calling and publish the returned credentials only after this resolves. */
 export async function renewStoredChatGPTSession(store:DirectTokenStore,clientId:string,subject:string,
-  verifierDirectory:string,signal?:AbortSignal,request:Request=fetch):Promise<DirectCredentials>{
+  verifierDirectory:string,signal?:AbortSignal,request:Request=fetch,force=false):Promise<DirectCredentials>{
   const factory=await loadVerifiedSignInRuntime(verifierDirectory);
   return renewDirectSession(store,clientId,subject,{
-    signal,
+    signal,force,
     refresh:(client,token,abort)=>createIsolatedRefreshTransport(abort,request).refresh(client,token),
     verifier:(previous,abort)=>createRefreshIdentityVerifier(factory,previous,abort,request),
   });
