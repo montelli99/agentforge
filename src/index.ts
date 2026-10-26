@@ -73,3 +73,8 @@ export * from "./providers/memory/memoryConnections.js";
 export { AgentForgeWebServer } from "./server/webServer.js";
 // Experimental transport only; importing does not connect or submit work.
 export { HermesRunTransport } from "./providers/channels/hermesRunTransport.js";
+// Experimental native worker boundary; these exports do not enable client execution.
+export {NativeToolAuthorization} from './core/runtime/nativeToolAuthorization.js';
+export {NativeToolBroker} from './core/runtime/nativeToolBroker.js';
+export {NativeBrokerSession} from './core/runtime/nativeBrokerSession.js';
+export {startNativeBrokerEndpoint} from './providers/mcp/nativeBrokerEndpoint.js';
