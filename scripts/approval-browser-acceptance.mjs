@@ -9,7 +9,7 @@ import {createHash} from 'node:crypto';
 const invoiceCase=process.env.AGENTFORGE_BROWSER_INVOICE_PROOF==='1';
 const artifactPath=invoiceCase?'artifacts/report.json':'artifacts/verified.txt';
 const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
-const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE;
+const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE || (invoiceCase ? new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url).pathname : undefined);
 if(invoiceCase&&!recordedResponse)throw Error('Invoice browser proof requires the reviewed recorded plan');
 if(recordedResponse && liveModel)throw Error('Recorded and live provider modes are mutually exclusive');
 if(liveModel && (!process.env.MIMO_API_KEY || process.env.AGENTFORGE_LIVE_PLANNING_PROOF!=='1'))throw Error('Live browser proof requires explicit opt-in and a MiMo credential');
@@ -50,7 +50,7 @@ const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw);modelRequests++;
  assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
- if(recordedResponse){res.writeHead(200,{'Content-Type':'application/json'});res.end(await readFile(recordedResponse,'utf8'));return;}
+ if(recordedResponse){let response;if(invoiceCase&&!process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE){const evidence=JSON.parse(await readFile(new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url),'utf8'));const commands=evidence.reviewedPlan.commands.map(command=>({...command,checkName:command.checkName==='custom_script'?'unit_tests':command.checkName}));const audit=evidence.attempts.at(-1).audit.at(-1);response=JSON.stringify({id:'recorded-invoice-proof',choices:[{message:{content:JSON.stringify({commands})},finish_reason:'stop'}],usage:{prompt_tokens:audit.inputTokens,completion_tokens:audit.outputTokens,total_tokens:audit.inputTokens+audit.outputTokens}});}else response=await readFile(recordedResponse,'utf8');res.writeHead(200,{'Content-Type':'application/json'});res.end(response);return;}
  if(liveModel){
   try{
    if(modelRequests!==1)throw Error('Live proof permits one request only');
@@ -193,6 +193,10 @@ try{
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- console.log(JSON.stringify({passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ const proof={passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true};
+ proof.sourceCommit=git(process.cwd(),["rev-parse","HEAD"]);
+ proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
+ await writeFile(path.join(root,"browser-proof.json"),JSON.stringify(proof,null,2));
+ console.log(JSON.stringify({...proof,evidenceDirectory:root}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
 

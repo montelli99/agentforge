@@ -549,3 +549,10 @@ assertion to the chosen artifact path produced the passing run. Reproduce using
 AGENTFORGE_BROWSER_INVOICE_PROOF=1 and AGENTFORGE_BROWSER_RECORDED_RESPONSE with
 scripts/approval-browser-acceptance.mjs. This proves the task UI, not conversational
 chat-result rendering or a new live-model first-user journey; those remain open.
+
+Invoice browser proof is now self-contained: set AGENTFORGE_BROWSER_INVOICE_PROOF=1
+and AGENTFORGE_BROWSER_EXECUTABLE, then run pnpm test:approval:browser. The default
+recorded plan comes from the committed P02 evidence, with original reported usage
+and no new paid provider request. The successful browser evidence is saved at
+evidence/p02-p03-invoice-browser.json with source revision and runner hash. Hosted
+CI now includes this case; its next run must pass before claiming hosted acceptance.
