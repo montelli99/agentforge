@@ -1,0 +1,22 @@
+{
+  "requirement": "P06",
+  "observedUtc": "2026-10-26T07:49:07.8717890Z",
+  "baseCommit": "9259e8469e4dcf5abac7ff2259d022e6a82c8a53",
+  "officialClientVersion": "0.65.0",
+  "officialModuleSha256": "4d9cf6435503e5280ecb0f55078793531c8041fe435f60fa8dfce92317c8a28e",
+  "plannerSourceSha256": "f2095ed9d07ed7203fa446bb3ceeb4b73e22141f4ed084d851b7db1a3de69902",
+  "initialAttempt": "Failed: missing toolName in MCP rule invalidated file; read_file allowed by default policy",
+  "correction": "Added required toolName to MCP deny rule",
+  "correctedAttempt": "All five synthetic tool requests denied by official PolicyEngine",
+  "tools": [
+    "run_shell_command",
+    "read_file",
+    "write_file",
+    "web_fetch",
+    "mcp__synthetic__read"
+  ],
+  "reproduction": "node scripts/gemini-policy-engine-acceptance.mjs ABSOLUTE_OFFICIAL_POLICY_MODULE",
+  "toolsExecuted": 0,
+  "inferencePerformed": false,
+  "fullCliEnforcementVerified": false
+}

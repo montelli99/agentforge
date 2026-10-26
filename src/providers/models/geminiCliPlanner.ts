@@ -59,7 +59,7 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
   let usage;
   try{
    const policy=path.join(directory,'deny-tools.toml');
-   await fs.writeFile(policy,'[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n\n[[rule]]\nmcpName = "*"\ndecision = "deny"\npriority = 999\n');
+   await fs.writeFile(policy,'[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n\n[[rule]]\ntoolName = "*"\nmcpName = "*"\ndecision = "deny"\npriority = 999\n');
    const env:NodeJS.ProcessEnv={HOME:directory,USERPROFILE:directory,TEMP:directory,TMP:directory,GEMINI_CLI_HOME:this.config.homeDirectory,GEMINI_CLI_SYSTEM_SETTINGS_PATH:path.join(directory,'absent-system.json'),GEMINI_CLI_SYSTEM_DEFAULTS_PATH:path.join(directory,'absent-defaults.json'),GEMINI_CLI_SURFACE:'agentforge-planner',NO_BROWSER:'true'};
    for(const key of ['SystemRoot','WINDIR','PATH','Path'])if(process.env[key])env[key]=process.env[key];
    const result=await runBoundedChild(process.execPath,[this.config.bundlePath,'--model',this.config.model,'--prompt',prompt,'--approval-mode','default','--admin-policy',policy,'--policy',policy,'--extensions','none','--allowed-mcp-server-names','agentforge-no-mcp','--output-format','stream-json'],{cwd:directory,env,signal:options.signal,timeoutMs:120000,maxOutputBytes:2097152});
