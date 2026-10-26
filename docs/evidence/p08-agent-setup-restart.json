@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "scope": "Browser setup with synthetic Hermes endpoint; encrypted save, read-only connect, server restart locked, wrong passphrase refusal, explicit reconnect with unchanged identity, disconnect and forget. Real agent pairing remains open.",
+  "readOnlyRequests": 2,
+  "modelCalls": 0,
+  "secretFieldsCleared": true,
+  "runnerSha256": "e13604fa914948fede39cb7c9c4f85d49066ae7cbda4b09e96f28e97a15ae9bf",
+  "screenshotSha256": "af3d8c0082d76dbe28e6a9abba8eab9047ca2fb4aaca0b617c74e731c3dfaddc",
+  "visualReview": "Fields now separated in responsive columns, labeled above styled inputs; actions spaced and status readable."
+}
