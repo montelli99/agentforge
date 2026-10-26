@@ -1,0 +1,20 @@
+{
+  "requirement": "P04",
+  "runtime": "OpenClaw 2026.10.7",
+  "runId": "proof-1793002247952",
+  "providerRequests": 1,
+  "activeBefore": true,
+  "providerRequestObserved": true,
+  "stopAcknowledged": true,
+  "remoteStatus": "error",
+  "stopReason": "rpc",
+  "hasActiveRun": false,
+  "abortedLastRun": true,
+  "recordedMessages": 1,
+  "scope": "Text-only active-run cancellation after provider request began. No tool activity requested; does not prove cancellation of external side effects or provider billing.",
+  "earlierAttempts": [
+    "Generated probe syntax error corrected before request",
+    "Before-inference Stop produced rpc/error/providerStarted=false; initial assertion incorrectly required abortedLastRun"
+  ],
+  "rawSha256": "28ae6356681f5b09f392b18a8de90c08011ac7a8c09f83fc1be41f5429f44128"
+}
