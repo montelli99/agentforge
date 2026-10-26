@@ -1,0 +1,28 @@
+{
+  "recordedAtUtc": "2026-10-26T18:04:50.4929331Z",
+  "packageSourceCommit": "0625af825fc4f1e4b0cbe08aae2bc9ad0855815d",
+  "runnerSourceCommit": "73cae9f4dfebf062e3b3c967c596d83274834c6d",
+  "archiveSha256": "e19f06845ebdc2ed5e3591746c2b7ce9f7003d40eb56aef2d52f4ca48623e64b",
+  "passed": true,
+  "scenarioCount": 13,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "realBrowser": true,
+  "realDocker": true,
+  "scenarios": [
+    "memory migration",
+    "first project and authentication focus",
+    "execution setup and restart",
+    "memory lifecycle",
+    "compatible connection",
+    "external agent setup",
+    "approval and Docker execution",
+    "offline migration rollback",
+    "external recovery",
+    "repair after authentication loss",
+    "verified artifact returned to chat",
+    "local connection",
+    "repair after timed owner session expiry"
+  ],
+  "limitation": "Synthetic providers; does not establish live provider expiry, external-agent acceptance or final release completion."
+}
