@@ -1,0 +1,33 @@
+{
+  "requirement": "P03",
+  "passed": true,
+  "scope": "Live model corrected its failed self-check; inspected commands passed against read-only copy of the actual artifact in isolated Docker. Original task remains failed; product repair approval/execution integration still pending.",
+  "sourceCommit": "a3f144a",
+  "planningAudits": [
+    {
+      "id": "efc1b0d5-f3dc-4441-8d21-f3ab84fb694c",
+      "taskId": "task-31d7663c-dc41-4447-9629-aacd4778eccc",
+      "model": "mimo-v2.6-flash",
+      "requestDigest": "29a97dcc46cff6fb415ffaa90e5d4cfcd3b5fab91289925fd40cdf118ef21f53",
+      "status": "completed",
+      "inputTokens": 1432,
+      "outputTokens": 350,
+      "responseDigest": "a30f0a6734ce3ffcf443142e4b2a6381a8dda85a603582cf32be1e2de10b4d1b"
+    }
+  ],
+  "results": [
+    {
+      "commandSha256": "c420bbef20e5b21eb9f9e2921591dfd2538fc7fa6fd53d145ef0d15023bd320b",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "commandSha256": "eced9645d44ad0c4b8bc28159d804711a78da7b760b85d4486f64eef80d52cc9",
+      "exitCode": 0,
+      "stdout": "report verified\n"
+    }
+  ],
+  "originalTaskUnchanged": true,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "draftSha256": "952ba84201c33ec146cd345d2d4052f217fcdb3531c4cd8dcbd1c9f574f73aea"
+}
