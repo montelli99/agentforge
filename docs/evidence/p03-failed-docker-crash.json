@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "liveProvider": "synthetic",
+  "model": "synthetic",
+  "requests": 0,
+  "recoveryExecutions": 0,
+  "duplicateRecoveryRefused": true,
+  "artifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+  "scope": "Actual Docker file effect and failed command, child killed after durable result before worker receipt; separate-process recovery preserves failure, blocks replay and creates no completion approval. Synthetic model; no live inference or repair execution.",
+  "baseCommit": "13332b0953f84368ec439aa4814182d7a3d2a460",
+  "recordedAtUtc": "2026-10-26T17:56:32.0435595Z",
+  "scriptHashes": [
+    {
+      "path": "scripts/chatgpt-runtime-crash.ts",
+      "sha256": "064159e287f218395974ab3459a236f62af845dbb169c46bff68c88fc16ed778"
+    },
+    {
+      "path": "scripts/conversation-execution-e2e.ts",
+      "sha256": "2e7c99248927339e363630fa4d940c88a67c28cccec14d66a021326c688a852f"
+    }
+  ]
+}

@@ -12,14 +12,15 @@ import {ContractedDockerExecutionBackend} from '../src/core/runtime/contractedDo
 import {DockerComputeProvider} from '../src/core/compute/dockerComputeProvider.js';
 
 // Explicit, dedicated signed-in profile. Never discover an operator profile.
-const [profile,actor,model,image,output,...extra]=process.argv.slice(2);
-if(!profile||!path.isAbsolute(profile)||!actor||!model||!image?.startsWith('sha256:')||!output||!path.isAbsolute(output)||extra.length)throw Error('Supply dedicated profile, actor, model, pinned image and new absolute evidence path');
+const [profile,actor,model,image,output,mode,...extra]=process.argv.slice(2);
+const failedResult=mode==='--failed-result';
+if(!profile||!path.isAbsolute(profile)||!actor||!model||!image?.startsWith('sha256:')||!output||!path.isAbsolute(output)||(mode&&!failedResult)||extra.length)throw Error('Supply dedicated profile, actor, model, pinned image and new absolute evidence path');
 const destination=await fs.open(output,'wx',0o600);
 const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-chatgpt-crash-')));
-const proof={passed:false,stage:'launch',liveProvider:'chatgpt-subscription',model,requests:0,recoveryExecutions:0,duplicateRecoveryRefused:false,artifactSha256:'',scope:'Real chat/worker child terminated after durable Docker result but before observed receipt; recovery in a separate process. Pre-approved synthetic command, not browser or mid-command partial-effect recovery.'};
+const proof={passed:false,stage:'launch',liveProvider:failedResult?'synthetic':'chatgpt-subscription',model:failedResult?'synthetic':model,requests:0,recoveryExecutions:0,duplicateRecoveryRefused:false,artifactSha256:'',scope:'Real chat/worker child terminated after durable Docker result but before observed receipt; recovery in a separate process. Pre-approved synthetic command, not browser or mid-command partial-effect recovery.'};
 let worker:TaskWorkerRuntime|undefined;
 try{
- const env:NodeJS.ProcessEnv={AGENTFORGE_LIVE_EXECUTION_PROOF:'1',AGENTFORGE_PROOF_PROVIDER:'chatgpt',AGENTFORGE_PROOF_MODEL:model,AGENTFORGE_PROOF_ACTOR:actor,AGENTFORGE_PROOF_SUBSCRIPTION_ROOT:await fs.realpath(profile),AGENTFORGE_APPROVED_DOCKER_IMAGE:image,AGENTFORGE_PROOF_CRASH_CHILD:'1',AGENTFORGE_PROOF_CRASH_ROOT:root};
+ const env:NodeJS.ProcessEnv={AGENTFORGE_LIVE_EXECUTION_PROOF:failedResult?'0':'1',AGENTFORGE_PROOF_FAILED_RESULT:failedResult?'1':'0',AGENTFORGE_PROOF_PROVIDER:'chatgpt',AGENTFORGE_PROOF_MODEL:model,AGENTFORGE_PROOF_ACTOR:actor,AGENTFORGE_PROOF_SUBSCRIPTION_ROOT:await fs.realpath(profile),AGENTFORGE_APPROVED_DOCKER_IMAGE:image,AGENTFORGE_PROOF_CRASH_CHILD:'1',AGENTFORGE_PROOF_CRASH_ROOT:root};
  for(const key of ['SystemRoot','WINDIR','PATH','LOCALAPPDATA','APPDATA','USERPROFILE','TEMP','TMP'])if(process.env[key])env[key]=process.env[key];
  const child=await runBoundedChild(process.execPath,['--import','tsx','scripts/conversation-execution-e2e.ts'],{cwd:process.cwd(),env,timeoutMs:120000,maxOutputBytes:1048576});
  assert.notEqual(child.code,0,'Child must terminate before normal completion');
@@ -34,15 +35,18 @@ try{
  worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,workspaceIdentity:checkpoint.workspaceId,requireEffectReceipts:true,autoStart:false,automaticDispatch:false});
  const result=await worker.recoverJournaledExecution(task.id);
  assert.equal(proof.recoveryExecutions,0);
- assert.equal(result.status,'waiting_approval');
+ assert.equal(result.status,failedResult?'failed':'waiting_approval');
  assert.equal(result.executionReceipts?.at(-1)?.status,'observed');
- assert.equal(store.getApproval(result.evidencePack!.approvalId!)?.status,'pending');
+ if(failedResult){assert.equal(result.evidencePack!.verifiedPassed,false);assert.equal(store.listApprovals().length,0);await assert.rejects(worker.retryTask(task.id));}
+ else assert.equal(store.getApproval(result.evidencePack!.approvalId!)?.status,'pending');
  const bytes=await fs.readFile(path.join(result.worktree!.worktreePath,'artifacts','verified.txt'));
  assert.equal(bytes.toString(),'agentforge-docker-e2e');
  proof.artifactSha256=createHash('sha256').update(bytes).digest('hex');
  assert.equal(result.evidencePack!.artifacts[0].sha256,proof.artifactSha256);
  await assert.rejects(worker.recoverJournaledExecution(task.id));proof.duplicateRecoveryRefused=true;
- assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(task.id)?.status,'waiting_approval');
+ assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(task.id)?.status,failedResult?'failed':'waiting_approval');
+ assert.equal(proof.recoveryExecutions,0);
+ if(failedResult)proof.scope='Actual Docker file effect and failed command, child killed after durable result before worker receipt; separate-process recovery preserves failure, blocks replay and creates no completion approval. Synthetic model; no live inference or repair execution.';
  proof.passed=true;proof.stage='complete';
 }catch{process.exitCode=1;}
 finally{

@@ -71,7 +71,7 @@ async function main(): Promise<void> {
     const manager = new WorktreeManager(root);
     const worktree = await manager.createWorktree({ taskId, branchName: `worktree/${taskId}`, baseBranch: baseSha });
     const now = Date.now();
-    const command = "node -e \"require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
+    const command = "node -e \"require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"" + (crashRoot && process.env.AGENTFORGE_PROOF_FAILED_RESULT==='1' ? '; exit 1' : '');
     const task: Task = {
       id: taskId,
       projectId: "local-acceptance",
