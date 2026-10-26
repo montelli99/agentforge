@@ -848,3 +848,26 @@ P04 live runner now persists a started audit before each provider request and re
 ### P05 installed restart acceptance
 
 `evidence/p05-installed-browser-restart.json` records a fresh archive installation passing the reviewed invoice, real Hermes process restart before first result read, recovery without extra submissions, and active browser Stop. `p05-live-browser-restart.json` records the source-build case; `p05-restart-budget-failure.json` preserves the earlier budget failure. Broader partial-effect inspection remains open.
+
+## Frozen comparison completed — October 26
+
+All 18 attempts are retained in `evidence/p09-all-attempts.json`. Each arm
+produced six exact passing artifacts out of nine attempts. Full command sequences
+passed once for AgentForge and zero times for direct prompting: eleven correct
+artifacts were accompanied by incorrect model-generated self-checks. Four executed
+policy cases mismatched an underspecified output schema; the last pair expired
+before execution while awaiting review. Neither was replaced.
+
+This compares the plan provider with a direct same-model request through a shared
+isolated executor, not the complete application. Review was performed by Codex,
+not a human; elapsed time includes review scheduling and is not fully monotonic
+across processes. These deviations and the schema ambiguity prevent a strong
+competitive conclusion. P09 remains open. Next: improve general verification
+planning using separate development cases, preserve required checks and approval,
+and evaluate again on a newly frozen unambiguous workload. Do not rescore this
+workload or treat passing artifact output as successful command completion.
+
+Hosted run 40307466748 passed for exact commit
+`f080bbb7f032406e62e08f6f5ab8f0a037eb756a`; evidence is
+`evidence/ci-f080bbb.json`. Later evidence and evaluator changes require their own
+final exact-build checks before release.
