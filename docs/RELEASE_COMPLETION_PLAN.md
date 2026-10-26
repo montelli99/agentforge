@@ -71,6 +71,15 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   resolves to the retained fact with its citation. Revision history is preserved
   and stale overwrite is refused. No model-written correction is authorized by
   this test; browser editing and task execution remain separate checks.
+  Durable failed-result recovery now passes an actual Docker/worker-termination
+  test (`evidence/p03-failed-docker-crash.json`): the file effect survives, a
+  separate process restores the failed result, no command is replayed, and no
+  completion approval is created. The corrected-plan repair and two store
+  reopens are separately tested (`evidence/p03-durable-failed-result-repair.json`);
+  that latter check uses a synthetic backend, not another Docker execution.
+  This closes recovery of a published failed journal, not interrupted commands
+  without a durable result or the entire uncertain-effect matrix. Hosted CI now
+  includes the credential-free failed-journal crash regression.
   Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Additional evidence: `evidence/p03-invoice-uncertain-effect.json` records refusal to replay after an effect without a receipt; `evidence/p03-timed-session-expiry.json` records real local owner-session expiry and recovered approval. Next: complete provider-token expiry and the remaining effect-reconciliation/conflicting-memory matrix; local session expiry does not prove provider renewal.
 - [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
   session, review/send one useful task, observe and verify its returned artifact,
