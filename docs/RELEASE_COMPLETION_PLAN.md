@@ -743,3 +743,8 @@ Real Chrome acceptance now stops the server, constructs a fresh server from save
 ### P07/P03 process-death restoration — 2026-10-26
 
 A dedicated synthetic owner saved a selected-note connection encrypted. The acceptance forcibly terminated the server child, launched a distinct process from disk, signed in again, observed no active memory source, rejected a wrong passphrase, restored with the correct passphrase, and verified unchanged note content. Evidence: evidence/p07-memory-process-recovery.json (SHA-256 7dbee44cfa9e094b18eaede932f5e0c0929eacfcebd09d0f0a6370a5bfe6e62b). Added to all six hosted OS/Node combinations with retained evidence. The initial harness setup collided with the default owner username before any server launch; corrected to a unique synthetic owner. This authenticated HTTP case complements, but does not replace, browser and remote-provider coverage.
+
+
+### P06 subscription route reconciliation — 2026-10-26
+
+Confirmed current start.ts registers opt-in claude-cli planning with explicit configuration, while Gemini currently has preparation/protocol helpers but no registered planner. Corrected the setup catalog's stale Claude external-client-only label without claiming chat or managed execution. Eight Claude configuration/planner tests passed. Neither official executable was found on this process PATH; this is not evidence that no installation exists elsewhere or that an account is authenticated. Live lifecycle, Gemini integration and managed execution remain required.
