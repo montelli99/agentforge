@@ -66,10 +66,12 @@ export class NativeClientExecutionBackend implements TaskExecutionBackend {
   if(input.signal.aborted)throw new TaskExecutionCancelledError();
   const authorization=new NativeToolAuthorization(this.authorizationDirectory,input.worktreePath);
   const bound=createNativeDockerSession({identity:{taskId:input.task.id,operationId:input.operationId,sessionId:randomUUID()},task:input.task,worktreePath:input.worktreePath,authorization,backend:this.docker,reviewStore:this.store});
-  const review=await bound.session.review({callId:bound.callId,tool:bound.tool,input:bound.input});
-  try{await this.waitForReview(input.task.id,review.reviewId,input.signal);}
-  catch(error){await bound.session.close();throw error;}
-  const connection=await startNativeBrokerEndpoint(bound.session);
+  let connection:Awaited<ReturnType<typeof startNativeBrokerEndpoint>>;
+  try{
+   const review=await bound.session.review({callId:bound.callId,tool:bound.tool,input:bound.input});
+   await this.waitForReview(input.task.id,review.reviewId,input.signal);
+   connection=await startNativeBrokerEndpoint(bound.session);
+  }catch(error){await bound.session.close();throw error;}
   const abort=()=>{void bound.session.close().catch(()=>{/* Final close below must confirm settlement. */});};
   input.signal.addEventListener('abort',abort,{once:true});
   try{

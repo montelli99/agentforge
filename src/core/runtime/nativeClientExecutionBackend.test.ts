@@ -65,3 +65,28 @@ it.each(['rejected','expired','cancelled-after-approval'] as const)('does not la
   if(scenario==='cancelled-after-approval')expect(store.getTask(task.id)?.status).toBe('cancelled');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+
+it('closes the bound session when the broker cannot start after approval',async()=>{
+ const {vi}=await import('vitest');
+ const {Server}=await import('node:http');
+ const {NativeBrokerSession}=await import('./nativeBrokerSession.js');
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-native-start-failure-'));
+ const closed=vi.spyOn(NativeBrokerSession.prototype,'close');
+ let listen:ReturnType<typeof vi.spyOn>|undefined;
+ try{
+  const work=path.join(root,'work');await fs.mkdir(work);
+  const store=new WorkspaceStore(path.join(root,'store.json'));
+  const task=store.createTask({title:'Synthetic broker startup failure',status:'ready',priority:'medium'});
+  task.contract.workspace.requireIsolatedWorktree=true;
+  const run=vi.fn();
+  const docker={getReadiness:()=>({ready:true,blockers:[]})} as unknown as ContractedDockerExecutionBackend;
+  const backend=new NativeClientExecutionBackend(docker,{getReadiness:()=>({ready:true}),run},store,path.join(root,'host'));
+  const pending=backend.execute({task,worktreePath:work,operationId:'startup-failure',signal:new AbortController().signal});
+  const rejected=expect(pending).rejects.toThrow('Synthetic listen failure');
+  await new Promise(resolve=>setTimeout(resolve,20));
+  listen=vi.spyOn(Server.prototype,'listen').mockImplementationOnce(()=>{throw Error('Synthetic listen failure');});
+  store.resolveApproval({approvalId:store.listApprovals()[0]!.id,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});
+  await rejected;
+  expect(run).not.toHaveBeenCalled();expect(closed).toHaveBeenCalledTimes(1);
+ }finally{listen?.mockRestore();closed.mockRestore();await fs.rm(root,{recursive:true,force:true});}
+});
