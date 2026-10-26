@@ -1129,3 +1129,7 @@ Added scripts/hindsight-live-acceptance.mjs. It requires explicit opt-in plus HI
 ### Scan actual archive contents
 The privacy gate now compares tar member inventory with the npm packlist, extracts the locally generated archive, checks regular files and scans extracted text including declarations, HTML, CSS, YAML and source maps. Passed for 478 files; SHA-256 77dfd546cf08484b8c1be5ce82580adbc47407aa68a7f19b7f8973f036153e94. This removes the gap between scanning disk sources and hashing a later archive. Signature coverage remains bounded.
 
+
+### Imported memory recall boundaries and hosted checkpoint
+Expanded authenticated import-route acceptance to query the reopened store through the operational memory adapter. Mapped memory retains revision history and remapping provenance, appears in its destination project, and is excluded from old/unrelated projects and other namespaces. Test passed. Exact f58bd66 hosted CI completed successfully in all seven jobs; evidence: evidence/ci-f58bd66.json. Later test/gate changes still require their own hosted run.
+
