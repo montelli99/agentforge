@@ -1500,7 +1500,7 @@ export class AgentForgeWebServer {
       if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}
       if(caller.role!=='owner'||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end();return;}
       try{
-        if(req.method==='GET'){res.writeHead(200);res.end(JSON.stringify({saved:readExecutionSetup(this.executionSetupFilePath),environmentOverride:process.env.AGENTFORGE_EXECUTION_MODE!==undefined,activeReadiness:this.taskWorkerRuntime.getExecutionReadiness()}));return;}
+        if(req.method==='GET'){const status={saved:readExecutionSetup(this.executionSetupFilePath),environmentOverride:process.env.AGENTFORGE_EXECUTION_MODE!==undefined,activeReadiness:this.taskWorkerRuntime.getExecutionReadiness()};res.writeHead(200);res.end(JSON.stringify(status));return;}
         if(req.method!=='POST'){res.writeHead(405);res.end();return;}
         if(process.env.AGENTFORGE_EXECUTION_MODE!==undefined)throw Error('Execution is controlled by startup settings. Remove that override before using guided setup.');
         const body=await this.readBody(req);

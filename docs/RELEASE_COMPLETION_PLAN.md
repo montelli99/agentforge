@@ -988,3 +988,19 @@ repeat retains exact receipt equality through approval. The failing attempts wer
 real test discoveries, not discarded successes; their failure was receipt mutation
 at final approval, not command replay or snapshot corruption. The regression now
 runs in hosted CI's Docker job. No paid requests or private integrations were used.
+
+### Unavailable repository and explicit-off recovery
+
+Extended launcher acceptance found a crash in GET execution setup: success headers
+were written before reading the saved configuration, then a missing repository
+caused a second error header write. The endpoint now validates its response before
+sending headers. Three failed attempts remain documented; connection reuse was
+initially suspected but changing it did not fix the failure. Launcher logs exposed
+ERR_HTTP_HEADERS_SENT as the cause.
+
+The full repeat passes task execution/recovery/final approval, then a missing saved
+repository leaves execution off while the app remains available; an owner repairs
+it to planning-only without losing receipts. An explicit startup off setting also
+overrides a saved Docker selection and refuses guided changes. Evidence:
+`evidence/p01-execution-setup-failure-recovery.json`. No paid requests. Build passed;
+this script is already included in the hosted Docker job.
