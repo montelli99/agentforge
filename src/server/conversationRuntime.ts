@@ -25,16 +25,20 @@ export class ConversationRuntime {
   private projectMemory=new Map<string,{memoryNamespace:string;memoryProvider:MemoryProvider}>();
   private lastMemoryProject?:string;
   async changeMemory(load:()=>Promise<{projectId?:string;memoryNamespace?:string;memoryProvider?:MemoryProvider}>){
-    return this.changeConnection(async()=>{
-      if(!this.config?.models.length)throw Error('Connect a chat model first.');
+    if(this.closed)throw Error('Conversation service has stopped.');
+    if(this.active.size||this.changingConnection)throw Error('Finish or stop active responses before changing connections.');
+    this.changingConnection=true;
+    try{
       const memory=await load();
+      if(this.closed)throw Error('Conversation service has stopped.');
       if(memory.projectId){
         if(memory.memoryProvider&&memory.memoryNamespace){this.projectMemory.set(memory.projectId,{memoryNamespace:memory.memoryNamespace,memoryProvider:memory.memoryProvider});this.lastMemoryProject=memory.projectId;}
         else{this.projectMemory.delete(memory.projectId);if(this.lastMemoryProject===memory.projectId)this.lastMemoryProject=[...this.projectMemory.keys()].at(-1);}
-        return this.config;
+        return;
       }
-      return {...this.config,...memory};
-    });
+      if(!this.config)throw Error('Configure a model before changing unscoped memory.');
+      this.config={...this.config,...memory};
+    }finally{this.changingConnection=false;}
   }
   async disconnectConnection<T>(providers: readonly GenerativeModelProvider[], remove:()=>Promise<T>):Promise<T> {
     if(this.closed||this.active.size||this.changingConnection)throw Error('Finish or stop active responses before disconnecting.');

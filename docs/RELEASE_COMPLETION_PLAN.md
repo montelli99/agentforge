@@ -728,3 +728,8 @@ Actual temporary Markdown files passed selected-file isolation, visible edit wit
 ### P07/P08 browser memory lifecycle — 2026-10-26
 
 Extended the hosted memory browser acceptance to perform visible synthetic model setup, connect a selected local note, save encrypted selection, clear secret fields, disconnect, restore, and forget without modifying the note. Real installed Chrome passed with no page errors. The first attempt correctly refused setup before a chat model existed; the harness now includes that visible prerequisite. Evidence: evidence/p07-memory-connection-browser.json. This is same-process restore and does not establish server-restart or live cloud composition.
+
+
+### P07/P08 memory-first setup fix — 2026-10-26
+
+Removed the unnecessary model-configuration prerequisite for project-scoped memory selection. Shared connection-change exclusion and active-response protection remain. Eleven conversation tests and build passed; real Chrome completed note connect, encrypted save, disconnect, restore and forget before any model was configured, with zero page errors. The browser harness now exercises this simpler sequence directly. Earlier evidence p07-memory-connection-browser.json describes the previous model-first prerequisite; this entry supersedes that setup limitation. Hosted run 40285759568 passed for 7fb2493 before these newer changes.

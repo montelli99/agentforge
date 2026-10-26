@@ -25,6 +25,18 @@ function fixture() {
   const response = Object.assign(new EventEmitter(), { destroyed: false, writeHead() {}, write() {}, end() {} }) as unknown as ServerResponse;
   return { store, project, channel, thread, prompt, response };
 }
+it('connects and disconnects scoped memory before model setup while excluding concurrent connection changes',async()=>{
+ const f=fixture();const runtime=new ConversationRuntime(f.store);
+ const memory=new OperationalMemoryProvider();
+ let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+ const pending=runtime.changeMemory(async()=>{await gate;return {projectId:f.project.id,memoryNamespace:'synthetic',memoryProvider:memory};});
+ const competing=vi.fn();
+ await expect(runtime.changeMemory(competing)).rejects.toThrow('active responses');expect(competing).not.toHaveBeenCalled();
+ release();await pending;
+ expect(runtime.status()).toMatchObject({configured:false,projectMemoryConnections:[{projectId:f.project.id,providerId:memory.id}]});
+ await runtime.changeMemory(async()=>({projectId:f.project.id}));
+ expect(runtime.status().projectMemoryConnections).toEqual([]);
+});
 function provider(stream: (options: ModelRequestOptions) => AsyncIterable<StreamChunk>): GenerativeModelProvider {
   return { id: "synthetic", name: "Synthetic", defaultTier: 1, isAvailable: async () => true, listModels: async () => ["synthetic"], generate: async () => { throw Error("unexpected generate"); }, stream };
 }

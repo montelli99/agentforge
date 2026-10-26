@@ -20,16 +20,6 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(server.getBaseUrl());
  await page.locator('input[name=displayName]').fill('Synthetic owner');await page.locator('input[name=password]').fill('Synthetic browser proof password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
- if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();
- await page.getByLabel('Models and routing',{exact:true}).click();
- await page.getByRole('button',{name:'Continue',exact:true}).click();
- await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');
- await page.getByLabel('API base URL',{exact:true}).fill('http://127.0.0.1:1/v1');
- await page.getByLabel('Model name',{exact:true}).fill('synthetic-unused-model');
- await page.getByLabel('Dedicated API key',{exact:true}).fill('synthetic-unused-key');
- await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic model unlock phrase');
- await page.getByRole('button',{name:'Save and connect',exact:true}).click();
- await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
  await page.locator('.nav-group-title').filter({hasText:'Management'}).click();await page.getByLabel('Operational memory',{exact:true}).click();
  await page.locator('.memory-collection input').fill('fixture');await page.locator('.memory-collection button').click();
  await page.getByRole('button',{name:'Import collection',exact:true}).click();

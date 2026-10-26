@@ -3022,7 +3022,7 @@ export class AgentForgeWebServer {
           return {projectId:selection.projectId,memoryNamespace:selection.namespace.trim(),memoryProvider};
         }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
-      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
+      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Finish active work and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
       return;
     }
 
