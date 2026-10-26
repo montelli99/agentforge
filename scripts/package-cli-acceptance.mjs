@@ -27,6 +27,7 @@ function runNpm(args, cwd) {
     // but do not turn transient runner I/O into a false release failure.
     timeout: 600_000,
   });
+  console.log(JSON.stringify({stage: 'npm-' + args[0], state: 'finished', elapsedMs: Math.round(performance.now() - started), exitCode: result.status, failureCode: result.error?.code ?? null}));
   if (result.error) throw result.error;
   return result;
 }
