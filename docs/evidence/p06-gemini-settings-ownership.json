@@ -1,0 +1,15 @@
+{
+  "requirement": "P06",
+  "sourceCommit": "049d5172d85214f2a67367b5e44146455ad65b0c",
+  "clientVersion": "0.65.0",
+  "platform": "win32",
+  "profile": "fresh synthetic profile; no account supplied",
+  "capabilityInspection": "all required flags advertised",
+  "systemSettingsAttempt": {"passed": false, "reason": "Official client rejected temporary system configuration ownership; enforcement not tested"},
+  "userSettingsAttempt": {"passed": true, "assertion": "Official client rejected API-key authentication when oauth-personal was enforced"},
+  "reproduction": "node --import tsx scripts/gemini-auth-boundary-acceptance.ts ABSOLUTE_OFFICIAL_BUNDLE system (then user)",
+  "conclusion": "Planner temporary system-settings enforcement cannot be relied on on this Windows host. Replace and prove the settings route before marking Gemini ready.",
+  "liveAuthenticationVerified": false,
+  "inferenceVerified": false,
+  "toolPolicyEnforcementVerified": false
+}
