@@ -651,3 +651,15 @@ expects abrupt process exit 74, then opens fresh authenticated browser recovery
 and runs the independent invoice oracle. Local run passed with zero recovery
 executions and zero new paid requests. CI now runs this case on Linux alongside
 existing browser acceptance; hosted result remains pending.
+
+P03 live conflicting-memory recall after store reopen: two equally dated/versioned
+synthetic records disagreed (USD 1200 vs USD 1800). First MiMo response identified
+both and created no task, but overstated search completeness. Strengthened chat
+guidance that bounded retrieval cannot prove absence of other records/revisions.
+Follow-up live response identified both sources, declined to pick a winner, and
+explicitly acknowledged that limitation; no task created. Two provider requests
+per attempt. Both retained: evidence/p03-live-memory-conflict.json and
+ evidence/p03-live-memory-conflict-followup.json. Ten conversation regressions,
+full typechecks and build pass. This proves one live conflicting recall case,
+not all model/provider conflict handling. Hosted run 40282398037 passed all seven
+jobs on 4d7273c; subsequent changes require their own hosted result.
