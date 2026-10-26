@@ -14,6 +14,7 @@ export async function prepareGeminiCliProfile(home: string) {
   await fs.writeFile(path.join(settingsDirectory, 'settings.json'), JSON.stringify({
     security: {auth: {selectedType: 'oauth-personal', enforcedType: 'oauth-personal', useExternal: false}},
     hooksConfig: {enabled: false}, telemetry: {enabled: false},
+    admin: {extensions: {enabled: false}, mcp: {enabled: false}, skills: {enabled: false}},
   }, null, 2) + '\n', {flag: 'wx', mode: 0o600});
   return {home, environmentVariable: 'GEMINI_CLI_HOME', authentication: 'google-login',
     authenticated: false, managedPlanningEnabled: false,

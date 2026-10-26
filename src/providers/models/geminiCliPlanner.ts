@@ -42,6 +42,7 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
   const stat=await fs.lstat(settingsFile);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536)throw Error('Invalid dedicated Gemini settings');
   const settings=JSON.parse(await fs.readFile(settingsFile,'utf8'));
   if(settings.security?.auth?.selectedType!=='oauth-personal'||settings.security?.auth?.enforcedType!=='oauth-personal'||settings.hooksConfig?.enabled!==false)throw Error('Dedicated Google-login profile with hooks disabled required');
+  if(settings.security?.auth?.useExternal!==false||settings.admin?.extensions?.enabled!==false||settings.admin?.mcp?.enabled!==false||settings.admin?.skills?.enabled!==false)throw Error('Dedicated Gemini profile must disable external auth, extensions, MCP and skills');
   const credential=await fs.lstat(path.join(this.config.homeDirectory,'.gemini','oauth_creds.json'));
   if(!credential.isFile()||credential.isSymbolicLink())throw Error('Official client sign-in required');
   // Presence is not authentication proof. Only the official client consumes it.
@@ -57,10 +58,9 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'agentforge-gemini-plan-'));
   let usage;
   try{
-   const policy=path.join(directory,'deny-tools.toml'),settings=path.join(directory,'system-settings.json');
+   const policy=path.join(directory,'deny-tools.toml');
    await fs.writeFile(policy,'[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n\n[[rule]]\nmcpName = "*"\ndecision = "deny"\npriority = 999\n');
-   await fs.writeFile(settings,JSON.stringify({security:{auth:{selectedType:'oauth-personal',enforcedType:'oauth-personal',useExternal:false}},hooksConfig:{enabled:false},admin:{extensions:{enabled:false},mcp:{enabled:false},skills:{enabled:false}}}));
-   const env:NodeJS.ProcessEnv={HOME:directory,USERPROFILE:directory,TEMP:directory,TMP:directory,GEMINI_CLI_HOME:this.config.homeDirectory,GEMINI_CLI_SYSTEM_SETTINGS_PATH:settings,GEMINI_CLI_SURFACE:'agentforge-planner',NO_BROWSER:'true'};
+   const env:NodeJS.ProcessEnv={HOME:directory,USERPROFILE:directory,TEMP:directory,TMP:directory,GEMINI_CLI_HOME:this.config.homeDirectory,GEMINI_CLI_SYSTEM_SETTINGS_PATH:path.join(directory,'absent-system.json'),GEMINI_CLI_SYSTEM_DEFAULTS_PATH:path.join(directory,'absent-defaults.json'),GEMINI_CLI_SURFACE:'agentforge-planner',NO_BROWSER:'true'};
    for(const key of ['SystemRoot','WINDIR','PATH','Path'])if(process.env[key])env[key]=process.env[key];
    const result=await runBoundedChild(process.execPath,[this.config.bundlePath,'--model',this.config.model,'--prompt',prompt,'--approval-mode','default','--admin-policy',policy,'--policy',policy,'--extensions','none','--allowed-mcp-server-names','agentforge-no-mcp','--output-format','stream-json'],{cwd:directory,env,signal:options.signal,timeoutMs:120000,maxOutputBytes:2097152});
    const transcript=inspectGeminiCliTranscript(result.stdout,this.config.model,prompt);usage=transcript.usage;

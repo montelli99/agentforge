@@ -41,3 +41,21 @@ it('rejects a redirected profile before reading settings or launching Gemini',as
   expect(mocks.run).not.toHaveBeenCalled();expect(mocks.caps).not.toHaveBeenCalled();
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+it('rejects a profile whose required local restrictions have been removed',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-profile-controls-'));
+ const home=path.join(root,'home');
+ try{
+  await prepareGeminiCliProfile(home);
+  await fs.writeFile(path.join(home,'.gemini','oauth_creds.json'),'synthetic-placeholder');
+  const file=path.join(home,'.gemini','settings.json');
+  const original=JSON.parse(await fs.readFile(file,'utf8'));
+  const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
+  for(const control of ['extensions','mcp','skills']){
+   const changed=structuredClone(original);changed.admin[control].enabled=true;
+   await fs.writeFile(file,JSON.stringify(changed));
+   mocks.run.mockClear();mocks.caps.mockClear();
+   await expect(planner.generate({model:'gemini-synthetic',messages:[{role:'user',content:'Draft a check'}],responseFormat:'json'})).rejects.toThrow('must disable');
+   expect(mocks.run).not.toHaveBeenCalled();expect(mocks.caps).not.toHaveBeenCalled();
+  }
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
