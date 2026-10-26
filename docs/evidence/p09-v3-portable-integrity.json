@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "scope": "Original v3 evidence hashes verified allowing only Git LF/CRLF conversion",
+  "records": [
+    {
+      "evidence": "p09-v3-payment-ledger-1-agentforge.json",
+      "recordedSha256": "f1c80cfa179a2b43cdf70cdcba9643b37263306b5ad3e00b0529d4689abc0223",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "b6a6bc1c192673e076d8fe6e4ad9be1980d4ecd0e4339f41338c745bc96448d9"
+    },
+    {
+      "evidence": "p09-v3-payment-ledger-1-direct.json",
+      "recordedSha256": "e259ec1f16ae26797791bb91083ca84bc3372dfdda751105fbebc3941f68961e",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "8dc7090199865662c8045de523d0b96ac80384f13df984d1a71b25cd7cac3cab"
+    },
+    {
+      "evidence": "p09-v3-payment-ledger-2-direct.json",
+      "recordedSha256": "3ed7c6e958d482b16c8078538b8057dce4912944290ae2641b6b77ea034c4a8a",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "d0d674de012a1de9cd9b0175f47e8404e8e6b86a8c86c7e50d7aeb02c78fce1b"
+    },
+    {
+      "evidence": "p09-v3-payment-ledger-2-agentforge.json",
+      "recordedSha256": "29333800bce240b0ffb0797454732fe3bdb1f88742e022350e293a54ee3ab4fd",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "60425e048bb868cb44ca6d70cccd9c4b7d9d6e451de66ab166338a42113e222f"
+    },
+    {
+      "evidence": "p09-v3-payment-ledger-3-agentforge.json",
+      "recordedSha256": "d900653450279f61068fb85e799b21d174a47760f7d92b70d0e075390cd0fe19",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "bd16c8547bccc6231274908f0c2eddf2cc34da5d1046363104fcb2e8c9c9e72b"
+    },
+    {
+      "evidence": "p09-v3-payment-ledger-3-direct.json",
+      "recordedSha256": "b5dd1f01abe58352f4143667aaf08895f31014bdd60d27d5583f7f1df617e5be",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "94efb28ce49c2300eb5c23337bd40ce12c1044622bf0a478e7932c54633689e0"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-1-agentforge.json",
+      "recordedSha256": "c5ad9d705d247163ca2e5c1d997151ff4c86c3af0aea6036c5aebbd947d266b8",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "6d437afa1d68f9b7e4c38b2d6c374847a473a35c5dda14bbf34c5432b2e3b4e2"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-1-direct.json",
+      "recordedSha256": "99723db714696729bdd57731ac31b3b81b8ee2b96949b62a64b144754b01551c",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "7f009752bba5fb6f01c59f3687a4717d8596e52cb50395b1a1f9dd72df2ce1c5"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-2-direct.json",
+      "recordedSha256": "c26a603647212c4ca7e608392b804a7217516ba354026631e7223268fe4d53ce",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "f34c4cd6a3d39747efd24ac0d1359c548b25c44b3683f6d13dfba569781b9468"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-2-agentforge.json",
+      "recordedSha256": "05fff386dcf3ff21d57a18245e86915bf37ae80907afd5a14039015727aa15e8",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "2b3b360b715107a0f75fa2e4d6d8e2c30c4990d996f9a13fc5326a00ff0e7e99"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-3-agentforge.json",
+      "recordedSha256": "099e2ff0b2580feb03baa940ad883e8c0681c20c7fe8036399d8ff817aa2c6f7",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "14366158c2b7b0b30e78cf3a8082a68f7e7b1856c8a0f4293e3771397e670283"
+    },
+    {
+      "evidence": "p09-v3-shipment-coverage-3-direct.json",
+      "recordedSha256": "0907fb516bf9af86952e6de2c0fce22222e284ca289a48935147f6d2a9a26a7a",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "cf56edb3c7768c141464cb29f3356e60e43905d8d1b2c7d08ec342194cc165f1"
+    },
+    {
+      "evidence": "p09-v3-access-policy-1-agentforge.json",
+      "recordedSha256": "53431b45e809d08f8dfa2c9cd90c01e1bd8f80d39913ab2c30b24ba864e261d7",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "3efb6f252cff90a2994de6bd534520208933cc0bb47dc625de9ae28e7f23a862"
+    },
+    {
+      "evidence": "p09-v3-access-policy-1-direct.json",
+      "recordedSha256": "65d7f04bdcb059facc64ac038f0c5bbbfa52b42a940e2cc63c634c74ec6e8875",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "738b665d04a1365f5386c6681b3bbca7803447a7097e2523e2c7fa55187b566a"
+    },
+    {
+      "evidence": "p09-v3-access-policy-2-direct.json",
+      "recordedSha256": "a4002c1f87ac887a1b0aefe8182bf92baf9d9ecb3b2d27a65bd6a9ed1e42fa18",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "d12ce2b90ebc6d93ec2b1de6dd1ea586269393787803f8804d536131bd1aa5d4"
+    },
+    {
+      "evidence": "p09-v3-access-policy-2-agentforge.json",
+      "recordedSha256": "78b6b9804d9018ae90e366ef78f621e1cfbc4624e48565218ffe5cfb7bd86474",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "d56ae63011a8e0539eee2446f895ccb12bfb552b3ecf5527ef262ed33e6854dd"
+    },
+    {
+      "evidence": "p09-v3-access-policy-3-agentforge.json",
+      "recordedSha256": "116d3390e7af70c054b3813bcb16a76700b99e8105b06a9e910f3802b326d973",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "e7da6db3322db2b5fdfb06cf15e28b68c9b51e511a40fdfe0798d053d07b8134"
+    },
+    {
+      "evidence": "p09-v3-access-policy-3-direct.json",
+      "recordedSha256": "e07efe042fde07b9c57c2fe5dc23b6268e396a42fc19d5e6e91db7119bf474ad",
+      "recordedLineEndings": "CRLF",
+      "canonicalLfSha256": "97fe09c067995fec5df7018e44ca2d3e311f41c1104be34161decd8558d9b8d7"
+    }
+  ]
+}

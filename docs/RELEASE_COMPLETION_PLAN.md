@@ -1233,3 +1233,11 @@ but final chat returned content without invoking the verified artifact reader.
 That failure remains in the evaluation. Explicit recorded-path grounding was repaired separately and has regression, built-live and installed-live evidence in `evidence/p02-live-automatic-artifact-grounding.json` and `evidence/p02-installed-automatic-artifact-grounding.json`. Implicit or ambiguous references are not covered by this automatic selection.
 P01–P10 remain the full release scope; completing this experiment is not release
 acceptance.
+
+### Portable evaluation integrity
+
+`pnpm test:evidence:integrity` validates all 18 original v3 evidence hashes on
+LF and CRLF checkouts. It accepts only line-ending conversion, rejecting content
+or whitespace changes. Original attempt files and report hashes remain intact.
+`evidence/p09-v3-portable-integrity.json` records canonical LF hashes alongside
+the original hashes and encoding. Hosted release checks now run this verifier.

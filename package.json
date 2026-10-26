@@ -52,7 +52,7 @@
     "test:public-links": "node --test scripts/public-link-acceptance.test.mjs && node scripts/public-link-acceptance.mjs",
     "test:docker:acceptance": "node scripts/docker-acceptance.mjs",
     "test:approved-docker:e2e": "node --import tsx scripts/approved-docker-e2e.ts",
-    "verify:public": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm test:public-links && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:execution:crash && pnpm test:persistence:concurrency && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e && pnpm test:conversation:e2e && pnpm test:chat:protocol",
+    "verify:public": "pnpm typecheck:all && pnpm test:evidence:integrity && pnpm test:product-isolation && pnpm test:repository-privacy && pnpm test:public-links && pnpm build && pnpm test:package:surface && pnpm test:persistence:crash && pnpm test:execution:crash && pnpm test:persistence:concurrency && pnpm test:docker:acceptance && pnpm test:approved-docker:e2e && pnpm test:conversation:e2e && pnpm test:chat:protocol",
     "release:preflight": "pnpm verify:public && pnpm release:audit && pnpm test:registry:preflight && pnpm test:provider:preflight",
     "release:audit": "node scripts/public-release-readiness.mjs",
     "test:registry:preflight": "node scripts/registry-release-preflight.mjs",
@@ -63,11 +63,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.vnext.json",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "typecheck:all": "tsc --noEmit -p tsconfig.json && pnpm typecheck:scripts",
-    "check": "pnpm typecheck:all && pnpm test:product-isolation && pnpm test && pnpm build && pnpm test:package:surface",
+    "check": "pnpm typecheck:all && pnpm test:evidence:integrity && pnpm test:product-isolation && pnpm test && pnpm build && pnpm test:package:surface",
     "test:lab": "node --import tsx src/main.ts",
     "test:product-isolation": "node scripts/product-isolation-acceptance.mjs",
     "test:conversation:e2e": "node --import tsx scripts/conversation-execution-e2e.ts",
-    "test:chat:protocol": "node scripts/chat-stream-acceptance.mjs"
+    "test:chat:protocol": "node scripts/chat-stream-acceptance.mjs",
+    "test:evidence:integrity": "node --test scripts/evidence-text-integrity.test.mjs && node scripts/verify-evaluation-evidence.mjs"
   },
   "engines": {
     "node": ">=22"
