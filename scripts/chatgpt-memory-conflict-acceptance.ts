@@ -14,7 +14,7 @@ if(process.argv[2]==='--recover'){
  if(!profile||!actor||!model||!output||extra.length||!path.isAbsolute(profile)||!path.isAbsolute(output))throw Error('Explicit dedicated profile, actor, model and new absolute output required');
  const destination=await fs.open(output,'wx',0o600),root=await fs.mkdtemp(path.join(os.tmpdir(),'af-live-conflict-'));
  const setup=new ChatGPTSetup(await fs.realpath(profile));
- const evidence:{recordedAt:string;passed:boolean;stage:string;model:string;requests:number;usage:ModelResponseUsage|null;contextSha256?:string;result?:unknown;limits:string[]}={recordedAt:new Date().toISOString(),passed:false,stage:'prepare',model,requests:0,usage:null,limits:['Synthetic built-in memory recovered through TaskWorkerRuntime in a fresh process.','One live model decision, not a browser journey or proof of all conflicting-memory cases.','No execution tools exposed and no task effects performed.']};
+ const evidence:{recordedAt:string;passed:boolean;stage:string;model:string;requests:number;usage:ModelResponseUsage|null;contextSha256?:string;result?:unknown;resolution?:unknown;limits:string[]}={recordedAt:new Date().toISOString(),passed:false,stage:'prepare',model,requests:0,usage:null,limits:['Synthetic built-in memory recovered through TaskWorkerRuntime in fresh processes.','Two live model decisions with a test-authorized synthetic memory correction between them; not a browser journey or proof of all conflicting-memory cases.','No execution tools exposed and no task effects performed.']};
  try{
   const file=path.join(root,'state.json');const store=new WorkspaceStore(file);const memory=new OperationalMemoryProvider(store);
   const first=await memory.record({namespace:'acceptance',projectId:'alpha',category:'project_constraint',title:'Launch color',content:'Approved launch color is blue.',tags:['launch']});
@@ -33,6 +33,19 @@ if(process.argv[2]==='--recover'){
   evidence.usage=result.usage??null;evidence.stage='independent-check';assert.equal(result.toolCalls?.length??0,0);
   const actual=JSON.parse(result.content);evidence.result=actual;
   assert.equal(actual.status,'needs_clarification');assert.equal(actual.selectedColor,null);assert.deepEqual([...actual.candidateColors].sort(),['blue','red']);assert.deepEqual([...actual.sourceIds].sort(),[first.id,second.id].sort());
+  evidence.stage='record-correction';
+  // Test-authorized correction, not an inferred owner decision or model write.
+  memory.update('acceptance',second.id,second.version??1,'synthetic-reviewer',{archived:true});
+  const saved=new WorkspaceStore(file).listOperationalMemories('acceptance').find(record=>record.id===second.id)!;
+  assert.equal(saved.archived,true);assert.equal(saved.revisions?.at(-1)?.content,second.content);
+  assert.throws(()=>memory.update('acceptance',second.id,second.version??1,'stale-synthetic-editor',{archived:false}),/changed elsewhere/);
+  evidence.stage='recover-corrected-context';
+  const next=await runBoundedChild(process.execPath,['--import',import.meta.resolve('tsx'),fileURLToPath(import.meta.url),'--recover',file,task.id],{cwd:process.cwd(),env,timeoutMs:30000,maxOutputBytes:65536});
+  assert.equal(next.code,0);const corrected=JSON.parse(next.stdout);assert.ok(corrected.content.includes('blue'));assert.ok(!corrected.content.includes('red'));assert.ok(!corrected.content.includes('green'));
+  evidence.stage='live-corrected-decision';evidence.requests++;
+  const resolved=await connection.provider.generate({model,signal:AbortSignal.timeout(90000),messages:[{role:'system',content:'Use the supplied project memory as evidence. Do not guess when facts conflict. Return only JSON with keys status (resolved or needs_clarification), selectedColor (string or null), candidateColors (array of strings), sourceIds (array of cited memory record IDs). No other fields.'},{role:'user',content:'Which launch color is authorized?\n\nRecovered task context:\n'+corrected.content}]});
+  const answer=JSON.parse(resolved.content);evidence.resolution={result:answer,usage:resolved.usage??null,contextSha256:createHash('sha256').update(corrected.content).digest('hex'),revisionPreserved:true,staleOverwriteRefused:true};
+  assert.equal(resolved.toolCalls?.length??0,0);assert.equal(answer.status,'resolved');assert.equal(answer.selectedColor,'blue');assert.deepEqual(answer.candidateColors,['blue']);assert.deepEqual(answer.sourceIds,[first.id]);
   evidence.passed=true;evidence.stage='complete';
  }catch{process.exitCode=1;}
  finally{try{await setup.shutdown();}finally{await destination.writeFile(JSON.stringify(evidence,null,2)+'\n');await destination.close();await fs.rm(root,{recursive:true,force:true});}console.log(JSON.stringify(evidence));}
