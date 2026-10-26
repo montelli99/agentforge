@@ -1331,3 +1331,9 @@ Claude now has an exported `ClaudeNativeClient` governed-worker implementation, 
 P06 remains open for native-client isolation, live authenticated lifecycle and server/UI activation; P07 still requires live Hindsight acceptance. The ChatGPT browser workspace still awaits owner-password setup. Do not collapse these gaps into a passing component result.
 
 All seven hosted jobs passed exact source `962b6c7a3e3540522f052a60fe7f417f8b3cceed` (`evidence/ci-962b6c7.json`). The later Claude changes are not covered by that result. Local `pnpm check` at `8951639` passed 963 tests with two skipped and scanned 504 archive files (`evidence/p10-integrated-8951639.json`). Full P01–P10 acceptance, merge, final archive, hosted demonstration and launch remain required.
+
+### Live ChatGPT governed runtime and disconnected response
+
+`evidence/p06-chatgpt-runtime-disconnect.json` records three live subscription requests through ConversationRuntime and TaskWorkerRuntime. The model inspected the synthetic pre-approved task, executed it in network-disabled Docker, and persisted the completed response, reported usage, observed receipt and independently checked artifact despite a disconnected response subscriber. Reopening the store recovered the response. This is not an OS-process crash or browser account-activation proof, and uses a pre-approved fixed command rather than a freshly generated invoice plan. The reproducible conversation-execution runner now supports an explicit dedicated ChatGPT profile and actor without discovering private profiles.
+
+Local integrated checks passed 168 test files / 964 tests, with two skipped; build and the 506-file public archive scan passed. The runtime acceptance script extension separately passed scripts typechecking. Hosted acceptance is tracked separately by exact commit; P01–P10 remain open.

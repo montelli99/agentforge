@@ -23,16 +23,21 @@ import { ConversationRuntime } from "../src/server/conversationRuntime.js";
 import type { GenerativeModelProvider } from "../src/core/providers/model.js";
 import type { Task } from "../src/core/types/task.js";
 import { MiMoModelProvider } from "../src/providers/models/mimoModel.js";
+import { ChatGPTSetup } from '../src/server/chatgptSetup.js';
+import { realpath } from 'node:fs/promises';
 import { createHash } from "node:crypto";
 import type {ModelResponseUsage} from '../src/core/providers/model.js';
 const requestUsage:Array<ModelResponseUsage|null>=[];
 
 const live = process.env.AGENTFORGE_LIVE_EXECUTION_PROOF === "1";
+const liveProvider = process.env.AGENTFORGE_PROOF_PROVIDER ?? 'mimo';
+if (!['mimo','chatgpt'].includes(liveProvider)) throw Error('Unsupported proof provider');
+let chatgptSetup: ChatGPTSetup | undefined;
 if (live && !process.env.AGENTFORGE_PROOF_MODEL) throw Error("Choose an explicit model from the provider model list");
 const started = Date.now();
 let providerFailure: string | undefined;
 // Diagnostic metadata only; never persist provider bodies or request content.
-if (live) {
+if (live && liveProvider === 'mimo') {
  const originalFetch = globalThis.fetch;
  globalThis.fetch = async (...args) => {
   const response = await originalFetch(...args);
@@ -129,21 +134,31 @@ async function main(): Promise<void> {
         } else { yield { id: "2", deltaText: "Execution evidence is saved for review.", finishReason: "stop" }; }
       }
     };
-    const provider = new MiMoModelProvider();
-    const liveModel: GenerativeModelProvider = { id: "bounded-live-proof", name: "Bounded live MiMo proof", defaultTier: 4,
+    let provider: GenerativeModelProvider = new MiMoModelProvider();
+    if (live && liveProvider === 'chatgpt') {
+      const profile = process.env.AGENTFORGE_PROOF_SUBSCRIPTION_ROOT;
+      const actor = process.env.AGENTFORGE_PROOF_ACTOR;
+      if (!profile || !path.isAbsolute(profile) || !actor) throw Error('Explicit dedicated subscription root and actor required');
+      chatgptSetup = new ChatGPTSetup(await realpath(profile));
+      const status = await chatgptSetup.status(actor);
+      if (status.accounts.length !== 1) throw Error('Dedicated profile must have exactly one account');
+      const restored = await chatgptSetup.restore(actor,status.accounts[0].id);
+      provider = (await chatgptSetup.activate(actor,restored.id,proof.model)).provider;
+    }
+    const liveModel: GenerativeModelProvider = { id: "bounded-live-proof", name: "Bounded live subscription or API proof", defaultTier: 4,
       isAvailable: () => provider.isAvailable(), listModels: async () => [proof.model], generate: async () => { throw Error("Unexpected non-streaming request"); },
       async *stream(options) {
         if (++proof.requests > 4) throw Error("Live proof request limit reached; no retries");
         const usageIndex=requestUsage.push(null)-1;
         if (!proof.disconnected) { response.emit("close"); response.destroyed = true; proof.disconnected = true; }
-        try { for await (const chunk of provider.stream({ ...options, maxTokens: 768, thinking: "disabled", signal: AbortSignal.any([...(options.signal ? [options.signal] : []), AbortSignal.timeout(60000)]) })) {
+        try { for await (const chunk of provider.stream({ ...options, ...(liveProvider === 'mimo' ? {maxTokens:768,thinking:'disabled' as const} : {}), signal: AbortSignal.any([...(options.signal ? [options.signal] : []), AbortSignal.timeout(60000)]) })) {
           if(chunk.usage)requestUsage[usageIndex]=chunk.usage;
           for (const call of chunk.toolCalls || []) if (call.function.name) proof.toolCalls.push(call.function.name);
           yield chunk;
         } } catch (error) { providerFailure ||= /MiMo stream error \d{3}/.exec(String(error))?.[0] || "Provider transport failure"; throw error; }
       }
     };
-    if (live && !process.env.MIMO_API_KEY) throw Error("Explicit MiMo credential required for live proof");
+    if (live && liveProvider === 'mimo' && !process.env.MIMO_API_KEY) throw Error("Explicit MiMo credential required for live proof");
     await new ConversationRuntime(store, { provider: live ? liveModel : model, models: [proof.model] }, worker).respond(thread.id, prompt.id, proof.model, "synthetic-owner", response);
     const executed = store.getTask(taskId)!;
     if (executed.status !== "waiting_approval" || !executed.evidencePack?.verifiedPassed) throw Error("Governed execution did not produce verified evidence: " + executed.error);
@@ -171,7 +186,8 @@ async function main(): Promise<void> {
     proof.status = "passed";
     console.log(`PASS: conversation tool loop, disconnected subscriber, persisted response, governed worker, observed receipt, isolated network-disabled Docker execution with ${image}, and observed evidence verified.`);
   } finally {
-    await rm(root, { recursive: true, force: true });
+    try { await chatgptSetup?.shutdown(); }
+    finally { await rm(root, { recursive: true, force: true }); }
   }
 }
 

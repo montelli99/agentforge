@@ -1,0 +1,38 @@
+{
+  "live": true,
+  "model": "gpt-6-luna",
+  "requests": 3,
+  "toolCalls": [
+    "inspect_task",
+    "execute_task"
+  ],
+  "disconnected": true,
+  "status": "passed",
+  "elapsedMs": 17390,
+  "artifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+  "costUsd": "unmeasured",
+  "tokenUsage": "provider-reported per request",
+  "limitation": "Pre-approved fixed task; does not prove autonomous planning, process-crash recovery, or competitor superiority.",
+  "requestUsage": [
+    {
+      "promptTokens": 511,
+      "completionTokens": 25,
+      "totalTokens": 536,
+      "cachedInputTokens": 0
+    },
+    {
+      "promptTokens": 1192,
+      "completionTokens": 25,
+      "totalTokens": 1217,
+      "cachedInputTokens": 0
+    },
+    {
+      "promptTokens": 3272,
+      "completionTokens": 66,
+      "totalTokens": 3338,
+      "cachedInputTokens": 0
+    }
+  ],
+  "provider": "chatgpt-subscription",
+  "scope": "Real ConversationRuntime and TaskWorkerRuntime, synthetic pre-approved task, disconnected response, observed execution receipt, reopened store and independent artifact check. Not browser or process-crash proof."
+}
