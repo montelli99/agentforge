@@ -1,0 +1,19 @@
+{
+  "installedPackage": false,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "passed": true,
+  "browserProjectMatchesRestoredWorker": true,
+  "enabledAfterRestartWithoutStartingTask": true,
+  "missingRepositoryRepairedInBrowser": true,
+  "repairDidNotEnableExecution": true,
+  "savedDockerFromBrowser": true,
+  "invalidRepositoryRejected": true,
+  "pendingSelectionSurvivedReload": true,
+  "noTaskStarted": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false
+}

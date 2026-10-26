@@ -1022,3 +1022,8 @@ The real-launcher browser acceptance now restarts with an unavailable saved repo
 
 Exact source 91dd007 was built, packed, installed into a fresh temporary directory, and launched from the installed package. Browser onboarding, saved compute selection, reload, missing-repository restart, and UI repair passed. Evidence: evidence/p01-installed-browser-repository-repair.json includes the archive SHA-256. No paid requests. This does not close the unified live-model execution journey.
 
+
+### Browser-created project and restored execution worker
+
+The clean browser journey now supplies its repository in New project, saves Docker setup, restarts the actual launcher, signs in, and proves the project baseline matches the repository HEAD with execution available and no task started. It then repeats missing-repository recovery. Evidence: evidence/p01-browser-project-worker-setup.json. The first extension checked readiness before asynchronous sign-in completed; the harness now waits for the login gate to close. Live-model drafting and execution still need to be joined into this clean-launcher journey.
+
