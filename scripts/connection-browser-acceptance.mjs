@@ -43,9 +43,13 @@ try{
  await page.locator('input[name=password]').fill('Synthetic owner password');
  await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
- if(local)await page.getByRole('button',{name:/Run a local model/}).click();
+ for(const label of [/Use a subscription/,local?/Run a local model/:/Use an API key/]){
+  await page.getByRole('button',{name:label}).focus();await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-pressed')),'true','Selected route retains keyboard focus after redraw');
+ }
+
  await page.getByRole('button',{name:'Continue',exact:true}).click();
- if(!local)await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');
+ if(!local){await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');assert.equal(await page.evaluate(()=>document.activeElement?.tagName),'SELECT','Provider selection retains focus');}
  await page.getByLabel('API base URL',{exact:true}).fill('http://127.0.0.1:'+provider.address().port+'/v1');
  await page.getByLabel('Model name',{exact:true}).fill('synthetic-model');
  if(!local)await page.getByLabel('Dedicated API key',{exact:true}).fill(key);
