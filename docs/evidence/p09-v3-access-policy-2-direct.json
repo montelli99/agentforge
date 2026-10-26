@@ -1,0 +1,37 @@
+{
+  "attempt": "access-policy-2-direct",
+  "result": {
+    "id": "access-policy",
+    "trial": 2,
+    "arm": "direct",
+    "status": "failed",
+    "startedAt": "2026-10-26T13:02:08.69Z",
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "inputSha256": "3134c19c221a0f932a1aba204fc09f3338668dffcd875a79cd9279e988f62e5b",
+    "requests": 1,
+    "usage": {
+      "completion_tokens": 295,
+      "prompt_tokens": 461,
+      "total_tokens": 756,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 448
+      }
+    },
+    "cost": null,
+    "providerElapsedMs": 8682.0514,
+    "httpStatus": 200,
+    "error": "Unexpected non-whitespace character after JSON at position 646 (line 3 column 1)",
+    "planningElapsedMs": 8688.1502
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "92a5ceb6a7435cdca75e9f8bfe6844f08e994e0f",
+  "limitation": "Failed scheduled baseline retained without edits or replacement."
+}
