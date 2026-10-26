@@ -75,6 +75,13 @@ describe('survivor discovery HTTP boundary', () => {
       const expired=await login('reviewer');store.validateSession(expired)!.expiresAt='2000-01-01T00:00:00.000Z';
       expect((await recoverRequest(expired)).status).toBe(401);expect(recover).not.toHaveBeenCalled();
       expect((await recoverRequest(reviewer)).status).toBe(200);expect(recover).toHaveBeenCalledTimes(1);
+      recover.mockResolvedValueOnce({...before!,status:'failed'});
+      const failedResult=await recoverRequest(reviewer);
+      expect(failedResult.status).toBe(200);
+      const failedBody=await failedResult.json();
+      expect(failedBody).toMatchObject({task:{status:'failed'},replayed:false});
+      expect(failedBody.message).toContain('approve a corrected repair plan');
+      expect(failedBody.message).not.toContain('for final approval');
       recover.mockRejectedValueOnce(Error('Recovery failed: api_key=synthetic-secret-value-12345678'));
       const denied=await recoverRequest(reviewer);expect(denied.status).toBe(409);expect(await denied.text()).not.toContain('synthetic-secret-value');
       expect(store.getTask('synthetic-task')).toEqual(before);
