@@ -733,3 +733,8 @@ Extended the hosted memory browser acceptance to perform visible synthetic model
 ### P07/P08 memory-first setup fix — 2026-10-26
 
 Removed the unnecessary model-configuration prerequisite for project-scoped memory selection. Shared connection-change exclusion and active-response protection remain. Eleven conversation tests and build passed; real Chrome completed note connect, encrypted save, disconnect, restore and forget before any model was configured, with zero page errors. The browser harness now exercises this simpler sequence directly. Earlier evidence p07-memory-connection-browser.json describes the previous model-first prerequisite; this entry supersedes that setup limitation. Hosted run 40285759568 passed for 7fb2493 before these newer changes.
+
+
+### P07/P08 encrypted selection after server restart — 2026-10-26
+
+Real Chrome acceptance now stops the server, constructs a fresh server from saved workspace/settings, reloads, verifies no active selection, rejects a wrong passphrase, explicitly restores with the correct passphrase, and forgets without modifying the note. Encrypted file excludes plaintext vault path and passphrase. Evidence: evidence/p07-memory-browser-server-restart.json (SHA-256 267d837d92610875cfc796726ebcf494daabd41e3f78cf967164aba9f85d334b). This is server reconstruction in the same Node process, not an OS process-kill claim. The case is part of the hosted and installed-package browser acceptance runner.
