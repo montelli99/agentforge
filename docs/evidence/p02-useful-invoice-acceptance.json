@@ -1,0 +1,167 @@
+{
+  "acceptance": {
+    "passed": true,
+    "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "reviewDigest": "badeded5bb8c85e23fe1396d1219d762c3bd13f9202c8c21cbbad4de91bbbfdf",
+    "at": "2026-10-26T06:19:10.608Z",
+    "scope": "useful invoice task, not browser or recovery acceptance"
+  },
+  "sourceCommit": "99db5bb3fe8426ea46f88f0a2805f0e9dd343f9b",
+  "artifact": {
+    "rows": [
+      {
+        "customer": "Acme",
+        "currency": "EUR",
+        "netCents": 500,
+        "count": 1
+      },
+      {
+        "customer": "Acme",
+        "currency": "USD",
+        "netCents": 950,
+        "count": 2
+      },
+      {
+        "customer": "Beta",
+        "currency": "EUR",
+        "netCents": -75,
+        "count": 1
+      },
+      {
+        "customer": "Beta",
+        "currency": "USD",
+        "netCents": 300,
+        "count": 1
+      },
+      {
+        "customer": "Gamma",
+        "currency": "USD",
+        "netCents": 0,
+        "count": 1
+      }
+    ],
+    "includedInvoices": 6,
+    "voidInvoices": 1,
+    "supersededRows": 2
+  },
+  "runnerSha256": "7ebbdd2fa352848596042a18b10580b325477150b285ece14bbb13c598eb655e",
+  "checks": [
+    {
+      "checkName": "generateReport",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "checkName": "custom_script",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "checkName": "verifyReport",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "checkName": "execution_scope",
+      "passed": true,
+      "exitCode": 0
+    }
+  ],
+  "requirement": "P02",
+  "scope": "Real-model invoice task with independently checked artifact; browser and recovery pending",
+  "attempts": [
+    {
+      "status": "empty-plan-rejected",
+      "audit": [
+        {
+          "id": "e3c7317a-8759-4af8-9650-3e49e26af477",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "03bcdb99dd5f827839a3f833b1db87c718899db9c376d15f8af400949480d1fa",
+          "status": "started"
+        },
+        {
+          "id": "e3c7317a-8759-4af8-9650-3e49e26af477",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "03bcdb99dd5f827839a3f833b1db87c718899db9c376d15f8af400949480d1fa",
+          "status": "completed",
+          "inputTokens": 436,
+          "outputTokens": 2500,
+          "responseDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "costUSD": null,
+      "attempt": "PdUEJI"
+    },
+    {
+      "status": "review-rejected",
+      "audit": [
+        {
+          "id": "27950a79-ee38-4987-8a76-7ed3e2c28e42",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "03bcdb99dd5f827839a3f833b1db87c718899db9c376d15f8af400949480d1fa",
+          "status": "started"
+        },
+        {
+          "id": "27950a79-ee38-4987-8a76-7ed3e2c28e42",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "03bcdb99dd5f827839a3f833b1db87c718899db9c376d15f8af400949480d1fa",
+          "status": "completed",
+          "inputTokens": 438,
+          "outputTokens": 467,
+          "responseDigest": "59b874871bde32c08ed75eb28a5a92bf0cb9ad51f54e599346e8cba6cbc8fd30"
+        }
+      ],
+      "costUSD": null,
+      "attempt": "9nmAoZ"
+    },
+    {
+      "status": "passed",
+      "audit": [
+        {
+          "id": "5d49af28-0335-49c3-b2d7-e9b8c1909c9c",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "5477eac946eeba13e2961e59325aa5ddd85d1477e0cca7affc599f68245c4df4",
+          "status": "started"
+        },
+        {
+          "id": "5d49af28-0335-49c3-b2d7-e9b8c1909c9c",
+          "taskId": "useful-invoice-report",
+          "model": "mimo-v2.6-flash",
+          "requestDigest": "5477eac946eeba13e2961e59325aa5ddd85d1477e0cca7affc599f68245c4df4",
+          "status": "completed",
+          "inputTokens": 785,
+          "outputTokens": 734,
+          "responseDigest": "44930aed25277d08ffeaeef1b0bba5c516a16bf38803639cdf7db31dc4f2265c"
+        }
+      ],
+      "costUSD": null,
+      "attempt": "2El5VV"
+    }
+  ],
+  "reviewedPlan": {
+    "taskId": "useful-invoice-report",
+    "source": "model",
+    "commands": [
+      {
+        "checkName": "generateReport",
+        "command": "mkdir -p artifacts && node -e '\nconst fs=require(\"fs\");\nconst data=JSON.parse(fs.readFileSync(\"inputs/invoices.json\",\"utf8\"));\nconst byId=new Map();\nfor(const inv of data){\n  const cur=byId.get(inv.id);\n  if(!cur||inv.revision>cur.revision) byId.set(inv.id,inv);\n}\nlet includedInvoices=0,voidInvoices=0,supersededRows=0;\nconst groups=new Map();\nfor(const inv of data){\n  const top=byId.get(inv.id);\n  if(inv!==top) supersededRows++;\n}\nfor(const inv of byId.values()){\n  if(inv.status===\"void\"){voidInvoices++;continue;}\n  includedInvoices++;\n  const key=inv.customer+\"\\u0000\"+inv.currency;\n  if(!groups.has(key)) groups.set(key,{customer:inv.customer,currency:inv.currency,netCents:0,count:0});\n  const g=groups.get(key);\n  g.count++;\n  g.netCents+= inv.status===\"refunded\" ? -inv.amountCents : inv.amountCents;\n}\nconst rows=[...groups.values()].sort((a,b)=>a.customer<b.customer?-1:a.customer>b.customer?1:a.currency<b.currency?-1:a.currency>b.currency?1:0);\nconst report={rows,includedInvoices,voidInvoices,supersededRows};\nfs.writeFileSync(\"artifacts/report.json\",JSON.stringify(report,null,2)+\"\\n\");\n'",
+        "timeoutMs": 15000
+      },
+      {
+        "checkName": "custom_script",
+        "command": "test -s artifacts/report.json",
+        "timeoutMs": 5000
+      },
+      {
+        "checkName": "verifyReport",
+        "command": "node -e '\nconst fs=require(\"fs\");\nconst r=JSON.parse(fs.readFileSync(\"artifacts/report.json\",\"utf8\"));\nconst keys=Object.keys(r).sort().join(\",\");\nif(keys!==\"includedInvoices,rows,supersededRows,voidInvoices\") throw new Error(\"bad top-level keys: \"+keys);\nconst exp=[\n {customer:\"Acme\",currency:\"EUR\",netCents:500,count:1},\n {customer:\"Acme\",currency:\"USD\",netCents:950,count:2},\n {customer:\"Beta\",currency:\"EUR\",netCents:-75,count:1},\n {customer:\"Beta\",currency:\"USD\",netCents:300,count:1},\n {customer:\"Gamma\",currency:\"USD\",netCents:0,count:1}\n];\nif(JSON.stringify(r.rows)!==JSON.stringify(exp)) throw new Error(\"rows mismatch: \"+JSON.stringify(r.rows));\nif(r.includedInvoices!==6) throw new Error(\"includedInvoices=\"+r.includedInvoices);\nif(r.voidInvoices!==1) throw new Error(\"voidInvoices=\"+r.voidInvoices);\nif(r.supersededRows!==2) throw new Error(\"supersededRows=\"+r.supersededRows);\nconsole.log(\"report verified\");\n'",
+        "timeoutMs": 10000
+      }
+    ]
+  }
+}

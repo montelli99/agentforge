@@ -49,10 +49,10 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   artifact, review the actual plan, execute it, independently inspect output and
   approve completion. Save setup screenshots, task journal and output hashes.
   Next: extend the existing live approval journey beyond its predefined fixture.
-- [ ] **P02 Real chat execution.** Use a live model to create a useful artifact
+- [ ] **P02 Real chat execution (execution proof passed; chat presentation pending).** Use a live model to create a useful artifact
   from synthetic inputs with no embedded solution. Verify output with a separate
   evaluator, record the actual commands and all model attempts, and show the
-  result in chat. Next: choose a bounded data-transformation task and freeze its
+  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Next: expose this verified result through the chat journey and carry it into P03. The protocol froze its
   input and evaluator before execution. Existing fixed-file proof is supporting
   evidence only and must not be reported as general task competence.
 - [ ] **P03 Recovery matrix.** On that workflow interrupt browser streaming,
