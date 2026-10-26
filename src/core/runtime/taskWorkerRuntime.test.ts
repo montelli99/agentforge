@@ -504,6 +504,17 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
       expect(selectedContext.content).toContain('Selected release source');
       expect(selectedContext.content).not.toContain('Alpha delivery rule');
+      const firstConflict=await selected.record({namespace:'selected',projectId:'project-alpha',category:'project_constraint',title:'Release spending ceiling',content:'Approved ceiling is USD 1200.',tags:['chat-context']});
+      const secondConflict=await selected.record({namespace:'selected',projectId:'project-alpha',category:'project_constraint',title:'Release spending ceiling',content:'Approved ceiling is USD 1800.',tags:['chat-context']});
+      const conflictContext=await runtimeWithMemory.getPlanningContext(task.id);
+      expect(conflictContext.content).toContain('USD 1200');
+      expect(conflictContext.content).toContain('USD 1800');
+      expect(conflictContext.sources.map(source=>source.memorySource?.recordId)).toEqual(expect.arrayContaining([firstConflict.id,secondConflict.id]));
+      const changingRecord=vi.spyOn(selected,'query')
+        .mockResolvedValueOnce([{record:firstConflict,score:1}])
+        .mockResolvedValueOnce([{record:{...firstConflict,content:'Changed during lookup',version:2},score:1}]);
+      await expect(runtimeWithMemory.getPlanningContext(task.id)).rejects.toThrow('Memory changed or conflicted during planning');
+      changingRecord.mockRestore();
       const stalled=vi.spyOn(selected,'query').mockImplementation(()=>new Promise(()=>{}));
       const cancellation=new AbortController();
       const waiting=runtimeWithMemory.getPlanningContext(task.id,cancellation.signal);
