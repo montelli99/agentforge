@@ -147,6 +147,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
+      - name: Verify Gemini deny policy against pinned official client
+        run: node scripts/gemini-pinned-policy-acceptance.mjs
+
       - name: Verify interrupted execution is not replayed
         run: pnpm test:execution:crash
 
