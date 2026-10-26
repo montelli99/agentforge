@@ -6,5 +6,6 @@ export function configureClaudeChat(env:NodeJS.ProcessEnv){
  if(env.AGENTFORGE_CHAT_PROVIDER!=='claude-cli')return undefined;
  if(env.AGENTFORGE_MODEL_CONNECTIONS_FILE||env.AGENTFORGE_CHAT_API_KEY)throw Error('Choose one explicit Claude subscription chat route; API fallback is not permitted.');
  const config=readClaudeCliPlannerConfiguration(env.AGENTFORGE_CHAT_CLAUDE_CONFIG??'');
- return {provider:new ClaudeCliPlanner(config),models:[config.model],config};
+ return {provider:new ClaudeCliPlanner(config),models:[config.model],config,
+  connections:[{model:config.model,connection:'Official Claude Code subscription',billing:'Subscription entitlement checked by the official client; no API fallback',status:'Configured; account and inference checked on each request'}]};
 }
