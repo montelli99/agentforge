@@ -15,7 +15,14 @@ export class GeminiNativeClient implements GovernedNativeClient {
   this.config=Object.freeze({...config});
  }
  private async profile(){
-  const home=await fs.realpath(this.config.homeDirectory);
+  // Inspect the supplied path before canonicalizing: realpath hides junctions.
+  let current=path.resolve(this.config.homeDirectory);
+  for(;;){
+   const stat=await fs.lstat(current);
+   if(stat.isSymbolicLink()||!stat.isDirectory())throw Error('Linked native profile rejected');
+   const parent=path.dirname(current);if(parent===current)break;current=parent;
+  }
+  const home=this.config.homeDirectory;
   for(const file of [home,path.join(home,'.gemini'),path.join(home,'.gemini','settings.json'),path.join(home,'.gemini','oauth_creds.json')]){
    const stat=await fs.lstat(file);if(stat.isSymbolicLink())throw Error('Linked native profile rejected');
   }
