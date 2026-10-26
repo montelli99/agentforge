@@ -1,0 +1,21 @@
+{
+  "initial": {
+    "passed": false,
+    "error": "Gateway authentication or protocol rejected; review the connection settings",
+    "noModelCalls": true,
+    "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+  },
+  "afterExactDeviceApproval": {
+    "passed": true,
+    "pairedExactDevice": true,
+    "hostLoopbackConnection": true,
+    "sessionDiscovery": true,
+    "sessionCount": 0,
+    "noModelCalls": true
+  },
+  "cause": "Gateway authenticated token but required device pairing across container network boundary.",
+  "pairingMethod": "Pinned OpenClaw devices approve with exact pending request ID, on isolated synthetic gateway.",
+  "failedReconnect": "Initial reconnect reused stale dynamically assigned port after restart. Corrected by reading docker port before connecting.",
+  "remaining": "Browser live delegation, user-facing pairing guidance and integrated remote artifact proof remain open.",
+  "containerStopped": true
+}
