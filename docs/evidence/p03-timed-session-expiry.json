@@ -1,0 +1,19 @@
+{
+  "requirement": "P03/P08",
+  "baseCommit": "d90774b62731dc6dac003eb582b85bebc98cef8c",
+  "proof": {
+    "passed": true,
+    "reviewedNewOperation": true,
+    "originalReceiptPreserved": true,
+    "repairExecutions": 1,
+    "outputUnchanged": true,
+    "syntheticModel": true,
+    "authenticationLossDuringExecution": true,
+    "timedSessionExpiry": true,
+    "finalBrowserApproval": true,
+    "durableCompletion": true
+  },
+  "method": "Create a one-second owner session with production WorkspaceStore.createSession, replace the test browser cookie, verify protected reads before expiry, wait past expiresAt, verify 401 and rejected bearer replay, then sign in and approve the recovered result.",
+  "scope": "Actual local session expiry during synthetic Docker/browser repair. Provider-token expiry remains separate.",
+  "runnerSha256": "c68c1415d49672f28dcb41c74a8b29c200c64c993bb6d6afc8e77fea89e63e8b"
+}
