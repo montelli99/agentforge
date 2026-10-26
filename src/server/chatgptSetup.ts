@@ -12,7 +12,7 @@ import {ChatGPTActiveConnection} from '../providers/models/chatgptActiveConnecti
 import type {ConversationConfiguration} from './conversationRuntime.js';
 import {signOutDirectSession} from '../providers/models/chatgptDirectSignOut.js';
 
-type Attempt={id:string;accountId:string;state:'waiting'|'verifying'|'ready'|'failed'|'cancelled';models:string[];session?:DirectSignInSession;abort:AbortController;connection?:ChatGPTActiveConnection};
+type Attempt={id:string;accountId:string;state:'waiting'|'verifying'|'ready'|'failed'|'cancelled';models:string[];failureMessage?:string;session?:DirectSignInSession;abort:AbortController;connection?:ChatGPTActiveConnection};
 const accountPattern=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 /** Authenticated web handlers own authorization; actor-scoped storage owns account separation. */
 export class ChatGPTSetup {
@@ -42,7 +42,7 @@ export class ChatGPTSetup {
    const registration=await new FileChatGPTDirectRegistrationStore(directory).load();
    if(registration)accounts.push({id,label:'ChatGPT account '+id.slice(0,8)});
   }
-  return {supported:true,accounts,attempt:attempt?{id:attempt.id,accountId:attempt.accountId,state:attempt.state,models:[...attempt.models]}:null};
+  return {supported:true,accounts,attempt:attempt?{id:attempt.id,accountId:attempt.accountId,state:attempt.state,models:[...attempt.models],...(attempt.state==='failed'?{failureMessage:attempt.failureMessage}: {})}:null};
  }
  async begin(actor:string,existingId?:string){
   if(this.closed||this.starting.has(actor)||['waiting','verifying'].includes(this.attempts.get(actor)?.state??''))throw Error('Sign-in already in progress');
@@ -66,11 +66,14 @@ export class ChatGPTSetup {
    void (async()=>{
     let exchanged:Awaited<ReturnType<typeof exchangeDirectCallback>>|undefined;
     try{
+     attempt.failureMessage='The browser sign-in did not finish. Start a fresh sign-in.';
      const callback=await session.waitForCallback();attempt.state='verifying';attempt.abort.signal.throwIfAborted();
      if(!saved?.clientId)await registration.saveIssuedClientId(host.hostId,callback.clientId,attempt.abort.signal);
      const signal=AbortSignal.any([attempt.abort.signal,AbortSignal.timeout(30000)]);
+     attempt.failureMessage='Account verification did not finish. No model was activated. Try signing in again.';
      const verifier=await createIsolatedIdentityVerifier(factory,callback,signal);
      exchanged=await exchangeDirectCallback(callback,createIsolatedTokenTransport(signal),verifier,randomUUID());
+     attempt.failureMessage='The verified account could not be saved in protected storage. Check local storage access before retrying.';
      signal.throwIfAborted();await store.replace(exchanged.credentials);
      if(!metadata)await fs.writeFile(path.join(directory,'account.json'),JSON.stringify({clientId:exchanged.credentials.clientId,subject:exchanged.credentials.subject}),{flag:'wx',mode:0o600});
      signal.throwIfAborted();
@@ -80,9 +83,10 @@ export class ChatGPTSetup {
       catalog:(token,abort)=>createIsolatedCatalogTransport(AbortSignal.any([operation.signal,abort])).list(token),
      });
      this.connections.set(connection,this.accountRoot(actor,accountId));attempt.connection=connection;
+     attempt.failureMessage='Your account was saved, but its model list could not be loaded. Try restoring the saved account before signing in again.';
      const models=await connection.listModels();
      if(attempt.abort.signal.aborted){connection.deactivate();throw Error('Cancelled');}
-     attempt.connection=connection;attempt.models=models;attempt.state='ready';
+     attempt.connection=connection;attempt.models=models;attempt.state='ready';delete attempt.failureMessage;
     }catch{this.discardConnection(attempt);attempt.state=attempt.abort.signal.aborted?'cancelled':'failed';}
     finally{exchanged?.discard();await session.cancel().catch(()=>{});}
    })();
@@ -113,7 +117,7 @@ export class ChatGPTSetup {
    const credentials=await store.read(metadata.clientId,metadata.subject);
    if(!credentials||credentials.renewalPending)throw Error('Fresh sign-in required');
    operation.signal.throwIfAborted();if(this.closed)throw Error('Setup stopped');
-   attempt={id:randomUUID(),accountId,state:'verifying',models:[],abort:operation};
+   attempt={id:randomUUID(),accountId,state:'verifying',models:[],abort:operation,failureMessage:'The saved account could not load its models. Check account access and try restoring it again.'};
    this.attempts.set(actor,attempt);
    const signal=attempt.abort.signal;
    const connection=new ChatGPTActiveConnection(credentials,{
