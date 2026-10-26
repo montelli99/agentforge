@@ -5,6 +5,11 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {randomUUID,createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {DockerComputeProvider} from '../src/core/compute/dockerComputeProvider.ts';
+import {ContractedDockerExecutionBackend} from '../src/core/runtime/contractedDockerExecutionBackend.ts';
+import {ApprovedPlanProvider,executionContractDigest} from '../src/core/runtime/approvedPlanProvider.ts';
+import {createNativeDockerSession} from '../src/core/runtime/nativeDockerBroker.ts';
 import {NativeToolAuthorization} from '../src/core/runtime/nativeToolAuthorization.ts';
 import {NativeToolBroker} from '../src/core/runtime/nativeToolBroker.ts';
 import {NativeBrokerSession} from '../src/core/runtime/nativeBrokerSession.ts';
@@ -18,12 +23,28 @@ let connection,client;
 try{
  const work=path.join(root,'work');await fs.mkdir(work);
  const gate=new NativeToolAuthorization(path.join(root,'host'),work);
- const identity={taskId:'synthetic',operationId:'operation',sessionId:'session'};
- const args={callId:'call',tool:'write',input:{text:'synthetic'}};const approvalId=randomUUID();
- const artifact=path.join(work,'result.txt');
- connection=await startNativeBrokerEndpoint(new NativeBrokerSession(identity,new NativeToolBroker(gate,async()=>{
+ const identity={taskId:'synthetic',operationId:randomUUID(),sessionId:'session'};
+ let args={callId:'call',tool:'write',input:{text:'synthetic'}};const approvalId=randomUUID();
+ const dockerMode=process.argv.includes('--docker');
+ let artifact=path.join(work,'result.txt');let imageId=null;let backend,task;
+ let session=new NativeBrokerSession(identity,new NativeToolBroker(gate,async()=>{
   await fs.appendFile(artifact,'one\n');return {evidence:await fs.readFile(artifact,'utf8')};
- })));
+ }));
+ if(dockerMode){
+  const repo=path.join(root,'repo');await fs.mkdir(repo);const git=values=>execFileSync('git',values,{cwd:repo,encoding:'utf8',windowsHide:true});
+  git(['init']);await fs.mkdir(path.join(repo,'artifacts'));await fs.writeFile(path.join(repo,'artifacts','result.txt'),'');await fs.writeFile(path.join(repo,'README.md'),'Synthetic native broker proof\n');git(['add','.']);git(['-c','user.name=Synthetic','-c','user.email=synthetic@example.invalid','commit','-m','fixture']);
+  git(['worktree','add','--detach',work,'HEAD']);
+  const write="node -e \"require('fs').appendFileSync('artifacts/result.txt','one\\n')\"";
+  const verify="node -e \"if(require('fs').readFileSync('artifacts/result.txt','utf8')!=='one\\n')process.exit(1)\"";
+  const now=new Date().toISOString();
+  task={id:identity.taskId,projectId:'synthetic',title:'Native Docker proof',description:'Synthetic',status:'ready',priority:'medium',createdAt:now,updatedAt:now,contract:{id:'contract',taskId:identity.taskId,version:1,createdAt:now,repository:{baseBranch:git(['branch','--show-current']).trim(),baseSha:git(['rev-parse','HEAD']).trim()},workspace:{requireIsolatedWorktree:true},scope:{allowedPaths:['artifacts/**'],protectedPaths:['.git/**','.env']},authority:{externalMessage:false,productionWrite:false,deployment:false,forcePush:false,deleteFiles:false,networkOutbound:false},requiredChecks:[{type:'custom_script',command:verify,required:true}],completion:{requireEvidencePack:true,requireHumanApproval:true,requiredArtifacts:[{path:'artifacts/result.txt'}]}}};
+  const plan={taskId:task.id,source:'human_approved',commands:[{checkName:'write',command:write,timeoutMs:10000},{checkName:'custom_script',command:verify,timeoutMs:10000}]};
+  imageId=execFileSync('docker',['image','inspect','node:22-alpine','--format','{{.Id}}'],{encoding:'utf8',windowsHide:true}).trim();
+  backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:imageId}),new ApprovedPlanProvider(async()=>({plan,contractDigest:executionContractDigest(task),approvedBy:'synthetic-owner',approvedAt:now,expiresAt:new Date(Date.now()+60000).toISOString()})),{resultJournalDirectory:path.join(root,'results')});
+  assert.equal((await backend.initialize()).ready,true);
+  const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization:gate,backend});session=bound.session;args={callId:'call',tool:bound.tool,input:bound.input};artifact=path.join(work,'artifacts','result.txt');
+ }
+ connection=await startNativeBrokerEndpoint(session);
  const {Client,createTransport}=await import(pathToFileURL(moduleFile).href);
  client=new Client({name:'agentforge-acceptance',version:'0.1.2'},{capabilities:{}});
  const transport=await createTransport('agentforge-broker',{url:connection.endpoint,type:'http',headers:{Authorization:'Bearer '+connection.token}},false,{sanitizationConfig:{enableEnvironmentVariableRedaction:false}});
@@ -31,10 +52,14 @@ try{
  assert.deepEqual((await client.listTools()).tools.map(tool=>tool.name),['dispatch']);
  const call={name:'dispatch',arguments:{approvalId,...args}};
  assert.equal((await client.callTool(call)).isError,true);
- await assert.rejects(fs.stat(artifact));
+ if(dockerMode)assert.equal(await fs.readFile(artifact,'utf8'),'');else await assert.rejects(fs.stat(artifact));
  await gate.approve(approvalId,{...identity,...args},'synthetic-owner',Date.now()+60000);
  assert.equal((await client.callTool(call)).isError,undefined);
  assert.equal((await client.callTool(call)).isError,true);
  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');
- console.log(JSON.stringify({scope:'Pinned Gemini MCP transport with synthetic host executor; not model inference or full CLI worker',moduleSha256:createHash('sha256').update(await fs.readFile(moduleFile)).digest('hex'),discovery:true,missingApprovalDenied:true,approvedEffectCount:1,duplicateDenied:true,modelRequests:0,accountUsed:false}));
+ if(dockerMode){const recovered=await backend.recoverResult({task,operationId:identity.operationId,worktreePath:work});assert.ok(recovered.artifacts.length);assert.ok(recovered.testResults.length);assert.ok(recovered.testResults.every(check=>check.passed));assert.equal((await backend.inspectSurvivors({operationId:identity.operationId,worktreePath:work})).length,0);}
+ console.log(JSON.stringify({scope:dockerMode?'Pinned Gemini MCP transport -> broker -> real contracted Docker; synthetic approved plan, no model inference':'Pinned Gemini MCP transport with synthetic host executor; not model inference or full CLI worker',imageId,moduleSha256:createHash('sha256').update(await fs.readFile(moduleFile)).digest('hex'),discovery:true,missingApprovalDenied:true,approvedEffectCount:1,duplicateDenied:true,durableResultRecovered:dockerMode,modelRequests:0,accountUsed:false}));
 }finally{await client?.close();await connection?.close();await fs.rm(root,{recursive:true,force:true});}
+
+
+
