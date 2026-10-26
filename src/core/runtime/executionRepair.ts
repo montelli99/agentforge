@@ -1,3 +1,4 @@
+import {planningAuditUnresolved} from './executionReceipt.js';
 import type {Task} from '../types/task.js';
 import type {ApprovedPlanRecord} from './approvedPlanProvider.js';
 import {requestDigest,validateReceipt} from './executionReceipt.js';
@@ -11,7 +12,7 @@ export function prepareExecutionRepair(task:Task,plan:ApprovedPlanRecord,workspa
  if(task.status!=='failed'||!receipt||receipt.status!=='observed'||receipt.evidence?.verifiedPassed!==false
    ||receipt.receiptDigest!==reviewedReceiptDigest||!plan.approvedBy.trim())throw Error('Review the observed failed operation before approving a repair');
  validateReceipt(task,receipt,workspace,worktree);
- if(task.planningAudits?.some(a=>a.status!=='completed'))throw Error('Unresolved planning usage');
+ if(task.planningAudits?.some(planningAuditUnresolved))throw Error('Unresolved planning usage');
  if(JSON.stringify(plan.plan.commands)===JSON.stringify(task.approvedExecutionPlan?.plan.commands))throw Error('Repair must contain a newly reviewed corrected plan');
  return {priorOperationId:receipt.operationId,priorReceiptDigest:receipt.receiptDigest,previousPlan:task.approvedExecutionPlan,
  nextRequestDigest:requestDigest({...task,approvedExecutionPlan:plan}),approvedBy:plan.approvedBy,approvedAt:plan.approvedAt};

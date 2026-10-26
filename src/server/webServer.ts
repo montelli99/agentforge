@@ -1,3 +1,4 @@
+import {planningAuditUnresolved} from '../core/runtime/executionReceipt.js';
 import { ConnectionSetup } from './connectionSetup.js';
 import {reviewMemoryImport, MemoryImportValidationError} from './memoryImport.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
@@ -4113,7 +4114,7 @@ export class AgentForgeWebServer {
           res.writeHead(200, { "Cache-Control": "no-store" });
           res.end(JSON.stringify({ expectedUpdatedAt: task.updatedAt, status: task.status,
             receipt: receipt ? { operationId: receipt.operationId, receiptDigest: receipt.receiptDigest, status: receipt.status, startedAt: receipt.startedAt, verifiedPassed: receipt.evidence?.verifiedPassed === true } : null,
-            unknownPlanningCount: task.planningAudits?.filter(item => item.status !== "completed").length ?? 0,
+            unknownPlanningCount: task.planningAudits?.filter(planningAuditUnresolved).length ?? 0,
             message: "Recorded results may be restored after validation. Unknown effects or usage remain quarantined; commands are never replayed by review." })); return;
         }
         if (req.method !== "POST" || action !== "resolve-receipt") { res.writeHead(405); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
@@ -4130,7 +4131,7 @@ export class AgentForgeWebServer {
         try {
           if (this.taskWorkerRuntime.isTaskExecuting(task.id)) throw new Error("Pause active execution before reviewing its receipt.");
           if (["completed", "cancelled"].includes(current.status)) throw new Error("Finished tasks cannot be resolved again.");
-          if (body.decision === "restore-observed" && current.planningAudits?.some(item => item.status !== "completed")) throw new Error("Planning usage is unknown. Keep this task quarantined.");
+          if (body.decision === "restore-observed" && current.planningAudits?.some(planningAuditUnresolved)) throw new Error("Planning usage is unknown. Keep this task quarantined.");
           const updated = body.decision === "recover-journal" ? await this.taskWorkerRuntime.recoverJournaledExecution(task.id) : body.decision === "restore-observed"
             ? this.taskWorkerRuntime.reconcileObservedExecution(task.id)
             : this.store.updateTask(task.id, { status: "paused" });
@@ -4252,7 +4253,7 @@ export class AgentForgeWebServer {
               persist: async audit => {
                 const current = this.store.getTask(audit.taskId);
                 if (!current) throw Error('Planning task unavailable.');
-                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && item.status !== 'completed')) throw Error('Unresolved planning usage: inspect the audit before retrying.');
+                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && planningAuditUnresolved(item))) throw Error('Unresolved planning usage: inspect the audit before retrying.');
                 this.store.updateTask(current.id, { planningAudits: [...(current.planningAudits ?? []).filter(item => item.id !== audit.id), audit] });
               },
             }, directSubscription ? 'chatgpt-direct' : 'default');

@@ -10,7 +10,7 @@ import type {
   ModelResponse,
   StreamChunk,
 } from "../../core/providers/model.js";
-import { isReportedModelId } from "../../core/providers/model.js";
+import { ModelAuthenticationRejectedError, isReportedModelId } from "../../core/providers/model.js";
 import { redactRuntimeText } from "../../core/secret/runtimeRedaction.js";
 
 /** Convert internal conversation fields to the Chat Completions wire schema. */
@@ -105,6 +105,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
       signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
 
+    if (res.status===401||res.status===403) throw new ModelAuthenticationRejectedError(res.status);
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new Error(`OpenAI error ${res.status}: ${redactRuntimeText(text.slice(0, 200))}`);
@@ -158,6 +159,7 @@ export class OpenAIModelProvider implements GenerativeModelProvider {
       signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
 
+    if (res.status===401||res.status===403) throw new ModelAuthenticationRejectedError(res.status);
     if (!res.ok || !res.body) {
       throw new Error(`OpenAI stream error ${res.status}`);
     }

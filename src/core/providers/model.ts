@@ -90,3 +90,8 @@ export interface GenerativeModelProvider {
   stream(options: ModelRequestOptions): AsyncIterable<StreamChunk>;
 }
 export class ModelProviderError extends Error { constructor(message:string, readonly usage?:ModelResponseUsage, readonly responseDigest?:string){super(message);this.name="ModelProviderError";} }
+
+/** Explicit HTTP authentication refusal before a generation response, not a transport timeout. */
+export class ModelAuthenticationRejectedError extends ModelProviderError {
+ constructor(readonly httpStatus:401|403){super('Model provider rejected authentication ('+httpStatus+'). Reconnect the provider, then explicitly request a new draft. No automatic retry was sent.');this.name='ModelAuthenticationRejectedError';}
+}

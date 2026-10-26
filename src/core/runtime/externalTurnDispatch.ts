@@ -1,3 +1,4 @@
+import {planningAuditUnresolved} from './executionReceipt.js';
 import crypto from 'node:crypto';
 import type {WorkspaceStore} from '../store/workspaceStore.js';
 import type {Task} from '../types/task.js';
@@ -18,7 +19,7 @@ export function prepareExternalTurnApproval(store: WorkspaceStore, taskId: strin
   validateRequest(request);
   const task = store.getTask(taskId);
   if (!task || !requesterAgentId.trim() || ['cancelled','completed','failed','in_progress','verification_running'].includes(task.status)
-    || task.externalTurnReceipts?.length || task.executionReceipts?.length || task.planningAudits?.some(item=>item.status!=='completed')) throw Error('Task is not available for external approval');
+    || task.externalTurnReceipts?.length || task.executionReceipts?.length || task.planningAudits?.some(planningAuditUnresolved)) throw Error('Task is not available for external approval');
   const action = externalTurnApprovalAction(task,request);
   const existing = store.listApprovals('pending').find(item=>item.taskId===taskId && item.action===action && Date.parse(item.expiresAt ?? '')>Date.now());
   if (existing) return existing;
@@ -36,7 +37,7 @@ export async function dispatchExternalTurn(store: WorkspaceStore, taskId: string
   validateRequest(request);
   const task = store.getTask(taskId), approval = store.getApproval(approvalId);
   if (!task || !approval || connection.id !== request.connectionId || !request.connectionId.trim() || !request.sessionKey.trim() || !request.message.trim()) throw Error('External task connection or scope is missing');
-  if (task.executionReceipts?.length || ['in_progress','verification_running'].includes(task.status) || task.planningAudits?.some(item => item.status !== 'completed')) throw Error('Existing local execution or unresolved planning must be reconciled first');
+  if (task.executionReceipts?.length || ['in_progress','verification_running'].includes(task.status) || task.planningAudits?.some(planningAuditUnresolved)) throw Error('Existing local execution or unresolved planning must be reconciled first');
   if (task.externalTurnReceipts?.length) throw Error('External submission already recorded; reconcile it before any further dispatch');
   const digest = externalTurnApprovalAction(task, request);
   const now = Date.now(), decided = Date.parse(approval.decidedAt ?? ''), expires = Date.parse(approval.expiresAt ?? '');
