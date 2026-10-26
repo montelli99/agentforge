@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-26T14:48:12.770Z",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "network": "none",
+  "hostMounts": [],
+  "realCredentials": false,
+  "syntheticTask": true,
+  "result": {
+    "status": 1,
+    "error": null,
+    "stdout": "{\"type\":\"session\",\"sessionId\":\"session-7fe0c249-150a-4ee8-9562-0c50b12acdae\",\"cwd\":\"/tmp\"}\n{\"type\":\"status\",\"phase\":\"turn_start\",\"turn\":1}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":1}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":1,\"usage\":{\"inputTokens\":0,\"outputTokens\":0,\"totalTokens\":0}}\n{\"type\":\"status\",\"phase\":\"turn_end\",\"turn\":1,\"reason\":{\"kind\":\"error\",\"error\":{\"message\":\"Connection error.\",\"code\":\"TRANSPORT\"}}}\n{\"type\":\"final\",\"text\":\"\"}\n",
+    "stderr": "dsh: TRANSPORT: Connection error.\n"
+  },
+  "acceptance": false,
+  "scope": "Offline configuration loading diagnostic; expected unavailable model endpoint, not task acceptance"
+}
