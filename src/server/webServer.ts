@@ -4327,7 +4327,10 @@ export class AgentForgeWebServer {
         if (!current || current.updatedAt !== body.expectedUpdatedAt) {
           res.writeHead(409); res.end(JSON.stringify({ error: "Task changed while the plan was being approved." })); return;
         }
-        this.store.updateTask(task.id, { approvedExecutionPlan: record });
+        if(current.executionReceipts?.length){
+          try{if(typeof body.reviewedReceiptDigest!=='string')throw Error('Review the previous effects before approving a repair');this.taskWorkerRuntime.approveRepairPlan(task.id,record,body.reviewedReceiptDigest);}
+          catch(error){res.writeHead(409);res.end(JSON.stringify({error:redactRuntimeError(error,'Repair review required.')}));return;}
+        }else this.store.updateTask(task.id, { approvedExecutionPlan: record });
         this.store.recordAudit({ origin: "web", actorId: record.approvedBy, actorType: "user", action: "EXECUTION_PLAN_APPROVED", targetType: "task", targetId: task.id, details: { contractDigest: record.contractDigest, commandCount: record.plan.commands.length, expiresAt: record.expiresAt } });
         res.writeHead(200); res.end(JSON.stringify({ plan: record, message: "Plan approved for one hour. No execution was started." })); return;
       }

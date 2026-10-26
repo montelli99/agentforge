@@ -7,6 +7,8 @@
  */
 
 import crypto from "node:crypto";
+import {hasApprovedExecutionRepair,prepareExecutionRepair} from './executionRepair.js';
+import type {ApprovedPlanRecord} from './approvedPlanProvider.js';
 import {assertSelectedRepository, readRepositoryBaseline} from './repositoryBaseline.js';
 import {beginReceipt,observeReceipt,validateReceipt,type ExecutionReceipt} from "./executionReceipt.js";
 import { redactRuntimeError, redactRuntimeText, redactRuntimeValue } from "../secret/runtimeRedaction.js";
@@ -230,7 +232,7 @@ export class TaskWorkerRuntime {
     if (task.status === "completed" || task.status === "cancelled") return task;
     if (this.activeTaskExecutions.has(taskId)) throw new Error(`Task ${taskId} is already executing`);
 
-    if (this.options.requireEffectReceipts && task.executionReceipts?.at(-1)?.status === "observed") return this.reconcileObservedExecution(taskId);
+    if (this.options.requireEffectReceipts && task.executionReceipts?.at(-1)?.status === "observed" && !hasApprovedExecutionRepair(task,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd())) return this.reconcileObservedExecution(taskId);
     if (this.options.requireEffectReceipts) this.assertReplaySafe(task);
     let receipt: ExecutionReceipt | undefined;
     const abortController = new AbortController();
@@ -396,7 +398,13 @@ export class TaskWorkerRuntime {
     return this.executeTask(taskId);
   }
 
-  private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
+  private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){if(hasApprovedExecutionRepair(task,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd()))return;validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
+  approveRepairPlan(taskId:string,record:ApprovedPlanRecord,reviewedReceiptDigest:string):Task {
+    const task=this.requireTask(taskId);
+    if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');
+    const approval=prepareExecutionRepair(task,record,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd(),reviewedReceiptDigest);
+    return this.store.updateTask(taskId,{approvedExecutionPlan:record,executionRepairs:[...(task.executionRepairs??[]),approval]});
+  }
   reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(['completed','cancelled'].includes(task.status))throw Error('Finished tasks cannot be resolved again');if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage unknown: reconcile audit before restoring execution');if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');if(task.contract.completion.requireHumanApproval||receipt.evidence.approvalId){const approval=receipt.evidence.approvalId?this.store.getApproval(receipt.evidence.approvalId):undefined;if(!approval||approval.taskId!==task.id||approval.status!=='pending')throw Error('Recorded result requires its original pending approval; reconcile approval before restoring');}const status:TaskStatus=(task.contract.completion.requireHumanApproval||receipt.evidence.approvalId)?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
   async recoverJournaledExecution(taskId:string):Promise<Task>{
     const task=this.requireTask(taskId),receipt=task.executionReceipts?.at(-1);

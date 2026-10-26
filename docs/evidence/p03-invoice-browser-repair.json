@@ -1,0 +1,30 @@
+{
+  "requirement": "P03/P08",
+  "proof": {
+    "passed": true,
+    "reviewedNewOperation": true,
+    "originalReceiptPreserved": true,
+    "repairExecutions": 1,
+    "independentInvoiceCheck": true,
+    "finalBrowserApproval": true,
+    "durableCompletion": true
+  },
+  "baseCommit": "6a8da3b",
+  "taskId": "task-31d7663c-dc41-4447-9629-aacd4778eccc",
+  "operationIds": [
+    "912c20af-9221-4769-b4da-bf22d76d7b9c",
+    "1014db5e-d9af-48c1-8473-7c63a1eaa37d"
+  ],
+  "receiptDigests": [
+    "aa4fb7de822910af57ac702ebcba8c85f5fc0c487afbb5ad37d17a8bd0ac4d93",
+    "94ac797c97e6441ec2019199a1a14bc0c804cf95f7ee15815d6a30f939231d99"
+  ],
+  "screenshotSha256": "4dfb59237f9769cc1f1d64cbe18ca6fe97930e999d2f61381b613fa60d46ffd7",
+  "runnerSha256": "08684acdbfd776e48b50e4953b1d190dffef280993583619ed390fbb1781cada",
+  "scope": "Actual failed live-model invoice task repaired through authenticated browser approval and real Docker; corrected live-model draft was loaded from saved repair proof. No new inference in this browser session. Full clean-install setup and broader fault matrix remain open.",
+  "harnessFailures": [
+    "Initial harness attempted signup instead of existing-owner login",
+    "Worker was not started for task controls",
+    "Default workspace rejected by receipt identity check; selected actual task project workspace"
+  ]
+}
