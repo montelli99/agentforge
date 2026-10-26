@@ -124,3 +124,15 @@ it('standalone memory owns stored inputs and returns detached records and histor
   expect(await memory.get('synthetic',saved.id)).toMatchObject({title:'Updated',content:'Original content',tags:['updated'],version:2,revisions:[{content:'Original content',tags:['original']}]});
   expect(()=>memory.update('synthetic',saved.id,1,'synthetic-owner',{title:'stale'})).toThrow('changed elsewhere');
 });
+
+it('rejects malformed adapter revisions and timestamps before accepting memory context', async () => {
+ const memory=new OperationalMemoryProvider();
+ const record=await memory.record({namespace:'synthetic',category:'general_fact',title:'Revision test',content:'Synthetic',tags:[]});
+ const query=vi.spyOn(memory,'query');
+ for(const patch of [{version:0},{version:-1},{version:1.5},{version:NaN},{version:Number.MAX_SAFE_INTEGER+1},{updatedAt:'not a date'}]){
+  query.mockResolvedValueOnce([{record:{...record,...patch},score:1}]);
+  await expect(queryMemoryBounded(memory,{namespace:'synthetic'})).rejects.toThrow('Invalid memory provider response');
+ }
+ query.mockResolvedValueOnce([{record:{...record,version:undefined,updatedAt:undefined},score:1}]);
+ expect(await queryMemoryBounded(memory,{namespace:'synthetic'})).toHaveLength(1);
+});

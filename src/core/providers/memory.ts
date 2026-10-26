@@ -136,6 +136,8 @@ export async function queryMemoryBounded(provider:MemoryProvider,query:MemoryQue
         || !Array.isArray(record.tags) || record.tags.length > 100
         || record.tags.some(tag => typeof tag !== 'string' || tag.length > 256)
         || typeof record.createdAt !== 'string' || !Number.isFinite(Date.parse(record.createdAt))
+        || (record.version !== undefined && (!Number.isSafeInteger(record.version) || record.version < 1))
+        || (record.updatedAt !== undefined && (typeof record.updatedAt !== 'string' || !Number.isFinite(Date.parse(record.updatedAt))))
         || !Number.isFinite(result.score)) throw Error('Invalid memory provider response');
       if (record.namespace !== query.namespace || (query.projectId !== undefined && record.projectId !== undefined && record.projectId !== query.projectId)
         || (query.globalOnly && record.projectId !== undefined) || (!query.includeArchived && record.archived)
