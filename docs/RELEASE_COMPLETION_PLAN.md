@@ -1214,3 +1214,23 @@ receipts, final approval and artifact-grounded chat surviving reload. Evidence:
 attempts are recorded; the harness change is disclosed and no superiority or
 full-release claim follows. Hosted commit a2b1c6d passed all seven jobs in
 `evidence/ci-a2b1c6d.json`; later changes still require hosted verification.
+
+### Version 3 comparison completed, with limitations
+All 18 scheduled attempts are retained in `evidence/p09-v3-report.json`, generated
+by `node scripts/release-evaluation-v3-report.mjs`. The generator checks each
+attempt identity, protocol hash, shared archive hash and reported usage, and
+records SHA-256 for each source evidence file. AgentForge passed 8/9 artifact
+checks and 7/9 full journeys; direct baseline passed 7/9 artifact checks.
+AgentForge used 42 provider requests and 80,335 reported tokens; direct used nine
+requests and 5,376 tokens. Costs are unknown. Provider time, total elapsed time
+and manual review time are separate in the report; total elapsed is not a clean
+speed comparison. Only three synthetic tasks were repeated, and the fixture
+harness changed after the first infrastructure failure. These results establish
+neither general reliability nor competitive superiority.
+
+Required repair discovered: shipment trial 3 completed execution and recovery,
+but final chat returned content without invoking the verified artifact reader.
+Keep that failure in the evaluation. Fix grounding in a separately versioned
+runtime and prove the behavior with independent regression and live acceptance.
+P01–P10 remain the full release scope; completing this experiment is not release
+acceptance.
