@@ -58,6 +58,17 @@ describe('survivor discovery HTTP boundary', () => {
       expect(detail).not.toContain('synthetic-secret-value');
       expect(detail).toContain('[REDACTED_SECRET]');
       expect(restore).toHaveBeenCalledTimes(1);
+      const recover=vi.spyOn(runtime,'recoverJournaledExecution').mockResolvedValue(before!);
+      const recoverRequest=(token:string|undefined,stamp=before!.updatedAt)=>fetch(base+'/api/tasks/synthetic-task/resolve-receipt',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({expectedUpdatedAt:stamp,operationId:null,receiptDigest:null,decision:'recover-journal'})});
+      expect((await recoverRequest(undefined)).status).toBe(401);
+      expect((await recoverRequest(reader)).status).toBe(403);
+      expect((await recoverRequest(reviewer,'stale')).status).toBe(409);
+      expect(recover).not.toHaveBeenCalled();
+      const expired=await login('reviewer');store.validateSession(expired)!.expiresAt='2000-01-01T00:00:00.000Z';
+      expect((await recoverRequest(expired)).status).toBe(401);expect(recover).not.toHaveBeenCalled();
+      expect((await recoverRequest(reviewer)).status).toBe(200);expect(recover).toHaveBeenCalledTimes(1);
+      recover.mockRejectedValueOnce(Error('Recovery failed: api_key=synthetic-secret-value-12345678'));
+      const denied=await recoverRequest(reviewer);expect(denied.status).toBe(409);expect(await denied.text()).not.toContain('synthetic-secret-value');
       expect(store.getTask('synthetic-task')).toEqual(before);
     } finally {
       await server.stop();
@@ -66,3 +77,4 @@ describe('survivor discovery HTTP boundary', () => {
     }
   });
 });
+

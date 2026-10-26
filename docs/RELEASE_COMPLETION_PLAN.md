@@ -642,3 +642,12 @@ verification, concurrent task changes, overlapping recovery (one approval only),
 and preserved human review for originally automatic tasks. Full typechecks pass.
 These close the stated recovery cases, not the entire P03 matrix (authentication
 expiry, conflicting memory and broader shutdown combinations remain).
+
+P03 recovery HTTP regression now checks anonymous access, missing permissions,
+stale snapshots and expired sessions are refused before invoking recovery; a valid
+reviewer reaches recovery and errors are sanitized. The self-contained hosted
+runner materializes the committed reviewed invoice plan and synthetic input,
+expects abrupt process exit 74, then opens fresh authenticated browser recovery
+and runs the independent invoice oracle. Local run passed with zero recovery
+executions and zero new paid requests. CI now runs this case on Linux alongside
+existing browser acceptance; hosted result remains pending.

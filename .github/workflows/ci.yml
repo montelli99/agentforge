@@ -71,6 +71,7 @@ jobs:
           AGENTFORGE_BROWSER_LOCAL=1 pnpm test:connections:browser
           pnpm test:approval:browser
           AGENTFORGE_BROWSER_INVOICE_PROOF=1 pnpm test:approval:browser
+          node scripts/invoice-recovery-ci.mjs
           pnpm test:migration:browser
           node scripts/external-recovery-browser-acceptance.mjs
 
