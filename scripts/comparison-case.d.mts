@@ -1,0 +1,1 @@
+export function comparisonCase(id:string):Promise<{id:string;prompt:string;inputSha256:string;stage(root:string):Promise<void>;score(root:string):Promise<{passed:boolean;reason?:string;mismatchedFields?:string[];extraFieldCount?:number}>}>;
