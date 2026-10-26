@@ -40,3 +40,12 @@ test('provider timeout aborts request and retains unknown usage',async t=>{
  const {send,proxy}=await fixture(t,{timeoutMs:20,fetchImpl:async(_url,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}))});
  assert.equal((await send()).status,502);assert.equal(proxy.audits[0].status,'failed');assert.equal(proxy.audits[0].usage,null);
 });
+
+test('terminal SSE receipt is persisted before DONE reaches the client',async t=>{
+ let saved;let cancelled=false;
+ const body=new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('data: {"usage":{"prompt_tokens":8,"completion_tokens":3}}\n\ndata: [DONE]\n\n'));},cancel(){cancelled=true;}});
+ const {send,proxy}=await fixture(t,{record:async audits=>{await new Promise(r=>setTimeout(r,5));saved=audits;},fetchImpl:async()=>new Response(body,{headers:{'Content-Type':'text/event-stream'}})});
+ const response=await send({messages:[],stream:true});assert.match(await response.text(),/DONE/);
+ assert.equal(saved[0].status,'response');assert.deepEqual(saved[0].usage,{inputTokens:8,outputTokens:3});
+ assert.equal(proxy.audits[0].status,'response');assert.equal(cancelled,true);
+});

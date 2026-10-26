@@ -7,20 +7,20 @@ The complete acceptance scope remains [P01–P10](RELEASE_COMPLETION_PLAN.md).
 ## Verified development progress
 
 - Live ChatGPT subscription sign-in, inference, explicit renewal and protected
-  session restore have evidence in [the acceptance index](evidence/p06-chatgpt-acceptance-index.json).
+  session restore have evidence in [the acceptance index](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-acceptance-index.json).
   The ordinary chat/task-worker path completed a synthetic approved Docker task
-  with a [disconnected response](evidence/p06-chatgpt-runtime-disconnect.json).
-  [Actual worker termination](evidence/p06-chatgpt-runtime-crash.json) after durable
+  with a [disconnected response](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-runtime-disconnect.json).
+  [Actual worker termination](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-runtime-crash.json) after durable
   output recovered to pending final approval without execution replay.
-  [Live cancellation](evidence/p06-chatgpt-live-cancellation.json) delivered no
+  [Live cancellation](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-live-cancellation.json) delivered no
   actions and allowed an explicit subsequent restore. These are bounded cases,
   not evidence for every crash point, automatic token expiry or browser setup.
 - Pinned installed OpenClaw and Hermes completed synthetic invoice workflows,
-  recovered unread results and exercised Stop. See [OpenClaw recovery](evidence/p04-installed-unread-restart.json),
-  [Hermes guided workflow](evidence/p08-installed-hermes-guided-workflow.json), and
-  [Hermes partial-effect Stop](evidence/p05-installed-partial-effect-stop.json).
+  recovered unread results and exercised Stop. See [OpenClaw recovery](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p04-installed-unread-restart.json),
+  [Hermes guided workflow](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p08-installed-hermes-guided-workflow.json), and
+  [Hermes partial-effect Stop](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p05-installed-partial-effect-stop.json).
   Their installed revisions are recorded in those files and are not the final candidate.
-- [Two-hop memory migration](evidence/p07-two-hop-memory-migration.json) preserved
+- [Two-hop memory migration](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p07-two-hop-memory-migration.json) preserved
   conflicting facts, revisions and project history, rejected conflicting overwrite,
   and preserved deletion across fresh processes. This covers built-in memory;
   live Hindsight acceptance is outstanding.

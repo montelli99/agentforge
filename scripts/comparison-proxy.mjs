@@ -28,7 +28,16 @@ export function comparisonProxy({token,apiKey,endpoint,model,maxRequests,maxOutp
     const type=response.headers.get('content-type')||'application/json';
     res.writeHead(response.status,{'Content-Type':type});
     let captured='',size=0;
-    for await(const chunk of response.body??[]){size+=chunk.length;if(size>8*1024*1024)throw Error('Response limit');captured+=Buffer.from(chunk).toString('utf8');res.write(chunk);}
+    for await(const chunk of response.body??[]){
+     size+=chunk.length;if(size>8*1024*1024)throw Error('Response limit');captured+=Buffer.from(chunk).toString('utf8');
+     // Clients may close as soon as they see DONE. Persist the terminal receipt
+     // before forwarding it, so that close cannot erase completed accounting.
+     if(type.includes('text/event-stream')&&/(?:^|\n)data: \[DONE\](?:\r?\n|$)/.test(captured)){
+      Object.assign(audit,{status:'response',httpStatus:response.status,elapsedMs:performance.now()-start,...reportedUsage(captured,type)});
+      await record(structuredClone(audits));res.end(chunk);return;
+     }
+     res.write(chunk);
+    }
     Object.assign(audit,{status:'response',httpStatus:response.status,elapsedMs:performance.now()-start,...reportedUsage(captured,type)});
     await record(structuredClone(audits));res.end();
    }finally{clearTimeout(timer);}

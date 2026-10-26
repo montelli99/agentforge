@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-10-26T17:28:15.511Z",
+  "status": "failed",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "model": "mimo-v2.6-flash",
+  "maxRequests": 3,
+  "maxOutputTokens": 1000,
+  "syntheticTask": true,
+  "scoredComparison": false,
+  "providerCredentialInClient": false,
+  "proxySha256": "7468765e0a2967076125e29d2158318e988a79636cfcc054ba22299e9c1a8857",
+  "elapsedMs": 11681.0108,
+  "exitCode": 0,
+  "artifactMatches": true,
+  "artifactSha256": "c797d6b20c31b1c56816fdacfed01cc2564c87c29ed6ecf0323a348723e45664",
+  "audits": [
+    {
+      "request": 1,
+      "status": "failed",
+      "usage": null,
+      "cost": null
+    },
+    {
+      "request": 2,
+      "status": "failed",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "error": "Acceptance assertion failed"
+}
