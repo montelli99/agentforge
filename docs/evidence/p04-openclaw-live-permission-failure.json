@@ -1,0 +1,13 @@
+{
+  "requirement": "P04",
+  "runtime": "OpenClaw 2026.10.7",
+  "image": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "outcome": "failed before model request",
+  "providerRequests": 0,
+  "reason": "system provenance fields require admin scope",
+  "upstreamFinding": "chat.send suppressCommandInterpretation=true requires operator.admin; adapter currently requests operator.read/operator.write",
+  "initialHarnessFailure": "Probe called nonexistent connect method; corrected to connectWhenReady before actual upstream attempt",
+  "privateProfilesMounted": false,
+  "containersStopped": true,
+  "remainingWork": "Implement an explicit authority-compatible connection path preserving command suppression; repeat live task, reconnect and cancellation proof."
+}
