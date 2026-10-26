@@ -1,0 +1,27 @@
+{
+  "recordedAt": "2026-10-26T14:21:49.337Z",
+  "sourceCommit": "de34a1c9406aeb2f5da44d4bb3058e71b678cb64",
+  "command": "pnpm check",
+  "exitCode": 0,
+  "tests": {
+    "filesPassed": 160,
+    "passed": 927,
+    "skipped": 2,
+    "failed": 0
+  },
+  "checks": [
+    "Full source and script typechecking",
+    "Original evaluation evidence integrity",
+    "Product isolation",
+    "Full regression suite",
+    "Clean build and browser-script syntax",
+    "Public package surface and known-signature privacy scan"
+  ],
+  "archiveSha256": "01d6def328d44966dd1ff450e3ddaef3defd256ffca9c20a0f35c03e707a20dc",
+  "packageFilesScanned": 486,
+  "limits": [
+    "Local checks; latest source still requires hosted CI",
+    "Not live subscription or Hindsight acceptance",
+    "Privacy scan covers configured signatures, not every possible sensitive datum"
+  ]
+}
