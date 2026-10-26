@@ -1,5 +1,6 @@
 import { modelConnectionCatalog, subscriptionConnectionCatalog } from "../providers/models/modelConnections.js";
 import { conversationTools, invokeConversationTool } from "./conversationTools.js";
+import {requestedArtifactReads} from './artifactGrounding.js';
 import type { TaskWorkerRuntime } from "../core/runtime/taskWorkerRuntime.js";
 import type { ServerResponse } from "node:http";
 import type { GenerativeModelProvider, ModelMessage } from "../core/providers/model.js";
@@ -155,6 +156,15 @@ export class ConversationRuntime {
     try {
       response.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
       send({ type: "started", model });
+      // Ground explicitly requested saved outputs before a model can answer from memory.
+      const artifactReads=requestedArtifactReads(this.store.listTasks().filter(task=>task.originThreadId===threadId&&task.projectId===project?.id),prompt.content);
+      for(const [index,args] of artifactReads.entries()){
+        const result=await invokeConversationTool(this.store,this.worker,threadId,promptId,'read_task_artifact',JSON.stringify(args),controller.signal);
+        const callId=`grounded-artifact-${index}`;
+        messages.push({role:'assistant',content:'Read the requested verified output as reference data.',toolCalls:[{id:callId,type:'function',function:{name:'read_task_artifact',arguments:JSON.stringify(args)}}]});
+        messages.push({role:'tool',toolCallId:callId,content:JSON.stringify(result)});
+        send({type:'tool',name:'read_task_artifact',result});
+      }
       for (let round = 0; round < 12; round++) {
         if (messages.reduce((n, m) => n + m.content.length, 0) > 180000) throw new Error("Tool context budget exceeded.");
         const calls = new Map<string, { id: string; type: "function"; function: { name: string; arguments: string } }>();
