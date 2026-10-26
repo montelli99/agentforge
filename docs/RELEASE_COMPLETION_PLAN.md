@@ -1377,3 +1377,19 @@ P07 two-hop migration now preserves conflicting facts, original revisions and th
 P09 installed DeepSeek now passes the unified process-attempt lifecycle with a synthetic model: reservation, bounded process, independent artifact check, proxy accounting and immutable final outcome. Evidence: `evidence/p09-deepseek-process-lifecycle.json`; reproducer: `node --import tsx scripts/deepseek-process-acceptance.ts ABSOLUTE_NEW_EVIDENCE_FILE`. The pinned local Docker image from the startup evidence must exist. Network is disabled. This is infrastructure acceptance, not a frozen live comparison score; AgentForge-arm integration and matched live trials remain required.
 
 P09 AgentForge also passes the common attempt lifecycle through its real conversation runtime, governed worker and Docker execution, using a scripted model and synthetic pre-approved command. Evidence: `evidence/p09-agentforge-process-lifecycle.json`; reproducer: `node --import tsx scripts/agentforge-process-acceptance.ts ABSOLUTE_NEW_EVIDENCE_FILE`. This verifies arm wiring only. The synthetic DeepSeek and AgentForge checks use different development fixtures and must not be compared as scores. A matched frozen live protocol and live model execution remain required.
+
+### Live stock-allocation development workflow completed
+
+The real MiMo-generated plan in `evidence/p09-agentforge-stock-draft-development.json`
+now has reviewed Docker execution and independent scoring in
+`evidence/p09-agentforge-stock-execution-retry-development.json`, followed by final
+approval and durable reopen in `evidence/p09-agentforge-stock-completion-development.json`.
+Reopening preserved the completed state, original receipt and artifact hash, with
+zero new executions or model requests. The first execution's Windows line-ending
+fixture failure remains recorded in `evidence/p09-agentforge-stock-execution-development.json`;
+the retry used the same reviewed model plan after making fixture bytes stable.
+
+This is a synthetic development workflow, not browser acceptance or a matched
+held-out comparison. P09 remains open; these results do not demonstrate competitive
+superiority. The completion harness was verified at commit d79252c; final release
+candidate packaging and hosted acceptance remain separate requirements.
