@@ -630,3 +630,15 @@ evidence/p03-invoice-journal-recovery.json; reproduce with the crash mode of
 useful-task-recovery.mjs then invoice-journal-recovery.mjs. Eighteen focused tests,
 full typechecks and build passed. Browser interaction and negative-path coverage
 for the new reviewed recovery action remain required before release acceptance.
+
+P03 reviewed recovery browser case passed on a new real-Docker invoice crash:
+authenticated owner opened recorded execution, selected Recover durable result,
+and received waiting_approval with one pending decision and zero execution calls.
+Reopen preserved pending approval; no browser errors. Evidence:
+evidence/p03-invoice-browser-recovery.json. Additional probes reject changed
+artifact contents and a simulated surviving container; evidence:
+evidence/p03-recovery-negative-cases.json. Four runtime regressions cover failed
+verification, concurrent task changes, overlapping recovery (one approval only),
+and preserved human review for originally automatic tasks. Full typechecks pass.
+These close the stated recovery cases, not the entire P03 matrix (authentication
+expiry, conflicting memory and broader shutdown combinations remain).
