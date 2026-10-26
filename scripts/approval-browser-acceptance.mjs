@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 import {builtModule} from './built-package-under-test.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -194,9 +195,11 @@ try{
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
  const proof={passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true};
- proof.sourceCommit=git(process.cwd(),["rev-parse","HEAD"]);
+ proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
+ proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
  proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
  await writeFile(path.join(root,"browser-proof.json"),JSON.stringify(proof,null,2));
  console.log(JSON.stringify({...proof,evidenceDirectory:root}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
+
 
