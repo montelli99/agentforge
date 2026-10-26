@@ -400,10 +400,10 @@ export class AgentForgeWebServer {
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
-  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
+  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
 
   /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
-  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
+  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
     if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
     if (connection.displayName !== undefined && (!connection.displayName.trim() || connection.displayName.length > 100 || /[\u0000-\u001f\u007f]/.test(connection.displayName))) throw Error('Invalid external connection display name');
     this.externalRunConnections.set(connection.id, {...connection});
@@ -4065,7 +4065,7 @@ export class AgentForgeWebServer {
         }
         return;
       }
-      if (action === 'external-observation' || action === 'external-stop') {
+      if (action === 'external-observation' || action === 'external-stop' || action === 'external-output') {
         res.setHeader('Cache-Control', 'no-store');
         if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
         if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
@@ -4074,6 +4074,13 @@ export class AgentForgeWebServer {
         const connection = receipt ? this.externalRunConnections.get(receipt.connectionId) : undefined;
         if (!connection) { res.writeHead(409); res.end(JSON.stringify({error:'The saved external runtime is not connected.'})); return; }
         try {
+          if(action==='external-output'){
+            if(!connection.readRunOutput||receipt?.status!=='accepted'||!receipt.runId)throw Error('Saved output unavailable');
+            const result=await connection.readRunOutput(receipt.runId);
+            const current=this.store.getTask(task.id)?.externalTurnReceipts?.[0];
+            if(!current||current.requestId!==receipt.requestId||current.runId!==receipt.runId||current.connectionId!==connection.id||result.runId!==receipt.runId||typeof result.content!=='string'||Buffer.byteLength(result.content,'utf8')>60000)throw Error('External output identity changed');
+            res.writeHead(200);res.end(JSON.stringify({runId:result.runId,content:result.content,referenceDataOnly:true,verified:false}));return;
+          }
           if(action==='external-stop'){
             if(!connection.requestRunStop||!caller.user?.id)throw Error('Stop unavailable');
             const stopped=await stopExternalTurn(this.store,task.id,caller.user.id,{id:connection.id,requestRunStop:(sessionKey,runId)=>connection.requestRunStop!(sessionKey,runId)});
@@ -5071,5 +5078,6 @@ export class AgentForgeWebServer {
     return renderWorkspaceApp();
   }
 }
+
 
 

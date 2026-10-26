@@ -100,3 +100,12 @@ it('discovers only API-owned session metadata with bounded pagination',async()=>
  await expect(client().listSessions(25,1000001)).rejects.toThrow();
  expect(fetcher).toHaveBeenCalledTimes(count);
 });
+
+it('reads only bounded completed output for the exact saved run',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ fetcher.mockResolvedValueOnce(Response.json({run_id:'run-output',status:'completed',output:'Synthetic result'}));
+ expect(await client().readRunOutput('run-output')).toEqual({runId:'run-output',content:'Synthetic result'});
+ for(const invalid of [{run_id:'other',status:'completed',output:'wrong'},{run_id:'run-output',status:'running',output:'partial'},{run_id:'run-output',status:'completed',output:{private:'metadata'}},{run_id:'run-output',status:'completed',output:'x'.repeat(60001)}]){fetcher.mockResolvedValueOnce(Response.json(invalid));await expect(client().readRunOutput('run-output')).rejects.toThrow('unavailable');}
+ expect(fetcher.mock.calls.every(call=>call[1].method==='GET')).toBe(true);
+ vi.unstubAllGlobals();
+});

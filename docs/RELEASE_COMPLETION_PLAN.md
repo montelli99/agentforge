@@ -663,3 +663,15 @@ per attempt. Both retained: evidence/p03-live-memory-conflict.json and
 full typechecks and build pass. This proves one live conflicting recall case,
 not all model/provider conflict handling. Hosted run 40282398037 passed all seven
 jobs on 4d7273c; subsequent changes require their own hosted result.
+
+P05 output path implemented from the pinned Hermes image's primary Python source:
+api_server_runs.py _handle_get_run returns owned run status, and completion writes
+its final_response into output. Hermes transport now explicitly retrieves at most
+60 KB of text only for the exact completed saved run. Authenticated task UI offers
+Read external result; server binds the connection/run to the persisted receipt and
+rechecks it after reading. Output is reference data, not local verification, and
+is not automatically persisted as workspace transcript. Thirteen focused tests
+and build passed; HTTP regression additionally checks anonymous denial, caller
+run-ID override ignored, unchanged local task status and no content/credential
+persistence. Full typechecks pass. Real successful Hermes model execution and
+browser acceptance of the output action remain open; fixture tests do not close P05.

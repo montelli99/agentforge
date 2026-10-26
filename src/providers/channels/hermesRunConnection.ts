@@ -13,6 +13,7 @@ export function configureHermesRunConnection(env:Record<string,string|undefined>
     // HTTP reachability is not a persistent authenticated socket. Leave readiness
     // not_checked; check current capabilities before each approved submission.
     listSessions:(limit:number,offset:number)=>transport.listSessions(limit,offset),
+    readRunOutput:(runId:string)=>transport.readRunOutput(runId),
     inspectRun:(runId:string)=>transport.inspectRun(runId),
     requestRunStop:(sessionKey:string,runId:string)=>transport.requestRunStop(sessionKey,runId),
     submitSessionTurn:async(sessionKey:string,message:string,requestId:string)=>{
@@ -21,3 +22,4 @@ export function configureHermesRunConnection(env:Record<string,string|undefined>
     },
   };
 }
+

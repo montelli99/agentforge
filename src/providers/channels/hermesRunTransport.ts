@@ -74,9 +74,15 @@ export class HermesRunTransport {
     if(result.run_id!==runId||typeof result.status!=='string'||!result.status.trim()||result.status.length>128)throw Error('Mismatched or invalid Hermes run observation');
     return {runId,status:result.status};
   }
+  async readRunOutput(runId:string):Promise<{runId:string;content:string}>{
+    const result=await this.request('/v1/runs/'+this.identifier(runId));
+    if(result.run_id!==runId||result.status!=='completed'||typeof result.output!=='string'||Buffer.byteLength(result.output,'utf8')>60000)throw Error('Completed Hermes text output unavailable or exceeds 60 KB');
+    return {runId,content:result.output};
+  }
   async requestRunStop(_sessionKey:string,runId:string):Promise<{acknowledged:boolean}>{
     const result=await this.request('/v1/runs/'+this.identifier(runId)+'/stop','POST',{});
     // Acknowledged means requested, not that executor work has stopped.
     return {acknowledged:result.status==='stopping'};
   }
 }
+
