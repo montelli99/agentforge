@@ -832,3 +832,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P04 unread result recovery
 
 `evidence/p04-unread-result-restart.json` now proves recovery of a previously unread final reply after a real gateway restart through exact-run durable transcript metadata. No resend or extra model request occurs during recovery. Thirty-three focused tests pass, including rejection of ambiguous, active, incomplete and mismatched history. Installed-package repetition and broader partial-effect inspection remain open.
+
+### P04 installed-package acceptance
+
+`evidence/p04-installed-live-restart.json` records the exact archive hash and installed runtime hashes for a passing live browser invoice, real gateway restart, previously unread result recovery and active Stop. Source and package privacy gates passed, scanning 472 shipped files. Broader partial-effect inspection remains open; this does not close the full release checklist.

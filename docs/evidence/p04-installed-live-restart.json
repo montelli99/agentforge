@@ -1,0 +1,91 @@
+{
+  "passed": true,
+  "installedPackage": true,
+  "liveBrowserDelegation": true,
+  "gatewayProcessRestart": true,
+  "previouslyUnreadResult": true,
+  "resultRecoveredAfterGatewayRestart": true,
+  "reconnectedWithoutResend": true,
+  "activeRunObservedBeforeStop": true,
+  "browserStopAcknowledged": true,
+  "remoteRunInactiveAfterStop": true,
+  "terminalStopReason": "rpc",
+  "invoiceUnchangedAfterStop": true,
+  "realPairedGateway": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "providerRequests": 5,
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:42:16.138Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12298,
+        "outputTokens": 19
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:42:25.756Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:42:25.990Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12621,
+        "outputTokens": 489
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:42:35.291Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:42:35.587Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13135,
+        "outputTokens": 79
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:42:40.342Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:42:40.799Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13603,
+        "outputTokens": 375
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:42:52.774Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:43:21.715Z",
+      "status": "started",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "runId": "f6d49d2e-a038-4757-89ce-2bf68455b441",
+  "independentInvoiceCheck": true,
+  "externalResultVisible": true,
+  "reloadDidNotResend": true,
+  "notAutomaticallyCompleted": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "archiveSha256": "1a527bd6b4306aff2ec5939f8ff1c81190c0f681dd968ab406f1511431390119",
+  "runnerSha256": "23d168c58b03eda45a2919bb351516a6288bf01f0d2acdd75e604b7fab6c3796",
+  "scope": "Fresh npm archive installation, real browser delegation and independently verified invoice, gateway restart, previously unread exact-run result recovery, no resend and active Stop. Broader partial-effect inspection remains open.",
+  "installedRuntimeHashes": {
+    "core/runtime/externalTurnDispatch.js": "3a14f47401edc90644621f7ba74e62691ca903c9e7b38c203a8d5afc43a127ca",
+    "server/webServer.js": "ee83f5527ed3e7df1c82132dc59f51b5772608b6126915aa1a6e9325a1178d42",
+    "providers/channels/openClawGatewayTransport.js": "e1098eb2ad37e4af7c5ff29d6a4c7a075e87f5130248d89348a242eedcd2f639"
+  },
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "recordedAt": "2026-10-26T09:43:46.618Z"
+}
