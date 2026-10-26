@@ -333,3 +333,22 @@ plans and the separately configured execution backend.
 
 Signed-in live acceptance and managed native-client execution remain incomplete.
 This experimental route does not change those release requirements.
+
+### Experimental Gemini Google-sign-in chat
+
+Set `AGENTFORGE_CHAT_PROVIDER=gemini-cli` and
+`AGENTFORGE_CHAT_GEMINI_CONFIG` to an absolute JSON configuration file containing
+`bundlePath`, `homeDirectory`, and `model`, as described for the dedicated Gemini
+planner profile above. Use the prepared dedicated profile and official sign-in;
+do not copy personal account credentials into the repository. Remove
+`AGENTFORGE_CHAT_API_KEY` and `AGENTFORGE_MODEL_CONNECTIONS_FILE` from this launch
+configuration: ambiguous API fallback is rejected. Restart after host changes.
+
+This route supports buffered chat answers and proposals for the tools offered by
+AgentForge. It validates the entire official-client transcript before emitting
+an answer. Client-native tools remain denied; task execution still requires
+AgentForge's existing approval and execution setup. Profile file presence is not
+proof of authentication, subscription entitlement, quota, or model availability.
+Only a successful official-client request can establish access for that request.
+The installation checker is separate and does not activate this chat route.
+Live signed-in acceptance and native managed execution remain release work.

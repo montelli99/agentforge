@@ -4,8 +4,9 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {runBoundedChild,BoundedChildFailure} from './boundedCliProcess.js';
 import {inspectGeminiCliCapabilities} from './geminiCliCapabilities.js';
-import {encodeGeminiPlannerPrompt} from './geminiCliPrompt.js';
+import {encodeGeminiPlannerPrompt,encodeGeminiChatPrompt} from './geminiCliPrompt.js';
 import {inspectGeminiCliTranscript} from './geminiCliTranscript.js';
+import {parseCliChatResponse} from './cliChatResponse.js';
 import {validateCliPlan} from './subscriptionCliModel.js';
 import {ModelProviderError,type GenerativeModelProvider,type ModelRequestOptions,type ModelResponse,type StreamChunk} from '../../core/providers/model.js';
 
@@ -49,10 +50,11 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
  }
  async isAvailable(){try{await this.checkProfile();return (await inspectGeminiCliCapabilities(this.config.bundlePath)).controlsAvailable;}catch{return false;}}
  async listModels(){return [this.config.model];}
- async generate(options:ModelRequestOptions):Promise<ModelResponse>{
+ async generate(options:ModelRequestOptions):Promise<ModelResponse>{return this.invoke(options,false);}
+ private async invoke(options:ModelRequestOptions,chat:boolean):Promise<ModelResponse>{
   if(options.signal?.aborted)throw Error('Gemini planning cancelled before launch');
-  if(options.model!==this.config.model||options.tools?.length||options.stream||options.responseFormat!=='json'||options.maxTokens!==undefined)throw Error('Unsupported Gemini planner request; no hard token-cap claim');
-  const prompt=encodeGeminiPlannerPrompt(options.messages);
+  if(options.model!==this.config.model||(!chat&&(options.tools?.length||options.stream||options.responseFormat!=='json'))||options.maxTokens!==undefined)throw Error('Unsupported Gemini planner request; no hard token-cap claim');
+  const prompt=chat?encodeGeminiChatPrompt(options):encodeGeminiPlannerPrompt(options.messages);
   await this.checkProfile();
   if(!(await inspectGeminiCliCapabilities(this.config.bundlePath,options.signal)).controlsAvailable)throw Error('Required Gemini controls unavailable');
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'agentforge-gemini-plan-'));
@@ -65,6 +67,7 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
    const result=await runBoundedChild(process.execPath,[this.config.bundlePath,'--model',this.config.model,'--prompt',prompt,'--approval-mode','default','--admin-policy',policy,'--policy',policy,'--extensions','none','--allowed-mcp-server-names','agentforge-no-mcp','--output-format','stream-json'],{cwd:directory,env,signal:options.signal,timeoutMs:120000,maxOutputBytes:2097152});
    const transcript=inspectGeminiCliTranscript(result.stdout,this.config.model,prompt);usage=transcript.usage;
    if(result.code!==0||!transcript.valid||!transcript.content)throw Error('Invalid Gemini completion');
+   if(chat)return {id:randomUUID(),model:this.config.model,usage,...parseCliChatResponse(transcript.content,options)};
    validateCliPlan(transcript.content);
    return {id:randomUUID(),model:this.config.model,content:transcript.content,usage,finishReason:'stop'};
   }catch(error){
@@ -75,5 +78,9 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
   }
   finally{await fs.rm(directory,{recursive:true,force:true});}
  }
- async *stream(_options:ModelRequestOptions):AsyncIterable<StreamChunk>{throw Error('Gemini CLI supports planning drafts only');}
+ async *stream(options:ModelRequestOptions):AsyncIterable<StreamChunk>{
+  // Buffer until the entire client transcript and proposed tools are validated.
+  const reply=await this.invoke(options,true);
+  yield {id:reply.id,deltaText:reply.content,toolCalls:reply.toolCalls,usage:reply.usage,finishReason:reply.finishReason};
+ }
 }
