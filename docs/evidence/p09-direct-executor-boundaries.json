@@ -1,0 +1,11 @@
+{
+  "recordedAt": "2026-10-26T12:24:31.2060493Z",
+  "requirement": "P09",
+  "sourceCommit": "82bbef0ae27726247c2b4474646fdd77f4acb56c",
+  "executorSha256": "a5e71123888a1705163fa1ea597c28699795a2521411eba2fd73dee5316cfcd0",
+  "scope": "Synthetic real-Docker executor check; no model requests or comparative score",
+  "readOnlyInput": true,
+  "incorrectArtifactRejected": true,
+  "repeatExecutionRefused": true,
+  "passed": true
+}
