@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-10-26T14:10:00.504Z",
+  "sourceBase": "7dd8c9a0d44f5ba9e09807c4cfe550b6cf337b6d",
+  "scriptSha256": "09fd5033768aa43284aa41182c8b400de0638d14a67f56906b16d8145f0e8a55",
+  "passed": true,
+  "realBrowser": true,
+  "syntheticProvider": true,
+  "checks": [
+    "HTTP 401 creates no draft, approval or execution receipt",
+    "No automatic retry: one rejected planning request",
+    "Explicit retry after restored access completes draft",
+    "Original rejected audit with HTTP 401 retained alongside completed audit",
+    "Local route passed exact audit assertions; compatible route passed initial rejection/retry assertions"
+  ],
+  "limitations": [
+    "Simulated provider authentication rejection, not live account expiry or renewal",
+    "No claim of full P03 completion"
+  ]
+}

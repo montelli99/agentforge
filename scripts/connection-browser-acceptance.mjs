@@ -24,10 +24,11 @@ let server=new AgentForgeWebServer(store,0,undefined,undefined,options),browser;
 const local=process.env.AGENTFORGE_BROWSER_LOCAL==='1';const route=local?'local':'compatible';
 const key='synthetic-credential-not-a-real-provider-key';
 const passphrase='Synthetic connection vault password';
-let requests=0;const received=[];
+let requests=0;let rejectPlanning=false;const received=[];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  received.push({url:req.url,authorization:req.headers.authorization,body:JSON.parse(raw)});requests++;
+ if(!JSON.parse(raw).stream&&rejectPlanning){res.writeHead(401,{"Content-Type":"application/json"});res.end(JSON.stringify({error:{message:"synthetic expired credential"}}));return;}
  if(!JSON.parse(raw).stream){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));return;}
  res.writeHead(200,{'Content-Type':'text/event-stream'});
  res.write('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response '},finish_reason:null}]})+'\n\n');
@@ -109,13 +110,26 @@ try{
  await page.getByRole('button').filter({has:page.getByText('Draft using restored connection',{exact:true})}).click();
  await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption(route+'::synthetic-model');
+ rejectPlanning=true;
+ await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
+ await page.getByText('Draft unavailable:',{exact:false}).waitFor();
+ const rejectedTask=new WorkspaceStore(workspaceFile).getTask(taskId);
+ assert.equal(rejectedTask.executionPlanDraft,undefined);
+ assert.equal(rejectedTask.approvedExecutionPlan,undefined);
+ assert.equal(rejectedTask.executionReceipts?.length||0,0);
+ assert.equal(requests,2);
+ assert.equal(rejectedTask.planningAudits.at(-1).status,'rejected');
+ assert.equal(rejectedTask.planningAudits.at(-1).rejectionStatus,401);
+ rejectPlanning=false;
  await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
  await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
  const savedTask=new WorkspaceStore(workspaceFile).getTask(taskId);
  assert.deepEqual(savedTask.executionPlanDraft.commands,plannedCommands);
  assert.equal(savedTask.approvedExecutionPlan,undefined);assert.equal(savedTask.executionReceipts?.length||0,0);
- assert.equal(requests,2);assert.equal(savedTask.planningAudits.at(-1).status,'completed');
- console.log(JSON.stringify({restoredConnectionDraftsPlan:true,draftingDidNotApproveOrExecute:true}));
+ assert.equal(requests,3);assert.equal(savedTask.planningAudits.at(-1).status,'completed');
+ assert.equal(savedTask.planningAudits.length,2);
+ assert.deepEqual(savedTask.planningAudits[0],rejectedTask.planningAudits[0]);
+ console.log(JSON.stringify({restoredConnectionDraftsPlan:true,draftingDidNotApproveOrExecute:true,provider401Refused:true,explicitRetryRecovered:true,rejectedAuditPreserved:true}));
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({passed:true,connectionKind:route,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,midStreamReload:true,reloadWithoutReplay:true,liveProviderVerified:false}));
 }finally{await browser?.close();await server.stop();await new Promise(resolve=>provider.close(resolve));}
