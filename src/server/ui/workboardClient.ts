@@ -96,6 +96,7 @@ function taskOutcomeLabel(task){
  return 'Saved work awaits its next authorized step';
 }
 function taskNextStep(task,runtime){
+ if(task.externalTurnReceipts?.length)return 'Inspect the saved external run and its result. Review partial effects and verification evidence before closing this task; do not resubmit it to recover status.';
  if(task.status==='completed')return 'Review the recorded checks and changes. Completion does not mean the branch was merged.';
  if(task.status==='cancelled')return 'This task was cancelled. Its saved history remains available below.';
  if(task.status==='failed')return task.error?'Execution failed: '+task.error:'Inspect the evidence and activity to understand the failure before retrying.';

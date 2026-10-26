@@ -13,7 +13,7 @@ const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic projec
 const task=store.createTask({projectId:project.id,title:'Synthetic delegated task',priority:'medium',status:'paused'});
 const newTask=store.createTask({projectId:project.id,title:'New synthetic delegation',priority:'medium',status:'ready'});
 const uncertainTask=store.createTask({projectId:project.id,title:'Interrupted synthetic delegation',priority:'medium',status:'ready'});
-store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString()}]});
+store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString(),observation:{remoteStatus:'ok',observedAt:new Date().toISOString()}}]});
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
 let reads=0,submissions=0,stops=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',listSessions:async(limit,offset)=>{assert.equal(limit,25);assert.ok([0,25].includes(offset));return offset===0?{sessions:[{key:'selected-session',name:'Synthetic agent conversation'}],nextOffset:25}:{sessions:[{key:'selected-session',name:'Synthetic agent conversation'},{key:'second-session',name:'Second conversation'}]};},inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
 let browser;
@@ -29,14 +29,15 @@ try{
  assert.equal(await dialog.getByRole('button',{name:'Resume',exact:true}).count(),0);
  await dialog.getByRole('button',{name:'Check external run',exact:true}).click();
  await dialog.getByText('External status: timeout. This does not verify task completion.',{exact:true}).waitFor();
- assert.equal(reads,1);assert.equal(store.getTask(task.id).status,'paused');
+ assert.equal(reads,1);assert.equal(store.getTask(task.id).status,'paused');assert.equal(store.getTask(task.id).externalTurnReceipts[0].observationHistory.at(-1).remoteStatus,'ok');
  await dialog.getByRole('button',{name:'Stop external run',exact:true}).click();assert.equal(stops,0);
  await dialog.getByRole('button',{name:'Confirm external stop',exact:true}).click();
  await dialog.getByText('External runtime acknowledged Stop. Review partial effects before closing the task.',{exact:true}).waitFor();assert.equal(stops,1);
  assert.equal(store.getTask(task.id).externalTurnReceipts[0].stop.status,'acknowledged');
  await page.reload();await page.getByLabel('Tasks and runs',{exact:true}).click();
  await page.getByRole('button').filter({has:page.getByText('Synthetic delegated task',{exact:true})}).click();
- await page.getByRole('dialog',{name:'Task review',exact:true}).getByText('Last external status: timeout · Stop acknowledged; partial effects need review · completion not verified',{exact:true}).waitFor();
+ await page.getByRole('dialog',{name:'Task review',exact:true}).getByText('Last external status: timeout · Previously reported: ok · Stop acknowledged; partial effects need review · completion not verified',{exact:true}).waitFor();
+ await page.screenshot({path:path.join(root,'external-status-history.png'),fullPage:true});
  assert.equal(stops,1);assert.equal(await page.getByRole('button',{name:'Stop external run',exact:true}).count(),0);
  assert.equal(reads,1); // Reload must not submit work or silently poll the remote agent.
  assert.equal(await page.getByRole('dialog',{name:'Task review',exact:true}).getByRole('button',{name:'Resume',exact:true}).count(),0);
@@ -107,10 +108,11 @@ try{
   await page.reload();await page.getByLabel('Tasks and runs',{exact:true}).click();
   await page.getByRole('button').filter({has:page.getByText('Synthetic '+status,{exact:true})}).click();
   const restored=page.getByRole('dialog',{name:'Task review',exact:true});
-  await restored.getByText('Last external status: timeout · '+label+' · completion not verified',{exact:true}).waitFor();
+  await restored.getByText('Last external status: timeout · Previously reported: ok · '+label+' · completion not verified',{exact:true}).waitFor();
   assert.equal(await restored.getByRole('button',{name:'Stop external run',exact:true}).count(),0);
   assert.equal(await restored.getByRole('button',{name:'Resume',exact:true}).count(),0);
   assert.equal(stops,1);assert.equal(reads,1);assert.equal(submissions,2);
  }
  console.log(JSON.stringify({passed:true,runReads:reads,submissions,taskStatus:'paused',modelCalls:0}));
 }finally{await browser?.close();await server.stop();}
+
