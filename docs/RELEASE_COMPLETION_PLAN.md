@@ -913,3 +913,19 @@ Both earlier failed attempts remain recorded in
 no provider credential or paid request was used. Execution stayed off; guided
 worker activation and the combined first-user task remain open. This repair has
 not yet been tested in a newly packed archive.
+
+### Installed onboarding regression gate
+
+The rebuilt archive `2a6936a354e523cc1870ca05240585aec566469bee50a109fa4eabae28e86448`
+from 6dfcd8b passes the real-launcher first-project browser test in a fresh install
+(`evidence/p01-installed-first-project.json`). The installed-archive CI runner now
+includes this test. Hosted run 40310124530 passed all jobs for 166785d
+(`evidence/ci-166785d.json`); this is earlier than the startup-race repair.
+
+Execution activation investigation: the production launcher still requires
+AGENTFORGE_EXECUTION_MODE and an absolute repository setting. The Compute UI only
+reports status. A guided activation implementation must retain the single runtime
+used by chat, its repository/worktree binding, effect-receipt identity, disabled
+automatic dispatch, and owner-reviewed plans. Enabling a backend alone without
+binding these correctly would not satisfy P01. This remains the next implementation
+item; archive onboarding proof does not imply worker activation is finished.

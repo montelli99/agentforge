@@ -1,0 +1,14 @@
+{
+  "installedPackage": true,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "passed": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "archiveSha256": "2a6936a354e523cc1870ca05240585aec566469bee50a109fa4eabae28e86448",
+  "sourceCommit": "6dfcd8b",
+  "delayedInitialWorkspaceResponseMs": 700
+}
