@@ -1014,3 +1014,8 @@ Hosted run 40312592436 passed all seven jobs for exact commit 5ca4e6a. This incl
 
 The shared bounded client launcher now rejects invalid output budgets before spawning a client. Three real-process tests pass on Windows: invalid-budget refusal without launch, excessive-output termination with bounded captured output, and cancellation without retry. The 11 Claude/Gemini planner regressions also pass. These prove local process controls, not authenticated subscription inference or full provider lifecycle acceptance; P06 remains open. Hosted run 40313469011 for 71faec4 was still in progress when this change was recorded.
 
+
+### Browser recovery for unavailable execution repository
+
+The real-launcher browser acceptance now restarts with an unavailable saved repository and repairs it through Compute settings to planning-only. It confirms execution remains disabled. Evidence: evidence/p01-browser-missing-repository-repair.json. A first attempt failed because the test collapsed an already-expanded Connections group; the harness now checks visibility before toggling. This proves the recovery UI with synthetic data, not the remaining unified live-model first-use journey. No paid requests or private integrations were used.
+
