@@ -47,3 +47,14 @@ it('preserves reported usage on bounded child failure without retry',async()=>{
  mocks.run.mockRejectedValue(new BoundedChildFailure('synthetic timeout','timeout',result()));
  await expect(new ClaudeCliPlanner(config).generate(request)).rejects.toMatchObject({usage:{totalTokens:14}});expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
 });
+it.each(['malformed','unoffered-tool','client-tool-activity'])('emits no chat content on %s failure',async kind=>{
+ const items=events();
+ const text=kind==='malformed'?'not JSON':JSON.stringify({content:'Unverified answer',toolCalls:kind==='unoffered-tool'?[{name:'execute_shell',arguments:{}}]:[]});
+ items[1].message!.content[0].text=text;items[2].result=text;
+ if(kind==='client-tool-activity')items.splice(1,0,{type:'tool_use'} as any);
+ mocks.run.mockResolvedValue(result(items));const chunks=[];
+ const consume=async()=>{for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages}))chunks.push(chunk);};
+ await expect(consume()).rejects.toMatchObject({usage:{totalTokens:14}});
+ expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);
+ expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});
