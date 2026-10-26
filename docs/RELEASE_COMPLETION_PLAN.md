@@ -556,3 +556,5 @@ recorded plan comes from the committed P02 evidence, with original reported usag
 and no new paid provider request. The successful browser evidence is saved at
 evidence/p02-p03-invoice-browser.json with source revision and runner hash. Hosted
 CI now includes this case; its next run must pass before claiming hosted acceptance.
+
+Historical eight-hour service soak completed: 97 samples, zero failed probes, elapsed 28,800,350.8709 ms. Tested archive SHA-256 was 059a26c5b318251f545bb5dd16918db839030317d60f4caec8d1bccd3d6eb43f, NOT the current candidate. Full journal: evidence/historical-eight-hour-soak.jsonl (SHA-256 f756603db178002dc9d04ef74dab5a9e64905dc36fa63aa711c79af78fa949c9). P10 current-build soak remains open; do not transfer this result to subsequent code.
