@@ -172,4 +172,4 @@ See [`docs/RELEASE_STATUS.md`](docs/RELEASE_STATUS.md) for the current evidence-
 
 The frozen version 3 comparison retained all 18 attempts across three synthetic tasks with three repeats. AgentForge produced 8/9 correct artifacts and 7/9 full journeys; the direct-model baseline produced 7/9 correct artifacts. AgentForge used 42 requests and 80,335 reported tokens versus 9 requests and 5,376 tokens. This does **not** establish token savings or competitive superiority. The baseline did not include recovery or artifact-chat requirements; a fixture repair occurred during the run, and costs are unknown. Later fixes do not replace failed attempts.
 
-[Read the frozen report, individual attempts and limitations](docs/evidence/p09-v3-report.json).
+The full attempt records are maintained in the repository’s release evidence. They are not included in the installable package.
