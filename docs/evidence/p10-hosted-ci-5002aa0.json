@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-10-26T16:13:39.051Z",
+  "sourceCommit": "5002aa0babcd14c542f86f63c5bf30d458c37407",
+  "runId": 40352801631,
+  "conclusion": "success",
+  "jobsPassed": 7,
+  "platforms": [
+    "windows",
+    "ubuntu",
+    "macos"
+  ],
+  "nodeVersions": [
+    22,
+    24
+  ],
+  "includesPublicPackageAndIsolatedExecution": true,
+  "laterSourceCovered": false
+}
