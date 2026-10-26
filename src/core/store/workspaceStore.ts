@@ -1,3 +1,4 @@
+import {sealEvidencePack,verifyEvidencePackIntegrity} from '../evidence/evidencePackIntegrity.js';
 /**
  * Canonical Workspace State Engine & In-Memory / File Store
  * Section 6: Canonical Workspace
@@ -760,6 +761,8 @@ export class WorkspaceStore {
     const appr = this.approvals.get(params.approvalId);
     if (!appr) throw new Error(`Approval ${params.approvalId} not found`);
     if (appr.status !== "pending") throw new Error("Approval has already been resolved");
+    const approvalTask=appr.taskId?this.tasks.get(appr.taskId):undefined;
+    if(params.status==='approved' && approvalTask?.status==='waiting_approval' && approvalTask.evidencePack?.verifiedPassed && approvalTask.evidencePack.approvalId===appr.id && !verifyEvidencePackIntegrity(approvalTask.evidencePack))throw Error('Evidence integrity check failed before approval');
     appr.status = params.status;
     appr.approverUserId = params.approverUserId;
     appr.decisionOrigin = params.decisionOrigin;
@@ -775,6 +778,7 @@ export class WorkspaceStore {
             task.completedAt = new Date().toISOString();
             task.evidencePack.approvedBy = params.approverUserId;
             task.evidencePack.approvalSource = params.decisionOrigin;
+            task.evidencePack = sealEvidencePack(task.evidencePack);
           }
         } else if (params.status === "rejected") {
           task.status = "failed";
@@ -1982,3 +1986,4 @@ export function getDefaultWorkspaceFilePath(): string {
 
 // Test and embedded callers get an isolated in-memory store unless they opt into persistence.
 export const globalStore = new WorkspaceStore();
+
