@@ -7,6 +7,7 @@
  * contact data in shipped text assets.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -74,7 +75,9 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-public-archive
 try {
   const packageOutput = runNpm(["pack", "--json", "--pack-destination", tempDir]);
   const [packed] = JSON.parse(packageOutput);
-  assert.ok(fs.existsSync(path.join(tempDir, packed.filename)), "npm pack did not create the declared archive.");
+  const archivePath = path.join(tempDir, packed.filename);
+  assert.ok(fs.existsSync(archivePath), "npm pack did not create the declared archive.");
+  console.log(JSON.stringify({passed:true, scannedFileCount:shippedFiles.length, archiveSha256:createHash("sha256").update(fs.readFileSync(archivePath)).digest("hex"), limitation:"Known private-data signatures in package text files; not proof that all sensitive content is absent."}));
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

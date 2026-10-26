@@ -1,0 +1,8 @@
+{
+  "limitation": "Known private-data signatures only; script now reports the exact packaged archive hash.",
+  "passed": true,
+  "archiveSha256": "77dfd546cf08484b8c1be5ce82580adbc47407aa68a7f19b7f8973f036153e94",
+  "sourceCommit": "26d6b443f56e14e8a8d3a0b3813b00fa78eeafe4",
+  "runtimeBuildSource": "f58bd66f949c8ccc0667ac31a180c37fbcfc814b",
+  "scannedFileCount": 478
+}
