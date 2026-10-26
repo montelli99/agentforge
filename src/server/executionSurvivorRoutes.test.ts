@@ -31,6 +31,14 @@ describe('survivor discovery HTTP boundary', () => {
       expect((await request(restricted)).status).toBe(403);
       expect((await request(reader, 'POST')).status).toBe(405);
       expect(discovery).not.toHaveBeenCalled();
+      store.updateTask('synthetic-task',{planningAudits:[
+        {id:'refused',taskId:'synthetic-task',model:'fixture',requestDigest:'synthetic',status:'rejected',rejectionStatus:401},
+        {id:'uncertain',taskId:'synthetic-task',model:'fixture',requestDigest:'synthetic',status:'unknown'}
+      ]});
+      const receiptResponse=await fetch(base+'/api/tasks/synthetic-task/receipt',{headers:{Authorization:'Bearer '+reader}});
+      expect(receiptResponse.status).toBe(200);
+      expect(await receiptResponse.json()).toMatchObject({unknownPlanningCount:1,rejectedPlanningCount:1});
+      store.updateTask('synthetic-task',{planningAudits:[]});
       const before = structuredClone(store.getTask('synthetic-task'));
       const response = await request(reader);
       expect(response.status).toBe(200);

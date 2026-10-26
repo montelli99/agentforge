@@ -38,3 +38,20 @@ it('refuses unobserved effects, unchanged plans and cross-workspace approval',as
  expect(()=>prepareExecutionRepair({...failed,executionReceipts:[started]},f.record('node corrected.js'),'workspace',process.cwd(),started.receiptDigest)).toThrow('observed failed');
  f.worker.stop();
 });
+it.each([401,403] as const)('worker executes once after recorded authentication refusal %s',async rejectionStatus=>{
+ const f=fixture();f.pass();
+ f.store.updateTask(f.task.id,{planningAudits:[{id:'refused',taskId:f.task.id,model:'fixture',requestDigest:'synthetic',status:'rejected',rejectionStatus}]});
+ try{
+  const result=await f.worker.executeTask(f.task.id);
+  expect(result.status).toBe('waiting_approval');expect(f.backend.execute).toHaveBeenCalledTimes(1);
+  expect(result.planningAudits?.[0]).toMatchObject({status:'rejected',rejectionStatus});
+  expect(result.planningAudits?.[0].inputTokens).toBeUndefined();
+  const restarted=new TaskWorkerRuntime(f.store,f.backend,f.options);
+  try{await restarted.executeTask(f.task.id);expect(f.backend.execute).toHaveBeenCalledTimes(1);}finally{restarted.stop();}
+ }finally{f.worker.stop();}
+});
+it.each(['unknown','started','rejected'] as const)('worker refuses unresolved planning status %s before execution',async status=>{
+ const f=fixture();f.pass();
+ f.store.updateTask(f.task.id,{planningAudits:[{id:'unresolved',taskId:f.task.id,model:'fixture',requestDigest:'synthetic',status}]});
+ try{await expect(f.worker.executeTask(f.task.id)).rejects.toThrow(/Planning usage unknown/);expect(f.backend.execute).not.toHaveBeenCalled();}finally{f.worker.stop();}
+});

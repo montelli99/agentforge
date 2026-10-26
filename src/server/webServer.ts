@@ -4115,6 +4115,7 @@ export class AgentForgeWebServer {
           res.end(JSON.stringify({ expectedUpdatedAt: task.updatedAt, status: task.status,
             receipt: receipt ? { operationId: receipt.operationId, receiptDigest: receipt.receiptDigest, status: receipt.status, startedAt: receipt.startedAt, verifiedPassed: receipt.evidence?.verifiedPassed === true } : null,
             unknownPlanningCount: task.planningAudits?.filter(planningAuditUnresolved).length ?? 0,
+            rejectedPlanningCount: task.planningAudits?.filter(audit => audit.status === "rejected" && !planningAuditUnresolved(audit)).length ?? 0,
             message: "Recorded results may be restored after validation. Unknown effects or usage remain quarantined; commands are never replayed by review." })); return;
         }
         if (req.method !== "POST" || action !== "resolve-receipt") { res.writeHead(405); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
