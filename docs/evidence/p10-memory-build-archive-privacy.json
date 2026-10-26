@@ -1,0 +1,9 @@
+{
+  "actualArchiveContentsScanned": true,
+  "archiveSha256": "d5236d695bec6ba30b4cdf0e047eca8d01ad6277442c9baa0448df91fe57fe91",
+  "runtimeBuildSource": "9f561e7",
+  "sourceCommit": "6d68dce01a90ab923aba73fac1d5bb5db6342f0c",
+  "limitation": "Configured signatures in shipped text; not an exhaustive privacy guarantee.",
+  "passed": true,
+  "scannedFileCount": 478
+}
