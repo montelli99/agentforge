@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-10-26T16:21:53.056Z",
+  "sourceCommit": "cc03fb017e5bd568ab42f5b3b7aafa1eeb347272",
+  "passed": true,
+  "separateProcessRecovery": true,
+  "noPlanRequested": true,
+  "tamperedArtifactRejected": true,
+  "originalRestored": true,
+  "artifactSha256": "563b57ac54a59d5484ea1320498c44e47d50ade343a55e5bc3c9fb90c2693a97",
+  "resultsIdentical": true,
+  "scope": "Existing live ChatGPT invoice result recovered in a new process; post-completion recovery, not an interrupted execution crash test"
+}

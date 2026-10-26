@@ -1301,3 +1301,19 @@ AgentForge and DeepSeek attempts. Do not reuse the old scored cases as new
 independent evidence. Repository privacy and existing-build package checks
 passed after adding the harness (`evidence/p09-comparison-public-boundary.json`);
 this does not replace fresh final-build acceptance. P01–P10 remain open as scoped.
+
+### ChatGPT live acceptance update — October 26
+
+Official sign-in and protected saved-session restore now have live evidence.
+A real model-generated synthetic invoice plan executed in network-disabled Docker,
+passed the owner-defined check and independent expected-output comparison, and
+its saved result recovered in a separate process without requesting a new plan.
+Changing the artifact caused recovery to reject it; restoring the original bytes
+restored successful recovery.
+
+Evidence: `evidence/p06-chatgpt-live-inference.json`,
+`evidence/p06-chatgpt-live-invoice-execution.json`, and
+`evidence/p06-chatgpt-invoice-process-recovery.json`.
+This closes these specific backend checks only. Browser account activation,
+full task-runtime acceptance, interrupted-execution recovery, live renewal and
+sign-out still require evidence. Other P01–P10 requirements remain in scope.
