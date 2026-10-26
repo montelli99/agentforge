@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {runBoundedChild} from './boundedCliProcess.js';
+import {runBoundedChild,BoundedChildFailure} from './boundedCliProcess.js';
 import {inspectGeminiCliCapabilities} from './geminiCliCapabilities.js';
 import {encodeGeminiPlannerPrompt} from './geminiCliPrompt.js';
 import {inspectGeminiCliTranscript} from './geminiCliTranscript.js';
@@ -67,7 +67,12 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
    if(result.code!==0||!transcript.valid||!transcript.content)throw Error('Invalid Gemini completion');
    validateCliPlan(transcript.content);
    return {id:randomUUID(),model:this.config.model,content:transcript.content,usage,finishReason:'stop'};
-  }catch{throw new ModelProviderError('Gemini planning failed or was cancelled; no automatic retry or API fallback',usage);}
+  }catch(error){
+   if(error instanceof BoundedChildFailure){
+    try{usage=inspectGeminiCliTranscript(error.result.stdout,this.config.model,prompt).usage;}catch{/* Incomplete accounting remains unknown. */}
+   }
+   throw new ModelProviderError('Gemini planning failed or was cancelled; no automatic retry or API fallback',usage);
+  }
   finally{await fs.rm(directory,{recursive:true,force:true});}
  }
  async *stream(_options:ModelRequestOptions):AsyncIterable<StreamChunk>{throw Error('Gemini CLI supports planning drafts only');}

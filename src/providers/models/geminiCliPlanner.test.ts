@@ -1,7 +1,8 @@
 import {it,expect,vi} from 'vitest';
 import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 const mocks=vi.hoisted(()=>({run:vi.fn(),caps:vi.fn()}));
-vi.mock('./boundedCliProcess.js',()=>({runBoundedChild:mocks.run}));
+vi.mock('./boundedCliProcess.js',async()=>({...await vi.importActual('./boundedCliProcess.js'),runBoundedChild:mocks.run}));
+import {BoundedChildFailure} from './boundedCliProcess.js';
 vi.mock('./geminiCliCapabilities.js',()=>({inspectGeminiCliCapabilities:mocks.caps}));
 import {GeminiCliPlanner} from './geminiCliPlanner.js';
 import {prepareGeminiCliProfile} from './geminiCliProfile.js';
@@ -57,5 +58,19 @@ it('rejects a profile whose required local restrictions have been removed',async
    await expect(planner.generate({model:'gemini-synthetic',messages:[{role:'user',content:'Draft a check'}],responseFormat:'json'})).rejects.toThrow('must disable');
    expect(mocks.run).not.toHaveBeenCalled();expect(mocks.caps).not.toHaveBeenCalled();
   }
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
+it('preserves reported usage on cancellation without returning or retrying the interrupted plan',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-cancel-usage-'));
+ const home=path.join(root,'home');
+ try{
+  await prepareGeminiCliProfile(home);
+  await fs.writeFile(path.join(home,'.gemini','oauth_creds.json'),'synthetic-placeholder');
+  mocks.caps.mockResolvedValue({controlsAvailable:true});mocks.run.mockReset();
+  const usageEvent=JSON.stringify({type:'result',status:'error',stats:{input_tokens:12,output_tokens:3,total_tokens:19,cached:2,tool_calls:0}});
+  mocks.run.mockRejectedValue(new BoundedChildFailure('cancelled','cancelled',{pid:1,code:null,stdout:usageEvent,stderr:'synthetic diagnostic'}));
+  const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
+  await expect(planner.generate({model:'gemini-synthetic',messages:[{role:'user',content:'Draft a check'}],responseFormat:'json'})).rejects.toMatchObject({usage:{promptTokens:12,completionTokens:3,totalTokens:19,cachedInputTokens:2}});
+  expect(mocks.run).toHaveBeenCalledTimes(1);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
