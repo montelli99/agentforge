@@ -1037,3 +1037,8 @@ Clean browser setup now saves encrypted model configuration and Docker selection
 
 The combined browser journey now creates a task, fills its repository revision, drafts through the restored synthetic model, verifies drafting has no execution effect, explicitly approves and runs the plan in Docker, and observes verified output awaiting final approval. Evidence: evidence/p01-launcher-restored-model-execution.json. The task only runs node --version; this is integration evidence, not a useful invoice artifact or live-model competence proof. Final approval/restart result reconciliation and the useful live task remain to be joined to this journey.
 
+
+### Combined synthetic cycle through recovery and final approval
+
+Clean browser onboarding now continues through restored model drafting, reviewed Docker execution, another actual launcher restart, recorded-result restoration and final approval. Original receipts and the independently inspected single execution marker remain unchanged. Evidence: evidence/p01-launcher-complete-synthetic-cycle.json. Marker-test iterations first omitted the declared output path and then assumed the provisioned file was empty; the worker correctly kept undeclared writes read-only and provisioned a sentinel for declared outputs. The harness now declares the output and counts the execution marker. These were fixture corrections, not changes to execution guards. Live useful-task and exact installed-build repetition remain open.
+
