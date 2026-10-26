@@ -1125,3 +1125,7 @@ Seven authentication-recovery tests pass, including new 401/403 streaming reconn
 ### Live Hindsight acceptance runner
 Added scripts/hindsight-live-acceptance.mjs. It requires explicit opt-in plus HINDSIGHT_API_KEY and AGENTFORGE_HINDSIGHT_PROOF_BANK / QUERY / EXPECTED. Use a dedicated synthetic bank containing a chat-context-tagged fact. It verifies project isolation before any request, expected recall and read-only methods, and emits counts/status/digest without recalled content or credentials. Syntax passed and opt-in refusal was verified. No Hindsight credential was available in this session; live proof remains pending, not passed. Continue independent work.
 
+
+### Scan actual archive contents
+The privacy gate now compares tar member inventory with the npm packlist, extracts the locally generated archive, checks regular files and scans extracted text including declarations, HTML, CSS, YAML and source maps. Passed for 478 files; SHA-256 77dfd546cf08484b8c1be5ce82580adbc47407aa68a7f19b7f8973f036153e94. This removes the gap between scanning disk sources and hashing a later archive. Signature coverage remains bounded.
+
