@@ -407,6 +407,7 @@ export class AgentForgeWebServer {
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
+  private readonly geminiClientBundle?: string;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
   private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
@@ -432,7 +433,7 @@ export class AgentForgeWebServer {
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { executionSetupFilePath?: string; settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
+    options: { geminiClientBundle?: string; executionSetupFilePath?: string; settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.executionSetupFilePath=options.executionSetupFilePath||pathModule.join(pathModule.dirname(this.settingsFilePath),"execution-setup.json");
@@ -443,6 +444,7 @@ export class AgentForgeWebServer {
     this.planDraftProvider = options.planDraftProvider;
     this.claudeAccountConfiguration = options.claudeAccountConfiguration ? Object.freeze({...options.claudeAccountConfiguration}) : undefined;
     this.indexedMemory = options.indexedMemory;
+    this.geminiClientBundle = options.geminiClientBundle;
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
     this.operationalMemory = new OperationalMemoryProvider(this.store);
@@ -3178,7 +3180,7 @@ export class AgentForgeWebServer {
       if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect client setup.'})); return; }
       if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
       if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
-      const bundle = process.env.AGENTFORGE_GEMINI_BUNDLE;
+      const bundle = this.geminiClientBundle ?? process.env.AGENTFORGE_GEMINI_BUNDLE;
       if (!bundle) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferencePerformed:false})); return; }
       if (this.geminiClientCheck) { res.writeHead(409); res.end(JSON.stringify({error:'A Gemini client check is already running.'})); return; }
       const controller = new AbortController();
@@ -3186,7 +3188,7 @@ export class AgentForgeWebServer {
       this.geminiClientCheck = check;
       const disconnect = () => { if (!res.writableEnded) controller.abort(); };
       res.once('close', disconnect);
-      try { const result = await check.result; res.writeHead(200); res.end(JSON.stringify({configured:true,...result})); }
+      try { const result = await check.result; const chat=this.conversations.status(); const chatConfigured=chat.configured&&chat.providerId==='gemini-subscription-cli'; res.writeHead(200); res.end(JSON.stringify({configured:true,...result,chatConfigured,chatModels:chatConfigured?chat.models:[]})); }
       catch { res.writeHead(400); res.end(JSON.stringify({error:'Gemini client inspection failed. Check the host-selected official client installation.'})); }
       finally { res.removeListener('close', disconnect); if (this.geminiClientCheck === check) this.geminiClientCheck = undefined; }
       return;
