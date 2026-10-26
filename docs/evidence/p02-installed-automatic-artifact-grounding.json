@@ -1,0 +1,105 @@
+{
+  "sourceCommit": "6b2ebaea396238a28c2cdc190f969a2fbfe2e2e6",
+  "archiveSha256": "36370829bf35ee80a756b2863600f0d31fda6d7d1197836f1a8514cf0d2fec34",
+  "classification": "Installed live development acceptance, not frozen comparison replacement",
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 5,
+    "passed": true,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 53906.87279999998,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 2224,
+        "outputTokens": 307
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1208,
+          "outputTokens": 57
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1289,
+          "outputTokens": 48
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2203,
+          "outputTokens": 464
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 4,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2224,
+          "outputTokens": 307
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 1215,
+      "prompt_tokens": 3209,
+      "total_tokens": 4424,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 17309.622600000002,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "independentInvoiceCheck": true,
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "verifiedArtifactReadByLiveChat": true,
+    "finalChatSurvivedReloadWithoutResend": true,
+    "verifiedArtifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "missingRepositoryRepairedInBrowser": true,
+    "repairDidNotEnableExecution": true,
+    "savedDockerFromBrowser": true,
+    "invalidRepositoryRejected": true,
+    "pendingSelectionSurvivedReload": true,
+    "setupDidNotStartTask": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false,
+    "totalElapsedMs": 77236.22279999999,
+    "providerRequests": 5,
+    "chatRequests": 4
+  },
+  "limitation": "Single installed invoice journey, not full release acceptance."
+}
