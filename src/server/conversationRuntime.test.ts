@@ -1,3 +1,4 @@
+import {sealEvidencePack} from '../core/evidence/evidencePackIntegrity.js';
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
@@ -189,7 +190,7 @@ it('delivers verified output through the conversation tool loop and saves the an
  try{
  const content='{"netCents":950}';fs.writeFileSync(path.join(root,'report.json'),content);
  const task=f.store.createTask({projectId:f.project.id,title:'Synthetic invoice',priority:'medium',status:'completed',originThreadId:f.thread.id});
- f.store.updateTask(task.id,{worktree:{worktreePath:root,branchName:'test',baseSha:'synthetic',isIsolated:true,createdAt:new Date().toISOString()},evidencePack:{verifiedPassed:true,artifacts:[{name:'report',path:'report.json',sizeBytes:Buffer.byteLength(content),sha256:createHash('sha256').update(content).digest('hex'),mimeType:'application/json'}]} as import('../core/types/task.js').Task['evidencePack']});
+ f.store.updateTask(task.id,{worktree:{worktreePath:root,branchName:'test',baseSha:'synthetic',isIsolated:true,createdAt:new Date().toISOString()},evidencePack:sealEvidencePack({taskId:task.id,verifiedPassed:true,artifacts:[{name:'report',path:'report.json',sizeBytes:Buffer.byteLength(content),sha256:createHash('sha256').update(content).digest('hex'),mimeType:'application/json'}]} as import('../core/types/evidence.js').EvidencePack)});
  let rounds=0;const model=provider(async function*(options){
  if(!rounds++){yield {id:'read',toolCalls:[{id:'output',type:'function',function:{name:'read_task_artifact',arguments:JSON.stringify({taskId:task.id,path:'report.json'})}}],finishReason:'tool_calls'};}
  else {const result=JSON.parse(String(options.messages.at(-1)?.content));expect(result.content).toBe(content);expect(result.referenceDataOnly).toBe(true);yield {id:'answer',deltaText:'The verified net amount is 950 cents.',finishReason:'stop'};}
@@ -198,3 +199,4 @@ it('delivers verified output through the conversation tool loop and saves the an
  expect(rounds).toBe(2);expect(f.store.listThreadMessages(f.thread.id).at(-1)).toMatchObject({content:'The verified net amount is 950 cents.',generation:{status:'complete'}});
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+

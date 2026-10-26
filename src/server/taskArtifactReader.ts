@@ -1,3 +1,4 @@
+import {verifyEvidencePackIntegrity} from '../core/evidence/evidencePackIntegrity.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -5,7 +6,8 @@ import type {Task} from '../core/types/task.js';
 
 export async function readVerifiedTaskArtifact(task:Task,requested:unknown){
   if(typeof requested!=='string'||!requested||path.isAbsolute(requested)||requested.split(/[\\/]/).some(part=>part==='..'||part==='.')||! /\.(json|txt|md|csv)$/i.test(requested))throw Error('Choose a recorded text artifact');
-  const artifact=task.evidencePack?.verifiedPassed&&task.evidencePack.artifacts.find(item=>item.path===requested);
+  if(!task.evidencePack||task.evidencePack.taskId!==task.id||!verifyEvidencePackIntegrity(task.evidencePack))throw Error('Verified evidence integrity mismatch');
+  const artifact=task.evidencePack.verifiedPassed&&task.evidencePack.artifacts.find(item=>item.path===requested);
   if(!artifact||!task.worktree||!Number.isSafeInteger(artifact.sizeBytes)||artifact.sizeBytes<0||artifact.sizeBytes>60000)throw Error('Verified text artifact unavailable or exceeds 60 KB');
   const root=await fs.realpath(task.worktree.worktreePath);
   const target=await fs.realpath(path.resolve(root,requested));const relative=path.relative(root,target);
@@ -20,4 +22,5 @@ export async function readVerifiedTaskArtifact(task:Task,requested:unknown){
     return {path:requested,sha256:artifact.sha256,content:new TextDecoder('utf-8',{fatal:true}).decode(content),referenceDataOnly:true};
   }finally{await handle.close();}
 }
+
 
