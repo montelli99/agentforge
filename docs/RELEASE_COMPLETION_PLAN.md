@@ -1101,3 +1101,7 @@ The next installed chat-created invoice attempt failed execution: generated arti
 ### Runtime input provenance correction
 Installed 788fa2c planning embedded the fixture rows rather than reading the workspace input. Review rejected execution; evidence: evidence/p01-live-hardcoded-input-rejection.json. Planner instructions now explicitly require reading named workspace inputs at execution time and prohibit substituting copied sample rows. Thirteen planner tests pass; live verification of this correction remains outstanding. All wider acceptance items remain open.
 
+
+### Complete installed live invoice-to-chat journey
+Installed f58bd66 passed live chat task creation, live planning reading the workspace input, reviewed Docker execution, independent invoice verification, actual launcher restart, receipt-preserving final approval, and live verified-artifact retrieval into chat. Reload did not resend; output hash matched the artifact read by the model. Evidence: evidence/p01-installed-full-live-invoice-chat.json. Five provider requests, 11830 reported tokens, dollar cost unknown. This closes the missing join for this synthetic invoice journey; broader task, provider, recovery and release matrices remain open. Exact f58bd66 CI run 40318190402 is pending.
+

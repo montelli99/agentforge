@@ -1,0 +1,121 @@
+{
+  "package": {
+    "sourceCommit": "f58bd66f949c8ccc0667ac31a180c37fbcfc814b",
+    "archiveSha256": "77DFD546CF08484B8C1BE5CE82580ADBC47407AA68A7F19B7F8973F036153E94"
+  },
+  "recordedUtc": "2026-10-26T11:52:14.0583349Z",
+  "cost": null,
+  "limits": [
+    "Synthetic invoice data; live MiMo provider.",
+    "One successful full installed journey does not prove general task competence or all recovery faults.",
+    "Command approval performed by Codex after review of actual commands.",
+    "Exact-build hosted CI pending."
+  ],
+  "requirementIds": [
+    "P01",
+    "P02"
+  ],
+  "evidenceHashes": {
+    "proof.json": "d634dcf0f9077634e5c84e5c5634e7ea1526e098f2bf8ac43acee8c82e5ecc3d",
+    "frozen-inputs.json": "b789bf39b6a6ef137cbbeef14d37fc704994c79cbc8ac8b2eb8738cfffca6666",
+    "final-chat-answer.json": "41f3aa023b98d9e134f6fdd310d6ecb962611c4cbd36f1dec044ac3dbf9e7622",
+    "live-chat-accounting.json": "af0f47e983bf673028604b069ed291cba955b18897d6d82d4a48fc288b676ffc",
+    "review-plan.json": "243c42e741666e178f0168457681998306b20d16222197d9529c8089f9cac4fd"
+  },
+  "totalReportedTokens": 11830,
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": true,
+    "paidRequests": 5,
+    "passed": true,
+    "chatProvider": "mimo-v2.6-flash",
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1770,
+        "outputTokens": 536
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1208,
+          "outputTokens": 47
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2117,
+          "outputTokens": 142
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1500,
+          "outputTokens": 53
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 4,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1770,
+          "outputTokens": 536
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 1249,
+      "prompt_tokens": 3208,
+      "total_tokens": 4457,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "independentInvoiceCheck": true,
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "verifiedArtifactReadByLiveChat": true,
+    "finalChatSurvivedReloadWithoutResend": true,
+    "verifiedArtifactSha256": "a9d888ab37e5f8838dcea5a96eb28cf0b0b186bd51097ee547d1783ef5b49f6d",
+    "missingRepositoryRepairedInBrowser": true,
+    "repairDidNotEnableExecution": true,
+    "savedDockerFromBrowser": true,
+    "invalidRepositoryRejected": true,
+    "pendingSelectionSurvivedReload": true,
+    "setupDidNotStartTask": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false
+  }
+}
