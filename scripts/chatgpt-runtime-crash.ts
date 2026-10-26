@@ -12,7 +12,9 @@ import {ContractedDockerExecutionBackend} from '../src/core/runtime/contractedDo
 import {DockerComputeProvider} from '../src/core/compute/dockerComputeProvider.js';
 
 // Explicit, dedicated signed-in profile. Never discover an operator profile.
-const [profile,actor,model,image,output,mode,...extra]=process.argv.slice(2);
+const args=process.argv.slice(2);
+const syntheticOnly=args[0]==='--failed-result';
+const [profile,actor,model,image,output,mode,...extra]=syntheticOnly ? [os.tmpdir(),'synthetic-owner','synthetic',args[1],args[2],'--failed-result',...args.slice(3)] : args;
 const failedResult=mode==='--failed-result';
 if(!profile||!path.isAbsolute(profile)||!actor||!model||!image?.startsWith('sha256:')||!output||!path.isAbsolute(output)||(mode&&!failedResult)||extra.length)throw Error('Supply dedicated profile, actor, model, pinned image and new absolute evidence path');
 const destination=await fs.open(output,'wx',0o600);
@@ -20,7 +22,7 @@ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-chatgpt-
 const proof={passed:false,stage:'launch',liveProvider:failedResult?'synthetic':'chatgpt-subscription',model:failedResult?'synthetic':model,requests:0,recoveryExecutions:0,duplicateRecoveryRefused:false,artifactSha256:'',scope:'Real chat/worker child terminated after durable Docker result but before observed receipt; recovery in a separate process. Pre-approved synthetic command, not browser or mid-command partial-effect recovery.'};
 let worker:TaskWorkerRuntime|undefined;
 try{
- const env:NodeJS.ProcessEnv={AGENTFORGE_LIVE_EXECUTION_PROOF:failedResult?'0':'1',AGENTFORGE_PROOF_FAILED_RESULT:failedResult?'1':'0',AGENTFORGE_PROOF_PROVIDER:'chatgpt',AGENTFORGE_PROOF_MODEL:model,AGENTFORGE_PROOF_ACTOR:actor,AGENTFORGE_PROOF_SUBSCRIPTION_ROOT:await fs.realpath(profile),AGENTFORGE_APPROVED_DOCKER_IMAGE:image,AGENTFORGE_PROOF_CRASH_CHILD:'1',AGENTFORGE_PROOF_CRASH_ROOT:root};
+ const env:NodeJS.ProcessEnv={AGENTFORGE_LIVE_EXECUTION_PROOF:failedResult?'0':'1',AGENTFORGE_PROOF_FAILED_RESULT:failedResult?'1':'0',AGENTFORGE_PROOF_PROVIDER:'chatgpt',AGENTFORGE_PROOF_MODEL:model,AGENTFORGE_PROOF_ACTOR:actor,...(failedResult?{}:{AGENTFORGE_PROOF_SUBSCRIPTION_ROOT:await fs.realpath(profile)}),AGENTFORGE_APPROVED_DOCKER_IMAGE:image,AGENTFORGE_PROOF_CRASH_CHILD:'1',AGENTFORGE_PROOF_CRASH_ROOT:root};
  for(const key of ['SystemRoot','WINDIR','PATH','LOCALAPPDATA','APPDATA','USERPROFILE','TEMP','TMP'])if(process.env[key])env[key]=process.env[key];
  const child=await runBoundedChild(process.execPath,['--import','tsx','scripts/conversation-execution-e2e.ts'],{cwd:process.cwd(),env,timeoutMs:120000,maxOutputBytes:1048576});
  assert.notEqual(child.code,0,'Child must terminate before normal completion');

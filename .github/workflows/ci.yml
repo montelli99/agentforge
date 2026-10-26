@@ -60,6 +60,18 @@ jobs:
       - name: Verify Docker survivor discovery after worker death
         run: pnpm test:execution:docker-crash
 
+      - name: Verify failed Docker result recovery after worker termination
+        run: |
+          IMAGE_ID=$(docker image inspect node:22-alpine --format '{{.Id}}')
+          node --import tsx scripts/chatgpt-runtime-crash.ts --failed-result "$IMAGE_ID" "${{ runner.temp }}/failed-result-crash.json"
+
+      - name: Retain failed-result recovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-result-crash-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/failed-result-crash.json
+          if-no-files-found: error
+
       - name: Verify pinned Gemini transport through governed Docker broker
         run: node scripts/gemini-pinned-policy-acceptance.mjs --native --docker
 
