@@ -156,6 +156,8 @@ jobs:
 
       - name: Verify selected-note memory lifecycle across restart
         run: node scripts/obsidian-lifecycle-acceptance.mjs "${{ runner.temp }}/obsidian-lifecycle.json"
+      - name: Composed local memory lifecycle
+        run: node scripts/composed-memory-lifecycle-acceptance.mjs
 
       - name: Verify encrypted memory selection after process termination
         run: node scripts/memory-process-recovery.mjs "${{ runner.temp }}/memory-process-recovery.json"
