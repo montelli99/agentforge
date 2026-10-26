@@ -748,3 +748,8 @@ A dedicated synthetic owner saved a selected-note connection encrypted. The acce
 ### P06 subscription route reconciliation — 2026-10-26
 
 Confirmed current start.ts registers opt-in claude-cli planning with explicit configuration, while Gemini currently has preparation/protocol helpers but no registered planner. Corrected the setup catalog's stale Claude external-client-only label without claiming chat or managed execution. Eight Claude configuration/planner tests passed. Neither official executable was found on this process PATH; this is not evidence that no installation exists elsewhere or that an account is authenticated. Live lifecycle, Gemini integration and managed execution remain required.
+
+
+### P06 Gemini opt-in planner integration — 2026-10-26
+
+Added GeminiCliPlanner and registered AGENTFORGE_PLAN_PROVIDER=gemini-cli with AGENTFORGE_PLAN_GEMINI_CONFIG pointing to an explicit configuration containing bundlePath, homeDirectory and model. Uses the prepared dedicated Google-login profile, no inherited API credentials, fresh working directory, bounded child execution, deny-tool policies, disabled extensions/MCP, strict transcript validation, and existing plan validation. Twenty-five protocol/adapter tests and production build passed. Official reference: https://geminicli.com/docs/reference/policy-engine/ and https://geminicli.com/docs/reference/configuration/. These are requested client controls, not verified isolation. No live account login, policy-enforcement proof, managed command execution or streaming chat is claimed. Authentication-file presence is not treated as successful sign-in proof; the official client consumes its own credential. Live acceptance remains required.
