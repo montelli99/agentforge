@@ -1,0 +1,23 @@
+{
+  "requirement": "P07",
+  "passed": true,
+  "syntheticOnly": true,
+  "freshDestinationStore": true,
+  "explicitProjectRemap": true,
+  "reviewDidNotWrite": true,
+  "reopenPreserved": true,
+  "exactTitleAndBody": true,
+  "provenancePreserved": true,
+  "selectedMarkdownRecall": true,
+  "wrongProjectExcluded": true,
+  "sourceUnchanged": true,
+  "limits": [
+    "Local adapters only; no live Hindsight or browser migration in this run"
+  ],
+  "runtimeBuildSource": "354823b",
+  "archiveSha256": "2930f9339719c1153c47f3fc58bb26fcd7078ca3e7a8d2dced4e256e13b61437",
+  "installedPackage": true,
+  "actualArchiveContentsScanned": true,
+  "privacyScanLimit": "Known signatures only; not proof that every sensitive datum is absent",
+  "recordedAt": "2026-10-26T12:30:33.5601841Z"
+}
