@@ -4204,7 +4204,7 @@ export class AgentForgeWebServer {
             ? this.taskWorkerRuntime.reconcileObservedExecution(task.id)
             : this.store.updateTask(task.id, { status: "paused" });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "authenticated-reviewer", actorType: "user", action: "TASK_RECEIPT_REVIEWED", targetType: "task", targetId: task.id, details: { decision: body.decision, operationId: receipt?.operationId ?? null, receiptDigest: receipt?.receiptDigest ?? null, previousStatus: current.status, replayed: false } });
-          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "recover-journal" ? "Durable result restored for final approval. No command replayed." : body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
+          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "recover-journal" ? (updated.status === "failed" ? "Durable failed result restored. Review its effects and approve a corrected repair plan. No command replayed." : "Durable result restored for final approval. No command replayed.") : body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
         } catch (error) { res.writeHead(409, { "Cache-Control": "no-store" }); res.end(JSON.stringify({ error: redactRuntimeError(error, "Receipt review failed") })); }
         return;
       }

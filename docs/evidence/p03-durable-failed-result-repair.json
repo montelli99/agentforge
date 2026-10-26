@@ -1,0 +1,29 @@
+{
+  "recordedAtUtc": "2026-10-26T17:55:29.3670986Z",
+  "baseCommit": "646577e642cc88fb0378edb29b29bd2c91ef80ac",
+  "passed": true,
+  "scope": "Persisted WorkspaceStore reopened twice in the same test process, synthetic backend; not a real process crash or Docker acceptance.",
+  "checks": [
+    "failed durable result preserved as observed without execution",
+    "reviewed corrected repair survives store reopen",
+    "repair executes once with distinct operation ID",
+    "original failed receipt retained unchanged",
+    "second reopen restores pending final approval without execution",
+    "missing durable result remains uncertain"
+  ],
+  "tests": 15,
+  "files": [
+    {
+      "sha256": "5452d5760d9b0e44c8ba6584d257c0808d0ef5be9fe1db99313c139993bcf3b7",
+      "path": "src/core/runtime/journalRecovery.test.ts"
+    },
+    {
+      "sha256": "e8781c4e6b9ae42ecace9b80dbef26109ba44bd1f03d2a6b2789e1a9b53ca273",
+      "path": "src/core/runtime/taskWorkerRuntime.ts"
+    },
+    {
+      "sha256": "523e1637051a52a7b9ce972a43bfb7df2a016ea3de427a6ef1b3a362248ec11d",
+      "path": "src/server/webServer.ts"
+    }
+  ]
+}
