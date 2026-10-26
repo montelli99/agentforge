@@ -12,7 +12,7 @@
     "shipment-coverage": "c921f6ffa4802932394455738b2745b5857462b112496ea65908fee15abdda31",
     "access-policy": "9a69894ce5816cb52575413c7f005361e74d8e6711dd88856a7e6c0743752c84"
   },
-  "runnerStatus": "Not run; shared instruction and runner contract verification required before live scoring.",
+  "runnerStatus": "Shared instructions and limits verified before first live attempt; both arms use the same frozen contract. All outcomes retained.",
   "model": "mimo-v2.6-flash",
   "arms": [
     "Installed AgentForge chat → reviewed plan → isolated execution → restart/recovery → artifact chat",
@@ -49,5 +49,6 @@
       "Monotonic total elapsed time, provider time and reviewer wait recorded separately",
       "No new development on frozen cases after inspecting live output; repairs require separate labeled development evidence"
     ]
-  }
+  },
+  "executionInstructionsSha256": "17842aefbe40cb498ad344b5c897d79bcabad21f92c153ac2ad295b4d84c5d57"
 }

@@ -1,3 +1,4 @@
+import {evaluationExecutionInstructions} from './evaluation-execution-instructions.mjs';
 import path from 'node:path';
 import {evaluationDirectory} from './evaluation-directory.mjs';
 import fs from 'node:fs/promises';
@@ -6,6 +7,7 @@ export async function evaluationLimits(){
  const bytes=await fs.readFile(path.join(evaluationDirectory(),'protocol.json'));
  const protocol=JSON.parse(bytes);
  if(![2,3].includes(protocol.version)||protocol.status!=='protocol-frozen-before-model-runs')throw Error('Evaluation protocol is not frozen');
+ if(protocol.version===3&&protocol.executionInstructionsSha256!==createHash('sha256').update(evaluationExecutionInstructions).digest('hex'))throw Error('Frozen execution instructions changed');
  const limits=protocol.limits;
  for(const value of Object.values(limits))if(!Number.isSafeInteger(value)||value<1)throw Error('Invalid evaluation limit');
  let total=0,chat=0;

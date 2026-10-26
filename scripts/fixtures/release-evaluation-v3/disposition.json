@@ -1,5 +1,5 @@
 {
   "version": 3,
-  "liveScoringAllowed": false,
-  "reason": "Runner verification pending; no live attempts yet"
+  "liveScoringAllowed": true,
+  "reason": "Frozen shared instructions and limits verified; preserve every attempt including failures."
 }
