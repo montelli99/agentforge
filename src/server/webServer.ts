@@ -83,7 +83,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
-import { observeExternalTurn, prepareExternalTurnApproval, dispatchExternalTurn, stopExternalTurn } from '../core/runtime/externalTurnDispatch.js';
+import { readExternalTurnOutput, observeExternalTurn, prepareExternalTurnApproval, dispatchExternalTurn, stopExternalTurn } from '../core/runtime/externalTurnDispatch.js';
 import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
@@ -4076,10 +4076,8 @@ export class AgentForgeWebServer {
         try {
           if(action==='external-output'){
             if(!connection.readRunOutput||receipt?.status!=='accepted'||!receipt.runId)throw Error('Saved output unavailable');
-            const result=await connection.readRunOutput(receipt.runId);
-            const current=this.store.getTask(task.id)?.externalTurnReceipts?.[0];
-            if(!current||current.requestId!==receipt.requestId||current.runId!==receipt.runId||current.connectionId!==connection.id||result.runId!==receipt.runId||typeof result.content!=='string'||Buffer.byteLength(result.content,'utf8')>60000)throw Error('External output identity changed');
-            res.writeHead(200);res.end(JSON.stringify({runId:result.runId,content:result.content,referenceDataOnly:true,verified:false}));return;
+            const result=await readExternalTurnOutput(this.store,task.id,{id:connection.id,readRunOutput:id=>connection.readRunOutput!(id)});
+            res.writeHead(200);res.end(JSON.stringify({runId:result.runId,content:result.content,source:result.source,referenceDataOnly:true,verified:false}));return;
           }
           if(action==='external-stop'){
             if(!connection.requestRunStop||!caller.user?.id)throw Error('Stop unavailable');

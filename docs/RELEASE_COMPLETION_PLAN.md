@@ -824,3 +824,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P04 integrated browser lifecycle evidence
 
 `evidence/p04-browser-reconnect-stop.json` records the live invoice, explicit review, independent artifact check, client reconnect without resend, and browser Stop with exact-run activity and eventual RPC termination. The invoice remains unchanged after Stop. Failed harness assumptions are retained in the evidence. Interrupted-request usage and cost remain unknown. Gateway process restart, installed-package repetition and broader partial-effect inspection remain open; P04 is not closed.
+
+### P04 durable result recovery
+
+`evidence/p04-durable-result-restart.json` proves recovery of an explicitly fetched exact-run result after the real gateway process restarts, without replay. The gateway run lookup itself returned timeout after restart. AgentForge now persists requested output with run/request/connection identity and a content hash. Seven focused persistence/API tests pass, including rejection of tampering and another connection. Unread-result recovery and installed-package acceptance remain open.

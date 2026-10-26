@@ -1,7 +1,7 @@
 import {expect,it,vi} from 'vitest';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {WorkspaceStore} from '../store/workspaceStore.js';
-import {dispatchExternalTurn,externalTurnApprovalAction} from './externalTurnDispatch.js';
+import {readExternalTurnOutput,dispatchExternalTurn,externalTurnApprovalAction} from './externalTurnDispatch.js';
 import {TaskWorkerRuntime} from './taskWorkerRuntime.js';
 it('excludes overlapping dispatch and local execution, and preserves cancellation after a late remote receipt',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'agentforge-external-overlap-'));
@@ -116,4 +116,16 @@ it('persists Stop before sending and preserves uncertainty across restart withou
   await expect(stopExternalTurn(reopened,task.id,'synthetic-owner',{id:'selected',requestRunStop})).rejects.toThrow(/already recorded/);
   expect(requestRunStop).toHaveBeenCalledTimes(1);expect(reopened.getTask(task.id)?.status).toBe('paused');
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+it('retains exact fetched output across reopen and rejects tampering or another connection',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'af-output-recovery-'));const file=path.join(dir,'state.json');const store=new WorkspaceStore(file);const task=store.createTask({title:'Synthetic output',priority:'medium',status:'paused'});
+ store.updateTask(task.id,{externalTurnReceipts:[{requestId:'request',requestDigest:'digest',approvalId:'approval',connectionId:'gateway',sessionKey:'session',status:'accepted',runId:'run',createdAt:new Date().toISOString()}]});
+ const read=vi.fn().mockResolvedValue({runId:'run',content:'Synthetic invoice result'});
+ expect((await readExternalTurnOutput(store,task.id,{id:'gateway',readRunOutput:read})).source).toBe('remote');
+ const reopened=new WorkspaceStore(file);read.mockRejectedValue(Error('gateway restarted'));
+ expect(await readExternalTurnOutput(reopened,task.id,{id:'gateway',readRunOutput:read})).toEqual({runId:'run',content:'Synthetic invoice result',source:'saved'});expect(read).toHaveBeenCalledTimes(1);expect(reopened.getTask(task.id)?.status).toBe('paused');
+ await expect(readExternalTurnOutput(reopened,task.id,{id:'different',readRunOutput:read})).rejects.toThrow('Matching');
+ const receipt=reopened.getTask(task.id)!.externalTurnReceipts![0];reopened.updateTask(task.id,{externalTurnReceipts:[{...receipt,output:{...receipt.output!,content:'altered'}}]});
+ await expect(readExternalTurnOutput(reopened,task.id,{id:'gateway',readRunOutput:read})).rejects.toThrow('integrity');expect(read).toHaveBeenCalledTimes(1);
 });

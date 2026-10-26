@@ -5,7 +5,7 @@ import type {Task} from '../types/task.js';
 import {executionContractDigest} from './approvedPlanProvider.js';
 
 export interface ExternalTurnRequest { connectionId: string; sessionKey: string; message: string; }
-export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; observation?: {remoteStatus: string; observedAt: string}; observationHistory?: Array<{remoteStatus:string;observedAt:string}>; stop?: {requestedAt:string; requestedBy:string; status:'requested'|'acknowledged'|'not_acknowledged'}; }
+export interface ExternalTurnReceipt { requestId: string; requestDigest: string; approvalId: string; connectionId: string; sessionKey: string; status: 'started' | 'accepted'; runId?: string; createdAt: string; output?: {requestId:string;runId:string;connectionId:string;content:string;sha256:string;capturedAt:string}; observation?: {remoteStatus: string; observedAt: string}; observationHistory?: Array<{remoteStatus:string;observedAt:string}>; stop?: {requestedAt:string; requestedBy:string; status:'requested'|'acknowledged'|'not_acknowledged'}; }
 function validateRequest(request: ExternalTurnRequest): void {
   for (const [value, maximum] of [[request.connectionId,512],[request.sessionKey,512],[request.message,32000]] as const) {
     if (typeof value !== 'string' || !value.trim() || value.length > maximum) throw Error('External destination and message must be explicit and within limits');
@@ -94,4 +94,19 @@ export async function stopExternalTurn(store: WorkspaceStore, taskId: string, re
   const observed:ExternalTurnReceipt={...current,stop:{...stopping.stop!,status:result.acknowledged?'acknowledged':'not_acknowledged'}};
   store.updateTask(taskId,{externalTurnReceipts:[observed]});
   return observed;
+}
+
+/** Persist only explicitly requested, exact-run output. This is reference data, not task verification. */
+export async function readExternalTurnOutput(store: WorkspaceStore, taskId: string, connection: {id:string;readRunOutput(runId:string):Promise<{runId:string;content:string}>}):Promise<{runId:string;content:string;source:'saved'|'remote'}> {
+ if(store.persistenceMode!=='local_json')throw Error('Durable storage required');
+ const receipt=store.getTask(taskId)?.externalTurnReceipts?.[0];
+ if(!receipt||receipt.status!=='accepted'||!receipt.runId||receipt.connectionId!==connection.id)throw Error('Matching saved run required');
+ const valid=(content:unknown):content is string=>typeof content==='string'&&!!content.trim()&&Buffer.byteLength(content,'utf8')<=60000;
+ const digest=(content:string)=>crypto.createHash('sha256').update(content).digest('hex');
+ if(receipt.output){const o=receipt.output;if(o.requestId!==receipt.requestId||o.runId!==receipt.runId||o.connectionId!==receipt.connectionId||!valid(o.content)||o.sha256!==digest(o.content))throw Error('Saved output identity or integrity mismatch');return {runId:o.runId,content:o.content,source:'saved'};}
+ const result=await connection.readRunOutput(receipt.runId);
+ const current=store.getTask(taskId)?.externalTurnReceipts?.[0];
+ if(!current||current.requestId!==receipt.requestId||current.runId!==receipt.runId||current.connectionId!==connection.id||result.runId!==receipt.runId||!valid(result.content))throw Error('External output identity changed');
+ store.updateTask(taskId,{externalTurnReceipts:[{...current,output:{requestId:receipt.requestId,runId:result.runId,connectionId:connection.id,content:result.content,sha256:digest(result.content),capturedAt:new Date().toISOString()}}]});
+ return {...result,source:'remote'};
 }

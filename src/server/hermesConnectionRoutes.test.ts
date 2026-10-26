@@ -42,11 +42,11 @@ it('discovers Hermes sessions through authenticated AgentForge without importing
   const outputUrl=base+'/api/tasks/'+task.id+'/external-output';
   expect((await fetch(outputUrl,{method:'POST'})).status).toBe(401);
   const output=await fetch(outputUrl,{method:'POST',headers,body:JSON.stringify({runId:'unrelated-run'})});
-  expect(output.status).toBe(200);expect(await output.json()).toEqual({runId:'run-synthetic',content:'Synthetic remote output',referenceDataOnly:true,verified:false});
+  expect(output.status).toBe(200);expect(await output.json()).toEqual({runId:'run-synthetic',content:'Synthetic remote output',source:'remote',referenceDataOnly:true,verified:false});
   expect(store.getTask(task.id)?.status).toBe('paused');expect(store.getTask(task.id)?.evidencePack).toBeUndefined();
   expect(requests.at(-1)?.url).toBe('/v1/runs/run-synthetic');
   const saved=await fs.readFile(path.join(directory,'workspace.json'),'utf8');
-  expect(saved).not.toContain('Synthetic remote output');expect(saved).not.toContain('synthetic-secret-test');expect(saved).not.toContain('private synthetic preview');
+  expect(saved).toContain('Synthetic remote output');const count=requests.length;const recovered=await fetch(outputUrl,{method:'POST',headers});expect(await recovered.json()).toMatchObject({source:'saved',content:'Synthetic remote output',verified:false});expect(requests).toHaveLength(count);expect(saved).not.toContain('synthetic-secret-test');expect(saved).not.toContain('private synthetic preview');
  }finally{
   await server.stop();upstream.closeAllConnections();await new Promise<void>(resolve=>upstream.close(()=>resolve()));
   await fs.rm(directory,{recursive:true,force:true});
