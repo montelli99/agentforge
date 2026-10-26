@@ -155,6 +155,23 @@ try {
   assert.equal(installedStatus.status, 0, installedStatus.stderr);
   assert.match(installedStatus.stdout, /staging_not_release_ready/);
 
+  const profileHome = path.join(consumerDirectory, 'synthetic-gemini-home');
+  const prepareProfile = () => spawnSync(process.execPath, [installedCli, 'connections', 'prepare-gemini', profileHome], {
+    cwd: consumerDirectory, encoding: 'utf8', timeout: 10000,
+  });
+  const prepared = prepareProfile();
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const profile = JSON.parse(prepared.stdout);
+  assert.equal(profile.home, fs.realpathSync(profileHome));
+  assert.equal(profile.authenticated, false);
+  const settingsPath = path.join(profile.home, '.gemini', 'settings.json');
+  const originalSettings = fs.readFileSync(settingsPath, 'utf8');
+  const settings = JSON.parse(originalSettings);
+  for (const control of ['extensions', 'mcp', 'skills']) assert.equal(settings.admin[control].enabled, false);
+  assert.deepEqual(fs.readdirSync(path.join(profile.home, '.gemini')), ['settings.json']);
+  assert.notEqual(prepareProfile().status, 0, 'Existing profiles must never be overwritten');
+  assert.equal(fs.readFileSync(settingsPath, 'utf8'), originalSettings);
+  console.log('PASS: installed CLI creates a dedicated restricted Gemini profile and preserves it on repeated setup.');
   // Resolve the public contracts through the installed archive, never src/.
   const consumerSource = path.join(consumerDirectory, "memory-consumer.mts");
   fs.writeFileSync(consumerSource, `

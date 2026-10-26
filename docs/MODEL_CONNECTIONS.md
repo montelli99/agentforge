@@ -276,3 +276,37 @@ transcript checks are not an OS sandbox. This is a planner route, not streaming
 Claude chat or permission to run the official client against private repositories.
 
 Use the exact resolved home returned by prepare-gemini for GEMINI_CLI_HOME and the planner homeDirectory. On systems where temporary directories have filesystem aliases, this resolves the newly created location; the planner still refuses linked profile paths.
+
+### Experimental Gemini subscription planner
+
+Prepare a new dedicated profile with `agentforge connections prepare-gemini`,
+then use its returned physical home for official Google sign-in. Do not select
+an existing personal profile. AgentForge does not collect account passwords or
+copy credentials. The profile disables hooks, extensions, MCP and skills.
+
+The launcher accepts `AGENTFORGE_PLAN_PROVIDER=gemini-cli` and
+`AGENTFORGE_PLAN_GEMINI_CONFIG`, an absolute path to a private JSON file with
+exactly these fields:
+
+```json
+{
+  "bundlePath": "/absolute/path/to/official/bundle/gemini.js",
+  "homeDirectory": "/absolute/physical/path/to/dedicated-home",
+  "model": "gemini-YOUR-AVAILABLE-MODEL"
+}
+```
+
+On Windows use absolute Windows paths, escaping backslashes in JSON. No API key
+or account token belongs in this file. Use an account-supported model identifier;
+the placeholder above is not a model recommendation. The client must advertise
+the required controls, and the profile must retain the prepared restrictions.
+
+This route drafts a plan for review. It does not provide streaming chat or run
+proposed commands. Approved execution goes through AgentForge's governed worker.
+Cancellation rejects the response, retains valid reported usage when available,
+and never automatically retries or falls back to API billing.
+
+Official 0.65.0 user-setting authentication mismatch rejection and policy-engine
+tool denial have been exercised without an account. Complete live login,
+inference and full-client enforcement remain acceptance work; engine checks
+and requested flags are not an operating-system sandbox.
