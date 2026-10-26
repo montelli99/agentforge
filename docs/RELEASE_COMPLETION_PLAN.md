@@ -64,8 +64,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
 - [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
   session, review/send one useful task, observe and verify its returned artifact,
   disconnect/reconnect, and Stop an active run with partial-effect inspection.
-  Save upstream run IDs plus AgentForge receipts and result hashes. Next: run a
-  integrated browser delegation with the live adapter; live arithmetic, invoice artifact, exact-run output, reconnect history and active Stop now have separate evidence.
+  Save upstream run IDs plus AgentForge receipts and result hashes. Installed live browser delegation, verified invoice, unread-result recovery after gateway restart and active text-only Stop now pass (`evidence/p04-installed-unread-restart.json`). Next: verify Stop around a partial filesystem effect and carry acceptance onto the final release candidate.
 - [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
   and the registered connector. Include selected API-session continuity and
   credential-change refusal for existing receipts. Verify successful completion
