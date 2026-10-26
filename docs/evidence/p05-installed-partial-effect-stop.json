@@ -1,0 +1,252 @@
+{
+  "requirements": [
+    "P03",
+    "P05"
+  ],
+  "recordedAt": "2026-10-26T10:25:35.995Z",
+  "installedSourceCommit": "40208f2",
+  "archiveSha256": "70ad1fcc8c496bd12feb32e101acebbc41405eb9241d3272731875780646c6fc",
+  "runnerSha256": "476c81d57396456bd846e72a1b7563dc7f06601d0085b8bea462592854897ba0",
+  "proof": {
+    "passed": true,
+    "guidedBrowserConnection": true,
+    "setupSentNoModelRequests": true,
+    "installedPackage": true,
+    "gatewayProcessRestart": true,
+    "unreadResultRecovered": true,
+    "browserStop": true,
+    "partialEffectsTested": true,
+    "invoiceUnchangedAfterStop": true,
+    "browserSessionSelection": true,
+    "reviewBeforeSend": true,
+    "submissions": 2,
+    "runId": "run_eda9a748ac54498e884a46362a989c78",
+    "sessionKey": "run_541c7f2062214fc7ace09429cafd835b",
+    "independentInvoiceCheck": true,
+    "outputVisible": true,
+    "reloadWithoutResend": true,
+    "notLocallyVerified": true,
+    "limits": [
+      "Broader partial effects remain open."
+    ]
+  },
+  "partialEffects": {
+    "effects": {
+      "start": "started\n",
+      "finished": false
+    },
+    "remoteStatus": "cancelled",
+    "submissions": 2
+  },
+  "stop": {
+    "runId": "run_f3c1ad6e81bf42bebc6337737585ef1d",
+    "before": "running",
+    "after": "cancelled",
+    "invoiceUnchanged": true
+  },
+  "providerAccounting": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T10:23:49.068Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 38
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:23:52.757Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T10:23:52.860Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13912,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:23:54.568Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T10:23:54.801Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 308,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:23:57.189Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T10:23:57.292Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14006,
+        "outputTokens": 42
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:01.902Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T10:24:01.952Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:03.348Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T10:24:05.264Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14279,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:06.649Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T10:24:06.743Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14702,
+        "outputTokens": 709
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:18.858Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T10:24:19.119Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15480,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:20.617Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T10:24:20.872Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15781,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:22.095Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T10:24:22.157Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15923,
+        "outputTokens": 441
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:30.852Z"
+    },
+    {
+      "requestNumber": 11,
+      "startedAt": "2026-10-26T10:24:31.047Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 710,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:32.493Z"
+    },
+    {
+      "requestNumber": 12,
+      "startedAt": "2026-10-26T10:24:32.605Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16490,
+        "outputTokens": 79
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:34.883Z"
+    },
+    {
+      "requestNumber": 13,
+      "startedAt": "2026-10-26T10:24:35.038Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 348,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:36.059Z"
+    },
+    {
+      "requestNumber": 14,
+      "startedAt": "2026-10-26T10:24:36.174Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16894,
+        "outputTokens": 271
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:42.725Z"
+    },
+    {
+      "requestNumber": 15,
+      "startedAt": "2026-10-26T10:24:53.789Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 17247,
+        "outputTokens": 74
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:58.365Z"
+    },
+    {
+      "requestNumber": 16,
+      "startedAt": "2026-10-26T10:24:58.655Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 334,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:24:59.985Z"
+    }
+  ],
+  "hashes": {
+    "partial-effects.json": "c133182f6a98eadff695eabbbb6879c5c074e907b5c4beb64ad98c1b96c4e87a",
+    "browser-report.json": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "browser-stop.json": "3171280ef8353acc88729c2505972c8346bf7a0eef25196411f7ad6238fe72ba"
+  },
+  "scope": "Real Hermes terminal wrote one marker before browser Stop. After a 22-second observation period, the delayed second file did not exist; original receipt persisted once.",
+  "limits": [
+    "One bounded Node terminal command, not all tool types",
+    "External status is not local task verification",
+    "Cost unknown"
+  ]
+}
