@@ -66,8 +66,9 @@ const api=http.createServer(async(req,res)=>{
  }catch{res.writeHead(500);res.end('{"error":"synthetic acceptance protocol mismatch"}');}
 });
 const broker=http.createServer(async(req,res)=>{
+ try{
  if(req.method!=='POST'){res.writeHead(405);res.end();return;}
- const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));
+ const chunks:Buffer[]=[];let bytes=0;for await(const chunk of req){bytes+=chunk.length;if(bytes>65536)throw Error('Synthetic MCP request too large');chunks.push(Buffer.from(chunk));}
  const body=JSON.parse(Buffer.concat(chunks).toString());
  if(body.id===undefined){res.writeHead(202);res.end();return;}
  if(body.method==='tools/call')brokerCalls.push(body.params?.name);
@@ -75,8 +76,9 @@ const broker=http.createServer(async(req,res)=>{
  :body.method==='tools/call'?{content:[{type:'text',text:'Synthetic saved result'}]}
  :{tools:['request_review','execute_reviewed','read_result'].map(name=>({name,description:'Synthetic inspection only',inputSchema:{type:'object',properties:{}}}))};
  res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({jsonrpc:'2.0',id:body.id,result}));
+ }catch{res.writeHead(400);res.end('{}');}
 });
-const listen=(server:http.Server)=>new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+const listen=(server:http.Server)=>new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
 const url=(server:http.Server)=>'http://127.0.0.1:'+(server.address() as import('node:net').AddressInfo).port;
 try{
  await listen(api);await listen(broker);
@@ -92,8 +94,10 @@ try{
  console.log(JSON.stringify({passed,exitCode:result.code,requests,tools:names,negative,governed,effects,duplicateRejected,forbiddenRejected,markerExists,brokerCalls,scope:'Installed CLI and host broker against local synthetic API; no subscription, Docker or OS isolation proof'}));
  if(!passed)process.exitCode=1;
 }finally{
- await connection?.close();
- api.closeAllConnections();broker.closeAllConnections();
- await Promise.all([new Promise<void>(resolve=>api.close(()=>resolve())),new Promise<void>(resolve=>broker.close(()=>resolve()))]);
- await fs.rm(root,{recursive:true,force:true});
+ try{await connection?.close();}
+ finally{
+  api.closeAllConnections();broker.closeAllConnections();
+  await Promise.all([new Promise<void>(resolve=>api.close(()=>resolve())),new Promise<void>(resolve=>broker.close(()=>resolve()))]);
+  await fs.rm(root,{recursive:true,force:true});
+ }
 }
