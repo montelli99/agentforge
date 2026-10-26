@@ -69,3 +69,14 @@ it('rejects a combined check before approval and accepts a separate exact check'
  const draft=await new ModelPlanDraftProvider(model([work,exact]),'test').draft(task);
  expect(draft.commands).toEqual([work,exact]);expect(draft.source).toBe('model');
 });
+
+it('carries bounded failed-check diagnostics without granting approval or importing other tasks',async()=>{
+ const task={id:'repair',status:'failed',contract:{requiredChecks:[]},evidencePack:{taskId:'repair',testResults:[{checkName:'unit_tests',command:'node verify.js',passed:false,exitCode:1,stderr:'x'.repeat(10000)},{checkName:'passed',command:'node -v',passed:true,stderr:'ignore'}]}};
+ let messages:Array<{content:string}>=[];
+ const model={generate:async(options:{messages:Array<{content:string}>})=>{messages=options.messages;return {content:JSON.stringify({commands:[{checkName:'unit_tests',command:'node verify.js'}]})};}} as never;
+ const provider=new ModelPlanDraftProvider(model,'test');const draft=await provider.draft(task as never);
+ expect(messages[2].content).toContain('untrusted reference data');expect(messages[2].content).toContain('Prior effects may exist');
+ const diagnostics=JSON.parse(messages[2].content.split('\n').slice(1).join('\n'));
+ expect(diagnostics.failedChecks).toHaveLength(1);expect(diagnostics.failedChecks[0].stderr).toHaveLength(2000);expect(draft.source).toBe('model');
+ await provider.draft({...task,evidencePack:{...task.evidencePack,taskId:'other'}} as never);expect(messages).toHaveLength(2);
+});
