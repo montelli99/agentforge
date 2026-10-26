@@ -106,7 +106,12 @@ being shown as an isolated execution environment.
 
 ## Explicit approved-command mode
 
-The launcher accepts `AGENTFORGE_EXECUTION_MODE=approved-docker` with an explicit
+The owner can save reviewed Docker execution and a committed repository through
+Compute, then restart the launcher. See [guided setup](./LOCAL_OPERATIONS.md#execution-boundary).
+Saving does not change the active worker. Explicit environment configuration takes
+precedence over the saved selection.
+
+The launcher also accepts `AGENTFORGE_EXECUTION_MODE=approved-docker` with an explicit
 absolute `AGENTFORGE_EXECUTION_REPO`. The default remains off. This mode uses
 canonical task plan approvals, a one-hour approval expiry, and isolated task
 worktrees. It does not call a model to invent a plan. Docker availability is

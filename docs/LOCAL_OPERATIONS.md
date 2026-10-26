@@ -74,12 +74,32 @@ application's token merely to make a status screen look connected.
 
 ## Execution boundary
 
-Task execution is disabled by default. The only bundled execution path requires
-all of the following: `AGENTFORGE_EXECUTION_MODE=approved-docker`, an explicit
-absolute `AGENTFORGE_EXECUTION_REPO`, Docker availability, and an approved task
-plan. It is intended for an isolated repository, with no network access in the
-acceptance configuration. Review [production execution boundaries](./PRODUCTION_EXECUTION_BOUNDARY.md)
-before enabling it.
+Task execution is disabled by default. To configure it locally:
+
+1. Install and start Docker, and choose a Git repository with a committed revision.
+2. Sign in as the workspace owner and open **Connections → Compute**.
+3. Select **Reviewed Docker tasks**, enter the repository's absolute folder path,
+   and choose **Save execution setup**.
+4. Restart AgentForge using the same data directory. Refresh Compute and inspect
+   the active runtime readiness before preparing work.
+5. Review each task's boundaries and commands, approve that plan, then choose
+   **Run task**. Saving setup or approving a plan never starts a task by itself.
+
+The saved selection lives in `execution-setup.json` beside the workspace data.
+Selecting **Planning only** also takes effect after restart; it is not an emergency
+Stop control. Use the task's Stop/Pause controls for active work. Setup changes are
+refused while a task is active. A missing repository or invalid saved configuration
+leaves execution off; the app remains available to repair the selection in Compute.
+
+Existing deployments can still use `AGENTFORGE_EXECUTION_MODE=approved-docker`
+and an absolute `AGENTFORGE_EXECUTION_REPO`. An explicit execution-mode environment
+setting overrides the saved choice and disables guided changes. In particular,
+`AGENTFORGE_EXECUTION_MODE=off` keeps execution off even if Docker was saved earlier.
+Remove the override and restart if you want the UI to control setup.
+
+Review [production execution boundaries](./PRODUCTION_EXECUTION_BOUNDARY.md)
+before enabling it. Local acceptance proves bounded workflows; it does not certify
+arbitrary commands or every provider combination.
 
 For a non-loopback deployment, configure `AGENTFORGE_HOST` and a strong
 `AGENTFORGE_API_TOKEN` together. The runtime refuses a non-loopback host without
