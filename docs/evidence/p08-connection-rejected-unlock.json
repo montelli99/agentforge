@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-10-26T14:05:25.012Z",
+  "sourceBase": "dce3f263088454d638f74bca9a862e14cc578f2c",
+  "scriptSha256": "22be33b822bfd19fd5db10219cdccfdd33bef42717c3233acf12e684b0fd51a1",
+  "syntheticOnly": true,
+  "liveProviderVerified": false,
+  "attempts": [
+    {
+      "result": "failed",
+      "cause": "Test expected an internal error instead of the sanitized public API message; no product defect established"
+    },
+    {
+      "result": "passed",
+      "checks": [
+        "Wrong passphrase clears input and retains unlock button keyboard focus",
+        "Route remains locked and encrypted vault bytes unchanged",
+        "No provider requests during rejected unlock",
+        "Correct passphrase after documented cooldown restores route",
+        "Stream reload completes without replay",
+        "Restored connection drafts plan without approval or execution"
+      ]
+    }
+  ],
+  "hostedCI": {
+    "run": 40334518927,
+    "head": "76889232f17cfa38aa38f06a5ba22e2e72028210",
+    "conclusion": "success",
+    "coversNewTest": false
+  }
+}

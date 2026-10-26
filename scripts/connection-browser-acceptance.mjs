@@ -71,6 +71,16 @@ try{
  }
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
   const before=await page.request.get(oldUrl+'/api/chat/status');assert.equal((await before.json()).configured,false);
+ // A rejected unlock must preserve the vault and allow keyboard-only recovery.
+ await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic incorrect vault password');
+ await page.getByRole('button',{name:'Unlock saved connections',exact:true}).focus();await page.keyboard.press('Enter');
+ await page.getByText('Connection not changed. Check the profile and unlock passphrase',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Unlock saved connections');
+ assert.equal(await page.getByLabel('Private connection-store passphrase',{exact:true}).inputValue(),'');
+ assert.equal((await (await page.request.get(oldUrl+'/api/chat/status')).json()).configured,false);
+ assert.equal(fs.readFileSync(path.join(root,'connections.encrypted.json'),'utf8'),vault);
+ assert.equal(requests,0);
+ await new Promise(resolve=>setTimeout(resolve,3100)); // Respect the documented unlock retry cooldown.
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
  await page.getByRole('button',{name:'Unlock saved connections',exact:true}).focus();await page.keyboard.press('Enter');
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
