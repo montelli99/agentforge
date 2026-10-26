@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "0625af825fc4f1e4b0cbe08aae2bc9ad0855815d",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628",
+  "jobs": [
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751407759",
+      "name": "Public package and isolated execution acceptance",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751408086",
+      "name": "Build & Test (windows-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751408272",
+      "name": "Build & Test (windows-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751408303",
+      "name": "Build & Test (ubuntu-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751408488",
+      "name": "Build & Test (ubuntu-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751408530",
+      "name": "Build & Test (macos-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40373836628/job/121751409744",
+      "name": "Build & Test (macos-latest, Node 24.x)",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Exact commit hosted matrix including failed Docker journal crash recovery and installed browser archive acceptance."
+}
