@@ -10,7 +10,7 @@ export function readPortableMarkdown(text: string, namespace: string, projectId:
     if (/^agentforge_format: "agentforge-memory"\r?$/m.test(text)) throw Error('Incomplete AgentForge memory export');
     return undefined;
   }
-  const header = text.slice(text.indexOf('\n') + 1, end);
+  const header = text.slice(text.indexOf('\n') + 1, end).replace(/\r$/, '');
   if (!/^agentforge_format: "agentforge-memory"\r?$/m.test(header)) return undefined;
   const fields: Record<string, unknown> = Object.create(null);
   for (const line of header.split(/\r?\n/)) {
@@ -33,7 +33,7 @@ export function readPortableMarkdown(text: string, namespace: string, projectId:
   const body = remainder.match(/^---\r?\n\r?\n# ([^\r\n]*)\r?\n\r?\n([\s\S]*)$/);
   if (!body || body[1].length > 4096) throw Error('Invalid AgentForge memory body');
   // The serializer adds one terminal newline; retain the original body exactly.
-  const content = body[2].endsWith('\n') ? body[2].slice(0, -1) : body[2];
+  const content = text.startsWith('---\r\n') && body[2].endsWith('\r\n') ? body[2].slice(0, -2) : body[2].endsWith('\n') ? body[2].slice(0, -1) : body[2];
   if (fields.agentforge_title !== undefined && (typeof fields.agentforge_title !== 'string' || fields.agentforge_title.length > 4096))
     throw Error('Invalid AgentForge memory title');
   const source = fields.agentforge_source as Record<string, unknown> | undefined;

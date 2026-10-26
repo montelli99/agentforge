@@ -25,6 +25,14 @@ describe('versioned Markdown memory portability', () => {
     expect(readPortableMarkdown(older, 'workspace', 'selected')?.title).toBe(saved.title);
     expect(() => readPortableMarkdown(exported.replace(/^agentforge_title: .*$/m, 'agentforge_title: 42'), 'workspace', 'selected')).toThrow('title');
   });
+  it('removes the export delimiter without adding a carriage return after Windows editor conversion', () => {
+    const content = 'First line\nSecond line\n';
+    const windows = memoryMarkdown({...saved, content}).replace(/\n/g, '\r\n');
+    expect(readPortableMarkdown(windows, 'workspace', 'selected')?.content).toBe(content.replace(/\n/g, '\r\n'));
+    expect(readPortableMarkdown(memoryMarkdown({...saved, content: 'Preserved trailing carriage return\r'}), 'workspace', 'selected')?.content).toBe('Preserved trailing carriage return\r');
+    const originalCRLF = 'First line\r\nSecond line\r\n';
+    expect(readPortableMarkdown(memoryMarkdown({...saved, content: originalCRLF}), 'workspace', 'selected')?.content).toBe(originalCRLF);
+  });
   it('does not reinterpret ordinary or older unversioned Markdown', () => {
     expect(readPortableMarkdown('---\ntitle: ordinary\n---\nHello', 'workspace', 'selected')).toBeUndefined();
     expect(readPortableMarkdown('---\nagentforge_id: "old"\n---\nHello', 'workspace', 'selected')).toBeUndefined();
