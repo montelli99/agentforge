@@ -9,3 +9,19 @@ for(const [id,answer] of Object.entries(answers))test(id+' independently specifi
  await fs.writeFile(output,JSON.stringify({...answer,extra:true}));assert.equal((await c.score(root)).passed,false);
  await fs.writeFile(output,JSON.stringify(answer));const input=path.join(root,'input.json');await fs.writeFile(input,(await fs.readFile(input,'utf8')).replace(' ','\t'));assert.equal((await c.score(root)).reason,'input-changed');
 });
+test('missing, oversized, directory and redirected artifact submissions fail',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-boundary-'));const c=await comparisonCase('invoice-adjustments');await c.stage(root);
+ assert.equal((await c.score(root)).passed,false);
+ await fs.mkdir(path.join(root,'artifacts'));const output=path.join(root,'artifacts/result.json');
+ await fs.writeFile(output,' '.repeat(65537));assert.equal((await c.score(root)).reason,'invalid-file');
+ await fs.unlink(output);await fs.mkdir(output);assert.equal((await c.score(root)).reason,'invalid-file');await fs.rmdir(output);
+ await fs.rmdir(path.join(root,'artifacts'));
+ const outside=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-outside-'));await fs.writeFile(path.join(outside,'result.json'),JSON.stringify(answers['invoice-adjustments']));
+ await fs.symlink(outside,path.join(root,'artifacts'),process.platform==='win32'?'junction':'dir');
+ assert.equal((await c.score(root)).reason,'invalid-file');
+});
+test('wrong result values and changed array ordering cannot pass',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-wrong-'));const c=await comparisonCase('invoice-adjustments');await c.stage(root);await fs.mkdir(path.join(root,'artifacts'));const output=path.join(root,'artifacts/result.json');
+ const wrong=structuredClone(answers['invoice-adjustments']);wrong.totalBalanceCents++;await fs.writeFile(output,JSON.stringify(wrong));assert.equal((await c.score(root)).passed,false);
+ const reordered=structuredClone(answers['invoice-adjustments']);reordered.invoices.reverse();await fs.writeFile(output,JSON.stringify(reordered));assert.equal((await c.score(root)).passed,false);
+});
