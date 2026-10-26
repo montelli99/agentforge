@@ -1137,3 +1137,7 @@ Expanded authenticated import-route acceptance to query the reopened store throu
 ### Subscription draft command limits
 Removed the subscription-only two-command ceiling: draft schema, validation and Claude/Gemini prompts now share the main planner's maxima (100 commands, 200-character labels, 20000-character commands, one-hour per-command maximum). Timeout remains explicit for CLI drafts. This changes proposals, not client tool permissions or execution approval. Thirty-five adapter/protocol regressions and two bound tests pass. Live subscription lifecycle and managed execution remain open.
 
+
+### Durable memory deletion repair
+Fixed deletion ordering: persist before notification; restore the in-memory record if persistence fails; isolate listener exceptions after commit. Six batch/lifecycle tests pass, including failed-save rollback with no notification and successful deletion surviving reopen despite a failing listener. This covers local store deletion, not cloud-provider deletion.
+

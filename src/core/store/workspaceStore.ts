@@ -1280,8 +1280,12 @@ export class WorkspaceStore {
     const record = this.operationalMemories.get(id);
     if (!record || record.namespace !== namespace) return false;
     this.operationalMemories.delete(id);
-    this.emit("operational_memory_deleted", "memory", { id, namespace });
-    this.persistIfConfigured();
+    try { this.persistIfConfigured(); }
+    catch (error) { this.operationalMemories.set(id, record); throw error; }
+    for (const listener of this.realtimeListeners) {
+      try { listener({type: 'operational_memory_deleted', entity: 'memory', data: {id, namespace}}); }
+      catch { /* Deletion is already durably committed. */ }
+    }
     return true;
   }
 

@@ -72,3 +72,17 @@ it('refuses a stale writer without erasing a concurrently saved batch', () => {
   expect(notices).not.toHaveBeenCalled();
   expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([record('first')]);
 });
+
+it('rolls back deletion on disk failure and only notifies after durable removal',()=>{
+ const {file,store}=fixture();store.importOperationalMemoryBatch([record('delete-me')],'owner');
+ const listener=vi.fn();store.subscribe(listener);const before=fs.readFileSync(file,'utf8');
+ const save=vi.spyOn(store,'saveToFile').mockImplementation(()=>{throw Error('disk failure');});
+ expect(()=>store.deleteOperationalMemory('synthetic','delete-me')).toThrow('disk failure');
+ expect(store.listOperationalMemories('synthetic')).toEqual([record('delete-me')]);
+ expect(fs.readFileSync(file,'utf8')).toBe(before);expect(listener).not.toHaveBeenCalled();
+ save.mockRestore();store.subscribe(()=>{throw Error('notification failure');});
+ expect(store.deleteOperationalMemory('synthetic','delete-me')).toBe(true);
+ expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([]);
+ expect(listener).toHaveBeenCalledTimes(1);
+ expect(store.deleteOperationalMemory('synthetic','delete-me')).toBe(false);
+});
