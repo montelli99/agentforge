@@ -1317,3 +1317,9 @@ Evidence: `evidence/p06-chatgpt-live-inference.json`,
 This closes these specific backend checks only. Browser account activation,
 full task-runtime acceptance, interrupted-execution recovery, live renewal and
 sign-out still require evidence. Other P01–P10 requirements remain in scope.
+
+### ChatGPT subscription tool loop and renewal — October 26
+
+Live subscription inference completed a two-request tool cycle: exactly one synthetic calculator invocation, followed by the correct final total of 3,000 cents. Explicit official credential renewal and reopening protected storage also passed; automatic expiry timing was not exercised. `evidence/p06-chatgpt-acceptance-index.json` pins the five acceptance records by SHA-256. Credentials, private files and Kevin integrations are excluded.
+
+Hosted run 40358446967 passed all seven jobs for exact source `4ffda5b79244ac5cb45e8e23d07781db2cc9a07a` (`evidence/ci-4ffda5b.json`). Subsequent source changes need their own hosted result. Browser owner setup remains pending; backend acceptance does not substitute for the full browser workflow or remaining P01–P10 work.

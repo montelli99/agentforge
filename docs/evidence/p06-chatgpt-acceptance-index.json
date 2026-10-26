@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-10-26T16:32:58.790Z",
+  "sourceCommit": "883750e",
+  "evidenceSha256": {
+    "p06-chatgpt-live-inference.json": "ed99e545d2cad62ff53d49ad227aebcf362f913b2d09649dc9c76d7bb5b25791",
+    "p06-chatgpt-live-invoice-execution.json": "376d0dd8cc6464746e7fde69d2f1a6b298e1353daf372e950a31f7b415f1a14d",
+    "p06-chatgpt-invoice-process-recovery.json": "35085e4c2bec93cee648803c52e0b0fbf0da8f67fa4ee1408efd32096e02a7cf",
+    "p06-chatgpt-live-renewal.json": "cb2921c27ded40457a39d2b3a687c45dd7cb7ebf34304f9c8345bdb26147cec9",
+    "p06-chatgpt-live-tool-loop.json": "b2b0a40c6cf430cc7b03c93d756d88a129ba92bced201dbeb4bfe9f851643e2a"
+  },
+  "scope": "Dedicated ChatGPT subscription acceptance using synthetic data only",
+  "remaining": [
+    "Browser owner setup and account activation",
+    "Full task-runtime browser acceptance",
+    "Interrupted execution recovery",
+    "Automatic expiry renewal timing",
+    "Sign-out acceptance"
+  ]
+}
