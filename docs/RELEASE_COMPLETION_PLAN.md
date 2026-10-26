@@ -1042,3 +1042,8 @@ The combined browser journey now creates a task, fills its repository revision, 
 
 Clean browser onboarding now continues through restored model drafting, reviewed Docker execution, another actual launcher restart, recorded-result restoration and final approval. Original receipts and the independently inspected single execution marker remain unchanged. Evidence: evidence/p01-launcher-complete-synthetic-cycle.json. Marker-test iterations first omitted the declared output path and then assumed the provisioned file was empty; the worker correctly kept undeclared writes read-only and provisioned a sentinel for declared outputs. The harness now declares the output and counts the execution marker. These were fixture corrections, not changes to execution guards. Live useful-task and exact installed-build repetition remain open.
 
+
+### Live combined-journey attempt retained
+
+The live invoice extension reached planning but MiMo renamed required unit_tests to node_version. Existing exact-check validation rejected the draft; no execution was approved. Evidence: evidence/p01-live-launcher-invalid-plan.json records one request and 3589 tokens. The harness initially reported zero paid requests because counting occurred after execution; counting now occurs before dispatch, with returned usage retained. No success claimed. Review/independent invoice validation remain required on the next valid plan.
+
