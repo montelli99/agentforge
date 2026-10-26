@@ -1,3 +1,4 @@
+import type {StreamChunk} from '../../core/providers/model.js';
 import {it,expect,vi} from 'vitest';
 import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 const mocks=vi.hoisted(()=>({run:vi.fn(),caps:vi.fn()}));
@@ -91,7 +92,7 @@ it.each(['answer','proposal','unknown-tool','malformed','client-tool','cancelled
    return {code:0,stdout:events.map(e=>JSON.stringify(e)).join('\n'),stderr:''};
   });
   const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
-  const chunks=[];const consume=async()=>{for await(const chunk of planner.stream({signal:controller.signal,model:'gemini-synthetic',messages:[{role:'user',content:'Read @private.txt only from supplied history'}],tools:[{type:'function',function:{name:'read_task_artifact'}}]}))chunks.push(chunk);};
+  const chunks:StreamChunk[]=[];const consume=async()=>{for await(const chunk of planner.stream({signal:controller.signal,model:'gemini-synthetic',messages:[{role:'user',content:'Read @private.txt only from supplied history'}],tools:[{type:'function',function:{name:'read_task_artifact'}}]}))chunks.push(chunk);};
   if(['answer','proposal'].includes(mode)){await consume();expect(chunks).toHaveLength(1);expect(chunks[0].finishReason).toBe(mode==='answer'?'stop':'tool_calls');}
   else{await expect(consume()).rejects.toMatchObject({usage:{promptTokens:10,completionTokens:5,totalTokens:15,cachedInputTokens:0},...(mode==='cancelled-at-delivery'?{message:expect.stringContaining('cancelled before response delivery')}:{})});expect(chunks).toHaveLength(0);}
   expect(mocks.run).toHaveBeenCalledTimes(1);await expect(fs.stat(invocationDirectory)).rejects.toThrow();

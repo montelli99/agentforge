@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "89d461a",
+  "suite": "vitest run",
+  "success": true,
+  "testFiles": 159,
+  "passed": 924,
+  "failed": 0,
+  "skipped": 2,
+  "rawReportSha256": "75323aea2ea65dac0c9bfb4b83fcbb8608be185e0cb822619815146d0b738841",
+  "typecheck": "pnpm typecheck:all passed after explicit StreamChunk annotations in test arrays",
+  "limitations": [
+    "Optional skipped tests are not live provider proof",
+    "Local regression does not replace hosted exact-build verification",
+    "Raw report retained locally; machine paths excluded from public evidence"
+  ]
+}
