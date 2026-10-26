@@ -44,7 +44,7 @@ try{
   backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:imageId}),new ApprovedPlanProvider(async()=>({plan,contractDigest:executionContractDigest(task),approvedBy:'synthetic-owner',approvedAt:now,expiresAt:new Date(Date.now()+60000).toISOString()})),{resultJournalDirectory:path.join(root,'results')});
   assert.equal((await backend.initialize()).ready,true);
   store=new WorkspaceStore(path.join(root,'workspace.json'));store.createTask(task);
-  const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization:gate,backend,reviewStore:store});session=bound.session;args={callId:'call',tool:bound.tool,input:bound.input};artifact=path.join(work,'artifacts','result.txt');
+  const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization:gate,backend,reviewStore:store});session=bound.session;args={callId:bound.callId,tool:bound.tool,input:bound.input};artifact=path.join(work,'artifacts','result.txt');
  }
  connection=await startNativeBrokerEndpoint(session);
  const {Client,createTransport}=await import(pathToFileURL(moduleFile).href);
@@ -61,9 +61,11 @@ try{
  assert.equal((await client.callTool(call)).isError,undefined);
  assert.equal((await client.callTool(call)).isError,true);
  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');
+ if(dockerMode){assert.equal((await client.callTool({name:'request_review',arguments:{...args,callId:'new-call'}})).isError,true);assert.equal(await fs.readFile(artifact,'utf8'),'one\n');}
  if(dockerMode){const recovered=await backend.recoverResult({task,operationId:identity.operationId,worktreePath:work});assert.ok(recovered.artifacts.length);assert.ok(recovered.testResults.length);assert.ok(recovered.testResults.every(check=>check.passed));assert.equal((await backend.inspectSurvivors({operationId:identity.operationId,worktreePath:work})).length,0);}
  console.log(JSON.stringify({scope:dockerMode?'Pinned Gemini MCP transport -> broker -> real contracted Docker; synthetic approved plan, no model inference':'Pinned Gemini MCP transport with synthetic host executor; not model inference or full CLI worker',imageId,moduleSha256:createHash('sha256').update(await fs.readFile(moduleFile)).digest('hex'),discovery:true,missingApprovalDenied:true,approvedEffectCount:1,duplicateDenied:true,durableResultRecovered:dockerMode,modelRequests:0,accountUsed:false}));
 }finally{await client?.close();await connection?.close();await fs.rm(root,{recursive:true,force:true});}
+
 
 
 

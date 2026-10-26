@@ -32,7 +32,7 @@ describe("ContractedDockerExecutionBackend", () => {
       const authorization=new NativeToolAuthorization(path.join(root,'host'),work);
       const identity={taskId:task.id,operationId:'operation',sessionId:'session'};
       const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization,backend});
-      const approvalId=randomUUID();const args={callId:'call',tool:bound.tool,input:bound.input};
+      const approvalId=randomUUID();const args={callId:bound.callId,tool:bound.tool,input:bound.input};
       await authorization.approve(approvalId,{...identity,...args},'owner',Date.now()+60000);
       await expect(bound.session.dispatch({approvalId,...args})).rejects.toThrow(/approve an execution plan/);
       expect(creations).toBe(0);expect((await authorization.inspect(approvalId,{...identity,...args})).state).toBe('unconfirmed');
@@ -110,3 +110,4 @@ describe("ContractedDockerExecutionBackend", () => {
     expect(environmentCreateCalls).toBe(0);
   });
 });
+

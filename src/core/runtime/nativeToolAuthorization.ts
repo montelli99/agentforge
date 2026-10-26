@@ -9,6 +9,7 @@ export function nativeToolRequestDigest(request:NativeToolRequest){
  return createHash('sha256').update(serialized).digest('hex');
 }
 const digest=nativeToolRequestDigest;
+function effectSlot(request:NativeToolRequest){return createHash('sha256').update(JSON.stringify([request.taskId,request.operationId,request.callId])).digest('hex');}
 /** Internal host service only. Never mount this directory into a client workspace.
  * A consumed receipt means permission was issued, not that the effect completed.
  */
@@ -31,10 +32,10 @@ export class NativeToolAuthorization {
   const requestHash=digest(request);await this.placement();const file=this.file(id);
   const approval=await this.record(file);if(!approval||approval.version!==1||approval.requestHash!==requestHash)throw Error('Approval missing or bound to another request');
   const claim=await this.record(file+'.consumed');const observed=await this.record(file+'.observed');
-  const requestClaim=await this.record(path.join(this.directory,'request-'+requestHash+'.claimed'));
+  const requestClaim=await this.record(path.join(this.directory,'request-'+effectSlot(request)+'.claimed'));
   if(requestClaim){
-   if(requestClaim.requestHash!==requestHash||typeof requestClaim.approvalId!=='string')throw Error('Invalid request claim');
-   if(requestClaim.approvalId!==id)return {state:'claimed_elsewhere' as const,requestHash};
+   if(typeof requestClaim.requestHash!=='string'||!/^[a-f0-9]{64}$/.test(requestClaim.requestHash)||typeof requestClaim.approvalId!=='string')throw Error('Invalid request claim');
+   if(requestClaim.approvalId!==id||requestClaim.requestHash!==requestHash)return {state:'claimed_elsewhere' as const,requestHash};
   }
   if(!claim){if(observed)throw Error('Observation without claim');return {state:'unused' as const,requestHash};}
   if(claim.requestHash!==requestHash||claim.effectStatus!=='unconfirmed'||typeof claim.claimedAt!=='string'||!Number.isFinite(Date.parse(claim.claimedAt)))throw Error('Invalid claim receipt');
@@ -65,7 +66,7 @@ export class NativeToolAuthorization {
   try{if(approval.expiresAt<=Date.now())throw Error('Approval expired before claim');await handle.writeFile(JSON.stringify({requestHash,claimedAt:new Date().toISOString(),effectStatus:'unconfirmed'}));await handle.sync();}finally{await handle.close();}
   // A new approval for the same call must not create another effect permission.
   // No executor receives permission until both claims are durable.
-  const requestClaim=await fs.open(path.join(this.directory,'request-'+requestHash+'.claimed'),'wx',0o600);
+  const requestClaim=await fs.open(path.join(this.directory,'request-'+effectSlot(request)+'.claimed'),'wx',0o600);
   try{await requestClaim.writeFile(JSON.stringify({requestHash,approvalId:id}));await requestClaim.sync();}finally{await requestClaim.close();}
   return {approvalId:id,requestHash,effectStatus:'unconfirmed' as const};
  }

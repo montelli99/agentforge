@@ -45,3 +45,10 @@ it('reordered JSON keys do not bypass the request claim',async()=>{
  await expect(f.gate.consume(second,reordered)).rejects.toThrow();
  expect((await f.gate.inspect(second,reordered)).state).toBe('claimed_elsewhere');
 });
+it('a replacement client session cannot replay the same operation call',async()=>{
+ const f=await fixture();await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);await f.gate.consume(f.id,f.request);
+ const next={...f.request,sessionId:'reconnected'};const approval=randomUUID();
+ await f.gate.approve(approval,next,'owner',Date.now()+60000);
+ await expect(f.gate.consume(approval,next)).rejects.toThrow();
+ expect((await f.gate.inspect(approval,next)).state).toBe('claimed_elsewhere');
+});
