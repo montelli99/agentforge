@@ -23,7 +23,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
 
   async record(memory: Omit<OperationalMemoryRecord, "id" | "createdAt">): Promise<OperationalMemoryRecord> {
     const fullRecord: OperationalMemoryRecord = {
-      ...memory,
+      ...structuredClone(memory),
       id: `mem-${crypto.randomUUID().slice(0, 8)}`,
       createdAt: new Date().toISOString(),
     };
@@ -31,7 +31,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
       this.repository.saveOperationalMemory(fullRecord);
     } else {
       const records = this.store.get(memory.namespace) || [];
-      records.push(fullRecord);
+      records.push(structuredClone(fullRecord));
       this.store.set(memory.namespace, records);
     }
     return fullRecord;
@@ -110,7 +110,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
     if (this.repository) this.repository.saveOperationalMemory(record);
     else {
       const records = this.store.get(namespace) || [];
-      records[records.findIndex(item => item.id === id)] = record;
+      records[records.findIndex(item => item.id === id)] = structuredClone(record);
     }
     return record;
   }
@@ -118,7 +118,7 @@ export class OperationalMemoryProvider implements MemoryProvider {
   private list(namespace: string): OperationalMemoryRecord[] {
     return this.repository
       ? this.repository.listOperationalMemories(namespace)
-      : [...(this.store.get(namespace) || [])];
+      : structuredClone(this.store.get(namespace) || []);
   }
 
   async getDoNotRepeatRules(namespace: string, projectId?: string): Promise<OperationalMemoryRecord[]> {

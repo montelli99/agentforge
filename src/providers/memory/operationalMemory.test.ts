@@ -110,3 +110,17 @@ describe("OperationalMemoryProvider", () => {
     expect(results.map(result => result.record.id)).not.toContain(weak.id);
   });
 });
+
+it('standalone memory owns stored inputs and returns detached records and history', async () => {
+  const memory = new OperationalMemoryProvider();
+  const tags=['original'];const metadata={nested:{value:'original'}};
+  const saved=await memory.record({namespace:'synthetic',category:'general_fact',title:'Original',content:'Original content',tags,metadata});
+  tags.push('outside');metadata.nested.value='outside';saved.title='outside';saved.tags.push('returned');
+  expect(await memory.get('synthetic',saved.id)).toMatchObject({title:'Original',tags:['original'],metadata:{nested:{value:'original'}}});
+  const read=(await memory.get('synthetic',saved.id))!;read.content='mutated read';
+  const hits=await memory.query({namespace:'synthetic'});hits[0].record.tags.push('mutated query');
+  const patchTags=['updated'];const updated=memory.update('synthetic',saved.id,1,'synthetic-owner',{title:'Updated',tags:patchTags});
+  patchTags.push('mutated patch');updated.title='mutated result';updated.revisions![0].content='mutated history';
+  expect(await memory.get('synthetic',saved.id)).toMatchObject({title:'Updated',content:'Original content',tags:['updated'],version:2,revisions:[{content:'Original content',tags:['original']}]});
+  expect(()=>memory.update('synthetic',saved.id,1,'synthetic-owner',{title:'stale'})).toThrow('changed elsewhere');
+});
