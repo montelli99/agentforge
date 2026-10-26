@@ -32,7 +32,8 @@ export async function finalizeComparisonAttempt(directory,outcome){
  const keys=['status','artifactPassed','workflowPassed','elapsedMs','requests','usage'];
  if(!outcome||Object.keys(outcome).some(key=>!keys.includes(key))||!['passed','failed','timed_out','interrupted'].includes(outcome.status)
   ||typeof outcome.artifactPassed!=='boolean'||typeof outcome.workflowPassed!=='boolean'
-  ||!Number.isFinite(outcome.elapsedMs)||outcome.elapsedMs<0||!Number.isSafeInteger(outcome.requests)||outcome.requests<0
+  ||!Number.isFinite(outcome.elapsedMs)||outcome.elapsedMs<0||(outcome.requests!==null&&(!Number.isSafeInteger(outcome.requests)||outcome.requests<0))
+  ||(outcome.requests===null&&(outcome.status==='passed'||outcome.usage!==null))
   ||(outcome.status==='passed'&&(!outcome.artifactPassed||!outcome.workflowPassed)))throw Error('Invalid comparison outcome');
  if(outcome.usage!==null&&(!outcome.usage||Object.keys(outcome.usage).sort().join(',')!=='inputTokens,outputTokens'||Object.values(outcome.usage).some(n=>!Number.isSafeInteger(n)||n<0)))throw Error('Invalid comparison usage');
  const reservationFile=path.join(directory,'reservation.json');

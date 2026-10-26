@@ -4,7 +4,7 @@ export interface ComparisonReservation {
 }
 export interface ComparisonOutcome {
  status:string;artifactPassed:boolean;workflowPassed:boolean;elapsedMs:number;
- requests:number;usage:null|{inputTokens:number;outputTokens:number};
+ requests:number|null;usage:null|{inputTokens:number;outputTokens:number};
 }
 export function reserveComparisonAttempt(input:ComparisonReservation):Promise<{directory:string;receipt:Record<string,unknown>;manifest:Record<string,unknown>}>;
 export function finalizeComparisonAttempt(directory:string,outcome:ComparisonOutcome):Promise<ComparisonOutcome & Record<string,unknown>>;

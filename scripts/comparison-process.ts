@@ -28,6 +28,11 @@ export async function runComparisonProcess(input:{
   // Score partial effects only after the bounded runner has stopped its child.
   try{artifactPassed=(await input.score(directory)).artifactPassed;}catch{}
  }
- const accounting=await input.accounting();
+ let accounting:{requests:number|null;usage:null|{inputTokens:number;outputTokens:number}};
+ try{accounting=await input.accounting();}catch{
+  // A missing accounting service must not erase the completed/failed attempt
+  // or invent zero usage. Retain artifact correctness but reject overall pass.
+  accounting={requests:null,usage:null};status='failed';
+ }
  return finalizeComparisonAttempt(directory,{status,artifactPassed,workflowPassed,elapsedMs:performance.now()-started,...accounting});
 }
