@@ -1109,3 +1109,7 @@ Installed f58bd66 passed live chat task creation, live planning reading the work
 ### Partial-effect recovery after orphan removal
 Extended the real Docker worker-kill proof with durable journaling configured. Recovery refuses a missing result both while the orphan runs and after its removal; failed recovery preserves the task, replay remains refused, and the effect count stays one. Passed locally; evidence: evidence/p03-missing-result-after-orphan-removal.json. Successful uncertain-effect resolution and browser recovery remain open.
 
+
+### Browser recovery rejects changed artifacts
+Real Docker invoice execution exited after durable output but before receipt completion. Recovery rejected a changed report without mutating task or approvals; restoring original bytes allowed authenticated browser recovery with zero executions, independent invoice verification and pending final approval retained through reload. Evidence: evidence/p03-browser-tamper-and-result-recovery.json. Reuses the recorded model plan; no new paid requests. Remaining fault and authentication cases stay open.
+

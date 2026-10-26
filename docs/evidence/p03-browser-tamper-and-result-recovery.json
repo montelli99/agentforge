@@ -1,0 +1,28 @@
+{
+  "runtimeBuildSource": "f58bd66f949c8ccc0667ac31a180c37fbcfc814b",
+  "requirementId": "P03",
+  "newPaidRequests": 0,
+  "limits": [
+    "Reuses a previously reviewed model plan; no new model planning.",
+    "Tests process exit after durable backend result before receipt.",
+    "Does not cover every interruption or authentication-expiry case."
+  ],
+  "crashExitCode": 74,
+  "sourceCommit": "8447576d8aa4f960593bff3c5f526e0f794bd1c0",
+  "testSha256": "CB4AB0618170333B177C05EF8F61688E55E07FD559D2C5D6C3F44F733468A722",
+  "result": {
+    "passed": true,
+    "syntheticOnly": true,
+    "realBrowser": true,
+    "authenticatedRecovery": true,
+    "tamperedArtifactRecoveryRefused": true,
+    "failedRecoveryPreservedTaskAndApprovals": true,
+    "realDockerResult": true,
+    "independentInvoiceCheck": true,
+    "executionsDuringRecovery": 0,
+    "pendingFinalApproval": true,
+    "reopenedPendingApproval": true,
+    "pageErrors": []
+  },
+  "recordedUtc": "2026-10-26T11:54:17.3073898Z"
+}
