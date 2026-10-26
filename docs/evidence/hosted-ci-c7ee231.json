@@ -1,0 +1,48 @@
+{
+  "commit": "c7ee2318c33bf8b59ea3e658055f7d8fcd93e58b",
+  "runUrl": "https://github.com/montelli99/agentforge/actions/runs/40288543433",
+  "observedUtc": "2026-10-26T07:56:57.5518355Z",
+  "status": "in_progress",
+  "conclusion": "",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "status": "completed",
+      "name": "Public package and isolated execution acceptance"
+    },
+    {
+      "conclusion": "success",
+      "status": "completed",
+      "name": "Build & Test (ubuntu-latest, Node 24.x)"
+    },
+    {
+      "conclusion": "",
+      "status": "in_progress",
+      "name": "Build & Test (windows-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "success",
+      "status": "completed",
+      "name": "Build & Test (macos-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "success",
+      "status": "completed",
+      "name": "Build & Test (macos-latest, Node 24.x)"
+    },
+    {
+      "conclusion": "success",
+      "status": "completed",
+      "name": "Build & Test (ubuntu-latest, Node 22.x)"
+    },
+    {
+      "conclusion": "",
+      "status": "in_progress",
+      "name": "Build & Test (windows-latest, Node 24.x)"
+    }
+  ],
+  "archive": "agentforge-0.1.2.tgz",
+  "archiveSha256": "a42d513a881d5903ff15416e53ce09f26fc5aa968daac7c95d7bcb93c959315b",
+  "releaseReady": false,
+  "limitation": "Hosted archive verified for identified commit; Windows jobs still running at observation. Later local installed-profile acceptance changes are not in this archive."
+}
