@@ -54,9 +54,23 @@ it('does not send inference after cancellation while the catalog is pending',asy
  const controller=new AbortController();
  const pending=connection.generate({model:'synthetic-model',messages:[{role:'user',content:'Synthetic'}],signal:controller.signal});
  const rejected=expect(pending).rejects.toThrow();
- await started;controller.abort();release(await catalog());await rejected;
+ await started;controller.abort();await rejected;
  expect(request).not.toHaveBeenCalled();
+ release(await catalog());
  expect(await connection.listModels()).toEqual(['synthetic-model']);
+});
+
+it.each(['generate','stream'] as const)('cancels %s promptly during shared renewal without cancelling another waiter',async mode=>{
+ const original=credentials();let release!:(value:DirectCredentials)=>void;
+ const renew=vi.fn(()=>new Promise<DirectCredentials>(resolve=>{release=resolve;})),request=vi.fn<typeof fetch>();
+ const connection=new ChatGPTActiveConnection(original,{renew,catalog,request});
+ const other=connection.listModels();const controller=new AbortController();
+ const options={model:'synthetic-model',messages:[{role:'user' as const,content:'Synthetic'}],signal:controller.signal};
+ const pending=mode==='generate'?connection.generate(options):connection.stream(options)[Symbol.asyncIterator]().next();
+ const stopped=expect(pending).rejects.toThrow();controller.abort();await stopped;
+ expect(renew).toHaveBeenCalledTimes(1);expect(request).not.toHaveBeenCalled();
+ release({...original,expiresAt:Date.now()+3600000});expect(await other).toEqual(['synthetic-model']);
+ expect(await connection.isAvailable()).toBe(true);expect(renew).toHaveBeenCalledTimes(1);
 });
 
 it('retains a usable connection after an interrupted response without replaying inference',async()=>{

@@ -52,8 +52,17 @@ export class ChatGPTActiveConnection implements GenerativeModelProvider {
   }
   async isAvailable(){try{await this.prepare();return true;}catch{return false;}}
   async listModels(){await this.prepare();return listedDirectModelSlugs(this.catalogSnapshot?.response)??[];}
-  private async provider(model:string){
-    await this.prepare();
+  private async provider(model:string,signal:AbortSignal){
+    signal.throwIfAborted();
+    // Cancelling one waiter must not cancel another caller's shared renewal.
+    // Conversely, a stopped request must not wait for that network operation.
+    await new Promise<void>((resolve,reject)=>{
+      const abort=()=>{signal.removeEventListener('abort',abort);reject(signal.reason??Error('Request stopped'));};
+      signal.addEventListener('abort',abort,{once:true});
+      this.prepare().then(()=>{signal.removeEventListener('abort',abort);resolve();},error=>{signal.removeEventListener('abort',abort);reject(error);});
+      if(signal.aborted)abort();
+    });
+    signal.throwIfAborted();
     return new ChatGPTDirectModel({enabled:true,model,agentTools:true},{currentGrant:()=>this.grant},()=>this.catalogSnapshot,
       new DirectResponsesTransport(grant=>this.credentials&&this.grant?.grantId===grant.grantId?{credentials:this.credentials,grantId:grant.grantId}:undefined,this.services.request));
   }
@@ -62,12 +71,12 @@ export class ChatGPTActiveConnection implements GenerativeModelProvider {
   }
   async generate(options:ModelRequestOptions):Promise<ModelResponse>{
     const request=this.requestOptions(options);request.signal!.throwIfAborted();
-    const result=await (await this.provider(options.model)).generate(request);
+    const result=await (await this.provider(options.model,request.signal!)).generate(request);
     request.signal!.throwIfAborted();return result;
   }
   async *stream(options:ModelRequestOptions):AsyncIterable<StreamChunk>{
     const request=this.requestOptions(options);request.signal!.throwIfAborted();
-    for await(const chunk of (await this.provider(options.model)).stream(request)){
+    for await(const chunk of (await this.provider(options.model,request.signal!)).stream(request)){
       request.signal!.throwIfAborted();yield chunk;
     }
   }
