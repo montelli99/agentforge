@@ -1240,3 +1240,18 @@ LF and CRLF checkouts. It accepts only line-ending conversion, rejecting content
 or whitespace changes. Original attempt files and report hashes remain intact.
 `evidence/p09-v3-portable-integrity.json` records canonical LF hashes alongside
 the original hashes and encoding. Hosted release checks now run this verifier.
+
+## Current integration reconciliation — October 26
+
+The following closes specific proof gaps, not the full P01–P10 goal:
+
+- P03: browser provider-401 rejection and explicit retry preserve the rejected planning audit (`evidence/p03-provider-rejection-browser.json`). This is a synthetic HTTP rejection, not live subscription renewal. Worker tests preserve distinct conflicting facts with provenance and reject changes to the same record between queries (commit `2e74e32`); semantic resolution still needs the live task matrix.
+- P04: installed pinned OpenClaw invoice, unread-result recovery, reconnect without resend, and active Stop pass (`evidence/p04-installed-unread-restart.json`). The controlled partial-write Stop passes separately (`evidence/p04-installed-partial-write-stop.json`). Carry these onto the final candidate; do not repeat the same development trials without a relevant change.
+- P05: installed Hermes task/session selection, unread-result recovery and partial-effect Stop already have evidence. Real server-key rotation isolates the old run namespace and restoration recovers the old output (`evidence/p05-hermes-server-key-rotation.json`). Remaining: combine credential replacement with the governed browser receipt workflow and final candidate reconciliation.
+- P06: Claude/Gemini buffered chat and draft adapters exist; cancellation at response delivery is now enforced for both chat and planning (`7a59971`). Native managed execution workers and authenticated lifecycle acceptance remain implementation/verification work. An unsigned-in official client is not an accepted connection.
+- P07: built local migration now preserves Windows-edited Markdown (`evidence/p07-windows-markdown-migration.json`); malformed adapter version/update metadata is refused (`de34a1c`). Live Hindsight composition and the complete migration/deletion/outage matrix remain open.
+- P08: installed keyboard and rejected-unlock recovery pass (`evidence/p08-connection-rejected-unlock.json`, `evidence/p10-installed-7dd8c9a.json`). This does not close every provider setup flow.
+- P09: README and token-guide source now state frozen results, higher measured usage, and limitations (`233102c`). Hosted publication and the other agreed baselines remain open; no superiority claim is supported.
+- P10: source `7dd8c9a` passed all seven hosted jobs (`evidence/ci-7dd8c9a.json`). Later memory integration passed 927 local tests, with two live tests skipped (`evidence/p10-memory-integrated-regression.json`). Later commits are not covered by that hosted result. Final exact-build acceptance, release/merge, hosted demonstration, soak and cache-removal confirmation remain open.
+
+Do not summarize the remaining goal as only two missing provider accounts: native worker implementation, broader acceptance, final distribution and launch reconciliation remain required work.
