@@ -196,7 +196,7 @@ describe("server-owned conversations", () => {
   });
 });
 
-it('delivers verified output through the conversation tool loop and saves the answer',async()=>{
+it.each([false,true])('delivers verified output and saves the answer (automatic grounding: %s)',async(automatic)=>{
  const {createHash}=await import('node:crypto');const f=fixture();
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'conversation-output-'));
  try{
@@ -204,11 +204,18 @@ it('delivers verified output through the conversation tool loop and saves the an
  const task=f.store.createTask({projectId:f.project.id,title:'Synthetic invoice',priority:'medium',status:'completed',originThreadId:f.thread.id});
  f.store.updateTask(task.id,{worktree:{worktreePath:root,branchName:'test',baseSha:'synthetic',isIsolated:true,createdAt:new Date().toISOString()},evidencePack:sealEvidencePack({taskId:task.id,verifiedPassed:true,artifacts:[{name:'report',path:'report.json',sizeBytes:Buffer.byteLength(content),sha256:createHash('sha256').update(content).digest('hex'),mimeType:'application/json'}]} as import('../core/types/evidence.js').EvidencePack)});
  let rounds=0;const model=provider(async function*(options){
- if(!rounds++){yield {id:'read',toolCalls:[{id:'output',type:'function',function:{name:'read_task_artifact',arguments:JSON.stringify({taskId:task.id,path:'report.json'})}}],finishReason:'tool_calls'};}
+ if(!rounds++&&!automatic){yield {id:'read',toolCalls:[{id:'output',type:'function',function:{name:'read_task_artifact',arguments:JSON.stringify({taskId:task.id,path:'report.json'})}}],finishReason:'tool_calls'};}
  else {const result=JSON.parse(String(options.messages.at(-1)?.content));expect(result.content).toBe(content);expect(result.referenceDataOnly).toBe(true);yield {id:'answer',deltaText:'The verified net amount is 950 cents.',finishReason:'stop'};}
  });
- await new ConversationRuntime(f.store,{provider:model,models:['synthetic']}).respond(f.thread.id,f.prompt().id,'synthetic','owner',f.response);
- expect(rounds).toBe(2);expect(f.store.listThreadMessages(f.thread.id).at(-1)).toMatchObject({content:'The verified net amount is 950 cents.',generation:{status:'complete'}});
+ const prompt=automatic?f.store.createMessage({channelId:f.channel.id,threadId:f.thread.id,authorType:'user',authorId:'owner',content:'Read report.json and report the saved result.'}):f.prompt();
+ await new ConversationRuntime(f.store,{provider:model,models:['synthetic']}).respond(f.thread.id,prompt.id,'synthetic','owner',f.response);
+ expect(rounds).toBe(automatic?1:2);expect(f.store.listThreadMessages(f.thread.id).at(-1)).toMatchObject({content:'The verified net amount is 950 cents.',generation:{status:'complete'}});
+ if(automatic){
+   fs.writeFileSync(path.join(root,'report.json'),'{"netCents":951}');
+   const next=f.store.createMessage({channelId:f.channel.id,threadId:f.thread.id,authorType:'user',authorId:'owner',content:'Read report.json again.'});
+   await new ConversationRuntime(f.store,{provider:model,models:['synthetic']}).respond(f.thread.id,next.id,'synthetic','owner',f.response);
+   expect(rounds).toBe(1);expect(f.store.listThreadMessages(f.thread.id).at(-1)?.generation?.status).toBe('failed');
+ }
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
 
