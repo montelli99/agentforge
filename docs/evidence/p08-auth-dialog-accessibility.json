@@ -1,0 +1,20 @@
+{
+  "recordedAt": "2026-10-26T17:42:40.803Z",
+  "scope": "Rendered isolated pre-authentication UI; no account creation or login submission",
+  "passed": true,
+  "checks": {
+    "namedDialog": true,
+    "backgroundExcludedFromAccessibilityTree": true,
+    "setupInitialFocus": "Your name",
+    "nextTabFocus": "Password",
+    "signInInitialFocus": "Owner username",
+    "returnToSetupFocus": "Your name",
+    "passwordLengthHintVisible": true
+  },
+  "sourceSha256": "7306b395c27e1ec82ea60ac225fbd701833c98aab0026d90358abc3f4b1b9cd2",
+  "screenshotSha256": "c727d0e9a581d28adb792472c057ab50a0aa15309e0eea4643d8676968c038b3",
+  "limitations": [
+    "Post-login restoration is implemented but not exercised by this browser check.",
+    "Owner password remains user-entered; no credentials entered."
+  ]
+}
