@@ -1,0 +1,26 @@
+{
+  "passed": false,
+  "scope": "Real gateway process restart after verified invoice completion",
+  "attempts": [
+    {
+      "result": {
+        "passed": false,
+        "error": "Restart changed gateway address; do not silently rebind receipts\n+ actual - expected\n\n+ '127.0.0.1:61414'\n- '127.0.0.1:49233'\n             ^\n",
+        "providerRequests": 5,
+        "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+      },
+      "sha256": "f6a68afaea7eb7fe2a34d9174a602bfdd95c71d53fa1fd753ee2ce4dcda73956"
+    },
+    {
+      "result": {
+        "passed": false,
+        "error": "Completed OpenClaw text output unavailable or exceeds 60 KB",
+        "providerRequests": 3,
+        "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+      },
+      "sha256": "f0ddacd73fec126cf4c7cd461bc0c09f1805bc7a5ef92dadba5bb1e9c881c153"
+    }
+  ],
+  "finding": "Explicit stable port fixes endpoint change. After restart, readRunOutput rejects missing or invalid terminal output; exact missing fields require diagnosis. No replay or history fallback used.",
+  "runnerSha256": "3a3d2ddf09b789b2807c0fbec14df14bfd7038924cff8eee9cdda69e1a777a84"
+}
