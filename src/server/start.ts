@@ -162,6 +162,7 @@ const gatewayUrl = process.env.AGENTFORGE_GATEWAY_URL?.trim();
 if (gatewayUrl) {
   gatewayTransport = new OpenClawGatewayTransport({
     url: gatewayUrl,
+    enableTaskDelegation: process.env.AGENTFORGE_GATEWAY_TASK_DELEGATION === '1',
     token: process.env.AGENTFORGE_GATEWAY_TOKEN?.trim() || undefined,
     identityPath: process.env.AGENTFORGE_GATEWAY_IDENTITY_PATH || path.join(path.dirname(workspaceFilePath), "gateway-device.json"),
   });

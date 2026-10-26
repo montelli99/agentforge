@@ -52,7 +52,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
   private readonly device;
 
-  constructor(private readonly options: { url: string; token?: string; identityPath: string }) {
+  constructor(private readonly options: { url: string; token?: string; identityPath: string; enableTaskDelegation?: boolean }) {
     this.options = Object.freeze({...options});
     const parsed = new URL(options.url);
     if (parsed.protocol !== "wss:" && !(parsed.protocol === "ws:" && ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname))) {
@@ -64,7 +64,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   /** Configuration binding, not proof of server identity. Credential changes require explicit rebinding. */
   getConnectionId(): string {
     return 'openclaw-' + crypto.createHmac('sha256', this.device.privateKeyPem)
-      .update(JSON.stringify({url: new URL(this.options.url).href, token: this.options.token ?? ''})).digest('hex');
+      .update(JSON.stringify({url: new URL(this.options.url).href, token: this.options.token ?? '', ...(this.options.enableTaskDelegation?{taskDelegation:true}:{})})).digest('hex');
   }
 
   // Only an authenticated handshake establishes connection authority.
@@ -186,6 +186,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     if (!/^[a-zA-Z0-9_-]{8,128}$/.test(idempotencyKey)) throw new Error("A durable gateway request identifier is required");
     if (!this.isConnected()) throw new Error("gateway authentication not complete");
     if (!this.grantedScopes.has("operator.write") && !this.grantedScopes.has("operator.admin")) throw new Error("gateway did not grant message write permission");
+    if (!this.options.enableTaskDelegation || !this.grantedScopes.has("operator.admin")) throw new Error("Task delegation requires explicit enablement and gateway-granted operator.admin scope for command suppression");
     const result = await this.request<Record<string, unknown>>("chat.send", {
       sessionKey, message, idempotencyKey, deliver: false, suppressCommandInterpretation: true,
     });
@@ -215,7 +216,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   }
 
   private sendConnect(signedAt: number) {
-    const scopes = ["operator.read", "operator.write"];
+    const scopes = ["operator.read", "operator.write", ...(this.options.enableTaskDelegation ? ["operator.admin"] : [])];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
     const publicRaw = (crypto.createPublicKey(this.device.publicKeyPem).export({ type: "spki", format: "der" }) as Buffer).subarray(-32);
     const signature = b64url(crypto.sign(null, Buffer.from(payload), crypto.createPrivateKey(this.device.privateKeyPem)));

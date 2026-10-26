@@ -359,3 +359,14 @@ and only names/IDs return. Synthetic previews and the credential are absent from
 both the response and saved workspace. This uses a local upstream fixture; the
 separate pinned-runtime evidence above covers Hermes protocol compatibility.
 The route test and full type checking passed; no model task was run by this test.
+
+### Explicit OpenClaw task-delegation authority
+
+Set `AGENTFORGE_GATEWAY_TASK_DELEGATION=1` only for a gateway where you intend
+AgentForge to delegate reviewed tasks. This requests `operator.admin`, which
+OpenClaw 2026.10.7 requires for `suppressCommandInterpretation`. The gateway must
+actually grant that scope; requesting it alone is insufficient. Without both
+explicit enablement and the granted scope, task sends fail before transmission.
+Ordinary connection defaults remain read/write. Command suppression and
+`deliver:false` remain set. Enabling delegation changes the connection binding,
+so old receipts cannot silently move to a connection with different authority.
