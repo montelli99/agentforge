@@ -1,0 +1,36 @@
+{
+  "headSha": "833484697dedaa87eaca95f19e1027b691390003",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40369602848",
+  "jobs": [
+    {
+      "name": "Build & Test (ubuntu-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Public package and isolated execution acceptance",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (ubuntu-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (windows-latest, Node 22.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 24.x)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build & Test (macos-latest, Node 22.x)",
+      "conclusion": "success"
+    }
+  ]
+}
