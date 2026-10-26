@@ -101,3 +101,11 @@ it('rolls back failed creation and editing without publishing phantom memories',
  expect(new WorkspaceStore(file).listOperationalMemories('synthetic').find(r=>r.id==='new')).toEqual(record('new'));
  expect(notice).toHaveBeenCalledTimes(1);
 });
+
+it('returns detached memory reads so editing a result cannot bypass persistence',()=>{
+ const {file,store}=fixture();store.saveOperationalMemory(record('owned'));
+ const listed=store.listOperationalMemories('synthetic');listed[0].content='uncommitted';listed[0].tags.push('uncommitted');
+ const searched=store.searchOperationalMemory('lesson','synthetic');searched[0].content='also uncommitted';
+ expect(store.listOperationalMemories('synthetic')).toEqual([record('owned')]);
+ expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([record('owned')]);
+});

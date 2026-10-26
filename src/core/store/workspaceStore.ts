@@ -1225,7 +1225,7 @@ export class WorkspaceStore {
 
   // --- Durable operational memory ---
   listOperationalMemories(namespace: string): OperationalMemoryRecord[] {
-    return Array.from(this.operationalMemories.values()).filter(record => record.namespace === namespace);
+    return structuredClone(Array.from(this.operationalMemories.values()).filter(record => record.namespace === namespace));
   }
 
   saveOperationalMemory(record: OperationalMemoryRecord): void {

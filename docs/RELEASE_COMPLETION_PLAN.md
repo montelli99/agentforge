@@ -1145,3 +1145,7 @@ Fixed deletion ordering: persist before notification; restore the in-memory reco
 ### Durable memory creation and edit repair
 Creation/edit had the same notification-before-persist ordering. The store now owns a cloned input, restores the prior record on failed persistence (or removes a failed new record), and isolates post-commit notification failures. Ten store/provider/import-route tests pass, including failed create/edit with no phantom notifications and saved input ownership. This is local durability evidence; external adapter lifecycle remains open.
 
+
+### Detached memory reads
+Memory list/search results now return deep copies so callers cannot mutate durable store state through a read reference. Forty-six store, memory-adapter and import-route tests pass, including input/output ownership, failed-save rollback, restart and migration isolation. Current runtime build/hosted verification must still include these new store changes.
+
