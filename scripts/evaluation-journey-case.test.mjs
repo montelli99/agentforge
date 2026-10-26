@@ -15,3 +15,13 @@ test('journey refuses directory junction as artifact submission',async()=>{
  finally{await fs.rm(path.join(root,'artifacts'),{force:true});await fs.rm(root,{recursive:true,force:true});await fs.rm(external,{recursive:true,force:true});}
 });
 
+test('fresh comparison tasks use the complete journey interface without exposing answers',async()=>{
+ const item=await evaluationJourneyCase('invoice-adjustments','4');const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-journey-'));
+ await item.stage(root);assert.deepEqual(await fs.readdir(root),['input.json']);assert(!Object.hasOwn(item,'expected'));assert.equal(item.artifactPath,'artifacts/result.json');assert.match(item.prompt,/Every plan command must include/);
+ await fs.mkdir(path.join(root,'artifacts'));await fs.writeFile(path.join(root,item.artifactPath),JSON.stringify({invoices:[{id:'INV-A',balanceCents:12000},{id:'INV-B',balanceCents:-800},{id:'INV-C',balanceCents:8000}],totalBalanceCents:19200}));assert.equal((await item.verify(root)).passed,true);
+});
+test('new journey version does not enable live scoring before protocol freeze',async()=>{
+ const old=process.env.AGENTFORGE_EVALUATION_VERSION;process.env.AGENTFORGE_EVALUATION_VERSION='4';
+ try{const {assertEvaluationScoringAllowed}=await import('./evaluation-scoring-gate.mjs');await assert.rejects(assertEvaluationScoringAllowed(),/Unsupported evaluation version/);}
+ finally{if(old===undefined)delete process.env.AGENTFORGE_EVALUATION_VERSION;else process.env.AGENTFORGE_EVALUATION_VERSION=old;}
+});
