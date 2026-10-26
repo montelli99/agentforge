@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "guidedBrowserSave": true,
+  "unpairedRejectionObserved": true,
+  "exactLocalDeviceApproved": true,
+  "explicitReconnect": true,
+  "authenticated": true,
+  "noModelCalls": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "scope": "Real pinned OpenClaw gateway, browser encrypted save, pairing refusal with exact public fingerprint, approval of matching local device, explicit browser reconnect. No model configured or task sent.",
+  "runnerSha256": "0c426a8120ef6e843e53fa5d799d1cea0ea06e7d807d04349d08f9f44adbdadb",
+  "recordedAt": "2026-10-26T10:10:10.768Z"
+}

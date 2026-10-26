@@ -62,6 +62,9 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     this.device = identity(options.identityPath);
   }
 
+  /** Public fingerprint only; private key material is never exposed. */
+  getDeviceFingerprint(): string { return this.device.deviceId; }
+
   /** Configuration binding, not proof of server identity. Credential changes require explicit rebinding. */
   getConnectionId(): string {
     return 'openclaw-' + crypto.createHmac('sha256', this.device.privateKeyPem)
