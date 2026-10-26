@@ -19,5 +19,12 @@ try{
  for(const key of ['SystemRoot','WINDIR','PATH','Path'])if(process.env[key])env[key]=process.env[key];
  const output=execFileSync(process.execPath,['scripts/gemini-policy-engine-acceptance.mjs',moduleFile],{env,timeout:30000,windowsHide:true,encoding:'utf8',maxBuffer:1048576});
  console.log(output.trim());
+ if(process.argv.includes('--native')){
+  for(const script of ['gemini-native-policy-acceptance.mjs','gemini-broker-transport-acceptance.mjs']){
+   const args=['--import','tsx','scripts/'+script,moduleFile];
+   if(process.argv.includes('--docker')&&script==='gemini-broker-transport-acceptance.mjs')args.push('--docker');
+   console.log(execFileSync(process.execPath,args,{env,timeout:90000,windowsHide:true,encoding:'utf8',maxBuffer:1048576}).trim());
+  }
+ }
  console.log(JSON.stringify({officialClientVersion:'0.65.0',verifiedIntegrity:'sha512-'+expected,accountUsed:false}));
 }finally{await fs.rm(root,{recursive:true,force:true});}

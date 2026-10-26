@@ -60,6 +60,9 @@ jobs:
       - name: Verify Docker survivor discovery after worker death
         run: pnpm test:execution:docker-crash
 
+      - name: Verify pinned Gemini transport through governed Docker broker
+        run: node scripts/gemini-pinned-policy-acceptance.mjs --native --docker
+
       - name: Verify saved execution setup through restart and final approval
         run: node scripts/execution-setup-acceptance.mjs
 
@@ -152,7 +155,7 @@ jobs:
           DISCORD_BOT_TOKEN: ""
 
       - name: Verify Gemini deny policy against pinned official client
-        run: node scripts/gemini-pinned-policy-acceptance.mjs
+        run: node scripts/gemini-pinned-policy-acceptance.mjs --native
 
       - name: Verify interrupted execution is not replayed
         run: pnpm test:execution:crash
