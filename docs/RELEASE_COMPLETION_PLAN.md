@@ -1019,3 +1019,8 @@ The shared bounded client launcher now rejects invalid output budgets before spa
 
 The real-launcher browser acceptance now restarts with an unavailable saved repository and repairs it through Compute settings to planning-only. It confirms execution remains disabled. Evidence: evidence/p01-browser-missing-repository-repair.json. A first attempt failed because the test collapsed an already-expanded Connections group; the harness now checks visibility before toggling. This proves the recovery UI with synthetic data, not the remaining unified live-model first-use journey. No paid requests or private integrations were used.
 
+
+### Installed archive browser repair
+
+Exact source 91dd007 was built, packed, installed into a fresh temporary directory, and launched from the installed package. Browser onboarding, saved compute selection, reload, missing-repository restart, and UI repair passed. Evidence: evidence/p01-installed-browser-repository-repair.json includes the archive SHA-256. No paid requests. This does not close the unified live-model execution journey.
+
