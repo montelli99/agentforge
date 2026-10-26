@@ -44,3 +44,33 @@ describe('active subscription connection',()=>{
   expect(await empty.isAvailable()).toBe(false);expect(request).not.toHaveBeenCalled();
  });
 });
+
+it('does not send inference after cancellation while the catalog is pending',async()=>{
+ const original={...credentials(),expiresAt:Date.now()+3600000};
+ let release!:(value:unknown)=>void,entered!:()=>void;
+ const started=new Promise<void>(resolve=>{entered=resolve;});
+ const request=vi.fn<typeof fetch>();
+ const connection=new ChatGPTActiveConnection(original,{renew:vi.fn(),request,catalog:()=>{entered();return new Promise(resolve=>{release=resolve;});}});
+ const controller=new AbortController();
+ const pending=connection.generate({model:'synthetic-model',messages:[{role:'user',content:'Synthetic'}],signal:controller.signal});
+ const rejected=expect(pending).rejects.toThrow();
+ await started;controller.abort();release(await catalog());await rejected;
+ expect(request).not.toHaveBeenCalled();
+ expect(await connection.listModels()).toEqual(['synthetic-model']);
+});
+
+it('retains a usable connection after an interrupted response without replaying inference',async()=>{
+ const original={...credentials(),expiresAt:Date.now()+3600000};
+ let calls=0;
+ const request=vi.fn<typeof fetch>(async()=>{
+  calls++;
+  if(calls===1)return new Response('data: '+JSON.stringify({type:'response.output_text.delta',delta:'unfinished'})+'\n\n',{headers:{'Content-Type':'text/event-stream'}});
+  return new Response('data: '+JSON.stringify({type:'response.completed',response:{id:'synthetic-response',status:'completed',output:[]}})+'\n\n',{headers:{'Content-Type':'text/event-stream'}});
+ });
+ const connection=new ChatGPTActiveConnection(original,{renew:vi.fn(),catalog,request});
+ const options={model:'synthetic-model',messages:[{role:'user' as const,content:'Synthetic'}]};
+ await expect(connection.generate(options)).rejects.toThrow('without response.completed');
+ expect(request).toHaveBeenCalledTimes(1);
+ await connection.generate(options);
+ expect(request).toHaveBeenCalledTimes(2);
+});
