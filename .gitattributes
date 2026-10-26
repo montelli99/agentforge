@@ -1,2 +1,5 @@
 # The verifier is integrity-pinned byte-for-byte across platforms.
 src/providers/models/assets/offline-id-token-verifier.mjs text eol=lf
+
+# Frozen evaluation hashes must survive cross-platform checkouts.
+scripts/fixtures/release-evaluation-v1/*.json text eol=lf
