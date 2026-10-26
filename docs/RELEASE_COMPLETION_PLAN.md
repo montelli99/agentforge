@@ -840,3 +840,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P05 live browser invoice
 
 `evidence/p05-live-browser-invoice.json` proves real Hermes API session selection, browser review/send, independently verified invoice output and reload without resend. Prior failures are retained in p05-browser-setup-failure.json and p05-browser-tool-restrictions.json. The reviewed task now explains the allowed write root and disabled unattended tool. Browser Stop, restart and complete request accounting remain open.
+
+### P05 browser Stop and accounting
+
+`evidence/p05-live-browser-stop.json` records reviewed invoice completion followed by browser Stop of a separate active run, confirmed cancelled, with the invoice unchanged. Request-level provider-reported accounting is included; unavailable usage/cost stays unknown. Process restart and broader partial-effect inspection remain open.
