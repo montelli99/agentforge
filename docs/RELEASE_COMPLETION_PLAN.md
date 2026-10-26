@@ -929,3 +929,14 @@ used by chat, its repository/worktree binding, effect-receipt identity, disabled
 automatic dispatch, and owner-reviewed plans. Enabling a backend alone without
 binding these correctly would not satisfy P01. This remains the next implementation
 item; archive onboarding proof does not imply worker activation is finished.
+
+### Execution activation prerequisite: preserve active work
+
+`configureBackend` previously stopped the worker before accepting any replacement,
+including an unavailable backend or a swap during an active task. It now rejects
+changes while task execution or memory setup is active, and rejects an unready
+replacement before stopping or changing the existing worker. Regression coverage
+verifies the original task can finish, the worker stays running on rejection, and
+the current ready backend remains available. All 15 runtime tests and TypeScript
+checking passed. This is a prerequisite for guided activation, not that feature's
+completion; repository binding, persistence and UI activation are still required.

@@ -137,9 +137,11 @@ export class TaskWorkerRuntime {
 
   /** Attach a real backend after provider setup without reconstructing the workspace runtime. */
   configureBackend(backend: TaskExecutionBackend): ExecutionReadiness {
+    if (this.activeTaskExecutions.size || this.changingMemory) throw Error("Finish active tasks or memory setup before changing execution environments");
+    const readiness = backend.getReadiness();
+    if (!readiness.ready) throw Error("The execution environment is not ready; the current environment was preserved");
     if (this.running) this.stop();
     this.executionBackend = backend;
-    const readiness = backend.getReadiness();
     this.store.recordAudit({
       origin: "system", actorId: "system", actorType: "system", action: "TASK_WORKER_BACKEND_CONFIGURED",
       targetType: "system", targetId: "worker-pool", details: { readiness },

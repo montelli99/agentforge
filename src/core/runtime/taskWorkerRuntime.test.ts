@@ -112,8 +112,17 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     expect(store.listAuditEntries().some(entry => entry.action === "TASK_WORKER_BACKEND_CONFIGURED")).toBe(true);
   });
 
+  it('preserves the current backend when replacement is unready or memory setup is active', async () => {
+    const original=testExecutionBackend();runtime.configureBackend(original);runtime.start();
+    const unready={...testExecutionBackend(),getReadiness:()=>({ready:false,blockers:['unavailable'],capabilities:{modelPlanning:false,isolatedCompute:false,realVerification:false,evidenceCollection:false}})};
+    expect(()=>runtime.configureBackend(unready)).toThrow('current environment was preserved');
+    expect(runtime.isRunning()).toBe(true);expect(runtime.canExecuteTasks()).toBe(true);
+    await runtime.withMemoryChange(async()=>{expect(()=>runtime.configureBackend(testExecutionBackend())).toThrow('Finish active tasks');});
+    expect(runtime.isRunning()).toBe(true);
+  });
   it("runs only through an explicit execution backend", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
+    const originalBackend = testExecutionBackend();
+    const simRuntime = new TaskWorkerRuntime(store, originalBackend, {
       repoRoot: process.cwd(),
       autoStart: false,
       requireEffectReceipts: true,
@@ -149,7 +158,16 @@ describe("TaskWorkerRuntime & Server Integration", () => {
         },
       });
 
+      const executeOriginal=originalBackend.execute;
+      let replacementRefused=false;
+      originalBackend.execute=async input=>{
+        expect(()=>simRuntime.configureBackend(testExecutionBackend())).toThrow('Finish active tasks');
+        expect(simRuntime.isRunning()).toBe(true);
+        replacementRefused=true;
+        return executeOriginal(input);
+      };
       const completed = await simRuntime.executeTask(task.id);
+      expect(replacementRefused).toBe(true);
       expect(completed.status).toBe("completed");
       expect(completed.completedAt).toBeDefined();
       expect(completed.evidencePack).toBeDefined();
@@ -509,7 +527,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
   });
 
   it("explicit backend: requireHumanApproval transitions task to waiting_approval", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
+    const originalBackend = testExecutionBackend();
+    const simRuntime = new TaskWorkerRuntime(store, originalBackend, {
       repoRoot: process.cwd(),
       autoStart: false,
     });
