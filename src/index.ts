@@ -80,3 +80,4 @@ export {NativeBrokerSession} from './core/runtime/nativeBrokerSession.js';
 export {startNativeBrokerEndpoint} from './providers/mcp/nativeBrokerEndpoint.js';
 export {createNativeDockerSession} from './core/runtime/nativeDockerBroker.js';
 export {prepareNativeToolReview,authorizeReviewedNativeTool} from './core/runtime/nativeToolReview.js';
+export {NativeClientExecutionBackend,type GovernedNativeClient} from './core/runtime/nativeClientExecutionBackend.js';
