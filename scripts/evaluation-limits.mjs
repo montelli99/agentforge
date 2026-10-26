@@ -1,9 +1,11 @@
+import path from 'node:path';
+import {evaluationDirectory} from './evaluation-directory.mjs';
 import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 export async function evaluationLimits(){
- const bytes=await fs.readFile(new URL('./fixtures/release-evaluation-v2/protocol.json',import.meta.url));
+ const bytes=await fs.readFile(path.join(evaluationDirectory(),'protocol.json'));
  const protocol=JSON.parse(bytes);
- if(protocol.version!==2||protocol.status!=='protocol-frozen-before-model-runs')throw Error('Evaluation protocol is not frozen');
+ if(![2,3].includes(protocol.version)||protocol.status!=='protocol-frozen-before-model-runs')throw Error('Evaluation protocol is not frozen');
  const limits=protocol.limits;
  for(const value of Object.values(limits))if(!Number.isSafeInteger(value)||value<1)throw Error('Invalid evaluation limit');
  let total=0,chat=0;

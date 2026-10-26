@@ -1,0 +1,53 @@
+{
+  "version": 3,
+  "status": "protocol-frozen-before-model-runs",
+  "scope": "Fresh synthetic cases; full product and matched baseline runner must be specified before scoring. Not an overall superiority claim.",
+  "taskOrder": [
+    "payment-ledger",
+    "shipment-coverage",
+    "access-policy"
+  ],
+  "fixtureHashes": {
+    "payment-ledger": "72a54fc738ff8aaca460b8d201f95041e89863bdc36bcfd0019a5ba887532411",
+    "shipment-coverage": "c921f6ffa4802932394455738b2745b5857462b112496ea65908fee15abdda31",
+    "access-policy": "9a69894ce5816cb52575413c7f005361e74d8e6711dd88856a7e6c0743752c84"
+  },
+  "runnerStatus": "Not run; shared instruction and runner contract verification required before live scoring.",
+  "model": "mimo-v2.6-flash",
+  "arms": [
+    "Installed AgentForge chat → reviewed plan → isolated execution → restart/recovery → artifact chat",
+    "Direct same-model JSON plan → reviewed isolated execution"
+  ],
+  "trialsPerTaskPerArm": 3,
+  "totalAttempts": 18,
+  "order": "Task order as listed; trials 1 through 3; AgentForge then direct for odd trials, direct then AgentForge for even trials",
+  "limits": {
+    "providerRequestsPerAttempt": 7,
+    "chatRequestsPerAttempt": 6,
+    "outputTokensPerRequest": 2000,
+    "providerRequestTimeoutMs": 60000,
+    "reviewTimeoutMs": 300000,
+    "commandTimeoutMs": 10000
+  },
+  "fairness": [
+    "Same frozen task and input bytes, model, thinking disabled, output-token cap and no network during execution",
+    "Both arms read input.json at runtime and write artifacts/result.json; only artifacts/** writable",
+    "Expected answers and evaluator code never staged in the task repository or sent to a model",
+    "Reviewer may accept or reject commands but never edit, give hints, or request a replacement plan",
+    "Each arm has the same maximum provider-call budget; direct baseline uses one plan request, with actual usage reported rather than equal spending assumed",
+    "No automatic retries or replacement of failed attempts; infrastructure failures retained separately",
+    "Artifact accuracy is comparable across arms; onboarding, recovery and final chat are additional AgentForge requirements and are not scored as baseline failures",
+    "This is an internal baseline comparison, not evidence of superiority over other products"
+  ],
+  "scoring": {
+    "artifact": "Exact JSON equality, unchanged input SHA-256 and regular files; extra fields fail",
+    "journey": "AgentForge additionally completes reviewed execution, recovery without replay, final approval and artifact-grounded chat",
+    "report": [
+      "All 18 attempts including rejection, invalid plan and provider failure",
+      "Exact source commit, package hash and Docker image ID",
+      "Provider request counts and reported usage; absent cost remains unknown",
+      "Monotonic total elapsed time, provider time and reviewer wait recorded separately",
+      "No new development on frozen cases after inspecting live output; repairs require separate labeled development evidence"
+    ]
+  }
+}

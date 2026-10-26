@@ -1,0 +1,71 @@
+{
+  "id": "access-policy",
+  "prompt": "Read input.json at execution time. Write result.json with exactly allowed and denied, arrays of request IDs sorted in ascending ASCII order. A request is allowed only if its user is active, its resource is in that users grants, and its resource is not in that users denies. Unknown users are denied. Denies override grants. Do not change input.json.",
+  "input": {
+    "users": [
+      {
+        "id": "u1",
+        "active": true,
+        "grants": [
+          "docs",
+          "billing"
+        ],
+        "denies": [
+          "billing"
+        ]
+      },
+      {
+        "id": "u2",
+        "active": false,
+        "grants": [
+          "docs"
+        ],
+        "denies": []
+      },
+      {
+        "id": "u3",
+        "active": true,
+        "grants": [],
+        "denies": []
+      }
+    ],
+    "requests": [
+      {
+        "id": "q4",
+        "user": "u1",
+        "resource": "docs"
+      },
+      {
+        "id": "q1",
+        "user": "u1",
+        "resource": "billing"
+      },
+      {
+        "id": "q3",
+        "user": "u2",
+        "resource": "docs"
+      },
+      {
+        "id": "q2",
+        "user": "missing",
+        "resource": "docs"
+      },
+      {
+        "id": "q5",
+        "user": "u3",
+        "resource": "docs"
+      }
+    ]
+  },
+  "expected": {
+    "allowed": [
+      "q4"
+    ],
+    "denied": [
+      "q1",
+      "q2",
+      "q3",
+      "q5"
+    ]
+  }
+}

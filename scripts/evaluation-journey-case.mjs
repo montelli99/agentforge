@@ -1,3 +1,4 @@
+import {evaluationDirectory} from './evaluation-directory.mjs';
 import {evaluationExecutionInstructions} from './evaluation-execution-instructions.mjs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEvaluationCase} from './release-evaluation-contract.mjs';
 export async function evaluationJourneyCase(id){
- const directory=fileURLToPath(new URL('./fixtures/release-evaluation-v2/',import.meta.url));
+ const directory=evaluationDirectory();
  const item=await loadEvaluationCase(directory,id);
  return {id,inputSha256:item.inputSha256,artifactPath:'artifacts/result.json',prompt:item.prompt.replaceAll('result.json','artifacts/result.json')+'\n'+evaluationExecutionInstructions,stage:repo=>item.stage(repo),
  async verify(worktree){

@@ -1,0 +1,58 @@
+{
+  "id": "payment-ledger",
+  "prompt": "Read input.json at execution time. Write result.json with exactly balances, an array of objects with exactly account and cents. For every account listed in opening, add each credit and subtract each debit. Include accounts with zero balances. Sort by account in ascending ASCII order. All amounts are integer cents. Do not change input.json.",
+  "input": {
+    "opening": [
+      {
+        "account": "north",
+        "cents": 18000
+      },
+      {
+        "account": "south",
+        "cents": 7500
+      },
+      {
+        "account": "west",
+        "cents": 0
+      }
+    ],
+    "entries": [
+      {
+        "account": "north",
+        "kind": "debit",
+        "cents": 2500
+      },
+      {
+        "account": "north",
+        "kind": "credit",
+        "cents": 500
+      },
+      {
+        "account": "south",
+        "kind": "debit",
+        "cents": 7500
+      },
+      {
+        "account": "west",
+        "kind": "credit",
+        "cents": 2100
+      }
+    ]
+  },
+  "expected": {
+    "balances": [
+      {
+        "account": "north",
+        "cents": 16000
+      },
+      {
+        "account": "south",
+        "cents": 0
+      },
+      {
+        "account": "west",
+        "cents": 2100
+      }
+    ]
+  }
+}
