@@ -1,0 +1,118 @@
+{
+  "passed": true,
+  "chatJourney": true,
+  "chatRequests": 4,
+  "verifiedChatReads": [
+    {
+      "callId": "call_78978702629243a8890d24e6",
+      "taskId": "chat-144fedaf790a877f56a85682",
+      "path": "artifacts/report.json",
+      "sha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e"
+    }
+  ],
+  "verifiedArtifactReturnedToChat": true,
+  "invoiceCase": true,
+  "syntheticOnly": false,
+  "syntheticTaskData": true,
+  "liveModel": "mimo-v2.6-flash",
+  "credentialMediatedByLocalProxy": true,
+  "syntheticModelDraft": false,
+  "recordedProviderResponse": false,
+  "paidModelRequests": 5,
+  "onePlanningProviderRequest": true,
+  "totalProviderRequests": 5,
+  "createdTaskExecuted": true,
+  "guidedRepositoryRevision": false,
+  "concurrentEditsPreserved": false,
+  "browserCommandReview": true,
+  "authenticatedApproval": true,
+  "approvalDidNotExecute": true,
+  "realDocker": true,
+  "verifiedArtifact": true,
+  "serviceRestartBeforeReview": true,
+  "recordedResultRestored": true,
+  "receiptsUnchanged": true,
+  "finalReviewConfirmed": true,
+  "durableCompletion": true,
+  "completedEvidenceReadableAfterReopen": true,
+  "runnerSourceCommit": "166785d79d0f36029ea2423963dc8e2837736feb",
+  "installedPackage": true,
+  "runnerSha256": "97b8f2d6de44476de4bc534eb80a64703681adc393b6b23fde08fa9fdb1fc2d8",
+  "archiveSha256": "70d03ca5b6d1bb95f350f7928771bd8a474c0f92bf786fda276a623b15710dd4",
+  "limitations": [
+    "Project, channel, repository and worker preconfigured by test harness; not full first-user provisioning.",
+    "Provider credential mediated through local proxy; live provider requests but not direct provider credential entry.",
+    "Synthetic bounded invoice task; no claim of general task competence."
+  ],
+  "reportedUsage": [
+    {
+      "kind": "planning",
+      "usage": {
+        "completion_tokens": 768,
+        "prompt_tokens": 2937,
+        "total_tokens": 3705,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "kind": "live-chat-response-1.txt",
+      "usage": {
+        "completion_tokens": 52,
+        "prompt_tokens": 1220,
+        "total_tokens": 1272,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      }
+    },
+    {
+      "kind": "live-chat-response-2.txt",
+      "usage": {
+        "completion_tokens": 181,
+        "prompt_tokens": 2154,
+        "total_tokens": 2335,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        }
+      }
+    },
+    {
+      "kind": "live-chat-response-3.txt",
+      "usage": {
+        "completion_tokens": 52,
+        "prompt_tokens": 1553,
+        "total_tokens": 1605,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      }
+    },
+    {
+      "kind": "live-chat-response-4.txt",
+      "usage": {
+        "completion_tokens": 399,
+        "prompt_tokens": 1944,
+        "total_tokens": 2343,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        }
+      }
+    }
+  ],
+  "cost": null
+}

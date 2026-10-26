@@ -884,3 +884,18 @@ missing zero-value row without rewriting either corrupted artifact. Evidence:
 The generated verifier repeats the implementation formula; this is one bounded
 development result, not proof of independent reasoning or broad improvement.
 The frozen comparison was not rerun or rescored.
+
+### Installed live chat-to-task journey — 166785d
+
+Archive SHA-256 `70d03ca5b6d1bb95f350f7928771bd8a474c0f92bf786fda276a623b15710dd4`
+was freshly installed and passed the live invoice browser journey: owner setup,
+guided model save/connect, live chat task preparation, inspected plan approval,
+Docker execution, independent report oracle, service restart, recorded-result
+restore without replay, final approval, verified artifact retrieval into live
+chat, and browser reload without a new request. Five live requests were made.
+Evidence: `evidence/p01-installed-live-chat-task.json`.
+
+P01 remains open for first-user project/worker provisioning and direct provider
+credential setup: those were supplied by the synthetic harness and local proxy.
+This closes the previously separate installed chat-to-task integration proof;
+it does not close every onboarding or recovery case.
