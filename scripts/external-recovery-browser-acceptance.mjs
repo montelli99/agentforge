@@ -15,7 +15,7 @@ const newTask=store.createTask({projectId:project.id,title:'New synthetic delega
 const uncertainTask=store.createTask({projectId:project.id,title:'Interrupted synthetic delegation',priority:'medium',status:'ready'});
 store.updateTask(task.id,{externalTurnReceipts:[{requestId:'synthetic-request',requestDigest:'synthetic-digest',approvalId:'synthetic-approval',connectionId:'synthetic-runtime',sessionKey:'synthetic-session',status:'accepted',runId:'synthetic-run',createdAt:new Date().toISOString(),observation:{remoteStatus:'ok',observedAt:new Date().toISOString()}}]});
 const server=new AgentForgeWebServer(store,0,undefined,undefined,{settingsFilePath:path.join(root,'settings.json')});
-let reads=0,submissions=0,stops=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',listSessions:async(limit,offset)=>{assert.equal(limit,25);assert.ok([0,25].includes(offset));return offset===0?{sessions:[{key:'selected-session',name:'Synthetic agent conversation'}],nextOffset:25}:{sessions:[{key:'selected-session',name:'Synthetic agent conversation'},{key:'second-session',name:'Second conversation'}]};},inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
+let reads=0,submissions=0,stops=0,outputReads=0;server.registerExternalRunConnection({id:'synthetic-runtime',displayName:'OpenClaw test agent',listSessions:async(limit,offset)=>{assert.equal(limit,25);assert.ok([0,25].includes(offset));return offset===0?{sessions:[{key:'selected-session',name:'Synthetic agent conversation'}],nextOffset:25}:{sessions:[{key:'selected-session',name:'Synthetic agent conversation'},{key:'second-session',name:'Second conversation'}]};},readRunOutput:async runId=>{assert.equal(runId,'synthetic-run');outputReads++;return {runId,content:'Synthetic saved response <script>window.externalResultExecuted=true</script>'};},inspectRun:async runId=>{assert.equal(runId,'synthetic-run');reads++;return {runId,status:'timeout'};},submitSessionTurn:async(sessionKey,message)=>{assert.equal(sessionKey,'selected-session');submissions++;if(message==='Synthetic interrupted request')throw Error('Synthetic response lost');assert.equal(message,'Only the reviewed synthetic message');return {runId:'new-synthetic-run'};},requestRunStop:async(sessionKey,runId)=>{assert.equal(sessionKey,'synthetic-session');assert.equal(runId,'synthetic-run');stops++;return {acknowledged:true};}});
 let browser;
 server.registerExternalRunConnection({id:'other-runtime',displayName:'Other test agent',inspectRun:async()=>{throw Error('Not selected');},submitSessionTurn:async()=>{throw Error('Must not send');}});
 try{
@@ -40,6 +40,12 @@ try{
  await page.screenshot({path:path.join(root,'external-status-history.png'),fullPage:true});
  assert.equal(stops,1);assert.equal(await page.getByRole('button',{name:'Stop external run',exact:true}).count(),0);
  assert.equal(reads,1); // Reload must not submit work or silently poll the remote agent.
+ await page.getByRole('button',{name:'Read external result',exact:true}).click();
+ await page.getByLabel('External agent response',{exact:true}).getByText('Synthetic saved response <script>window.externalResultExecuted=true</script>',{exact:true}).waitFor();
+ assert.equal(outputReads,1);assert.equal(submissions,0);assert.equal(store.getTask(task.id).status,'paused');
+ assert.equal(await page.evaluate(()=>window.externalResultExecuted),undefined);
+ await page.screenshot({path:path.join(root,'external-result.png'),fullPage:true});
+
  assert.equal(await page.getByRole('dialog',{name:'Task review',exact:true}).getByRole('button',{name:'Resume',exact:true}).count(),0);
  await page.getByRole('button',{name:'Close task',exact:true}).click();
  await page.getByRole('button').filter({has:page.getByText('New synthetic delegation',{exact:true})}).click();
