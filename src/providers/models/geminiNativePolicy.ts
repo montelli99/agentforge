@@ -18,4 +18,16 @@ toolName = "dispatch"
 mcpName = "agentforge-broker"
 decision = "allow"
 priority = 999
+
+[[rule]]
+toolName = "request_review"
+mcpName = "agentforge-broker"
+decision = "allow"
+priority = 999
+
+[[rule]]
+toolName = "execute_reviewed"
+mcpName = "agentforge-broker"
+decision = "allow"
+priority = 999
 `;

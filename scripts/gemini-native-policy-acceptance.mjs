@@ -20,6 +20,7 @@ try{
   ['run_shell_command',undefined,'deny'],['read_file',undefined,'deny'],['write_file',undefined,'deny'],['web_fetch',undefined,'deny'],
   ['dispatch',undefined,'deny'],['dispatch','other-broker','deny'],['approve','agentforge-broker','deny'],
   ['dispatch','agentforge-broker','allow'],['dispatch_extra','agentforge-broker','deny'],
+  ['request_review','agentforge-broker','allow'],['execute_reviewed','agentforge-broker','allow'],['execute_reviewed','other-broker','deny'],
   // Observed client behavior: qualified names infer the server when omitted.
   // This is a limitation to enforce at transport binding, not a passing identity gate.
   ['mcp_agentforge-broker_dispatch','other-broker','deny'],['mcp_agentforge-broker_dispatch',undefined,'allow'],

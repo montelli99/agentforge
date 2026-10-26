@@ -10,6 +10,7 @@ import {DockerComputeProvider} from '../src/core/compute/dockerComputeProvider.t
 import {ContractedDockerExecutionBackend} from '../src/core/runtime/contractedDockerExecutionBackend.ts';
 import {ApprovedPlanProvider,executionContractDigest} from '../src/core/runtime/approvedPlanProvider.ts';
 import {createNativeDockerSession} from '../src/core/runtime/nativeDockerBroker.ts';
+import {WorkspaceStore} from '../src/core/store/workspaceStore.ts';
 import {NativeToolAuthorization} from '../src/core/runtime/nativeToolAuthorization.ts';
 import {NativeToolBroker} from '../src/core/runtime/nativeToolBroker.ts';
 import {NativeBrokerSession} from '../src/core/runtime/nativeBrokerSession.ts';
@@ -26,7 +27,7 @@ try{
  const identity={taskId:'synthetic',operationId:randomUUID(),sessionId:'session'};
  let args={callId:'call',tool:'write',input:{text:'synthetic'}};const approvalId=randomUUID();
  const dockerMode=process.argv.includes('--docker');
- let artifact=path.join(work,'result.txt');let imageId=null;let backend,task;
+ let artifact=path.join(work,'result.txt');let imageId=null;let backend,task,store;
  let session=new NativeBrokerSession(identity,new NativeToolBroker(gate,async()=>{
   await fs.appendFile(artifact,'one\n');return {evidence:await fs.readFile(artifact,'utf8')};
  }));
@@ -42,18 +43,21 @@ try{
   imageId=execFileSync('docker',['image','inspect','node:22-alpine','--format','{{.Id}}'],{encoding:'utf8',windowsHide:true}).trim();
   backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:imageId}),new ApprovedPlanProvider(async()=>({plan,contractDigest:executionContractDigest(task),approvedBy:'synthetic-owner',approvedAt:now,expiresAt:new Date(Date.now()+60000).toISOString()})),{resultJournalDirectory:path.join(root,'results')});
   assert.equal((await backend.initialize()).ready,true);
-  const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization:gate,backend});session=bound.session;args={callId:'call',tool:bound.tool,input:bound.input};artifact=path.join(work,'artifacts','result.txt');
+  store=new WorkspaceStore(path.join(root,'workspace.json'));store.createTask(task);
+  const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization:gate,backend,reviewStore:store});session=bound.session;args={callId:'call',tool:bound.tool,input:bound.input};artifact=path.join(work,'artifacts','result.txt');
  }
  connection=await startNativeBrokerEndpoint(session);
  const {Client,createTransport}=await import(pathToFileURL(moduleFile).href);
  client=new Client({name:'agentforge-acceptance',version:'0.1.2'},{capabilities:{}});
  const transport=await createTransport('agentforge-broker',{url:connection.endpoint,type:'http',headers:{Authorization:'Bearer '+connection.token}},false,{sanitizationConfig:{enableEnvironmentVariableRedaction:false}});
  await client.connect(transport,{timeout:10000});
- assert.deepEqual((await client.listTools()).tools.map(tool=>tool.name),['dispatch']);
- const call={name:'dispatch',arguments:{approvalId,...args}};
+ assert.deepEqual((await client.listTools()).tools.map(tool=>tool.name),dockerMode?['request_review','execute_reviewed']:['dispatch']);
+ let call={name:'dispatch',arguments:{approvalId,...args}};
+ if(dockerMode){const response=await client.callTool({name:'request_review',arguments:args});const {reviewId}=JSON.parse(response.content[0].text);assert.ok(reviewId);call={name:'execute_reviewed',arguments:{reviewId,...args}};}
  assert.equal((await client.callTool(call)).isError,true);
  if(dockerMode)assert.equal(await fs.readFile(artifact,'utf8'),'');else await assert.rejects(fs.stat(artifact));
- await gate.approve(approvalId,{...identity,...args},'synthetic-owner',Date.now()+60000);
+ if(dockerMode)store.resolveApproval({approvalId:call.arguments.reviewId,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});
+ else await gate.approve(approvalId,{...identity,...args},'synthetic-owner',Date.now()+60000);
  assert.equal((await client.callTool(call)).isError,undefined);
  assert.equal((await client.callTool(call)).isError,true);
  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');

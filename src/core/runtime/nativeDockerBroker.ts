@@ -5,11 +5,13 @@ import {ContractedDockerExecutionBackend} from './contractedDockerExecutionBacke
 import {NativeToolAuthorization} from './nativeToolAuthorization.js';
 import {NativeToolBroker} from './nativeToolBroker.js';
 import {NativeBrokerSession,type NativeSessionIdentity} from './nativeBrokerSession.js';
+import type {WorkspaceStore} from '../store/workspaceStore.js';
+import {prepareNativeToolReview,authorizeReviewedNativeTool} from './nativeToolReview.js';
 
 /** Host-only composition: client input cannot supply commands, worktree or contract.
  * The existing backend independently rechecks the stored human-approved plan.
  */
-export function createNativeDockerSession(input:{identity:NativeSessionIdentity;task:Task;worktreePath:string;authorization:NativeToolAuthorization;backend:ContractedDockerExecutionBackend}){
+export function createNativeDockerSession(input:{identity:NativeSessionIdentity;task:Task;worktreePath:string;authorization:NativeToolAuthorization;backend:ContractedDockerExecutionBackend;reviewStore?:WorkspaceStore}){
  const task=structuredClone(input.task);const identity=Object.freeze({...input.identity});
  const worktreePath=input.worktreePath;const backend=input.backend;
  if(identity.taskId!==task.id||!path.isAbsolute(worktreePath)||!task.contract.workspace.requireIsolatedWorktree)throw Error('Bound isolated task workspace required');
@@ -22,5 +24,9 @@ export function createNativeDockerSession(input:{identity:NativeSessionIdentity;
   const output=await backend.execute({task:structuredClone(task),worktreePath,operationId:identity.operationId,signal});
   return {evidence:JSON.stringify(output)};
  });
- return {session:new NativeBrokerSession(identity,broker),tool:'execute_approved_task',input:{contractDigest}};
+ const store=input.reviewStore;const authorization=input.authorization;
+ return {session:new NativeBrokerSession(identity,broker,store?{
+  prepare:request=>prepareNativeToolReview(store,request),
+  authorize:(reviewId,request)=>authorizeReviewedNativeTool(store,authorization,reviewId,request),
+ }:undefined),tool:'execute_approved_task',input:{contractDigest}};
 }
