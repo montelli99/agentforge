@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-26T16:40:40.650Z",
+  "model": "gpt-6-luna",
+  "passed": true,
+  "requests": 2,
+  "effects": 1,
+  "usage": [
+    {
+      "promptTokens": 101,
+      "completionTokens": 32,
+      "totalTokens": 133,
+      "cachedInputTokens": 0
+    },
+    {
+      "promptTokens": 153,
+      "completionTokens": 12,
+      "totalTokens": 165,
+      "cachedInputTokens": 0
+    }
+  ],
+  "stage": "complete",
+  "result": {
+    "totalCents": 3000
+  }
+}

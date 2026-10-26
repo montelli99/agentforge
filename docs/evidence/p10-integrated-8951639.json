@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "8951639",
+  "command": "pnpm check",
+  "passed": true,
+  "testFiles": 167,
+  "testsPassed": 963,
+  "testsSkipped": 2,
+  "archiveFilesScanned": 504,
+  "archiveSha256": "c19dca0ec76c3f963a624525328c00ba7d5e33e646614d54902b5bb475682d40",
+  "scope": "Local integrated source, build and package validation; not final release acceptance"
+}
