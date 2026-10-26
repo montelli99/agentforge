@@ -352,3 +352,14 @@ proof of authentication, subscription entitlement, quota, or model availability.
 Only a successful official-client request can establish access for that request.
 The installation checker is separate and does not activate this chat route.
 Live signed-in acceptance and native managed execution remain release work.
+
+### Hermes credential changes and saved runs
+
+The pinned Hermes API server scopes durable runs by profile and API key. A new
+key can authenticate while an old run returns 404; it does not inherit the old
+credential’s saved runs. AgentForge binds receipts to the original connection
+identity and refuses to replay an old operation under a changed credential.
+Do not resubmit an uncertain task to recover its result. Restore the original
+authorized connection to inspect the old run, or use a separately supported
+server migration procedure. The disposable server rotation proof is recorded
+in `evidence/p05-hermes-server-key-rotation.json`; it submitted no new task.

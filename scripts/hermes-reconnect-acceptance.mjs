@@ -1,3 +1,6 @@
+import os from 'node:os';
+import path from 'node:path';
+import {randomUUID} from 'node:crypto';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
@@ -22,6 +25,8 @@ assert.equal(state.Config.User,'hermes');
 assert.equal(state.State.Running,false,'Do not interfere with an active proof');
 const token=state.Config.Env.find(value=>value.startsWith('API_SERVER_KEY='))?.slice(15);
 assert.ok(token);
+const rotate=process.env.AGENTFORGE_HERMES_ROTATION_PROOF==='1';
+let backup,rotationDirectory,serverCredentialRotated=false;
 try{
  docker(['start',name]);
  const url='http://'+docker(['port',name,'8642/tcp']);
@@ -42,8 +47,29 @@ try{
  assert.notEqual(wrongCredential.id,connection.id);
  await assert.rejects(()=>wrongCredential.inspectRun(runId),/401/);
  assert.deepEqual(await connection.readRunOutput(runId),output);
+ if(rotate){
+  rotationDirectory=await fs.mkdtemp(path.join(os.tmpdir(),'af-hermes-rotation-'));
+  backup=path.join(rotationDirectory,'original-start.py');
+  docker(['stop','--time','5',name]);docker(['cp',name+':/tmp/start.py',backup]);
+  const replacement=path.join(rotationDirectory,'rotated-start.py'),rotatedToken=randomUUID();
+  await fs.writeFile(replacement,'import os\nos.environ["API_SERVER_KEY"] = '+JSON.stringify(rotatedToken)+'\n'+await fs.readFile(backup,'utf8'));
+  docker(['cp',replacement,name+':/tmp/start.py']);docker(['start',name]);
+  const rotated=configureHermesRunConnection({...env,AGENTFORGE_HERMES_API_KEY:rotatedToken});
+  let ready=false;
+  for(let i=0;i<60;i++){try{const response=await fetch(url+'/v1/capabilities',{headers:{Authorization:'Bearer '+rotatedToken},signal:AbortSignal.timeout(3000)});if(response.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,1000));}
+  assert.equal(ready,true,'New key must authenticate to the actual server');
+  // Pinned Hermes scopes durable runs by profile AND API key; rotation must not
+  // silently transfer ownership of an old run to a new credential identity.
+  await assert.rejects(()=>rotated.readRunOutput(runId),/404/);
+  await assert.rejects(()=>connection.inspectRun(runId),/401/);
+  assert.notEqual(rotated.id,connection.id);serverCredentialRotated=true;
+  docker(['stop','--time','5',name]);docker(['cp',backup,name+':/tmp/start.py']);docker(['start',name]);
+  let restored;for(let i=0;i<60;i++){try{restored=await connection.readRunOutput(runId);break;}catch{await new Promise(r=>setTimeout(r,1000));}}
+  assert.deepEqual(restored,output,'Restoring the original key must retain the exact output');
+  await assert.rejects(()=>rotated.inspectRun(runId),/401/);
+ }
  const sessions=await connection.listSessions(25,0);
  assert.ok(sessions.sessions.some(session=>session.key===runId));
- await fs.writeFile(evidencePath,JSON.stringify({requirement:'P05',runId,status:observation.status,output:output.content,checks:{containerRestart:true,registeredConnectorOutput:true,newConnectorSameOutput:true,apiSessionListed:true,rotatedCredentialChangesBinding:true,serverRejectsWrongCredential:true,originalCredentialStillReadsSameOutput:true},submissionCalls:0,limits:['No governed AgentForge approval or cancellation is exercised.','Binding change is not proof of server-side credential rotation or receipt refusal.'],recordedAt:new Date().toISOString()},null,2)+'\n');
+ await fs.writeFile(evidencePath,JSON.stringify({requirement:'P05',runId,status:observation.status,output:output.content,checks:{serverCredentialRotated,rotatedKeyCannotReadOldScope:serverCredentialRotated,originalKeyRestoredExactOutput:serverCredentialRotated,containerRestart:true,registeredConnectorOutput:true,newConnectorSameOutput:true,apiSessionListed:true,rotatedCredentialChangesBinding:true,serverRejectsWrongCredential:true,originalCredentialStillReadsSameOutput:true},submissionCalls:0,limits:['No governed AgentForge approval or cancellation is exercised.',...(rotate?['Server rotation changes the run namespace: new key authenticates but cannot read old runs; restoring the original key recovers the exact output. Governed receipt refusal has separate regression evidence.']:['Binding change is not proof of server-side credential rotation or receipt refusal.'])],recordedAt:new Date().toISOString()},null,2)+'\n');
  console.log('Hermes connector reconnect proof passed; no submission made.');
-}finally{docker(['stop','--time','5',name]);}
+}finally{docker(['stop','--time','5',name]);if(backup)docker(['cp',backup,name+':/tmp/start.py']);if(rotationDirectory)await fs.rm(rotationDirectory,{recursive:true,force:true});}

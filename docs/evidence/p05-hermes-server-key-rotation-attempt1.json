@@ -1,0 +1,10 @@
+{
+  "requirement": "P05",
+  "outcome": "failed",
+  "phase": "server-key-rotation",
+  "sourceBase": "d00978b",
+  "observed": "Original credential read completed output. Rotated startup produced no successful output within 60 retries; assertion failed.",
+  "limitation": "Initial harness did not retain the request error. This does not establish lost run data.",
+  "cleanup": "Finally stopped the disposable container and copied the original startup file back.",
+  "submissionCalls": 0
+}

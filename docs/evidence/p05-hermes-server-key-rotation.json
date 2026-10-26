@@ -1,0 +1,37 @@
+{
+  "requirement": "P05",
+  "runId": "run_541c7f2062214fc7ace09429cafd835b",
+  "status": "completed",
+  "output": "1250\n\nCalculation: 1200 − 250 = 950, then 950 + 300 = 1250.",
+  "checks": {
+    "serverCredentialRotated": true,
+    "rotatedKeyCannotReadOldScope": true,
+    "originalKeyRestoredExactOutput": true,
+    "containerRestart": true,
+    "registeredConnectorOutput": true,
+    "newConnectorSameOutput": true,
+    "apiSessionListed": true,
+    "rotatedCredentialChangesBinding": true,
+    "serverRejectsWrongCredential": true,
+    "originalCredentialStillReadsSameOutput": true
+  },
+  "submissionCalls": 0,
+  "limits": [
+    "No governed AgentForge approval or cancellation is exercised.",
+    "Server rotation changes the run namespace: new key authenticates but cannot read old runs; restoring the original key recovers the exact output. Governed receipt refusal has separate regression evidence."
+  ],
+  "recordedAt": "2026-10-26T13:45:17.979Z",
+  "sourceBase": "d00978b",
+  "runnerSha256": "235d0cf61c1fd553731412d9d0d60975b1f357b84f35afdd8b3af45aa24a294f",
+  "image": "nousresearch/hermes-agent@sha256:648e4daf033bf2de209435fd9dd61ee3e11103c1f7e1ab469bffbfb99acc263f",
+  "sourceInspection": {
+    "file": "gateway/platforms/api_server_runs.py",
+    "function": "_run_idempotency_scope",
+    "finding": "Non-room durable run namespace hashes profile and expected API key."
+  },
+  "previousFailedExpectations": [
+    "p05-hermes-server-key-rotation-attempt1.json",
+    "p05-hermes-server-key-rotation-attempt2.json"
+  ],
+  "cleanup": "Original startup restored and disposable container stopped"
+}
