@@ -71,10 +71,13 @@ no multi-connection file is supplied. Existing MiMo configuration is unchanged.
    `AGENTFORGE_PLAN_CLI_CONFIG`. It is not a general chat subscription bridge.
 2. **Claude:** the user signs in through the unmodified Claude Code client.
    AgentForge must not collect Claude account tokens or repurpose them as API
-   credentials. A managed official-client worker is not implemented here.
+   credentials. A pinned managed-worker implementation exists, but it is not
+   enabled by server startup. Live authentication, operating-system isolation,
+   and the complete guided workflow remain required before activation.
 3. **Google:** Gemini CLI supports Google-account sign-in, including eligible Pro
-   and Ultra accounts. A managed Gemini CLI worker is not implemented here; the
-   Gemini API connection above is a separate route.
+   and Ultra accounts. A pinned managed-worker implementation and dedicated-profile
+   preparation command exist, but server activation and live account/isolation
+   acceptance remain incomplete. The Gemini API connection above is a separate route.
 4. **Other consumer subscriptions:** no undocumented cookie or token bridges.
    Use a documented API or official client rather than claiming subscription
    interoperability that has not been implemented and verified.
@@ -108,8 +111,11 @@ project configuration, workspace exports, or release artifacts.
 
 The web setup now implements official sign-in, model selection, chat/tool requests,
 plan drafting, protected saved-account restoration, renewal, and sign-out on
-Windows. Live account lifecycle and clean-install browser acceptance remain
-unproven. This implementation status is not a claim of production readiness.
+Windows. Dedicated-account live checks have demonstrated chat/tool requests,
+restore, explicit renewal, cancellation followed by restore, and recovery after
+a worker crash. Natural token expiry, live sign-out, and the complete clean-install
+subscription browser journey remain open. These bounded checks do not establish
+production readiness or support on other operating systems.
 
 1. Sign in to AgentForge as an owner or administrator. Open **Models**, choose
    **Use a subscription**, and continue to **Connect your model**.
