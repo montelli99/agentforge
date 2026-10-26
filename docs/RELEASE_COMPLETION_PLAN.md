@@ -738,3 +738,8 @@ Removed the unnecessary model-configuration prerequisite for project-scoped memo
 ### P07/P08 encrypted selection after server restart — 2026-10-26
 
 Real Chrome acceptance now stops the server, constructs a fresh server from saved workspace/settings, reloads, verifies no active selection, rejects a wrong passphrase, explicitly restores with the correct passphrase, and forgets without modifying the note. Encrypted file excludes plaintext vault path and passphrase. Evidence: evidence/p07-memory-browser-server-restart.json (SHA-256 267d837d92610875cfc796726ebcf494daabd41e3f78cf967164aba9f85d334b). This is server reconstruction in the same Node process, not an OS process-kill claim. The case is part of the hosted and installed-package browser acceptance runner.
+
+
+### P07/P03 process-death restoration — 2026-10-26
+
+A dedicated synthetic owner saved a selected-note connection encrypted. The acceptance forcibly terminated the server child, launched a distinct process from disk, signed in again, observed no active memory source, rejected a wrong passphrase, restored with the correct passphrase, and verified unchanged note content. Evidence: evidence/p07-memory-process-recovery.json (SHA-256 7dbee44cfa9e094b18eaede932f5e0c0929eacfcebd09d0f0a6370a5bfe6e62b). Added to all six hosted OS/Node combinations with retained evidence. The initial harness setup collided with the default owner username before any server launch; corrected to a unique synthetic owner. This authenticated HTTP case complements, but does not replace, browser and remote-provider coverage.

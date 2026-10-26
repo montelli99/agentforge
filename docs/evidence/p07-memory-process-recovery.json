@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "requirement": "P07/P03",
+  "separateProcesses": true,
+  "forcedTermination": true,
+  "noAutomaticSharing": true,
+  "wrongPassphraseRefused": true,
+  "explicitRestore": true,
+  "noteUnchanged": true,
+  "limitations": [
+    "Authenticated HTTP acceptance; browser journey is covered separately.",
+    "No remote provider tested."
+  ]
+}

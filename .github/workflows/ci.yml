@@ -153,11 +153,16 @@ jobs:
       - name: Verify selected-note memory lifecycle across restart
         run: node scripts/obsidian-lifecycle-acceptance.mjs "${{ runner.temp }}/obsidian-lifecycle.json"
 
+      - name: Verify encrypted memory selection after process termination
+        run: node scripts/memory-process-recovery.mjs "${{ runner.temp }}/memory-process-recovery.json"
+
       - name: Retain selected-note lifecycle evidence
         uses: actions/upload-artifact@v4
         with:
           name: obsidian-lifecycle-${{ matrix.os }}-${{ matrix.node-version }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/obsidian-lifecycle.json
+          path: |
+            ${{ runner.temp }}/obsidian-lifecycle.json
+            ${{ runner.temp }}/memory-process-recovery.json
           if-no-files-found: error
 
       - name: Verify built-launcher persistence across restart
