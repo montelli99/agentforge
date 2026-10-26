@@ -1,0 +1,80 @@
+{
+  "installedPackage": true,
+  "syntheticOnly": true,
+  "paidRequests": 3,
+  "passed": true,
+  "chatProvider": "mimo-v2.6-flash",
+  "chatUsage": {
+    "usage": {
+      "inputTokens": 2062,
+      "outputTokens": 76
+    },
+    "cost": null
+  },
+  "chatAccounting": [
+    {
+      "request": 1,
+      "status": "response",
+      "usage": {
+        "inputTokens": 1208,
+        "outputTokens": 24
+      },
+      "httpStatus": 200,
+      "cost": null
+    },
+    {
+      "request": 2,
+      "status": "response",
+      "usage": {
+        "inputTokens": 2062,
+        "outputTokens": 76
+      },
+      "httpStatus": 200,
+      "cost": null
+    }
+  ],
+  "taskPreparedFromLiveChat": true,
+  "modelSavedUnlockedAndUsedAfterRestart": true,
+  "browserProjectMatchesRestoredWorker": true,
+  "enabledAfterRestartWithoutStartingTask": true,
+  "livePlanningModel": "mimo-v2.6-flash",
+  "providerUsage": {
+    "completion_tokens": 1062,
+    "prompt_tokens": 3018,
+    "total_tokens": 4080,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "restoredModelDraftedTaskInBrowser": true,
+  "draftDidNotExecute": true,
+  "reviewedPlanExecutedInDocker": true,
+  "finalApprovalStillRequired": true,
+  "independentInvoiceCheck": true,
+  "recordedResultRestoredAfterLauncherRestart": true,
+  "finalApprovalCompleted": true,
+  "receiptsUnchangedThroughRecoveryAndApproval": true,
+  "invoiceBytesUnchangedThroughRecovery": true,
+  "missingRepositoryRepairedInBrowser": true,
+  "repairDidNotEnableExecution": true,
+  "savedDockerFromBrowser": true,
+  "invalidRepositoryRejected": true,
+  "pendingSelectionSurvivedReload": true,
+  "setupDidNotStartTask": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "installedSourceCommit": "af90640684bcc89f513dc276eb8fb5bc0613fb83",
+  "archiveSha256": "eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08",
+  "harnessSha256": "ab5bbe6e4f50c5f02f9f4f8f788adc8a40e024b53efb3e3241c44b3ea76fb9fb",
+  "reviewer": "Codex inspected exact plan commands",
+  "limits": [
+    "Final verified artifact has not yet been returned to chat in this journey",
+    "One bounded invoice workload; broader matrices remain"
+  ]
+}

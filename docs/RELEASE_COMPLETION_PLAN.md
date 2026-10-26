@@ -1087,3 +1087,8 @@ The combined installed journey can now opt into live chat as well as invoice pla
 
 The same af90640 archive passed with actual MiMo chat and actual MiMo invoice planning: encrypted restoration, chat reply, browser task form, exact plan review, real execution, independent invoice verification, restart recovery and final approval. Evidence: evidence/p01-installed-live-chat-and-invoice-cycle.json. Two requests used 5021 total tokens; dollar cost unknown. Chat was a bounded acknowledgement and task creation still used the form. The remaining P01 join is live chat preparing the task itself and reporting the verified result.
 
+
+### Live chat-created installed task passes
+
+The clean installed af90640 journey now uses live prepare_task rather than the task creation form. Owner review supplies boundaries and exact checks; live planning, reviewed Docker execution, frozen invoice verification, actual launcher restart, recorded-result recovery and final approval all passed. Evidence: evidence/p01-installed-live-chat-created-invoice.json. Three requests used 7450 tokens (two chat/tool rounds and planning); cost unknown. Remaining P01 join: verified-artifact retrieval and report back into chat after recovery. Wider matrices remain open.
+
