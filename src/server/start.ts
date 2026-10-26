@@ -77,7 +77,7 @@ if (executionMode === "approved-docker") {
   const repository = process.env.AGENTFORGE_EXECUTION_REPO;
   if (!repository || !path.isAbsolute(repository)) throw new Error("Approved Docker execution requires an explicit absolute AGENTFORGE_EXECUTION_REPO.");
   const plans = new ApprovedPlanProvider(async taskId => store.getTask(taskId)?.approvedExecutionPlan);
-  const backend = new ContractedDockerExecutionBackend(new DockerComputeProvider({ maxMemoryBytes: 1024 * 1024 * 1024, cpuQuota: 1 }), plans);
+  const backend = new ContractedDockerExecutionBackend(new DockerComputeProvider({ maxMemoryBytes: 1024 * 1024 * 1024, cpuQuota: 1 }), plans, {resultJournalDirectory:path.join(path.dirname(workspaceFilePath),'execution-results')});
   await backend.initialize();
   taskRuntime = new TaskWorkerRuntime(store, backend, {
     repoRoot: repository,
@@ -277,3 +277,4 @@ server.start().then(async () => {
   console.error("Failed to start AgentForge vNext Web Server:", redactRuntimeError(err));
   process.exit(1);
 });
+

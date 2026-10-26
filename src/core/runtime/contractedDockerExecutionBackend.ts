@@ -1,3 +1,4 @@
+import {ExecutionResultJournal} from './executionResultJournal.js';
 /**
  * A production-oriented verification backend for AgentForge.
  *
@@ -32,6 +33,7 @@ export interface ExecutionPlanProvider {
 
 export interface ContractedDockerExecutionBackendOptions {
   agentId?: string;
+  resultJournalDirectory?: string;
 }
 
 /**
@@ -153,7 +155,9 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
       // not complete evidence unless the control plane can identify the exact
       // repository state it inspected.
       const finalSha = await readGitHeadSha(input.worktreePath);
-      return { commandsExecuted, testResults, filesChanged, artifacts, finalSha };
+      const output={ commandsExecuted, testResults, filesChanged, artifacts, finalSha };
+      if(this.options.resultJournalDirectory&&input.operationId)await new ExecutionResultJournal(this.options.resultJournalDirectory).save(input.task,input.operationId,input.worktreePath,output);
+      return output;
     } finally {
       try { await this.docker.destroyEnvironment(environment.id); } finally { await nonDeleting?.discardUnwrittenPlaceholders(); }
     }
@@ -173,3 +177,4 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     }
   }
 }
+

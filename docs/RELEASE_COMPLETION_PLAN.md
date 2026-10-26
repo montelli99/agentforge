@@ -605,3 +605,13 @@ execution receipts remained byte-identical. No execution or original-record edit
 Evidence: evidence/p03-historical-approval-recovery.json. Twenty focused tests,
 full typechecks and build passed. This repairs this known record defect only;
 started receipts with an unknown outcome still require separate reconciliation.
+
+P03 interruption work: production Docker launcher now writes operation-bound output
+to a host-only execution-results journal before returning the backend result.
+The journal flushes the file, refuses overwrite, validates request/task/worktree
+identity and a payload hash, bounds record size, and refuses placement inside the
+execution worktree. Seven journal/backend regressions and full typechecks pass.
+This is the durable-result foundation, not completed uncertain-effect recovery:
+reviewed retrieval, surviving-container checks, current artifact validation, and
+reconstruction of pending approval still need integration and crash acceptance.
+Started receipts remain quarantined; no automatic replay or completion added.
