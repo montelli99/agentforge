@@ -6,12 +6,12 @@ integrations belong in source, evidence, fixtures or release packages.
 
 | Requirement | Completion evidence | Current gap |
 | --- | --- | --- |
-| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Installed-package browser save/restart/unlock and chat recovery passed; restored-model drafting passed locally; unified first-user task journey still unproven |
+| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Installed live invoice journey now passes owner/model setup, reviewed Docker execution, restart and grounded result chat (`evidence/p02-installed-automatic-artifact-grounding.json`); final candidate clean-install acceptance and broader onboarding matrix remain |
 | Supported subscription chat and execution | Official client authentication, bounded workspace access, cancellation and reconnect evidence for each advertised route | Direct ChatGPT chat/tool loop, protected Windows sign-in, renewal, restore and sign-out implemented; live lifecycle acceptance and other-platform storage unproven; Claude/Gemini managed workers incomplete |
-| Real-model full task completion | Model-generated plan, explicit review, isolated execution, independent checks and useful artifact | One live-model synthetic plan completed browser review, real Docker and final approval locally; exact hosted package passed synthetic-provider browser workflows; unified live first-user acceptance remains open |
+| Real-model full task completion | Model-generated plan, explicit review, isolated execution, independent checks and useful artifact | Installed live invoice journey passed with five provider requests and independent output checks (`evidence/p02-installed-automatic-artifact-grounding.json`); this development example does not establish general task competence or final-build acceptance |
 | Extensible memory ecosystem | Provider adapters usable by chat and task execution; guided connection, per-project selection, optional composition, migration/export, provenance, deletion and outage behavior; contract acceptance for each advertised adapter | Shared chat/worker contract, read-only Obsidian and Hindsight Cloud adapters, guided encrypted save/restore/forget and simultaneous per-project selections implemented; Obsidian + Hindsight composition and local JSON/Markdown export implemented; full composition behavior, automatic migration and live provider/browser acceptance remain open; JEv remains a decision router |
 | Recovery and memory reliability | Crash, auth expiry, interrupted tool, conflicting-memory and duplicate-action cases with durable receipts | Browser streaming reload, persisted completion and local recorded-result restore passed; Docker worker-kill duplicate prevention passed; uncertain-effect resolution, auth expiry and broader faults remain open |
-| Measurable differentiation | Frozen held-out workloads, matched model/budget baselines, repeated trials, completion/cost/latency results including failures | Frozen 18-attempt matched-model evaluation recorded; both arms passed 6/9 artifact checks, with verification and protocol limitations. No competitive superiority demonstrated |
+| Measurable differentiation | Frozen held-out workloads, matched model/budget baselines, repeated trials, completion/cost/latency results including failures | Version 3 retained all 18 attempts: AgentForge 8/9 artifacts and 7/9 full journeys; direct baseline 7/9 artifacts. Three repeated synthetic tasks, unequal actual usage, and a disclosed fixture repair limit interpretation (`evidence/p09-v3-report.json`). No competitive superiority demonstrated |
 | Finished public release and launch | Exact-build CI/package hashes, clean distribution, coherent UI/docs, reproducible demo and accurate marketing claims | GitHub v0.1.2 early-access archive is published from cfd876d with seven passing exact-build CI jobs; later integration work is not in that archive. Stable acceptance, demonstration and launch reconciliation remain; npm publication is deferred |
 
 ## Work order
@@ -52,7 +52,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
 - [ ] **P02 Real chat execution (live browser task and saved chat presentation proved; unified journey pending).** Use a live model to create a useful artifact
   from synthetic inputs with no embedded solution. Verify output with a separate
   evaluator, record the actual commands and all model attempts, and show the
-  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Fresh live planning, browser approval, independent invoice verification, restart and final approval are recorded in `evidence/p02-live-invoice-browser-completion.json`; saved chat rendering has separate evidence. Next: combine these into one installed-package chat-to-task journey. The protocol froze its
+  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Fresh live planning, browser approval, independent invoice verification, restart and final approval are recorded in `evidence/p02-live-invoice-browser-completion.json`; saved chat rendering has separate evidence. The combined installed live journey is now recorded in `evidence/p02-installed-automatic-artifact-grounding.json`, including verified artifact context before the final answer. Next: carry this acceptance onto the final release candidate; retain broader competence limits. The protocol froze its
   input and evaluator before execution. Existing fixed-file proof is supporting
   evidence only and must not be reported as general task competence.
 - [ ] **P03 Recovery matrix.** On that workflow interrupt browser streaming,
@@ -60,7 +60,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   Also expire authentication and introduce conflicting memory. Reopen, recover
   context, reconcile effects, and count executions to prove no duplicates.
   Save before/after journals and independently counted outputs for every case.
-  Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Next: finish uncertain-effect and authentication-expiry cases.
+  Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Additional evidence: `evidence/p03-invoice-uncertain-effect.json` records refusal to replay after an effect without a receipt; `evidence/p03-timed-session-expiry.json` records real local owner-session expiry and recovered approval. Next: complete provider-token expiry and the remaining effect-reconciliation/conflicting-memory matrix; local session expiry does not prove provider renewal.
 - [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
   session, review/send one useful task, observe and verify its returned artifact,
   disconnect/reconnect, and Stop an active run with partial-effect inspection.
@@ -91,7 +91,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   and repeat count BEFORE running AgentForge and matched baselines. Preserve every
   failure/timeout and usage result. Publish reproducible completion, latency and
   cost results with uncertainty; repair product weaknesses separately from the
-  frozen evaluation. The frozen run is recorded in `evidence/p09-all-attempts.json`, including failures and timeouts. Next: freeze a new, fully specified workload addressing schema ambiguity and measure the integrated product against the agreed baselines; preserve the original results. Monetary cost remains unknown and development examples cannot establish competitive superiority.
+  frozen evaluation. The frozen run is recorded in `evidence/p09-all-attempts.json`, including failures and timeouts. Version 3 is complete in `evidence/p09-v3-report.json`; all attempts, usage and limitations are retained. Next: publish the bounded results coherently and reconcile the other agreed baselines; do not repeat completed trials or replace failures with later repaired runs. Monetary cost remains unknown and development examples cannot establish competitive superiority.
 - [ ] **P10 Exact release and launch.** Once the above accepts the candidate,
   run hosted matrix plus installed-archive/privacy checks on its exact commit;
   reconcile package hashes, merge, publish matching GitHub assets, verify clean
@@ -1228,9 +1228,8 @@ speed comparison. Only three synthetic tasks were repeated, and the fixture
 harness changed after the first infrastructure failure. These results establish
 neither general reliability nor competitive superiority.
 
-Required repair discovered: shipment trial 3 completed execution and recovery,
+Repair discovered: shipment trial 3 completed execution and recovery,
 but final chat returned content without invoking the verified artifact reader.
-Keep that failure in the evaluation. Fix grounding in a separately versioned
-runtime and prove the behavior with independent regression and live acceptance.
+That failure remains in the evaluation. Explicit recorded-path grounding was repaired separately and has regression, built-live and installed-live evidence in `evidence/p02-live-automatic-artifact-grounding.json` and `evidence/p02-installed-automatic-artifact-grounding.json`. Implicit or ambiguous references are not covered by this automatic selection.
 P01–P10 remain the full release scope; completing this experiment is not release
 acceptance.
