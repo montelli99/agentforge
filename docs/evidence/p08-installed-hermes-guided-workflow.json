@@ -1,0 +1,209 @@
+{
+  "requirements": [
+    "P05",
+    "P08"
+  ],
+  "sourceCommit": "40208f2",
+  "recordedAt": "2026-10-26T10:23:02.134Z",
+  "archiveSha256": "70ad1fcc8c496bd12feb32e101acebbc41405eb9241d3272731875780646c6fc",
+  "proof": {
+    "passed": true,
+    "guidedBrowserConnection": true,
+    "setupSentNoModelRequests": true,
+    "installedPackage": true,
+    "gatewayProcessRestart": true,
+    "unreadResultRecovered": true,
+    "browserStop": true,
+    "invoiceUnchangedAfterStop": true,
+    "browserSessionSelection": true,
+    "reviewBeforeSend": true,
+    "submissions": 2,
+    "runId": "run_907a4e98bba64ad1866e07834953302b",
+    "sessionKey": "run_4e4fcfd9a3e5460ca768b5e9470d4d13",
+    "independentInvoiceCheck": true,
+    "outputVisible": true,
+    "reloadWithoutResend": true,
+    "notLocallyVerified": true,
+    "limits": [
+      "Broader partial effects remain open."
+    ]
+  },
+  "restart": {
+    "beforeStartedAt": "2026-10-26T10:21:09.171177991Z",
+    "afterStartedAt": "2026-10-26T10:21:59.561946204Z",
+    "runId": "run_907a4e98bba64ad1866e07834953302b",
+    "recoveredBeforeFirstRead": true,
+    "requestsBeforeRestart": 11,
+    "requestsAfterRestart": 11,
+    "submissions": 1
+  },
+  "stop": {
+    "runId": "run_5f0d24dd45824b1cb89dd93e95bd8f5c",
+    "before": "running",
+    "after": "cancelled",
+    "invoiceUnchanged": true
+  },
+  "providerAccounting": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T10:21:21.716Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 72
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:24.929Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T10:21:25.048Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13946,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:28.872Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T10:21:29.123Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 308,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:30.036Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T10:21:30.140Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14040,
+        "outputTokens": 42
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:31.310Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T10:21:31.357Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:34.182Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T10:21:35.030Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14313,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:36.208Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T10:21:36.281Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14736,
+        "outputTokens": 493
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:43.742Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T10:21:44.113Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15298,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:46.560Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T10:21:46.809Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15599,
+        "outputTokens": 108
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:49.149Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T10:21:49.338Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 357,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:50.519Z"
+    },
+    {
+      "requestNumber": 11,
+      "startedAt": "2026-10-26T10:21:50.634Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16245,
+        "outputTokens": 244
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:21:57.410Z"
+    },
+    {
+      "requestNumber": 12,
+      "startedAt": "2026-10-26T10:22:08.555Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16517,
+        "outputTokens": 1500
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:22:49.144Z"
+    }
+  ],
+  "fixtures": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409"
+  },
+  "hashes": {
+    "browser-report.json": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "browser-proof.json": "cf93d6c2dd40b20e221c608111e510321f2f94156c117f3b1d994651387b8956",
+    "guided-hermes-setup.png": "956ea270effcb965858e195e598a9a0e031a823c007f4680e3c0ff13a0753e02",
+    "provider-accounting.json": "b8dff7bb1061bf495aabc162ed71a7f81bd7a815671620de967ef0497577aa21"
+  },
+  "runnerSha256": "a3808ce87f069644792ce098059d257258161cc8980a97bd2a7f03a02eb8bd13",
+  "limitations": [
+    "Broader interruption and partial tool effects remain open",
+    "No competitive claim; synthetic development workload",
+    "Reported token usage retained; monetary cost unknown"
+  ]
+}

@@ -69,7 +69,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
 - [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
   and the registered connector. Include selected API-session continuity and
   credential-change refusal for existing receipts. Verify successful completion
-  and cancellation, not only failed-run persistence. Next: connect the already proved live output, invoice task, continuation and Stop into one browser workflow. Other Hermes session types require
+  and cancellation, not only failed-run persistence. The live guided browser workflow now connects encrypted credentials, selects the session, reviews the invoice task, independently verifies its artifact, restarts the gateway before first result retrieval, recovers the result and stops a separate active text-only run (`evidence/p08-live-hermes-guided-workflow.json`). The installed archive from 40208f2 also passed (`evidence/p08-installed-hermes-guided-workflow.json`). Next: broaden interruption testing to actual partial tool effects. Other Hermes session types require
   a separate gateway path; do not present API-only discovery as universal pairing.
 - [ ] **P06 Model connection matrix.** Inventory every advertised API and official
   subscription route. For EACH record sign-in/configuration, live chat, approved
@@ -87,7 +87,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   missing/invalid credential, no sessions, interrupted task, recovered memory and
   verified result flows in the rendered UI. Check keyboard navigation, labels,
   focus and readable errors. Save screenshots and action/results log. Next:
-  replace server-only agent configuration with secure guided connection setup.
+  finish the installed guided setup journey and keyboard/error-state matrix. Secure encrypted browser setup now exists; real OpenClaw device pairing is recorded in `evidence/p08-real-openclaw-setup.json` and real Hermes task/recovery in `evidence/p08-live-hermes-guided-workflow.json`.
 - [ ] **P09 Held-out differentiation.** Freeze task set, versions, rubric, budgets
   and repeat count BEFORE running AgentForge and matched baselines. Preserve every
   failure/timeout and usage result. Publish reproducible completion, latency and
