@@ -204,6 +204,17 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return result as Record<string, unknown> & {runId: string; status: string};
   }
 
+  /** Return only the terminal reply bound to this run; timeout/history alone is insufficient. */
+  async readRunOutput(runId: string): Promise<{runId:string;content:string}> {
+    const result = await this.inspectRun(runId);
+    const receipt = result.terminalReceipt as Record<string,unknown> | undefined;
+    const reply = result.terminalReply as Record<string,unknown> | undefined;
+    if(result.status !== 'ok' || !receipt || receipt.runId !== runId || !reply
+      || reply.disposition !== 'visible' || typeof reply.text !== 'string'
+      || !reply.text.trim() || Buffer.byteLength(reply.text,'utf8') > 60000)
+      throw Error('Completed OpenClaw text output unavailable or exceeds 60 KB');
+    return {runId,content:reply.text};
+  }
   /** Request cancellation of exactly one saved run; never send session-wide Stop. */
   async requestRunStop(sessionKey: string, runId: string): Promise<{acknowledged: boolean}> {
     for (const value of [sessionKey,runId]) if (!value.trim() || value.length>512 || /[\u0000-\u001f]/.test(value)) throw new Error('An explicit session and run ID are required for Stop');

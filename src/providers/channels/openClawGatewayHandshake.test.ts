@@ -195,3 +195,15 @@ it('requires both explicit delegation enablement and granted admin scope without
   expect(socket.sent).toHaveLength(1);client.stop();
  }
 });
+it('returns only a bounded visible terminal reply for the exact completed run',async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const read=client.readRunOutput('saved-run');
+ socket.receive({type:'res',id:socket.sent.at(-1).id,ok:true,payload:{runId:'saved-run',status:'ok',terminalReceipt:{runId:'saved-run'},terminalReply:{disposition:'visible',text:'Synthetic result'}}});
+ await expect(read).resolves.toEqual({runId:'saved-run',content:'Synthetic result'});
+ for(const override of [{status:'timeout'},{terminalReceipt:{runId:'other-run'}},{terminalReply:{disposition:'hidden',text:'hidden'}},{terminalReply:{disposition:'visible',text:'x'.repeat(60001)}}]){
+  const rejected=client.readRunOutput('saved-run');
+  socket.receive({type:'res',id:socket.sent.at(-1).id,ok:true,payload:{runId:'saved-run',status:'ok',terminalReceipt:{runId:'saved-run'},terminalReply:{disposition:'visible',text:'Synthetic result'},...override}});
+  await expect(rejected).rejects.toThrow('output unavailable');
+ }
+ client.stop();
+});

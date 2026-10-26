@@ -162,7 +162,9 @@ try {
   const prepared = prepareProfile();
   assert.equal(prepared.status, 0, prepared.stderr);
   const profile = JSON.parse(prepared.stdout);
-  assert.equal(profile.home, fs.realpathSync(profileHome));
+  // Match the native resolution used by fs.promises.realpath in production:
+  // Windows runners may expose TEMP through an 8.3 short-name alias.
+  assert.equal(profile.home, fs.realpathSync.native(profileHome));
   assert.equal(profile.authenticated, false);
   const settingsPath = path.join(profile.home, '.gemini', 'settings.json');
   const originalSettings = fs.readFileSync(settingsPath, 'utf8');

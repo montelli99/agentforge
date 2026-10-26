@@ -168,7 +168,7 @@ if (gatewayUrl) {
   });
   gatewayRelay = server.telegram.createGatewayRelay(gatewayTransport);
   const registeredGateway = gatewayTransport;
-  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), displayName: 'OpenClaw (experimental)', isConnected:()=>registeredGateway.isConnected(), listSessions:(limit,offset)=>registeredGateway.listSessions(limit,offset), inspectRun: runId => registeredGateway.inspectRun(runId), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId), requestRunStop:(sessionKey,runId)=>registeredGateway.requestRunStop(sessionKey,runId)});
+  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), displayName: 'OpenClaw (experimental)', isConnected:()=>registeredGateway.isConnected(), listSessions:(limit,offset)=>registeredGateway.listSessions(limit,offset), inspectRun: runId => registeredGateway.inspectRun(runId), readRunOutput:runId=>registeredGateway.readRunOutput(runId), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId), requestRunStop:(sessionKey,runId)=>registeredGateway.requestRunStop(sessionKey,runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
 
