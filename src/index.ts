@@ -82,3 +82,4 @@ export {createNativeDockerSession} from './core/runtime/nativeDockerBroker.js';
 export {prepareNativeToolReview,authorizeReviewedNativeTool} from './core/runtime/nativeToolReview.js';
 export {NativeClientExecutionBackend,type GovernedNativeClient} from './core/runtime/nativeClientExecutionBackend.js';
 export {GeminiNativeClient} from './providers/models/geminiNativeClient.js';
+export {ClaudeNativeClient} from './providers/models/claudeNativeClient.js';
