@@ -1067,3 +1067,8 @@ Exact source 37a5da8 passed browser owner/project/model/worker setup, restart/un
 
 Archive 795f1f72aba8b0268685ac753be6510c5a650be41056c84c1afbf74973b494b3 from 689a36e reached live review. Codex refused a conditional write to inputs/invoices.json outside artifacts/**; no approval was issued. Evidence: evidence/p01-installed-live-plan-rejected.json. The harness remains bounded by its five-minute approval deadline. Planner instructions now apply boundaries to conditional branches and prohibit recreating missing inputs. Thirteen tests pass; the change is not yet live-verified.
 
+
+### Explicit test-review rejection
+
+The live acceptance harness now reads a digest-bound rejected-plan.json and fails promptly with the review reason. Rejection takes precedence over approval; stale or malformed rejection records fail closed. A direct test covers pending, wrong-digest approval, exact approval, rejection precedence and stale rejection. This is test orchestration, not a replacement for product approval controls. The already-rejected old test did not support this channel; its uniquely identified node process tree was stopped without issuing approval.
+
