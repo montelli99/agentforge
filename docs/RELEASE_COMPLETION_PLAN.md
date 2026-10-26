@@ -1052,3 +1052,8 @@ The live invoice extension reached planning but MiMo renamed required unit_tests
 
 Planner requests now include requiredCheckEntries in output schema, preserving exact owner names and commands. Thirteen planner tests and build passed. The next live response retained unit_tests but omitted checkName on its work command, correctly rejected by schema validation. Evidence: evidence/p01-live-launcher-missing-command-name.json, one request, 3898 tokens. No execution or success claimed; reliable structured plan generation remains open.
 
+
+### Explicit plan schema
+
+The current model interface supports JSON mode without provider-enforced JSON Schema. The planning request now includes the full command schema and explicitly requires checkName for work as well as verification. Existing strict validation remains unchanged. Thirteen planner tests and build pass; no claim of live reliability yet. The combined browser harness now reports a displayed draft rejection immediately instead of waiting 90 seconds for a success message that cannot arrive.
+
