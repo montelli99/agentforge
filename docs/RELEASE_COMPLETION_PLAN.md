@@ -81,8 +81,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   advertised adapter demonstrate chat and worker retrieval with provenance,
   project isolation, simultaneous-provider composition, export/import migration,
   deletion/forget, conflicting updates and outage recovery. Use synthetic vaults
-  and dedicated test accounts. Next: run the composed-provider workflow and
-  inspect retrieved source IDs; JEv's router is not proof of a memory adapter.
+  and dedicated test accounts. Installed operational + Obsidian conflict-aware recall and accounting are recorded in `evidence/p07-composed-live-recall-accounted.json`. Next: live Hindsight composition, migration and deletion/outage coverage; JEv's router is not proof of a memory adapter.
 - [ ] **P08 Guided browser experience.** Execute clean setup, connection selection,
   missing/invalid credential, no sessions, interrupted task, recovered memory and
   verified result flows in the rendered UI. Check keyboard navigation, labels,
@@ -92,8 +91,7 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   and repeat count BEFORE running AgentForge and matched baselines. Preserve every
   failure/timeout and usage result. Publish reproducible completion, latency and
   cost results with uncertainty; repair product weaknesses separately from the
-  frozen evaluation. Next: finish evaluator execution/cost capture, then run the
-  frozen suite. Development examples cannot establish competitive superiority.
+  frozen evaluation. The frozen run is recorded in `evidence/p09-all-attempts.json`, including failures and timeouts. Next: freeze a new, fully specified workload addressing schema ambiguity and measure the integrated product against the agreed baselines; preserve the original results. Monetary cost remains unknown and development examples cannot establish competitive superiority.
 - [ ] **P10 Exact release and launch.** Once the above accepts the candidate,
   run hosted matrix plus installed-archive/privacy checks on its exact commit;
   reconcile package hashes, merge, publish matching GitHub assets, verify clean
