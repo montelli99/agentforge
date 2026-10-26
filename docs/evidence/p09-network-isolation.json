@@ -1,0 +1,22 @@
+{
+  "recordedAt": "2026-10-26T17:26:46.580Z",
+  "status": "passed",
+  "syntheticOnly": true,
+  "realProviderRequests": 0,
+  "imageId": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "proxySha256": "7468765e0a2967076125e29d2158318e988a79636cfcc054ba22299e9c1a8857",
+  "observed": {
+    "proxyResponse": 200,
+    "overBudget": 429,
+    "unauthenticated": 401,
+    "externalBlocked": true,
+    "providerCredentialInEnvironment": false
+  },
+  "publishedPorts": 0,
+  "clientNetwork": "internal-only",
+  "gatewayNetworks": 2,
+  "limitations": [
+    "Synthetic upstream only; no live provider or matched model score.",
+    "One direct external address tested; Docker internal-network configuration supplies the broader isolation boundary."
+  ]
+}
