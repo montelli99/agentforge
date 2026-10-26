@@ -13,7 +13,7 @@ export async function loadEvaluationCase(directory,id){
  return {id,prompt:task.prompt,input:Buffer.from(input),inputSha256:sha(input),
   async stage(directory){await fs.mkdir(directory,{recursive:true});await fs.writeFile(path.join(directory,'input.json'),input,{flag:'wx'});},
   async score(directory){
-   let actualInput;try{actualInput=await fs.readFile(path.join(directory,'input.json'));}catch{return {passed:false,reason:'missing-input'};}
+   let actualInput;try{const inputPath=path.join(directory,'input.json');const info=await fs.lstat(inputPath);if(!info.isFile()||info.isSymbolicLink()||info.size!==input.length)return {passed:false,reason:'invalid-input-file'};actualInput=await fs.readFile(inputPath);}catch{return {passed:false,reason:'missing-input'};}
    if(sha(actualInput)!==sha(input))return {passed:false,reason:'input-modified'};
    const output=path.join(directory,'result.json');let stat;try{stat=await fs.lstat(output);}catch{return {passed:false,reason:'missing-output'};}
    if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536)return {passed:false,reason:'invalid-output-file'};
