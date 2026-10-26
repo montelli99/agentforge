@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "scope": "Fresh process after abrupt exit following observed receipt; pre-receipt interruption still pending",
+  "taskId": "AF-F9FF9EFC",
+  "recoveryExecutions": 0,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "receiptSha256": "56a4a54f2c6df27f49b07a9de278cd80a4f2971f6182ab35b3d73b7d0ba324fb"
+}

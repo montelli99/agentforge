@@ -516,3 +516,13 @@ Evidence: evidence/p03-invoice-worker-recovery.json. Reproduce with
 scripts/useful-task-recovery.mjs and the retained reviewed plan/digest. This is
 worker/store reopen evidence, not a process crash or browser proof; those P03
 cases remain open. No new provider request was made for this recovery test.
+
+P03 post-observation process interruption passed: the invoice worker deliberately
+exited without shutdown/finally cleanup after recording its observed result.
+A fresh Node process reopened the workspace, restored the result through
+executeTask, preserved receipt/artifact hashes, and made zero backend execution
+calls. Evidence: evidence/p03-invoice-process-recovery.json. The first recovery
+attempt failed because the test backend omitted getReadiness; that harness method
+was added and the SAME saved task recovered without re-executing the workload.
+This closes the post-observed-receipt process-exit case only. Kill during execution,
+post-effect/pre-receipt uncertainty, browser recovery and other P03 cases remain.
