@@ -1,0 +1,58 @@
+{
+  "installedPackage": true,
+  "syntheticOnly": true,
+  "paidRequests": 2,
+  "passed": true,
+  "chatProvider": "mimo-v2.6-flash",
+  "chatUsage": {
+    "usage": {
+      "inputTokens": 760,
+      "outputTokens": 4
+    },
+    "cost": null
+  },
+  "modelSavedUnlockedAndUsedAfterRestart": true,
+  "browserProjectMatchesRestoredWorker": true,
+  "enabledAfterRestartWithoutStartingTask": true,
+  "livePlanningModel": "mimo-v2.6-flash",
+  "providerUsage": {
+    "completion_tokens": 1228,
+    "prompt_tokens": 3029,
+    "total_tokens": 4257,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "restoredModelDraftedTaskInBrowser": true,
+  "draftDidNotExecute": true,
+  "reviewedPlanExecutedInDocker": true,
+  "finalApprovalStillRequired": true,
+  "independentInvoiceCheck": true,
+  "recordedResultRestoredAfterLauncherRestart": true,
+  "finalApprovalCompleted": true,
+  "receiptsUnchangedThroughRecoveryAndApproval": true,
+  "invoiceBytesUnchangedThroughRecovery": true,
+  "missingRepositoryRepairedInBrowser": true,
+  "repairDidNotEnableExecution": true,
+  "savedDockerFromBrowser": true,
+  "invalidRepositoryRejected": true,
+  "pendingSelectionSurvivedReload": true,
+  "setupDidNotStartTask": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "installedSourceCommit": "af90640684bcc89f513dc276eb8fb5bc0613fb83",
+  "archiveSha256": "eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08",
+  "harnessCommit": "70cd0a82c6d54a8bbca1a4d59659758bfccf615f",
+  "reviewer": "Codex inspected exact generated commands before approval",
+  "limits": [
+    "Live chat was an acknowledgement; task created through browser task form",
+    "Bounded invoice workload, not broad competence",
+    "Dollar cost not reported"
+  ]
+}

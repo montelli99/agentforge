@@ -1082,3 +1082,8 @@ Archive eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08 from af
 
 The combined installed journey can now opt into live chat as well as invoice planning. The introductory prompt requests a bounded acknowledgement without tools; it does not yet create the task from chat. Chat accounting is journaled before dispatch and after response, and missing usage remains unknown. Four accounting/review tests and syntax checks passed. A live attempt using the previously recorded af90640 archive is running; no outcome claimed yet.
 
+
+### Installed live chat and invoice planning
+
+The same af90640 archive passed with actual MiMo chat and actual MiMo invoice planning: encrypted restoration, chat reply, browser task form, exact plan review, real execution, independent invoice verification, restart recovery and final approval. Evidence: evidence/p01-installed-live-chat-and-invoice-cycle.json. Two requests used 5021 total tokens; dollar cost unknown. Chat was a bounded acknowledgement and task creation still used the form. The remaining P01 join is live chat preparing the task itself and reporting the verified result.
+
