@@ -1121,3 +1121,7 @@ The browser recovery test now installs a server-created expired synthetic sessio
 ### Provider streaming reconnect coverage
 Seven authentication-recovery tests pass, including new 401/403 streaming reconnect cases. Each rejected attempt sends exactly one request; explicitly replacing credentials produces only the fresh response with reported usage. This uses a local HTTP provider fixture and does not establish real subscription renewal or browser connection replacement.
 
+
+### Live Hindsight acceptance runner
+Added scripts/hindsight-live-acceptance.mjs. It requires explicit opt-in plus HINDSIGHT_API_KEY and AGENTFORGE_HINDSIGHT_PROOF_BANK / QUERY / EXPECTED. Use a dedicated synthetic bank containing a chat-context-tagged fact. It verifies project isolation before any request, expected recall and read-only methods, and emits counts/status/digest without recalled content or credentials. Syntax passed and opt-in refusal was verified. No Hindsight credential was available in this session; live proof remains pending, not passed. Continue independent work.
+
