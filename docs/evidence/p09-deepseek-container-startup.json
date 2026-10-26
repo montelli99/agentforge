@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-10-26T14:47:33.290Z",
+  "imageId": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "user": "node",
+  "args": [
+    "run",
+    "--rm",
+    "--network",
+    "none",
+    "--read-only",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+    "--pids-limit",
+    "128",
+    "--memory",
+    "512m",
+    "--cpus",
+    "1",
+    "--tmpfs",
+    "/tmp:rw,nosuid,nodev,size=134217728,mode=1777",
+    "--tmpfs",
+    "/tmp/node-addon-native-custom-loader-1000:rw,exec,nosuid,nodev,size=33554432,uid=1000,gid=1000,mode=0700",
+    "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+    "headless",
+    "--help"
+  ],
+  "exitCode": 0,
+  "error": "",
+  "passed": true,
+  "output": "Usage: dsh --profile headless [options] [task...]\n\nAnswer one task and exit; the answer goes to stdout and diagnostics to stderr.\n\nArguments:\n  task               the task text; multiple words are joined by spaces, and `-`\n                     reads stdin\n\nOptions:\n  --json             write newline-delimited run events to stdout instead of the\n                     final message\n  --session-id <id>  adopt the persisted Session with this id; an unknown id is\n                     an error\n  -h, --help         show this help\n\nExamples:\n  dsh --profile headless \"run the tests\"          answer one task and exit\n  echo \"run the tests\" | dsh --profile headless   read the task from stdin\n  dsh --profile headless --json \"run the tests\"   emit machine-readable run events\n  dsh --profile headless --session-id session-… \"continue\"   resume an existing Session\n\n",
+  "hostMounts": [],
+  "inheritedCredentials": false,
+  "taskSubmitted": false,
+  "limitations": [
+    "Help execution proves only container startup; provider loading, task execution and benchmark accuracy remain untested."
+  ]
+}
