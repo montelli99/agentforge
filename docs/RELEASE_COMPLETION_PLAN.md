@@ -1393,3 +1393,15 @@ This is a synthetic development workflow, not browser acceptance or a matched
 held-out comparison. P09 remains open; these results do not demonstrate competitive
 superiority. The completion harness was verified at commit d79252c; final release
 candidate packaging and hosted acceptance remain separate requirements.
+
+### Dedicated ChatGPT sign-out acceptance prepared
+
+`scripts/chatgpt-signout-acceptance.ts` now checks actual protected-store removal,
+stale active-provider refusal, fresh setup restore refusal, retained registration
+for later sign-in, and zero post-sign-out network requests. Remote revocation is
+reported separately from local disconnection. It requires an explicit environment
+opt-in and a new evidence destination; no credential values are emitted.
+
+The script typechecks but has not yet been executed. Run it only after the pending
+natural-expiry acceptance, because it deliberately disconnects the dedicated
+acceptance account. This preparation does not close P06 live lifecycle acceptance.
