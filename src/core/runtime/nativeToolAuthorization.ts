@@ -2,12 +2,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 export interface NativeToolRequest {taskId:string;operationId:string;sessionId:string;callId:string;tool:string;input:Record<string,unknown>}
-function digest(request:NativeToolRequest){
+export function nativeToolRequestDigest(request:NativeToolRequest){
  for(const value of [request.taskId,request.operationId,request.sessionId,request.callId,request.tool])if(typeof value!=='string'||!value||value.length>256)throw Error('Invalid native tool identity');
  if(!request.input||typeof request.input!=='object'||Array.isArray(request.input))throw Error('Invalid tool input');
  const serialized=JSON.stringify(request,(_key,value:unknown)=>{if(value===undefined||typeof value==='function'||typeof value==='symbol'||typeof value==='number'&&!Number.isFinite(value))throw Error('Non-JSON tool input');return value;});if(Buffer.byteLength(serialized)>65536)throw Error('Native tool request too large');
  return createHash('sha256').update(serialized).digest('hex');
 }
+const digest=nativeToolRequestDigest;
 /** Internal host service only. Never mount this directory into a client workspace.
  * A consumed receipt means permission was issued, not that the effect completed.
  */
