@@ -9,12 +9,21 @@ export interface NativeSessionIdentity {taskId:string;operationId:string;session
 export class NativeBrokerSession {
  private readonly identity:Readonly<NativeSessionIdentity>;
  private readonly controller=new AbortController();
+ private readonly pending=new Set<Promise<unknown>>();
  constructor(identity:NativeSessionIdentity,private broker:NativeToolBroker){
   for(const value of [identity.taskId,identity.operationId,identity.sessionId])
    if(typeof value!=='string'||!value||value.length>256)throw Error('Invalid host session identity');
   this.identity=Object.freeze({...identity});
  }
- close(){this.controller.abort();}
+ async close(timeoutMs=5000){
+  this.controller.abort();
+  if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1)throw Error('Invalid shutdown deadline');
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try{await Promise.race([
+   Promise.allSettled([...this.pending]),
+   new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(Error('Native tool still running; shutdown not confirmed')),timeoutMs);}),
+  ]);}finally{if(timer)clearTimeout(timer);}
+ }
  async dispatch(payload:unknown){
   if(this.controller.signal.aborted)throw Error('Native client session closed');
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Invalid native dispatch');
@@ -23,6 +32,8 @@ export class NativeBrokerSession {
   if(keys.length!==4||keys.some(key=>!['approvalId','callId','tool','input'].includes(key)))throw Error('Native dispatch cannot supply session identity');
   if(typeof value.approvalId!=='string'||typeof value.callId!=='string'||typeof value.tool!=='string'||!value.input||typeof value.input!=='object'||Array.isArray(value.input))throw Error('Invalid native dispatch');
   const request:NativeToolRequest={...this.identity,callId:value.callId,tool:value.tool,input:value.input as Record<string,unknown>};
-  return this.broker.dispatch(value.approvalId,request,this.controller.signal);
+  const execution=this.broker.dispatch(value.approvalId,request,this.controller.signal);
+  this.pending.add(execution);
+  try{return await execution;}finally{this.pending.delete(execution);}
  }
 }

@@ -41,6 +41,10 @@ export async function startNativeBrokerEndpoint(session:NativeBrokerSession){
  await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
  const address=server.address() as import('node:net').AddressInfo;
  return {endpoint:`http://127.0.0.1:${address.port}/mcp`,token,
-  close:async()=>{session.close();server.closeAllConnections();await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}};
+  close:async()=>{
+   const settled=session.close();
+   server.closeAllConnections();
+   await Promise.all([settled,new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()))]);
+  }};
 }
 

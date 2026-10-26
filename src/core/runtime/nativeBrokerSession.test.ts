@@ -32,3 +32,22 @@ it('closed sessions cannot consume a permission',async()=>{
  expect((await gate.inspect(approvalId,{...identity,...args})).state).toBe('unused');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+it('shutdown stays unconfirmed until an uncooperative effect settles',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-stop-proof-'));let release!:()=>void;
+ const stopped=new Promise<void>(resolve=>{release=resolve;});
+ try{
+ const work=path.join(root,'work');await fs.mkdir(work);const gate=new NativeToolAuthorization(path.join(root,'host'),work);
+ const identity={taskId:'task',operationId:'operation',sessionId:'session'};const args={callId:'call',tool:'write',input:{}};const approvalId=randomUUID();
+ await gate.approve(approvalId,{...identity,...args},'owner',Date.now()+60000);
+ let entered!:()=>void;const started=new Promise<void>(resolve=>{entered=resolve;});let aborted=false;
+ const session=new NativeBrokerSession(identity,new NativeToolBroker(gate,async(_request,signal)=>{
+  signal.addEventListener('abort',()=>{aborted=true;});entered();await stopped;return {evidence:'settled'};
+ }));
+ const run=session.dispatch({approvalId,...args});await started;
+ await expect(session.close(20)).rejects.toThrow('shutdown not confirmed');expect(aborted).toBe(true);
+ expect((await gate.inspect(approvalId,{...identity,...args})).state).toBe('unconfirmed');
+ await expect(session.dispatch({approvalId,...args})).rejects.toThrow('closed');
+ release();await run;await session.close();
+ expect((await gate.inspect(approvalId,{...identity,...args})).state).toBe('observed');
+ }finally{release();await fs.rm(root,{recursive:true,force:true});}
+});
