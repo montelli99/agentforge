@@ -1009,3 +1009,8 @@ this script is already included in the hosted Docker job.
 
 Hosted run 40312592436 passed all seven jobs for exact commit 5ca4e6a. This includes six OS/Node combinations and public-package, installed-browser, and saved-execution restart/final-approval acceptance. Evidence: evidence/ci-5ca4e6a.json. The later missing-repository repair fix is not covered by this run; it requires the next exact-build run. The full P01-P10 scope remains open.
 
+
+### Subscription client process controls
+
+The shared bounded client launcher now rejects invalid output budgets before spawning a client. Three real-process tests pass on Windows: invalid-budget refusal without launch, excessive-output termination with bounded captured output, and cancellation without retry. The 11 Claude/Gemini planner regressions also pass. These prove local process controls, not authenticated subscription inference or full provider lifecycle acceptance; P06 remains open. Hosted run 40313469011 for 71faec4 was still in progress when this change was recorded.
+
