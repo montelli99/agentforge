@@ -1,0 +1,19 @@
+{
+  "requirement": "P07",
+  "passed": true,
+  "syntheticOnly": true,
+  "freshDestinationStore": true,
+  "explicitProjectRemap": true,
+  "reviewDidNotWrite": true,
+  "reopenPreserved": true,
+  "exactTitleAndBody": true,
+  "provenancePreserved": true,
+  "selectedMarkdownRecall": true,
+  "wrongProjectExcluded": true,
+  "sourceUnchanged": true,
+  "limits": [
+    "Local adapters only; no live Hindsight or browser migration in this run"
+  ],
+  "runtimeBuild": "354823b8d490864a31b6af77fb575f040a9e9f01",
+  "recordedAt": "2026-10-26T12:29:28.1194557Z"
+}

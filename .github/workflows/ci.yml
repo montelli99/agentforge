@@ -162,7 +162,9 @@ jobs:
       - name: Provider accounting parser
         run: node --test scripts/reported-provider-usage.test.mjs scripts/atomic-proof-journal.test.mjs scripts/release-evaluation-contract.test.mjs scripts/release-evaluation-v2.test.mjs scripts/evaluation-journey-case.test.mjs scripts/evaluation-limits.test.mjs scripts/evaluation-scoring-gate.test.mjs
       - name: Composed local memory lifecycle
-        run: node scripts/composed-memory-lifecycle-acceptance.mjs
+        run: |
+          node scripts/composed-memory-lifecycle-acceptance.mjs
+          node scripts/memory-migration-acceptance.mjs
 
       - name: Verify encrypted memory selection after process termination
         run: node scripts/memory-process-recovery.mjs "${{ runner.temp }}/memory-process-recovery.json"
@@ -199,5 +201,6 @@ jobs:
             git status
             exit 1
           fi
+
 
 
