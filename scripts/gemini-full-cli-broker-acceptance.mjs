@@ -1,5 +1,5 @@
 /** Full pinned CLI with a local synthetic model service. Never a subscription proof. */
-import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import http from 'node:http';import {spawn} from 'node:child_process';import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import http from 'node:http';import {runBoundedChild} from '../src/providers/models/boundedCliProcess.ts';import assert from 'node:assert/strict';
 import {WorkspaceStore} from '../src/core/store/workspaceStore.ts';
 import {NativeToolAuthorization} from '../src/core/runtime/nativeToolAuthorization.ts';
 import {NativeToolBroker} from '../src/core/runtime/nativeToolBroker.ts';
@@ -30,17 +30,14 @@ try{
   const reply={candidates:[{content:{role:'model',parts},finishReason:'STOP',index:0}],usageMetadata:{promptTokenCount:10,candidatesTokenCount:5,totalTokenCount:15}};
   if(req.url.includes('streamGenerateContent')){res.writeHead(200,{'Content-Type':'text/event-stream'});res.end('data: '+JSON.stringify(reply)+'\n\n');}else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(reply));}
  }catch{res.writeHead(500);res.end('Synthetic protocol mismatch');}});
- await new Promise(resolve=>model.listen(0,'127.0.0.1',resolve));
+ await new Promise((resolve,reject)=>{model.once('error',reject);model.listen(0,'127.0.0.1',resolve);});
  const policy=path.join(root,'broker.toml');await fs.writeFile(policy,geminiNativeBrokerPolicy);
  await fs.writeFile(path.join(home,'.gemini','settings.json'),JSON.stringify({security:{auth:{selectedType:'gemini-api-key'},folderTrust:{enabled:false}},telemetry:{enabled:false},hooksConfig:{enabled:false},mcpServers:{'agentforge-broker':{url:connection.endpoint,type:'http',headers:{Authorization:'Bearer '+connection.token}}}}));
  const env={HOME:home,USERPROFILE:home,TEMP:root,TMP:root,GEMINI_CLI_HOME:home,GEMINI_API_KEY:'synthetic-local-only',GOOGLE_GEMINI_BASE_URL:`http://127.0.0.1:${model.address().port}`,GEMINI_CLI_SYSTEM_SETTINGS_PATH:path.join(root,'absent.json'),GEMINI_CLI_SYSTEM_DEFAULTS_PATH:path.join(root,'absent-defaults.json'),NO_BROWSER:'true'};
  for(const key of ['SystemRoot','WINDIR','PATH','Path'])if(process.env[key])env[key]=process.env[key];
- const child=spawn(process.execPath,[bundle,'--model','gemini-2.5-flash','--prompt','Complete the synthetic task using the broker review and execution tools.','--admin-policy',policy,'--extensions','none','--allowed-mcp-server-names','agentforge-broker','--output-format','stream-json'],{cwd:work,env,stdio:['ignore','pipe','pipe'],windowsHide:true});
- let output='';child.stdout.on('data',chunk=>{output+=chunk;});child.stderr.on('data',chunk=>{output+=chunk;});
- const timer=setTimeout(()=>child.kill(),45000);
- const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});clearTimeout(timer);
- if(code!==0||effects!==1){await fs.writeFile(path.join(root,'failure.log'),output);throw Error(`Synthetic CLI failed: exit=${code}, effects=${effects}, requests=${requests}; diagnostics=${root}`);}
+ const result=await runBoundedChild(process.execPath,[bundle,'--model','gemini-2.5-flash','--prompt','Complete the synthetic task using the broker review and execution tools.','--admin-policy',policy,'--extensions','none','--allowed-mcp-server-names','agentforge-broker','--output-format','stream-json'],{cwd:work,env,timeoutMs:45000,maxOutputBytes:2097152});
+ if(result.code!==0||effects!==1)throw Error(`Synthetic CLI failed: exit=${result.code}, effects=${effects}, requests=${requests}`);
  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');assert.deepEqual(phases,negative?['direct-write-attempt','review','execute','duplicate-attempt','done']:['review','execute','done']);
  if(negative)await assert.rejects(fs.stat(path.join(work,'unauthorized.txt')));
  console.log(JSON.stringify({passed:true,scope:'Full official CLI with synthetic local model and synthetic owner approval; no subscription or Docker proof',requests,effects,phases}));
-}finally{await connection?.close();if(model)await new Promise(resolve=>model.close(resolve));}
+}finally{try{await connection?.close();}finally{if(model){model.closeAllConnections();await new Promise(resolve=>model.close(resolve));}await fs.rm(root,{recursive:true,force:true});}}
