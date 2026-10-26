@@ -1,3 +1,6 @@
+import {AgentConnectionSetup} from './agentConnectionSetup.js';
+import {configureHermesRunConnection} from '../providers/channels/hermesRunConnection.js';
+import {OpenClawGatewayTransport} from '../providers/channels/openClawGatewayTransport.js';
 import {planningAuditUnresolved} from '../core/runtime/executionReceipt.js';
 import { ConnectionSetup } from './connectionSetup.js';
 import {reviewMemoryImport, MemoryImportValidationError} from './memoryImport.js';
@@ -396,6 +399,9 @@ export class AgentForgeWebServer {
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
+  private readonly agentSetup: AgentConnectionSetup;
+  private agentSetupBusy=false;
+  private readonly managedAgentConnections=new Map<string,{id:string;stop:()=>void}>();
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
@@ -429,6 +435,7 @@ export class AgentForgeWebServer {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
     this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
+    this.agentSetup=new AgentConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath),'agent-connections.encrypted.json'));
     this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
     this.claudeAccountConfiguration = options.claudeAccountConfiguration ? Object.freeze({...options.claudeAccountConfiguration}) : undefined;
@@ -1483,6 +1490,45 @@ export class AgentForgeWebServer {
         res.writeHead(200);res.end(JSON.stringify({connectionId:connection.id,...page}));
       } catch {res.writeHead(409);res.end(JSON.stringify({error:'Could not read sessions. Check the selected agent connection. No work was sent.'}));}
       return;
+    }
+
+    if(path==='/api/agent-connections'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end();return;}
+      if(req.method==='GET'){res.writeHead(200);res.end(JSON.stringify({saved:await this.agentSetup.exists(),active:[...this.managedAgentConnections.keys()]}));return;}
+      if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+      if(this.agentSetupBusy){res.writeHead(409);res.end(JSON.stringify({error:'Another agent setup operation is running.'}));return;}
+      this.agentSetupBusy=true;
+      try{
+        const body=await this.readBody(req);
+        if(body.action==='disconnect'){
+          if(body.provider!=='openclaw'&&body.provider!=='hermes')throw Error('provider');
+          const current=this.managedAgentConnections.get(body.provider);if(current){current.stop();this.externalRunConnections.delete(current.id);this.managedAgentConnections.delete(body.provider);}
+          res.writeHead(200);res.end(JSON.stringify({disconnected:true,remoteWorkStopped:false}));return;
+        }
+        if(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024)throw Error('passphrase');
+        if(body.action==='save'){await this.agentSetup.save(body.profile as any,body.passphrase);res.writeHead(200);res.end(JSON.stringify({saved:true,connected:false}));return;}
+        if(body.action==='forget'){
+          if(body.provider!=='openclaw'&&body.provider!=='hermes')throw Error('provider');
+          await this.agentSetup.forget(body.provider,body.passphrase);const current=this.managedAgentConnections.get(body.provider);if(current){current.stop();this.externalRunConnections.delete(current.id);this.managedAgentConnections.delete(body.provider);}
+          res.writeHead(200);res.end(JSON.stringify({forgotten:true,remoteWorkStopped:false}));return;
+        }
+        if(body.action!=='connect'||(body.provider!=='openclaw'&&body.provider!=='hermes'))throw Error('action');
+        const profile=(await this.agentSetup.restore(body.passphrase)).find(p=>p.provider===body.provider);if(!profile)throw Error('missing');
+        let connection;let stop=()=>{};
+        if(profile.provider==='hermes'){
+          connection=configureHermesRunConnection({AGENTFORGE_HERMES_URL:profile.url,AGENTFORGE_HERMES_API_KEY:profile.token})!;
+          await connection.listSessions(1,0);
+        }else{
+          const client=new OpenClawGatewayTransport({url:profile.url,token:profile.token,identityPath:pathModule.join(pathModule.dirname(this.settingsFilePath),'guided-openclaw-identity.json'),enableTaskDelegation:true});
+          try{await client.connectWhenReady(15000);}catch(error){client.stop();if(error instanceof Error&&error.message.includes('device pairing required')){res.writeHead(409);res.end(JSON.stringify({error:'OpenClaw requires device approval. Review the pending AgentForge device in OpenClaw, approve it, then select Connect again.',pairingRequired:true}));return;}throw error;}
+          stop=()=>client.stop();connection={id:client.getConnectionId(),displayName:'OpenClaw (experimental)',isConnected:()=>client.isConnected(),listSessions:(limit:number,offset:number)=>client.listSessions(limit,offset),inspectRun:(id:string)=>client.inspectRun(id),readRunOutput:(id:string,sessionKey?:string)=>client.readRunOutput(id,sessionKey),submitSessionTurn:(sessionKey:string,message:string,requestId:string)=>client.submitSessionTurn(sessionKey,message,requestId),requestRunStop:(sessionKey:string,id:string)=>client.requestRunStop(sessionKey,id)};
+        }
+        const old=this.managedAgentConnections.get(profile.provider);if(old){old.stop();this.externalRunConnections.delete(old.id);}
+        this.registerExternalRunConnection(connection);this.managedAgentConnections.set(profile.provider,{id:connection.id,stop});res.writeHead(200);res.end(JSON.stringify({connected:true,provider:profile.provider,id:connection.id,workSubmitted:false}));
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Agent setup could not be completed. Check the endpoint, credential, unlock passphrase and running agent. No task was sent.'}));}
+      finally{this.agentSetupBusy=false;}return;
     }
 
     if (path === '/api/runtime-connections') {
@@ -5054,6 +5100,8 @@ export class AgentForgeWebServer {
 
   async stop(): Promise<void> {
     this.stopping = true;
+    for(const connection of this.managedAgentConnections.values())connection.stop();
+    this.managedAgentConnections.clear();
     this.conversations.shutdown();
     const geminiCheck = this.geminiClientCheck;
     if (geminiCheck) { geminiCheck.controller.abort(); await geminiCheck.result.catch(() => undefined); }
