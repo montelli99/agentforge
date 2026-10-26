@@ -1,0 +1,61 @@
+{
+  "limitation": "Rejected before command approval or execution. No artifact success claimed.",
+  "package": {
+    "sourceCommit": "788fa2caedc5071c5185a97ab45e720306376467",
+    "archiveSha256": "b2a78a7cc610d71d877d9c0402b719677baf0755da6a758d8eab86cfcdca788f"
+  },
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": true,
+    "paidRequests": 3,
+    "passed": false,
+    "chatProvider": "mimo-v2.6-flash",
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 2121,
+        "outputTokens": 124
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1208,
+          "outputTokens": 49
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2121,
+          "outputTokens": 124
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 915,
+      "prompt_tokens": 3169,
+      "total_tokens": 4084,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewRejection": "Invoice computation hardcodes the input rows instead of reading the committed inputs/invoices.json. This does not prove processing the actual workspace input.",
+    "error": "Plan rejected before execution: Invoice computation hardcodes the input rows instead of reading the committed inputs/invoices.json. This does not prove processing the actual workspace input."
+  }
+}

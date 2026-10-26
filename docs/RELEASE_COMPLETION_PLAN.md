@@ -1097,3 +1097,7 @@ The clean installed af90640 journey now uses live prepare_task rather than the t
 
 The next installed chat-created invoice attempt failed execution: generated artifacts/reconcile.js was within the allowed glob but not a declared new output. The non-deleting worker mounts only existing allowed files and declared output files writable. Evidence: evidence/p01-live-helper-file-failure.json. Planner input now explains this distinction and recommends inline helper code. Strict file protections are unchanged; 13 planner tests pass. Final artifact-to-chat proof remains pending. Hosted 7c8e06f passed all seven jobs (evidence/ci-7c8e06f.json), predating this correction.
 
+
+### Runtime input provenance correction
+Installed 788fa2c planning embedded the fixture rows rather than reading the workspace input. Review rejected execution; evidence: evidence/p01-live-hardcoded-input-rejection.json. Planner instructions now explicitly require reading named workspace inputs at execution time and prohibit substituting copied sample rows. Thirteen planner tests pass; live verification of this correction remains outstanding. All wider acceptance items remain open.
+
