@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "proxySha256": "7468765e0a2967076125e29d2158318e988a79636cfcc054ba22299e9c1a8857",
+  "network": "none",
+  "realProvider": false,
+  "requests": 2,
+  "excessStatus": 429,
+  "artifact": "measured-proof",
+  "scope": "Synthetic integrated provider-budget, accounting and file-tool proof; not a live benchmark",
+  "sourceEvidenceSha256": "c33eb89a963aa64b16fa246f696aa8d080b7ff150af1f6dba9e09a7fa2ca2fcd"
+}

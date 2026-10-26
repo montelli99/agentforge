@@ -6,6 +6,10 @@ import {spawnSync} from 'node:child_process';
 import {randomUUID,createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 const invoice=process.argv.includes('--invoice-fixture');
+const outputIndex=process.argv.indexOf('--evidence-output');
+const evidenceOutput=outputIndex<0?(invoice?'docs/evidence/p09-deepseek-synthetic-invoice-journey.json':'docs/evidence/p09-deepseek-measured-runner.json'):process.argv[outputIndex+1];
+if(!evidenceOutput)throw Error('Evidence output path required');
+try{await fs.stat(evidenceOutput);throw Error('Evidence already exists; select a new output path');}catch(error){if(error.code!=='ENOENT')throw error;}
 const item=invoice?await comparisonCase('invoice-adjustments'):null;
 const staging=invoice?await fs.mkdtemp(path.join(os.tmpdir(),'af-dsh-task-')):null;
 if(item)await item.stage(staging);
@@ -48,7 +52,7 @@ let attempt;try{attempt=spawnSync('docker',args,{input:program,encoding:'utf8',t
 assert.equal(attempt.status,0,attempt.stderr);const result=JSON.parse(attempt.stdout);
 let score=null;if(item){assert.equal(result.input,input);await fs.mkdir(path.join(staging,'artifacts'));await fs.writeFile(path.join(staging,'artifacts/result.json'),result.artifact??'');score=await item.score(staging);assert.equal(score.passed,true);}
 const evidence={caseId:item?.id??null,inputSha256:item?.inputSha256??null,score,recordedAt:new Date().toISOString(),image,proxySha256:createHash('sha256').update(proxySource).digest('hex'),network:'none',hostMounts:[],realProvider:false,result,scope:'Synthetic integrated provider-budget, accounting and file-tool proof; not a live benchmark'};
-await fs.writeFile(invoice?'docs/evidence/p09-deepseek-synthetic-invoice-journey.json':'docs/evidence/p09-deepseek-measured-runner.json',JSON.stringify(evidence,null,2)+'\n');
+await fs.writeFile(evidenceOutput,JSON.stringify(evidence,null,2)+'\n',{flag:'wx'});
 assert.equal(result.status,0);assert.equal(result.calls,2);assert.equal(result.excessStatus,429);assert.equal(result.artifact,content);
 assert.equal(result.audits.length,2);for(const audit of result.audits)assert.deepEqual(audit.usage,{inputTokens:10,outputTokens:5});
 for(const settings of result.settings)assert.deepEqual(settings,{model:'mimo-v2.6-flash',max_tokens:2000,thinking:{type:'disabled'}});
