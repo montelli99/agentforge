@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {fileURLToPath} from 'node:url';import {loadEvaluationCase} from './release-evaluation-contract.mjs';
+const root=fileURLToPath(new URL('./fixtures/release-evaluation-v2/',import.meta.url));
+test('v2 fixtures have explicit schemas, frozen bytes and evaluator-only expected answers',async()=>{
+ const protocol=JSON.parse(await fs.readFile(path.join(root,'protocol.json'),'utf8'));
+ for(const id of protocol.taskOrder){const fixture=JSON.parse(await fs.readFile(path.join(root,id+'.json'),'utf8'));const item=await loadEvaluationCase(root,id);assert(fixture.prompt.includes('exactly'));const work=await fs.mkdtemp(path.join(os.tmpdir(),'af-eval-v2-'));try{await item.stage(work);assert.deepEqual(await fs.readdir(work),['input.json']);assert.equal(Object.hasOwn(item,'expected'),false);await fs.writeFile(path.join(work,'result.json'),JSON.stringify(fixture.expected));assert.equal((await item.score(work)).passed,true);await fs.writeFile(path.join(work,'result.json'),JSON.stringify({...fixture.expected,extra:true}));assert.equal((await item.score(work)).passed,false);}finally{await fs.rm(work,{recursive:true,force:true});}}
+});

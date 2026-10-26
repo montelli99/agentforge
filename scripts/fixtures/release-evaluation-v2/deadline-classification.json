@@ -1,0 +1,55 @@
+{
+  "id": "deadline-classification",
+  "prompt": "Read input.json at execution time. Write result.json with exactly overdue, dueToday, upcoming, closed keys, each an array of record IDs sorted ascending ASCII. closed:true always goes in closed regardless of date. For other records compare dueDate to asOf as ISO calendar dates: earlier is overdue, equal is dueToday, later is upcoming. Do not use the current system date, time zones, or business-day adjustments. Include each record exactly once. Do not change input.json.",
+  "input": {
+    "asOf": "2027-03-01",
+    "records": [
+      {
+        "id": "z",
+        "dueDate": "2027-02-28",
+        "closed": false
+      },
+      {
+        "id": "b",
+        "dueDate": "2027-03-01",
+        "closed": false
+      },
+      {
+        "id": "a",
+        "dueDate": "2027-03-02",
+        "closed": false
+      },
+      {
+        "id": "c",
+        "dueDate": "2027-02-01",
+        "closed": true
+      },
+      {
+        "id": "d",
+        "dueDate": "2027-03-01",
+        "closed": true
+      },
+      {
+        "id": "e",
+        "dueDate": "2026-12-31",
+        "closed": false
+      }
+    ]
+  },
+  "expected": {
+    "overdue": [
+      "e",
+      "z"
+    ],
+    "dueToday": [
+      "b"
+    ],
+    "upcoming": [
+      "a"
+    ],
+    "closed": [
+      "c",
+      "d"
+    ]
+  }
+}

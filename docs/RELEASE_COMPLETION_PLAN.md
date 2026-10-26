@@ -1157,3 +1157,7 @@ Build 9f561e7 passed rendered memory setup/import, encrypted save/disconnect/res
 ### Concurrent memory writes
 Added stale-writer save/delete tests: both refuse a changed disk snapshot, restore the stale session's prior local record, emit no notification, and retain the other session's newer committed value on disk. Ten batch/lifecycle tests pass. Installed memory acceptance for the 9f561e7 runtime is running separately.
 
+
+### Fresh evaluation fixtures prepared
+Added three new v2 fixtures with exact output schemas: stock transfer balances, deadline classification and approved revision selection. Fixture hashes are frozen before model runs; evaluator-only expected answers are not staged. Contract test passes and rejects extra output keys. No model run or score exists yet. Full-product baseline design and equal budgets must be specified before scoring; v1 remains unchanged and its limitations remain recorded.
+

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "status": "fixtures-frozen-before-model-runs",
+  "scope": "Fresh synthetic cases; full product and matched baseline runner must be specified before scoring. Not an overall superiority claim.",
+  "taskOrder": [
+    "stock-transfer-balances",
+    "deadline-classification",
+    "latest-approved-revisions"
+  ],
+  "fixtureHashes": {
+    "stock-transfer-balances": "86b833268c7bbda4c49282e7e5601b45a15ca58248bf780eafb1c7234f7866f8",
+    "deadline-classification": "5ed32859d19f59638fd9ccd08dc8362019585c7c1d5ee726baf702f0c5aecf15",
+    "latest-approved-revisions": "51b4c19a886402264582c47d68ef57de79b90a6111c9574fca15e31d71464936"
+  },
+  "runnerStatus": "Not run. Protocol budgets and comparison arms not yet frozen; no scoring permitted until specified."
+}

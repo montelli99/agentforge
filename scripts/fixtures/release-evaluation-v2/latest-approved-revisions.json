@@ -1,0 +1,59 @@
+{
+  "id": "latest-approved-revisions",
+  "prompt": "Read input.json at execution time. Write result.json as an object with exactly rows and ignoredCount. rows is an array of objects with exactly id, revision, value sorted by id ascending ASCII. First discard every record whose approved is false. Then for each id retain the approved record with the greatest integer revision. Revision values for each id are unique. IDs with no approved records do not appear. ignoredCount equals total input record count minus retained row count, including both unapproved and superseded rows. Do not change input.json.",
+  "input": {
+    "records": [
+      {
+        "id": "alpha",
+        "revision": 1,
+        "value": 10,
+        "approved": true
+      },
+      {
+        "id": "alpha",
+        "revision": 3,
+        "value": 99,
+        "approved": false
+      },
+      {
+        "id": "alpha",
+        "revision": 2,
+        "value": 0,
+        "approved": true
+      },
+      {
+        "id": "beta",
+        "revision": 4,
+        "value": -2,
+        "approved": true
+      },
+      {
+        "id": "beta",
+        "revision": 1,
+        "value": 8,
+        "approved": true
+      },
+      {
+        "id": "gamma",
+        "revision": 1,
+        "value": 7,
+        "approved": false
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      {
+        "id": "alpha",
+        "revision": 2,
+        "value": 0
+      },
+      {
+        "id": "beta",
+        "revision": 4,
+        "value": -2
+      }
+    ],
+    "ignoredCount": 4
+  }
+}
