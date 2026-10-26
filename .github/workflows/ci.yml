@@ -74,7 +74,7 @@ jobs:
           node scripts/invoice-recovery-ci.mjs
           pnpm test:migration:browser
           node scripts/external-recovery-browser-acceptance.mjs
-          node scripts/repair-browser-acceptance.mjs
+          AGENTFORGE_REPAIR_AUTH_LOSS=1 node scripts/repair-browser-acceptance.mjs
 
       - name: Retain synthetic browser evidence
         uses: actions/upload-artifact@v4

@@ -254,6 +254,16 @@ describe("Section 11: Identity, Authentication & Multi-User RBAC", () => {
       expect(postLogoutBody.accessMode).toBe("local_unlocked");
     });
 
+    it('revokes a cookie-authenticated session on logout, including bearer replay',async()=>{
+      const user=server.store.createUser({username:'cookie_owner',displayName:'Cookie owner',role:'engineer',password:'SyntheticPassword123!'});
+      const session=server.store.createSession(user.id);
+      const logout=await fetch(baseUrl+'/api/auth/logout',{method:'POST',headers:{Cookie:'agentforge_session='+encodeURIComponent(session.token),Origin:baseUrl}});
+      expect(logout.status).toBe(200);expect(server.store.validateSession(session.token)).toBeNull();
+      for(const headers of [new Headers({Cookie:'agentforge_session='+session.token}),new Headers({Authorization:'Bearer '+session.token})]){
+        const response=await fetch(baseUrl+'/api/auth/me',{headers});expect((await response.json()).authenticated).toBe(false);
+      }
+    });
+
     it("should enforce RBAC gates: forbid viewers from mutating tasks, approvals, or settings", async () => {
       // Create a viewer user and session
       const viewerUser = server.store.createUser({

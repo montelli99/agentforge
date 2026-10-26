@@ -1169,10 +1169,9 @@ export class AgentForgeWebServer {
 
     if (req.method === "POST" && path === "/api/auth/logout") {
       const authHeader = req.headers.authorization;
-      if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.slice(7).trim();
-        this.store.revokeSession(token);
-      }
+      const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim() : sessionTokenFromCookie(req.headers.cookie);
+      if (token) this.store.revokeSession(token);
       this.clearSessionCookie(res);
       if (caller.user) {
         this.store.recordAudit({
