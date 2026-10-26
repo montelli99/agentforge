@@ -1,0 +1,14 @@
+{
+  "client": "@google/gemini-cli@0.65.0",
+  "recordedAt": "2026-10-26T15:31:44.1772648Z",
+  "scope": "Official policy engine only",
+  "cases": 12,
+  "nativeToolsDenied": true,
+  "competingUserAllowPolicyOverridden": true,
+  "wrongServerDenied": true,
+  "missingServerWithQualifiedNameDenied": false,
+  "initialExpandedTest": "Failed expected deny for qualified broker name with missing server; actual allow. Retained as known limitation, not repaired or waived.",
+  "decision": "Require trusted MCP transport binding as well as broker approval; do not enable native worker from policy proof alone.",
+  "fullWorkerAccepted": false,
+  "scriptSha256": "629aa0c809ed06c62892d978f9c551c7e7cc94efbc3b5810f9d3c1a0327513e2"
+}
