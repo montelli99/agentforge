@@ -536,3 +536,16 @@ Evidence: evidence/p03-invoice-uncertain-effect.json. This closes duplicate-acti
 prevention for this interruption point, not user resolution of the uncertain
 outcome. A reviewed reconciliation path for incomplete receipts remains required;
 never infer complete execution from a correct artifact alone.
+
+P02/P03 invoice browser workflow passed through the built AgentForge service:
+guided task creation, recorded live-model plan review, authenticated approval,
+explicit Run, real network-disabled Docker, independent frozen invoice checker,
+service restart, recorded-result restoration with unchanged receipts, final
+approval and durable completed status. This reused the accepted live plan with
+only its required-check label mapped to the UI contract's unit_tests type; command
+text was unchanged. Zero new paid requests. The first browser attempt stopped
+before execution on an obsolete verified.txt assertion; fixing that harness
+assertion to the chosen artifact path produced the passing run. Reproduce using
+AGENTFORGE_BROWSER_INVOICE_PROOF=1 and AGENTFORGE_BROWSER_RECORDED_RESPONSE with
+scripts/approval-browser-acceptance.mjs. This proves the task UI, not conversational
+chat-result rendering or a new live-model first-user journey; those remain open.

@@ -1,13 +1,16 @@
 import {builtModule} from './built-package-under-test.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtemp,writeFile,readFile} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
 import http from 'node:http';
 import {createHash} from 'node:crypto';
+const invoiceCase=process.env.AGENTFORGE_BROWSER_INVOICE_PROOF==='1';
+const artifactPath=invoiceCase?'artifacts/report.json':'artifacts/verified.txt';
 const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
 const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE;
+if(invoiceCase&&!recordedResponse)throw Error('Invoice browser proof requires the reviewed recorded plan');
 if(recordedResponse && liveModel)throw Error('Recorded and live provider modes are mutually exclusive');
 if(liveModel && (!process.env.MIMO_API_KEY || process.env.AGENTFORGE_LIVE_PLANNING_PROOF!=='1'))throw Error('Live browser proof requires explicit opt-in and a MiMo credential');
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
@@ -25,12 +28,13 @@ const privateSettings=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-p
 const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}).trim();
     git(root, ["init", "--initial-branch=main"]);
     await writeFile(path.join(root, "README.md"), "# AgentForge Docker E2E\n", "utf8");
+    if(invoiceCase){await mkdir(path.join(root,'inputs'));await writeFile(path.join(root,'inputs/invoices.json'),await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url)));git(root,['add','inputs']);}
     git(root, ["add", "README.md"]);
     git(root, ["-c", "user.name=AgentForge E2E", "-c", "user.email=e2e@example.invalid", "commit", "-m", "fixture"]);
     const baseSha = git(root, ["rev-parse", "HEAD"]);
 
     let taskId;
-    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
+    const command = invoiceCase ? "test -s artifacts/report.json" : "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
 let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web',repositoryPath:root});
@@ -104,10 +108,10 @@ try{
  await page.getByRole('button',{name:'Use current project revision',exact:true}).click();
  await page.getByText('Project revision filled in. Review allowed files and the test command; no task was run.',{exact:true}).waitFor();
  await page.locator('#task-title').fill('User-created bounded task');
- await page.locator('#task-description').fill('Synthetic task saved through guided setup.');
+ await page.locator('#task-description').fill(invoiceCase?'Reconcile synthetic invoice revisions, refunds, voids and currencies into the reviewed report.':'Synthetic task saved through guided setup.');
  await page.locator('#task-allowed-paths').fill('artifacts/**\nreports/**');
  await page.locator('#task-test-command').fill(command);
- await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill('artifacts/verified.txt');
+ await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill(artifactPath);
  await page.locator('#task-modal').getByRole('button',{name:'Save Task',exact:true}).click();
  await page.locator('#task-modal').waitFor({state:'hidden'});
  const created=store.listTasks().find(value=>value.title==='User-created bounded task');
@@ -116,17 +120,17 @@ try{
  assert.deepEqual(created.contract.scope.allowedPaths,['artifacts/**','reports/**']);
  assert.deepEqual(created.contract.scope.protectedPaths,['.env','.env.*','.git/**']);
  assert.equal(created.contract.completion.requireHumanApproval,true);
- assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
+ assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:artifactPath}]);
  assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
  assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(created.id).contract.repository.baseSha,baseSha);
  await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
  await page.locator('[data-section="boundaries"]').click();
  await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
  const boundaryEditor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});
- assert.equal(await boundaryEditor.getByLabel('Required output files · one exact path per line',{exact:true}).inputValue(),'artifacts/verified.txt');
+ assert.equal(await boundaryEditor.getByLabel('Required output files · one exact path per line',{exact:true}).inputValue(),artifactPath);
  await boundaryEditor.getByRole('button',{name:'Save boundaries',exact:true}).click();
  await boundaryEditor.waitFor({state:'hidden'});
- assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
+ assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:artifactPath}]);
  await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption('compatible::synthetic-model');
@@ -145,7 +149,7 @@ try{
   assert.equal(reviewed,true,'The exact live plan must be inspected before browser approval');
  }
  assert.equal(store.getTask(taskId).planningAudits.at(-1).status,'completed');
- assert.match(await page.locator('.execution-command-list').innerText(),/verified.txt/);
+ assert.ok((await page.locator('.execution-command-list').innerText()).includes(artifactPath));
  assert.equal(store.getTask(taskId).approvedExecutionPlan,undefined);
  await page.getByRole('button',{name:'Approve these commands',exact:true}).click();
  await page.getByText('Approved until',{exact:false}).waitFor();
@@ -158,7 +162,8 @@ try{
  const deadline=Date.now()+60000;
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
- assert.equal(await readFile(path.join(result.worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
+ if(invoiceCase)execFileSync(process.execPath,['scripts/fixtures/useful-task/verify.mjs',path.join(result.worktree.worktreePath,artifactPath)],{stdio:'pipe'});
+ else assert.equal(await readFile(path.join(result.worktree.worktreePath,artifactPath),'utf8'),'agentforge-docker-e2e');
  const savedReceipts=JSON.parse(JSON.stringify(result.executionReceipts));
  const oldUrl=server.getBaseUrl();worker.stop();await server.stop();
  store=new WorkspaceStore(path.join(root,'state.json'));
@@ -188,6 +193,6 @@ try{
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- console.log(JSON.stringify({passed:true,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ console.log(JSON.stringify({passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
 
