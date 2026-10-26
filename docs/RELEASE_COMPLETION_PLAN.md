@@ -1077,3 +1077,8 @@ The live acceptance harness now reads a digest-bound rejected-plan.json and fail
 
 Archive eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08 from af90640 passed clean browser owner/project/model/worker setup, restart/unlock, live planning, exact-command review, real Docker execution, frozen invoice verification, second restart, receipt restoration and final approval. Invoice bytes and receipts stayed unchanged. Evidence: evidence/p01-installed-live-launcher-invoice-cycle.json. One request, 4280 tokens; introductory chat remained synthetic. Previous installed rejection is retained. Hosted 3a1b72c passed all seven jobs, evidence/ci-3a1b72c.json; it predates these planner changes, so current exact-build CI remains required.
 
+
+### Live introductory chat acceptance added
+
+The combined installed journey can now opt into live chat as well as invoice planning. The introductory prompt requests a bounded acknowledgement without tools; it does not yet create the task from chat. Chat accounting is journaled before dispatch and after response, and missing usage remains unknown. Four accounting/review tests and syntax checks passed. A live attempt using the previously recorded af90640 archive is running; no outcome claimed yet.
+
