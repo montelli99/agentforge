@@ -836,3 +836,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P04 installed-package acceptance
 
 `evidence/p04-installed-live-restart.json` records the exact archive hash and installed runtime hashes for a passing live browser invoice, real gateway restart, previously unread result recovery and active Stop. Source and package privacy gates passed, scanning 472 shipped files. Broader partial-effect inspection remains open; this does not close the full release checklist.
+
+### P05 live browser invoice
+
+`evidence/p05-live-browser-invoice.json` proves real Hermes API session selection, browser review/send, independently verified invoice output and reload without resend. Prior failures are retained in p05-browser-setup-failure.json and p05-browser-tool-restrictions.json. The reviewed task now explains the allowed write root and disabled unattended tool. Browser Stop, restart and complete request accounting remain open.

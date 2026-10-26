@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "stage": "pre-browser session setup",
+  "status": "failed",
+  "runId": "run_88c165ed7c814ec5b9d40a0fdf667be0",
+  "providerRequests": 11,
+  "usage": null,
+  "cost": null,
+  "resultSha256": "4a210b3c060af19d6c4fb6b296def19136c83ccc57940bd44c86b37534e488fc",
+  "reason": "Invoice seed exceeded runtime iteration limit; browser stage not reached. Next attempt uses short arithmetic seed and performs invoice only through browser approval."
+}
