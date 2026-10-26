@@ -1,0 +1,55 @@
+{
+  "attempt": "payment-ledger-3-direct",
+  "result": {
+    "id": "payment-ledger",
+    "trial": 3,
+    "arm": "direct",
+    "status": "passed",
+    "startedAt": "2026-10-26T12:53:47.915Z",
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "inputSha256": "7795a5fd53ad78cd9e4543371d877f40b35d26939fa8dd23fa8aa7ec26fefa82",
+    "requests": 1,
+    "usage": {
+      "completion_tokens": 176,
+      "prompt_tokens": 381,
+      "total_tokens": 557,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 320
+      }
+    },
+    "cost": null,
+    "providerElapsedMs": 6072.3328,
+    "httpStatus": 200,
+    "planSha256": "9f62c1511537b6121942bb85e499d45592f9a80f389f838221e91a42acbde585",
+    "reviewReadyAt": "2026-10-26T12:53:53.995Z",
+    "planningElapsedMs": 6079.678,
+    "reviewWaitMs": 14400,
+    "commands": [
+      {
+        "checkName": "computeBalances",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+    "score": {
+      "passed": true,
+      "reason": "match",
+      "outputSha256": "ecf028039b32f076d54c99414c2f2a40493ca1b6087a130858b7e8d9e76fb153"
+    },
+    "executionElapsedMs": 1624.5009,
+    "wallElapsedMs": 22104
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "95b13b9b83b50c97286a7b007e3cd9742e33d475",
+  "limitation": "Ledger trials complete including first AgentForge infrastructure failure. Other tasks outstanding; no superiority claim."
+}
