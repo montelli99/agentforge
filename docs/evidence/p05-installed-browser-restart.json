@@ -1,0 +1,164 @@
+{
+  "passed": true,
+  "installedPackage": true,
+  "gatewayProcessRestart": true,
+  "unreadResultRecovered": true,
+  "browserStop": true,
+  "invoiceUnchangedAfterStop": true,
+  "browserSessionSelection": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "runId": "run_f4ae444b619945ff920fe6c8e9d2fa99",
+  "sessionKey": "run_6e31d7ba85d740fa82edd307a1b96620",
+  "independentInvoiceCheck": true,
+  "outputVisible": true,
+  "reloadWithoutResend": true,
+  "notLocallyVerified": true,
+  "limits": [
+    "Broader partial-effect inspection remains open."
+  ],
+  "rawProofSha256": "b43be5e4989fb4306aedbca4738b9cb4ee36be83266c7b64731f4a989d7f3467",
+  "rawLabelCorrection": "Raw runner retained stale installed-package limitation; installedPackage true and explicit package imports establish this was an installed run.",
+  "restart": {
+    "beforeStartedAt": "2026-10-26T09:58:29.755383975Z",
+    "afterStartedAt": "2026-10-26T09:59:27.287842163Z",
+    "runId": "run_f4ae444b619945ff920fe6c8e9d2fa99",
+    "recoveredBeforeFirstRead": true,
+    "requestsBeforeRestart": 10,
+    "requestsAfterRestart": 10,
+    "submissions": 1
+  },
+  "archiveSha256": "ba32a76a658d52d0ac26371740d4605cd88bc92b1cdfee0b919ea59b9ddb4193",
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:58:40.995Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 72
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:58:47.133Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:58:47.240Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13946,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:58:49.411Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:58:49.629Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 308,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:58:53.727Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:58:53.817Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14040,
+        "outputTokens": 40
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:58:57.813Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:58:57.849Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:58:59.396Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T09:59:00.921Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14311,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:59:03.164Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T09:59:03.256Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14734,
+        "outputTokens": 458
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:59:09.463Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T09:59:09.645Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15261,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:59:12.985Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T09:59:13.270Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15562,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:59:16.584Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T09:59:16.646Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15990,
+        "outputTokens": 241
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:59:26.041Z"
+    },
+    {
+      "requestNumber": 11,
+      "startedAt": "2026-10-26T09:59:36.478Z",
+      "status": "started",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerSha256": "c3dec3423e4366639aafa99ab827deccce271e644979c08b9f4a8afe27cad121",
+  "recordedAt": "2026-10-26T10:00:15.305Z"
+}

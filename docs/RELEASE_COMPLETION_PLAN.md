@@ -844,3 +844,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P05 browser Stop and accounting
 
 `evidence/p05-live-browser-stop.json` records reviewed invoice completion followed by browser Stop of a separate active run, confirmed cancelled, with the invoice unchanged. Request-level provider-reported accounting is included; unavailable usage/cost stays unknown. Process restart and broader partial-effect inspection remain open.
+
+### P05 installed restart acceptance
+
+`evidence/p05-installed-browser-restart.json` records a fresh archive installation passing the reviewed invoice, real Hermes process restart before first result read, recovery without extra submissions, and active browser Stop. `p05-live-browser-restart.json` records the source-build case; `p05-restart-budget-failure.json` preserves the earlier budget failure. Broader partial-effect inspection remains open.

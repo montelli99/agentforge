@@ -1,0 +1,157 @@
+{
+  "passed": false,
+  "stage": "invoice before restart",
+  "reason": "Shared 12-request proof proxy budget exhausted; upstream log shows HTTP 403. Restart not reached.",
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:55:19.385Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 72
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:22.954Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:55:23.067Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13946,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:25.559Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:55:25.775Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 308,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:29.182Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:55:29.310Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14040,
+        "outputTokens": 44
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:34.235Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:55:34.278Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:36.206Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T09:55:37.211Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14315,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:39.147Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T09:55:39.220Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14738,
+        "outputTokens": 475
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:47.030Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T09:55:47.215Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15282,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:49.434Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T09:55:49.671Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15583,
+        "outputTokens": 309
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:55:57.341Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T09:55:57.586Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 579,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:00.719Z"
+    },
+    {
+      "requestNumber": 11,
+      "startedAt": "2026-10-26T09:56:00.859Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15982,
+        "outputTokens": 51
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:03.850Z"
+    },
+    {
+      "requestNumber": 12,
+      "startedAt": "2026-10-26T09:56:04.012Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 321,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:04.929Z"
+    }
+  ],
+  "observation": {
+    "runId": "run_f25eb49b46724b29a61754accbaab5a5",
+    "status": "failed"
+  },
+  "nextBudget": 20,
+  "runtimeTurnLimitUnchanged": 8
+}
