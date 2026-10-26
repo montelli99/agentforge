@@ -1282,3 +1282,22 @@ telemetry exporter. Before model trials, prepare an isolated container with
 explicit telemetry disabled, constrained network through the measured provider
 proxy, and a reviewed configuration overlay. Do not relax host permissions to
 make a benchmark pass. No model task or comparative score is claimed here.
+
+### P09 comparison runtime now executable
+
+The published DeepSeek 0.2.1-rc.3 package is pinned by lockfile and a digest-pinned
+Node container in `scripts/fixtures/deepseek-baseline`. Container startup,
+configuration loading, synthetic streaming, tool dispatch and exact synthetic
+file output are recorded in `evidence/p09-deepseek-container-startup.json`,
+`evidence/p09-deepseek-offline-load.json`, and
+`evidence/p09-deepseek-synthetic-artifact.json`. Native-loader failure evidence
+is retained separately. A small executable native-cache tmpfs is required;
+network remains disabled, the root filesystem is read-only, and no host folders
+or real credentials are mounted. These are infrastructure checks, not scores.
+
+The next P09 work is a measured provider proxy with an externally enforced
+request budget, fresh frozen task/scoring inputs, and matched installed
+AgentForge and DeepSeek attempts. Do not reuse the old scored cases as new
+independent evidence. Repository privacy and existing-build package checks
+passed after adding the harness (`evidence/p09-comparison-public-boundary.json`);
+this does not replace fresh final-build acceptance. P01–P10 remain open as scoped.

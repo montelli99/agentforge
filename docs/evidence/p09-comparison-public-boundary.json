@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-10-26T14:54:03.142Z",
+  "sourceCommit": "59a2c3335bf388441a0149b6dacb45d4040a0ca7",
+  "repositoryPrivacy": {
+    "passed": true,
+    "tests": 27
+  },
+  "packageSurface": {
+    "passed": true,
+    "scannedFiles": 486,
+    "archiveSha256": "e043896807497c9269b3970fc59c341d504d748fc00f066e982a389cddf78a4d"
+  },
+  "files": [
+    {
+      "file": "scripts/deepseek-container-startup.mjs",
+      "sha256": "1b7333e333a87fddd7d369f199c4d805e3b4900e3cd919a7526bcc69f7404cd7"
+    },
+    {
+      "file": "scripts/deepseek-offline-load.mjs",
+      "sha256": "3e4923b328842a9b7ce6b36d4d15e51d741aae34584a7c5232510def193d17a5"
+    },
+    {
+      "file": "scripts/fixtures/deepseek-baseline/Dockerfile",
+      "sha256": "39fab886dbe226e336dad9de81998bde358f30347bbbb10bc346bf5de942eef7"
+    },
+    {
+      "file": "scripts/fixtures/deepseek-baseline/package-lock.json",
+      "sha256": "1176389e85236f09874ba42052f0a9b5da1a4f8454078319257c2cf0772fb6e1"
+    }
+  ],
+  "limitations": [
+    "Package scan used existing built dist; it does not prove a fresh build of this commit.",
+    "Privacy scanner checks known signatures and forbidden paths; it is not a universal absence-of-sensitive-data proof.",
+    "Comparison runtime is development-only and no performance result is claimed."
+  ]
+}
