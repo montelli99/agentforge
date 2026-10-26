@@ -14,6 +14,13 @@ const plan=JSON.stringify({commands:[{checkName:'fixture',command:'node --versio
 const events=()=>[{type:'system',subtype:'init',tools:[],mcp_servers:[]},{type:'assistant',message:{content:[{type:'text',text:plan}]}},{type:'result',subtype:'success',is_error:false,result:plan,usage}];
 const result=(items=events())=>({pid:1,code:0,stdout:items.map(x=>JSON.stringify(x)).join('\n'),stderr:''});
 beforeEach(()=>{mocks.auth.mockReset().mockResolvedValue({connectionKind:'subscription'});mocks.run.mockReset().mockResolvedValue(result());});
+it('delivers validated chat tool proposals while keeping official client tools disabled',async()=>{
+ const text=JSON.stringify({content:'',toolCalls:[{name:'inspect_task',arguments:{taskId:'synthetic'}}]});
+ const items=events();items[1].message!.content[0].text=text;items[2].result=text;mocks.run.mockResolvedValue(result(items));
+ const chunks=[];for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages,tools:[{type:'function',function:{name:'inspect_task'}}]}))chunks.push(chunk);
+ expect(chunks).toHaveLength(1);expect(chunks[0].finishReason).toBe('tool_calls');expect(chunks[0].toolCalls?.[0].function.name).toBe('inspect_task');
+ const args=mocks.run.mock.calls[0][1];expect(args[args.indexOf('--tools')+1]).toBe('');expect(mocks.run).toHaveBeenCalledTimes(1);
+});
 it('uses a fresh directory, selected profile and restricted plan-only arguments, then cleans up',async()=>{
  const reply=await new ClaudeCliPlanner(config).generate(request);
  expect(reply.content).toBe(plan);expect(reply.usage?.totalTokens).toBe(14);
