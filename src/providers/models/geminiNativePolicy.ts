@@ -30,4 +30,10 @@ toolName = "execute_reviewed"
 mcpName = "agentforge-broker"
 decision = "allow"
 priority = 999
+
+[[rule]]
+toolName = "read_result"
+mcpName = "agentforge-broker"
+decision = "allow"
+priority = 999
 `;

@@ -31,6 +31,11 @@ export async function startNativeBrokerEndpoint(session:NativeBrokerSession){
     if(input.method==='tools/list'){
      const definitions=session.hasReviewQueue?[['request_review','Request owner review without executing.',null],['execute_reviewed','Execute the exact owner-approved request.','reviewId']]:[['dispatch','Execute one separately approved operation.','approvalId']];
      result={tools:definitions.map(([name,description,idKey])=>({name,description,inputSchema:{type:'object',additionalProperties:false,required:[...(idKey?[idKey]:[]),'callId','tool','input'],properties:{...(idKey?{[idKey]:{type:'string'}}:{}),callId:{type:'string'},tool:{type:'string'},input:{type:'object'}}}}))};
+     if(session.hasResultRecovery)(result as {tools:unknown[]}).tools.push({name:'read_result',description:'Read the verified saved result without executing again.',inputSchema:{type:'object',additionalProperties:false,properties:{}}});
+    }
+    else if(input.method==='tools/call'&&input.params?.name==='read_result'&&session.hasResultRecovery){
+     try{result={content:[{type:'text',text:JSON.stringify(await session.readResult(input.params.arguments??{}))}]};}
+     catch{result={isError:true,content:[{type:'text',text:'Verified result unavailable. Reconcile through the host; do not rerun automatically.'}]};}
     }
     else if(input.method==='tools/call'&&(session.hasReviewQueue?['request_review','execute_reviewed'].includes(input.params?.name):input.params?.name==='dispatch')){
      try{const receipt=await (input.params.name==='request_review'?session.review(input.params.arguments):input.params.name==='execute_reviewed'?session.dispatchReviewed(input.params.arguments):session.dispatch(input.params.arguments));result={content:[{type:'text',text:JSON.stringify(receipt)}]};}

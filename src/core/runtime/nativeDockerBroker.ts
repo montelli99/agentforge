@@ -7,6 +7,7 @@ import {NativeToolBroker} from './nativeToolBroker.js';
 import {NativeBrokerSession,type NativeSessionIdentity} from './nativeBrokerSession.js';
 import type {WorkspaceStore} from '../store/workspaceStore.js';
 import {prepareNativeToolReview,authorizeReviewedNativeTool} from './nativeToolReview.js';
+import {redactRuntimeValue} from '../secret/runtimeRedaction.js';
 
 /** Host-only composition: client input cannot supply commands, worktree or contract.
  * The existing backend independently rechecks the stored human-approved plan.
@@ -32,5 +33,10 @@ export function createNativeDockerSession(input:{identity:NativeSessionIdentity;
  return {session:new NativeBrokerSession(identity,broker,store?{
   prepare:request=>{assertBoundRequest(request);return prepareNativeToolReview(store,request);},
   authorize:(reviewId,request)=>{assertBoundRequest(request);return authorizeReviewedNativeTool(store,authorization,reviewId,request);},
- }:undefined),callId,tool:'execute_approved_task',input:{contractDigest}};
+ }:undefined,async()=>{
+  const output=await backend.recoverResult({task:structuredClone(task),operationId:identity.operationId,worktreePath});
+  const result=redactRuntimeValue(output);
+  if(Buffer.byteLength(JSON.stringify(result))>1048576)throw Error('Result exceeds client recovery limit');
+  return result;
+ }),callId,tool:'execute_approved_task',input:{contractDigest}};
 }

@@ -14,12 +14,19 @@ export class NativeBrokerSession {
  private readonly identity:Readonly<NativeSessionIdentity>;
  private readonly controller=new AbortController();
  private readonly pending=new Set<Promise<unknown>>();
- constructor(identity:NativeSessionIdentity,private broker:NativeToolBroker,private reviews?:NativeReviewQueue){
+ constructor(identity:NativeSessionIdentity,private broker:NativeToolBroker,private reviews?:NativeReviewQueue,private recover?:()=>Promise<unknown>){
   for(const value of [identity.taskId,identity.operationId,identity.sessionId])
    if(typeof value!=='string'||!value||value.length>256)throw Error('Invalid host session identity');
   this.identity=Object.freeze({...identity});
  }
  get hasReviewQueue(){return !!this.reviews;}
+ get hasResultRecovery(){return !!this.recover;}
+ async readResult(payload:unknown){
+  if(this.controller.signal.aborted||!this.recover)throw Error('Result recovery unavailable');
+  if(!payload||typeof payload!=='object'||Array.isArray(payload)||Object.keys(payload).length)throw Error('Result recovery takes no client-selected paths or identity');
+  const execution=this.recover();this.pending.add(execution);
+  try{const result=await execution;if(this.controller.signal.aborted)throw Error('Session closed during recovery');return result;}finally{this.pending.delete(execution);}
+ }
  async review(payload:unknown){
   if(this.controller.signal.aborted||!this.reviews)throw Error('Review unavailable');
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Invalid review request');

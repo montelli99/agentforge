@@ -51,7 +51,7 @@ try{
  client=new Client({name:'agentforge-acceptance',version:'0.1.2'},{capabilities:{}});
  const transport=await createTransport('agentforge-broker',{url:connection.endpoint,type:'http',headers:{Authorization:'Bearer '+connection.token}},false,{sanitizationConfig:{enableEnvironmentVariableRedaction:false}});
  await client.connect(transport,{timeout:10000});
- assert.deepEqual((await client.listTools()).tools.map(tool=>tool.name),dockerMode?['request_review','execute_reviewed']:['dispatch']);
+ assert.deepEqual((await client.listTools()).tools.map(tool=>tool.name),dockerMode?['request_review','execute_reviewed','read_result']:['dispatch']);
  let call={name:'dispatch',arguments:{approvalId,...args}};
  if(dockerMode){const response=await client.callTool({name:'request_review',arguments:args});const {reviewId}=JSON.parse(response.content[0].text);assert.ok(reviewId);call={name:'execute_reviewed',arguments:{reviewId,...args}};}
  assert.equal((await client.callTool(call)).isError,true);
@@ -63,8 +63,19 @@ try{
  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');
  if(dockerMode){assert.equal((await client.callTool({name:'request_review',arguments:{...args,callId:'new-call'}})).isError,true);assert.equal(await fs.readFile(artifact,'utf8'),'one\n');}
  if(dockerMode){const recovered=await backend.recoverResult({task,operationId:identity.operationId,worktreePath:work});assert.ok(recovered.artifacts.length);assert.ok(recovered.testResults.length);assert.ok(recovered.testResults.every(check=>check.passed));assert.equal((await backend.inspectSurvivors({operationId:identity.operationId,worktreePath:work})).length,0);}
+ if(dockerMode){
+  await client.close();client=new Client({name:'agentforge-reconnected',version:'0.1.2'},{capabilities:{}});
+  await client.connect(await createTransport('agentforge-broker',{url:connection.endpoint,type:'http',headers:{Authorization:'Bearer '+connection.token}},false,{sanitizationConfig:{enableEnvironmentVariableRedaction:false}}),{timeout:10000});
+  const response=await client.callTool({name:'read_result',arguments:{}});assert.equal(response.isError,undefined);
+  const recovered=JSON.parse(response.content[0].text);assert.ok(recovered.artifacts.length);assert.ok(recovered.testResults.every(check=>check.passed));
+  assert.equal((await client.callTool({name:'read_result',arguments:{worktreePath:'other'}})).isError,true);
+  assert.equal(await fs.readFile(artifact,'utf8'),'one\n');
+  await fs.writeFile(artifact,'changed\n');assert.equal((await client.callTool({name:'read_result',arguments:{}})).isError,true);
+  await fs.writeFile(artifact,'one\n');
+ }
  console.log(JSON.stringify({scope:dockerMode?'Pinned Gemini MCP transport -> broker -> real contracted Docker; synthetic approved plan, no model inference':'Pinned Gemini MCP transport with synthetic host executor; not model inference or full CLI worker',imageId,moduleSha256:createHash('sha256').update(await fs.readFile(moduleFile)).digest('hex'),discovery:true,missingApprovalDenied:true,approvedEffectCount:1,duplicateDenied:true,durableResultRecovered:dockerMode,modelRequests:0,accountUsed:false}));
 }finally{await client?.close();await connection?.close();await fs.rm(root,{recursive:true,force:true});}
+
 
 
 
