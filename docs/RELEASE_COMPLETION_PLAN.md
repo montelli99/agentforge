@@ -1117,3 +1117,7 @@ Real Docker invoice execution exited after durable output but before receipt com
 ### Expired application session recovery
 The browser recovery test now installs a server-created expired synthetic session. Recovery returns 401 without task/approval mutation; owner signs in through the UI and restores the recorded result without execution. Passed; evidence: evidence/p03-expired-session-recovery.json. A harness method-name error was corrected before rerun. External provider token expiry remains separate and open.
 
+
+### Provider streaming reconnect coverage
+Seven authentication-recovery tests pass, including new 401/403 streaming reconnect cases. Each rejected attempt sends exactly one request; explicitly replacing credentials produces only the fresh response with reported usage. This uses a local HTTP provider fixture and does not establish real subscription renewal or browser connection replacement.
+

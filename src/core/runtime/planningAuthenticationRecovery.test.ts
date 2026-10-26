@@ -28,3 +28,24 @@ it.each([401,403])('stream authentication rejection %s is typed and never retrie
   expect(requests).toBe(1);
  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
+
+it.each([401,403])('explicit reconnection after stream rejection %s yields only the fresh response',async status=>{
+ const authorizations:string[]=[];
+ const server=http.createServer(async(req,res)=>{
+  for await(const _ of req){}authorizations.push(req.headers.authorization??'');
+  if(req.headers.authorization!=='Bearer replacement'){res.writeHead(status);res.end('expired response must not enter chat');return;}
+  res.writeHead(200,{'Content-Type':'text/event-stream'});
+  res.end('data: '+JSON.stringify({choices:[{delta:{content:'Recovered response'},finish_reason:'stop'}],usage:{prompt_tokens:4,completion_tokens:2,total_tokens:6}})+'\n\ndata: [DONE]\n\n');
+ });
+ await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
+ const base='http://127.0.0.1:'+(server.address() as import('node:net').AddressInfo).port;
+ const consume=async(key:string)=>{const chunks=[];for await(const chunk of new OpenAIModelProvider(key,base).stream({model:'fixture',messages:[]}))chunks.push(chunk);return chunks;};
+ try{
+  await expect(consume('expired')).rejects.toThrow();
+  expect(authorizations).toEqual(['Bearer expired']);
+  const chunks=await consume('replacement');
+  expect(authorizations).toEqual(['Bearer expired','Bearer replacement']);
+  expect(chunks.map(c=>c.deltaText??'').join('')).toBe('Recovered response');
+  expect(chunks.at(-1)?.usage).toMatchObject({promptTokens:4,completionTokens:2,totalTokens:6});
+ }finally{server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}
+});
