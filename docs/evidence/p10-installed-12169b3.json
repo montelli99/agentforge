@@ -1,0 +1,34 @@
+{
+  "sourceCommit": "12169b327a7a964e076bc60f98fb6f39f3a4c884",
+  "archiveSha256": "561f193e9ad46722ddf5a5e14779fedc3795494fdce9e676ccff71f06f401025",
+  "passed": true,
+  "command": "node scripts/installed-browser-acceptance.mjs <absolute candidate archive>",
+  "runnerSha256": "df41798860817b2f769fa922b11898bea4ac86ed9ed11eb8d2ccea305c3dc42d",
+  "syntheticOnly": true,
+  "realBrowser": true,
+  "realDocker": true,
+  "checks": [
+    "first-project setup",
+    "execution setup and approved execution",
+    "memory connect/restore/forget",
+    "API-compatible connection and reload",
+    "agent setup keyboard flow",
+    "approval and restored receipts",
+    "memory migration and rollback",
+    "external run recovery",
+    "repair after authentication loss",
+    "automatic grounded final chat",
+    "local model route",
+    "timed owner-session expiry"
+  ],
+  "archivePrivacy": {
+    "scannedFiles": 486,
+    "passed": true,
+    "scope": "Configured path and private-text signatures"
+  },
+  "limitations": [
+    "Synthetic model and external-agent fixtures; no live subscription acceptance",
+    "Local Windows acceptance, separate from hosted commit 982c526",
+    "Not final release approval"
+  ]
+}
