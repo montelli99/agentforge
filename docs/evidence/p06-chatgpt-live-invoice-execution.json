@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "model": "gpt-6-luna",
+  "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "actual": [
+    {
+      "id": "A",
+      "totalCents": 3000
+    },
+    {
+      "id": "B",
+      "totalCents": 1998
+    },
+    {
+      "id": "C",
+      "totalCents": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "generate_and_verify_invoice_totals",
+      "passed": true
+    },
+    {
+      "name": "custom_script",
+      "passed": true
+    },
+    {
+      "name": "execution_scope",
+      "passed": true
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "totals.json",
+      "path": "artifacts/totals.json",
+      "sha256": "563b57ac54a59d5484ea1320498c44e47d50ade343a55e5bc3c9fb90c2693a97",
+      "sizeBytes": 85,
+      "mimeType": "application/json"
+    }
+  ],
+  "recoveredWithoutExecution": true,
+  "planningAudits": [
+    {
+      "id": "8a3fd866-2121-4f70-9324-29c62ec717e2",
+      "taskId": "AF-3ECA8932",
+      "model": "gpt-6-luna",
+      "requestDigest": "3100e48d4894c54d9f6d8e37b120f39bab15b301c7dc8eb67d57d19b7c4bb945",
+      "status": "started"
+    },
+    {
+      "id": "8a3fd866-2121-4f70-9324-29c62ec717e2",
+      "taskId": "AF-3ECA8932",
+      "model": "gpt-6-luna",
+      "requestDigest": "3100e48d4894c54d9f6d8e37b120f39bab15b301c7dc8eb67d57d19b7c4bb945",
+      "status": "completed",
+      "inputTokens": 990,
+      "outputTokens": 413,
+      "responseDigest": "29fe3fc1169b55b5bbd79bed3a6b6a2e48316d1d6a49ee6f79167de8485570f1"
+    }
+  ],
+  "scope": "Live model draft, host-reviewed synthetic plan, isolated Docker execution, independent output check and new-backend result recovery; not browser full-runtime acceptance",
+  "recordedAt": "2026-10-26T16:21:21.503Z",
+  "sourceCommit": "2baa671fa176fc29dc39b3b7e364811b9cadb8a8",
+  "priorAttempt": {
+    "passed": false,
+    "reason": "Acceptance runner supplied non-UUID operation identity; rejected before execution",
+    "corrected": "Fresh UUID operation identity"
+  }
+}
