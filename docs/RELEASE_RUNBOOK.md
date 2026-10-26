@@ -193,3 +193,11 @@ node --import tsx scripts/chatgpt-runtime-crash.ts ABSOLUTE_SUBSCRIPTION_ROOT AC
 ```
 
 This spends up to four bounded subscription requests on a synthetic pre-approved task. It terminates only its generated acceptance child after durable Docker result publication and before worker receipt finalization. The parent recovers the result without model requests or execution, checks the artifact independently, requires pending final approval, rejects duplicate recovery and reopens the saved store. The profile is preserved; generated fixture files and owned containers are cleaned. This does not prove recovery of a partial command, automatic approval, or browser reconnection. Evidence output must not already exist. Keep account data and evidence paths outside the checkout; publish only the sanitized result.
+
+### Live ChatGPT cancellation and explicit restore
+
+```text
+node --import tsx scripts/chatgpt-live-cancellation.ts ABSOLUTE_SUBSCRIPTION_ROOT ACTOR MODEL ABSOLUTE_NEW_EVIDENCE_FILE
+```
+
+Uses exactly one cancelled inference plus one explicit post-restore inference when successful, with a hard two-request ceiling. Cancellation occurs after successful provider response headers, before model output is released. Only synthetic text is sent. It preserves protected sign-in data and writes sanitized stage/count evidence; it does not claim provider-side billing cancellation or token expiration. No automatic retries or sign-in discovery are performed.

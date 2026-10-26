@@ -1341,3 +1341,7 @@ Local integrated checks passed 168 test files / 964 tests, with two skipped; bui
 ### Live ChatGPT process-termination recovery
 
 `evidence/p06-chatgpt-runtime-crash.json` records two live ChatGPT requests through the ordinary conversation/worker path, followed by actual termination of the dedicated worker process after durable Docker output but before the observed receipt. A separate process restored verified output to pending final approval, with zero recovery executions, duplicate recovery refused and the saved state reopened. This closes that specific P06 process-boundary proof; it does not establish mid-command partial-effect reconciliation, browser setup or the remaining native-provider lifecycle requirements. Reproducer: `scripts/chatgpt-runtime-crash.ts` and the release runbook.
+
+### Live ChatGPT cancellation and explicit restore
+
+`evidence/p06-chatgpt-live-cancellation.json` closes the live transport-cancellation case: an actual inference reached successful HTTP response headers, was immediately cancelled, rejected without delivering any output/tool actions, and issued no automatic retry. An explicit shutdown, protected-profile restore and second request succeeded. Two inference requests total. This does not claim provider-side billing cancellation, wall-clock expiration, browser Stop, remote revocation or complete P06 acceptance. Reproducer: `scripts/chatgpt-live-cancellation.ts`.
