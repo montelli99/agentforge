@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import type {GovernedNativeClient} from '../../core/runtime/nativeClientExecutionBackend.js';
 import {runBoundedChild} from './boundedCliProcess.js';
 import {inspectGeminiCliCapabilities} from './geminiCliCapabilities.js';
@@ -10,6 +11,7 @@ import {geminiNativeBrokerPolicy} from './geminiNativePolicy.js';
  * cookies, reads token contents or falls back to a billed API key. */
 export class GeminiNativeClient implements GovernedNativeClient {
  private ready=false;
+ private bundleDigest:string|undefined;
  constructor(private config:{bundlePath:string;homeDirectory:string;model:string}){
   if(!path.isAbsolute(config.bundlePath)||!path.isAbsolute(config.homeDirectory)||!/^gemini-[a-zA-Z0-9._-]{1,120}$/.test(config.model))throw Error('Explicit Gemini client, home and model required');
   this.config=Object.freeze({...config});
@@ -32,10 +34,28 @@ export class GeminiNativeClient implements GovernedNativeClient {
    ||settings.admin?.extensions?.enabled!==false||settings.admin?.skills?.enabled!==false||Object.keys(settings.mcpServers??{}).length)throw Error('Dedicated OAuth profile with hooks, extensions and skills disabled required');
   if(!(await fs.stat(path.join(home,'.gemini','oauth_creds.json'))).isFile())throw Error('Official client sign-in required');
  }
- async initialize(){this.ready=false;await this.profile();const capabilities=await inspectGeminiCliCapabilities(this.config.bundlePath);if(capabilities.version!=='0.65.0'||!capabilities.controlsAvailable)throw Error('Verified Gemini 0.65.0 controls required');this.ready=true;return this.getReadiness();}
+ private async fingerprintBundle(){
+  const bundle=path.resolve(this.config.bundlePath);let current=bundle;
+  for(;;){
+   const stat=await fs.lstat(current);
+   if(stat.isSymbolicLink()||(current===bundle?!stat.isFile():!stat.isDirectory()))throw Error('Linked or invalid native bundle rejected');
+   const parent=path.dirname(current);if(parent===current)break;current=parent;
+  }
+  return createHash('sha256').update(await fs.readFile(this.config.bundlePath)).digest('hex');
+ }
+ async initialize(){
+  this.ready=false;this.bundleDigest=undefined;await this.profile();
+  const before=await this.fingerprintBundle();
+  const capabilities=await inspectGeminiCliCapabilities(this.config.bundlePath);
+  if(capabilities.version!=='0.65.0'||!capabilities.controlsAvailable)throw Error('Verified Gemini 0.65.0 controls required');
+  if(before!==await this.fingerprintBundle())throw Error('Native bundle changed during inspection');
+  this.bundleDigest=before;this.ready=true;return this.getReadiness();
+ }
  getReadiness(){return {ready:this.ready,blocker:this.ready?undefined:'Initialize the pinned Gemini client and dedicated signed-in profile'};}
  run:GovernedNativeClient['run']=async input=>{
   if(!this.ready)throw Error('Native client has not been initialized');await this.profile();
+  try{if(await this.fingerprintBundle()!==this.bundleDigest)throw Error('Native bundle changed; initialize again');}
+  catch(error){this.ready=false;this.bundleDigest=undefined;throw error;}
   const endpoint=new URL(input.connection.endpoint);
   if(endpoint.protocol!=='http:'||endpoint.hostname!=='127.0.0.1'||endpoint.pathname!=='/mcp'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!/^[a-f0-9]{64}$/.test(input.connection.token))throw Error('Invalid host broker connection');
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'agentforge-native-gemini-'));

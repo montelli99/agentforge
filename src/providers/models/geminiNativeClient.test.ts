@@ -10,10 +10,15 @@ it('uses isolated connection settings without giving the broker secret to the pr
  const client=new GeminiNativeClient({bundlePath:path.join(root,'gemini.js'),homeDirectory:root,model:'gemini-2.5-flash'});
  await expect(client.initialize()).rejects.toThrow();expect(client.getReadiness().ready).toBe(false);
  await fs.writeFile(path.join(root,'.gemini','oauth_creds.json'),'synthetic-not-a-credential');
+ await fs.writeFile(path.join(root,'gemini.js'),'// synthetic bundle');
  await client.initialize();const token='a'.repeat(64);let temporary='';
  mocks.run.mockImplementation(async(_exe,args,options)=>{temporary=options.cwd;expect(args.join(' ')).not.toContain(token);expect(options.env.GEMINI_API_KEY).toBeUndefined();expect(options.env.GOOGLE_GEMINI_BASE_URL).toBeUndefined();const settings=JSON.parse(await fs.readFile(options.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH,'utf8'));expect(settings.security.auth.enforcedType).toBe('oauth-personal');expect(settings.mcpServers['agentforge-broker'].headers.Authorization).toBe('Bearer '+token);return {code:0,stdout:'',stderr:''};});
  await client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal});
  await expect(fs.stat(temporary)).rejects.toThrow();
+ mocks.run.mockClear();
+ await fs.writeFile(path.join(root,'gemini.js'),'// changed bundle');
+ await expect(client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal})).rejects.toThrow('Native bundle changed');
+ expect(mocks.run).not.toHaveBeenCalled();expect(client.getReadiness().ready).toBe(false);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 it.each(['home','ancestor'] as const)('rejects a linked %s before inspecting credentials',async kind=>{
