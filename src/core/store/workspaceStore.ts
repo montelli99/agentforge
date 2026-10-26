@@ -1231,6 +1231,7 @@ export class WorkspaceStore {
   saveOperationalMemory(record: OperationalMemoryRecord): void {
     const owned = structuredClone(record);
     const previous = this.operationalMemories.get(owned.id);
+    if (previous && previous.namespace !== owned.namespace) throw Error('Memory identity belongs to another collection');
     this.operationalMemories.set(owned.id, owned);
     try { this.persistIfConfigured(); }
     catch (error) {

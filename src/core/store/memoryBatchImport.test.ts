@@ -120,3 +120,15 @@ it.each(['save','delete'] as const)('refuses stale %s without erasing another se
  expect(notice).not.toHaveBeenCalled();
  expect(new WorkspaceStore(file).listOperationalMemories('synthetic')[0]).toMatchObject({content:'newer committed value',version:3});
 });
+
+it('refuses moving an existing identity into another collection without losing the original', () => {
+  const {file, store} = fixture();const original=record('same-id');store.saveOperationalMemory(original);
+  const before=fs.readFileSync(file,'utf8');
+  expect(()=>store.saveOperationalMemory({...original,namespace:'other',content:'Replacement'})).toThrow('another collection');
+  expect(fs.readFileSync(file,'utf8')).toBe(before);
+  expect(store.listOperationalMemories('synthetic')).toEqual([original]);
+  expect(store.listOperationalMemories('other')).toEqual([]);
+  expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([original]);
+  store.saveOperationalMemory({...original,content:'Valid same-collection update'});
+  expect(new WorkspaceStore(file).listOperationalMemories('synthetic')[0].content).toBe('Valid same-collection update');
+});
