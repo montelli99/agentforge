@@ -1,0 +1,53 @@
+{
+  "requirement": "P05",
+  "scope": "Direct pinned Hermes runtime with live MiMo; not the AgentForge governed workflow",
+  "sourceCommit": "59a1de9a31e5fde66af5ef297b1808fd2fb578c7",
+  "image": "nousresearch/hermes-agent@sha256:648e4daf033bf2de209435fd9dd61ee3e11103c1f7e1ab469bffbfb99acc263f",
+  "input": "Synthetic acceptance: use a calculation tool to compute 1200 minus 250 plus 300. Return the numeric total and a brief calculation. Do not access the web or any personal files.",
+  "expectedTotal": 1250,
+  "result": {
+    "object": "hermes.run",
+    "run_id": "run_34c6d43e3a704d7eaa34c8990ed7567f",
+    "status": "completed",
+    "updated_at": 1792998349.2528348,
+    "created_at": 1792998329.3366904,
+    "session_id": "run_34c6d43e3a704d7eaa34c8990ed7567f",
+    "model": "hermes-agent",
+    "last_event": "run.completed",
+    "output": "Total: **1250**\n\nCalculation: 1200 - 250 + 300 = 950 + 300 = 1250",
+    "usage": {
+      "input_tokens": 41677,
+      "output_tokens": 133,
+      "total_tokens": 41810,
+      "cache_read_tokens": 33728,
+      "cache_write_tokens": 0
+    },
+    "runtime": {
+      "provider": "custom",
+      "model": "mimo-v2.6-flash",
+      "route_source": "global"
+    },
+    "completed": true,
+    "partial": false,
+    "interrupted": false
+  },
+  "rawResultSha256": "1f7a6876737f0a316a769eeb9050efd9251e242627b8a1a82aa0d55ca470951a",
+  "attempts": [
+    {
+      "reason": "401 using general endpoint; corrected to existing token-plan endpoint",
+      "runId": "run_dcb13cb62cdf44b98a101ca47af909f5",
+      "outcome": "failed"
+    },
+    {
+      "outcome": "completed",
+      "runId": "run_34c6d43e3a704d7eaa34c8990ed7567f"
+    }
+  ],
+  "limitations": [
+    "Tool use is not established by the final answer.",
+    "AgentForge approval, receipt, continuity, cancellation and reconnect remain open.",
+    "No exact distribution package was tested by this direct runtime probe."
+  ],
+  "privateData": "Synthetic input; disposable proxy token; no personal profiles mounted; provider credential retained in host process",
+  "cost": "Not provided by runtime"
+}

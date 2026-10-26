@@ -675,3 +675,7 @@ and build passed; HTTP regression additionally checks anonymous denial, caller
 run-ID override ignored, unchanged local task status and no content/credential
 persistence. Full typechecks pass. Real successful Hermes model execution and
 browser acceptance of the output action remain open; fixture tests do not close P05.
+
+### P05 live runtime result — 2026-10-26
+
+The pinned Hermes runtime completed a live MiMo calculation and returned the expected 1250. Evidence: vidence/p05-hermes-live-runtime.json (SHA-256: 4baf42f49b3d7b34640f63ba511ff6418e7382ef6440590cd0a6142fce146d75). The prior authentication failure is retained in the attempt record. This closes the direct live-runtime probe only: the registered AgentForge connector workflow, selected-session continuity, credential-change refusal, reconnect and cancellation remain required. The acceptance runner now rejects non-completion and an incorrect total instead of exiting successfully on a failed run. Hosted CI run 40283094567 passed for 2567554ba7ea136eebe934eba8a97439b685048f; it does not cover these subsequent changes.
