@@ -871,3 +871,16 @@ Hosted run 40307466748 passed for exact commit
 `f080bbb7f032406e62e08f6f5ab8f0a037eb756a`; evidence is
 `evidence/ci-f080bbb.json`. Later evidence and evaluator changes require their own
 final exact-build checks before release.
+
+### Generated verification repair
+
+The planner now asks for runtime-derived expectations rather than guessed literal
+answers, complete-output checks and read-only verification. Owner-supplied checks
+remain exact and mandatory. Thirteen planner regression tests pass. A separate
+live development net-sales case passed reviewed, isolated execution and a fixed
+independent oracle. Its generated verifier rejected an incorrect total and a
+missing zero-value row without rewriting either corrupted artifact. Evidence:
+`evidence/p09-development-verification.json` (1,013 reported tokens; cost unknown).
+The generated verifier repeats the implementation formula; this is one bounded
+development result, not proof of independent reasoning or broad improvement.
+The frozen comparison was not rerun or rescored.
