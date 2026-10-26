@@ -899,3 +899,17 @@ P01 remains open for first-user project/worker provisioning and direct provider
 credential setup: those were supplied by the synthetic harness and local proxy.
 This closes the previously separate installed chat-to-task integration proof;
 it does not close every onboarding or recovery case.
+
+### First-user project setup repair
+
+A real-launcher browser probe against the installed archive exposed startup
+navigation being overwritten by the pending initial workspace lookup. Initial
+navigation now applies only if the user has not navigated meanwhile. Conversation
+project/channel selectors also have stable explicit accessible names. The rebuilt
+source launcher passes owner setup, browser project and conversation creation,
+and reload recovery while delaying the initial workspace response by 700 ms.
+Both earlier failed attempts remain recorded in
+`evidence/p01-first-project-launcher.json`. No store objects were precreated and
+no provider credential or paid request was used. Execution stayed off; guided
+worker activation and the combined first-user task remain open. This repair has
+not yet been tested in a newly packed archive.

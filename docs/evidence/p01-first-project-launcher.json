@@ -1,0 +1,25 @@
+{
+  "installedPackage": false,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "passed": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "delayedInitialWorkspaceResponseMs": 700,
+  "priorAttempts": [
+    {
+      "stage": "project creation",
+      "reason": "initial navigation overwritten while workspace lookup pending",
+      "passed": false
+    },
+    {
+      "stage": "conversation project selector",
+      "reason": "exact accessible label lookup timed out",
+      "passed": false
+    }
+  ],
+  "sourceBase": "c89636e"
+}

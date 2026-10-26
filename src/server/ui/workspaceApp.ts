@@ -2830,13 +2830,14 @@ ${goalClient}
       await startAuthenticatedWorkspace();
     }
     async function openInitialWorkspaceView(){
+      const initialNavigationSequence=viewRequestSequence;
       let initialView='home';
       let hasSavedView=false;
       try{const saved=localStorage.getItem('agentforge-last-view');if(Array.from(document.querySelectorAll('.nav-item')).some(link=>(link.getAttribute('onclick')||'').includes("'"+saved+"'"))){initialView=saved;hasSavedView=true;}}catch{}
       if(!hasSavedView){
         try{const workspaceState=await fetch('/api/workspace').then(response=>response.json());const experience=workspaceState.workspace?.experience;if(experience==='workspace')initialView='messages';else if(experience==='studio')initialView='studio';else if(!experience)initialView='onboarding';}catch{}
       }
-      switchView(initialView);
+      if(viewRequestSequence===initialNavigationSequence)await switchView(initialView);
     }
     void startWorkspace();
   </script>
