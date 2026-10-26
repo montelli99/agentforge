@@ -33,6 +33,8 @@ if(process.argv[2]==='child'){
  assert.equal(await fs.readFile(selected,'utf8'),'Synthetic launch color: restored amber.');
  assert.ok(!JSON.stringify(restored).includes('excluded sentinel'));
  const evidence={requirement:'P07',checks:{selectedFileOnly:true,editVisibleWithoutReconnect:true,missingFileFailsVisibly:true,newProcessReadsRestoredContent:true,stableRecordId:true,changedContentHash:true,projectIsolation:true,disconnectStopsRecallWithoutDeletingNote:true},source:memorySourceIdentity(provider,restored[0].record),limits:['Actual local-file adapter proof, not Obsidian application UI.','Hindsight live account, combined live providers, migration and guided browser lifecycle remain separate.'],recordedAt:new Date().toISOString()};
- await fs.writeFile('docs/evidence/p07-obsidian-lifecycle.json',JSON.stringify(evidence,null,2)+'\n');
+ const destination=process.argv[2]??path.join(root,'lifecycle-evidence.json');
+ await fs.writeFile(destination,JSON.stringify(evidence,null,2)+'\n');
+ console.log('Evidence: '+destination);
  console.log('PASS: selected-note edit, outage, restore, process restart and disconnect.');
 }

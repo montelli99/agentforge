@@ -150,6 +150,16 @@ jobs:
       - name: Verify interrupted execution is not replayed
         run: pnpm test:execution:crash
 
+      - name: Verify selected-note memory lifecycle across restart
+        run: node scripts/obsidian-lifecycle-acceptance.mjs "${{ runner.temp }}/obsidian-lifecycle.json"
+
+      - name: Retain selected-note lifecycle evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-lifecycle-${{ matrix.os }}-${{ matrix.node-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/obsidian-lifecycle.json
+          if-no-files-found: error
+
       - name: Verify built-launcher persistence across restart
         run: pnpm test:persistence:launcher
         env:
