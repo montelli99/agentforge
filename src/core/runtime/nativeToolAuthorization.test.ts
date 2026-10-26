@@ -25,3 +25,23 @@ it('partial claim after process death is never classified as unused or replayed'
  await expect(restarted.consume(f.id,f.request)).rejects.toThrow();
  await expect(restarted.observe(f.id,f.request,'a'.repeat(64))).rejects.toThrow();
 });
+it('a second approval for the identical call cannot issue a second effect permission',async()=>{
+ const f=await fixture();const second=randomUUID();
+ await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);await f.gate.approve(second,f.request,'owner',Date.now()+60000);
+ const outcomes=await Promise.allSettled([f.gate.consume(f.id,f.request),f.gate.consume(second,f.request)]);
+ expect(outcomes.filter(result=>result.status==='fulfilled')).toHaveLength(1);
+ const winner=outcomes[0].status==='fulfilled'?f.id:second;const loser=winner===f.id?second:f.id;
+ const restarted=new NativeToolAuthorization(f.directory,f.worktree);
+ expect((await restarted.inspect(loser,f.request)).state).toBe('claimed_elsewhere');
+ await expect(restarted.consume(loser,f.request)).rejects.toThrow();
+ await expect(restarted.observe(loser,f.request,'a'.repeat(64))).rejects.toThrow();
+ await restarted.observe(winner,f.request,'a'.repeat(64));
+ expect((await restarted.inspect(winner,f.request)).state).toBe('observed');
+});
+it('reordered JSON keys do not bypass the request claim',async()=>{
+ const f=await fixture();const second=randomUUID();const reordered={...f.request,input:{content:'synthetic',path:'output.txt'}};
+ await f.gate.approve(f.id,f.request,'owner',Date.now()+60000);await f.gate.consume(f.id,f.request);
+ await f.gate.approve(second,reordered,'owner',Date.now()+60000);
+ await expect(f.gate.consume(second,reordered)).rejects.toThrow();
+ expect((await f.gate.inspect(second,reordered)).state).toBe('claimed_elsewhere');
+});

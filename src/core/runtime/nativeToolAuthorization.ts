@@ -5,7 +5,7 @@ export interface NativeToolRequest {taskId:string;operationId:string;sessionId:s
 export function nativeToolRequestDigest(request:NativeToolRequest){
  for(const value of [request.taskId,request.operationId,request.sessionId,request.callId,request.tool])if(typeof value!=='string'||!value||value.length>256)throw Error('Invalid native tool identity');
  if(!request.input||typeof request.input!=='object'||Array.isArray(request.input))throw Error('Invalid tool input');
- const serialized=JSON.stringify(request,(_key,value:unknown)=>{if(value===undefined||typeof value==='function'||typeof value==='symbol'||typeof value==='number'&&!Number.isFinite(value))throw Error('Non-JSON tool input');return value;});if(Buffer.byteLength(serialized)>65536)throw Error('Native tool request too large');
+ const serialized=JSON.stringify(request,(_key,value:unknown)=>{if(value===undefined||typeof value==='function'||typeof value==='symbol'||typeof value==='number'&&!Number.isFinite(value))throw Error('Non-JSON tool input');return value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a<b?-1:a>b?1:0)):value;});if(Buffer.byteLength(serialized)>65536)throw Error('Native tool request too large');
  return createHash('sha256').update(serialized).digest('hex');
 }
 const digest=nativeToolRequestDigest;
@@ -31,6 +31,11 @@ export class NativeToolAuthorization {
   const requestHash=digest(request);await this.placement();const file=this.file(id);
   const approval=await this.record(file);if(!approval||approval.version!==1||approval.requestHash!==requestHash)throw Error('Approval missing or bound to another request');
   const claim=await this.record(file+'.consumed');const observed=await this.record(file+'.observed');
+  const requestClaim=await this.record(path.join(this.directory,'request-'+requestHash+'.claimed'));
+  if(requestClaim){
+   if(requestClaim.requestHash!==requestHash||typeof requestClaim.approvalId!=='string')throw Error('Invalid request claim');
+   if(requestClaim.approvalId!==id)return {state:'claimed_elsewhere' as const,requestHash};
+  }
   if(!claim){if(observed)throw Error('Observation without claim');return {state:'unused' as const,requestHash};}
   if(claim.requestHash!==requestHash||claim.effectStatus!=='unconfirmed'||typeof claim.claimedAt!=='string'||!Number.isFinite(Date.parse(claim.claimedAt)))throw Error('Invalid claim receipt');
   if(!observed)return {state:'unconfirmed' as const,requestHash};
@@ -58,6 +63,11 @@ export class NativeToolAuthorization {
   // The exclusive claim survives process death. Never retry a claimed effect.
   const handle=await fs.open(file+'.consumed','wx',0o600);
   try{if(approval.expiresAt<=Date.now())throw Error('Approval expired before claim');await handle.writeFile(JSON.stringify({requestHash,claimedAt:new Date().toISOString(),effectStatus:'unconfirmed'}));await handle.sync();}finally{await handle.close();}
+  // A new approval for the same call must not create another effect permission.
+  // No executor receives permission until both claims are durable.
+  const requestClaim=await fs.open(path.join(this.directory,'request-'+requestHash+'.claimed'),'wx',0o600);
+  try{await requestClaim.writeFile(JSON.stringify({requestHash,approvalId:id}));await requestClaim.sync();}finally{await requestClaim.close();}
   return {approvalId:id,requestHash,effectStatus:'unconfirmed' as const};
  }
 }
+
