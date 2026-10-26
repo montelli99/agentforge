@@ -583,3 +583,13 @@ now checks this boundary on every run. Older affected records are not blindly
 re-sealed; their reconciliation remains open.
 
 Hosted run 40280825006 completed successfully: all seven jobs on exact commit 5af4d4ba7648bceae99ac5cc9e89c225ab4fbe43, including installed-package browser acceptance. Later evidence-integrity changes require their own hosted result.
+
+P02 browser presentation checked: the persisted live MiMo invoice answer renders
+as a five-row table in Messages, and reloading preserves the conversation text.
+Fresh browser profile, copied synthetic workspace, no new model requests or task
+execution. Screenshot visually inspected; result and screenshot are stored at
+evidence/p02-invoice-chat-browser.json and evidence/p02-invoice-chat-browser.png.
+The first harness attempt used the wrong navigation label (Conversations rather
+than Messages) and timed out before inspecting chat; corrected selector passed.
+This closes the saved-answer presentation case, not a single uninterrupted live
+first-user journey. Full local suite at b4636de: 141 files, 828 passed, 2 skipped.
