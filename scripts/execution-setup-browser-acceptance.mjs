@@ -1,3 +1,5 @@
+import {assertEvaluationScoringAllowed} from './evaluation-scoring-gate.mjs';
+if(process.env.AGENTFORGE_EVALUATION_CASE)await assertEvaluationScoringAllowed();
 import {evaluationLimits} from './evaluation-limits.mjs';
 import {performance} from 'node:perf_hooks';
 const journeyStarted=performance.now();

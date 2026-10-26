@@ -1,3 +1,5 @@
+import {assertEvaluationScoringAllowed} from './evaluation-scoring-gate.mjs';
+await assertEvaluationScoringAllowed();
 import fs from 'node:fs/promises';import path from 'node:path';import {spawnSync} from 'node:child_process';import {createHash,randomUUID} from 'node:crypto';import {performance} from 'node:perf_hooks';
 import {builtModule} from './built-package-under-test.mjs';import {evaluationJourneyCase} from './evaluation-journey-case.mjs';import {evaluationLimits} from './evaluation-limits.mjs';import {atomicProofJournal} from './atomic-proof-journal.mjs';
 const [directory,digest]=process.argv.slice(2);if(!path.isAbsolute(directory||'')||!digest)throw Error('Absolute attempt directory and reviewed plan digest required');

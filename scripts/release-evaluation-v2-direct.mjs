@@ -1,3 +1,5 @@
+import {assertEvaluationScoringAllowed} from './evaluation-scoring-gate.mjs';
+await assertEvaluationScoringAllowed();
 // Direct baseline: no AgentForge planner, repair loop, memory, or tool orchestration.
 import fs from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';import {performance} from 'node:perf_hooks';
 import {evaluationJourneyCase} from './evaluation-journey-case.mjs';import {evaluationLimits} from './evaluation-limits.mjs';import {atomicProofJournal} from './atomic-proof-journal.mjs';
