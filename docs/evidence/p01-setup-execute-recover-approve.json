@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "savedWithoutActivation": true,
+  "restoredDockerAfterRestart": true,
+  "noTasksCreatedBySetup": true,
+  "anonymousRejected": true,
+  "reviewedTaskExecuted": true,
+  "isolatedArtifactVerified": true,
+  "finalApprovalStillRequired": true,
+  "resultRecoveredWithoutReplay": true,
+  "finalApprovalCompleted": true
+}

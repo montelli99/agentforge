@@ -970,3 +970,21 @@ The installed-package gate now runs this browser case too. The setup guide's
 execution status now reads active runtime compute capability rather than assuming
 an environment variable is the only configuration source. Combined restart plus
 reviewed task execution and fresh archive acceptance remain open.
+
+### Saved setup through real execution and final approval
+
+The real launcher now passes saved selection, restart, explicit plan approval,
+network-disabled Docker execution in an isolated worktree, independent file
+inspection, second restart, recorded-result restoration without replay, and final
+approval with unchanged receipts. Evidence:
+`evidence/p01-setup-execute-recover-approve.json`. This uses authenticated HTTP and
+a synthetic reviewed plan, not live-model browser first-use acceptance.
+
+The first extended attempt revealed a shared-reference defect: restoring an
+observed result assigned receipt evidence directly to the task. Final approval
+then inserted reviewer metadata into the immutable receipt evidence. Restoration
+now clones that evidence before assigning it to the mutable task. The passing
+repeat retains exact receipt equality through approval. The failing attempts were
+real test discoveries, not discarded successes; their failure was receipt mutation
+at final approval, not command replay or snapshot corruption. The regression now
+runs in hosted CI's Docker job. No paid requests or private integrations were used.

@@ -60,6 +60,9 @@ jobs:
       - name: Verify Docker survivor discovery after worker death
         run: pnpm test:execution:docker-crash
 
+      - name: Verify saved execution setup through restart and final approval
+        run: node scripts/execution-setup-acceptance.mjs
+
       - name: Prepare isolated browser acceptance
         run: pnpm exec playwright install --with-deps chromium
 
