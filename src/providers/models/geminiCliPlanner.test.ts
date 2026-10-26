@@ -7,7 +7,7 @@ vi.mock('./geminiCliCapabilities.js',()=>({inspectGeminiCliCapabilities:mocks.ca
 import {GeminiCliPlanner} from './geminiCliPlanner.js';
 import {prepareGeminiCliProfile} from './geminiCliProfile.js';
 it('uses only the selected profile, bounded draft protocol and no inherited API fallback',async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-planner-test-'));const home=path.join(root,'home');
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'gemini-planner-test-')));const home=path.join(root,'home');
  try{
   await prepareGeminiCliProfile(home);await fs.writeFile(path.join(home,'.gemini','oauth_creds.json'),'synthetic-placeholder-not-an-account');
   const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
@@ -28,7 +28,7 @@ it('uses only the selected profile, bounded draft protocol and no inherited API 
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 it('rejects a redirected profile before reading settings or launching Gemini',async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-linked-profile-'));
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'gemini-linked-profile-')));
  const home=path.join(root,'home'),other=path.join(root,'other');
  try{
   await prepareGeminiCliProfile(other);
@@ -43,7 +43,7 @@ it('rejects a redirected profile before reading settings or launching Gemini',as
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 it('rejects a profile whose required local restrictions have been removed',async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-profile-controls-'));
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'gemini-profile-controls-')));
  const home=path.join(root,'home');
  try{
   await prepareGeminiCliProfile(home);
@@ -61,7 +61,7 @@ it('rejects a profile whose required local restrictions have been removed',async
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 it('preserves reported usage on cancellation without returning or retrying the interrupted plan',async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-cancel-usage-'));
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'gemini-cancel-usage-')));
  const home=path.join(root,'home');
  try{
   await prepareGeminiCliProfile(home);

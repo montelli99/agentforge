@@ -274,3 +274,5 @@ This route is experimental: live subscription inference, effective client isolat
 and the complete user journey have not been accepted. Requested client flags and
 transcript checks are not an OS sandbox. This is a planner route, not streaming
 Claude chat or permission to run the official client against private repositories.
+
+Use the exact resolved home returned by prepare-gemini for GEMINI_CLI_HOME and the planner homeDirectory. On systems where temporary directories have filesystem aliases, this resolves the newly created location; the planner still refuses linked profile paths.

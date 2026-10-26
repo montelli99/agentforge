@@ -763,3 +763,5 @@ P06 actual policy-engine proof found and fixed a malformed MCP rule: missing too
 P06 regression protection: scripts/gemini-pinned-policy-acceptance.mjs fetches official Gemini 0.65.0, verifies its pinned SHA-512 before extraction, and runs the production policy through its actual engine. Fresh-download local Windows execution passed for all five denied tools. Added to all six hosted OS/Node matrix jobs; hosted outcome pending. No account, model request or tool execution is used.
 
 P06 interrupted Gemini accounting: preserve validated usage reported in a bounded child failure while rejecting the interrupted plan and making no automatic retry. Focused cancellation regression passed; typecheck passed. Subscription catalog now accurately describes the opt-in planner and remaining live/full-client acceptance.
+
+Hosted run 40288267608 revealed Gemini planner tests rejected macOS temporary-directory aliases. Profile preparation now returns its physical filesystem path and planner fixtures use physical paths. Redirected profile rejection stays intact. Added a real directory-alias regression covering returned path selection. Hosted rerun required.
