@@ -421,8 +421,14 @@ export class TaskWorkerRuntime {
     const current=this.requireTask(taskId);
     if(JSON.stringify(current)!==before||this.activeTaskExecutions.has(taskId))throw Error('Task changed during recovery; review again');
     validateReceipt(current,receipt,this.options.workspaceIdentity??'',worktree);
-    if(!requiredChecksPassedByEvidence(current,output.testResults)||!output.testResults.every(result=>result.passed)||!requiredArtifactsPassedByEvidence(current,output.artifacts,output.filesChanged))throw Error('Recorded result did not pass the task contract');
+    const verifiedPassed=requiredChecksPassedByEvidence(current,output.testResults)&&output.testResults.every(result=>result.passed)&&requiredArtifactsPassedByEvidence(current,output.artifacts,output.filesChanged);
     const evidence=this.createEvidencePack(current,output);
+    // Preserve a durable failed result for review without replay or completion.
+    if(!verifiedPassed){
+      const sealed=sealEvidencePack({...evidence,verifiedPassed:false});
+      const observed=observeReceipt(receipt,sealed);
+      return this.store.updateTask(taskId,{status:'failed',evidencePack:sealed,error:'Recovered result failed verification. Review its effects before approving a corrected repair plan.',executionReceipts:current.executionReceipts!.map(item=>item.operationId===receipt.operationId?observed:item)});
+    }
     // Recovery always requires a final human decision, even for formerly automatic tasks.
     const approval=this.store.createApproval({taskId,requesterAgentId:current.assignedAgentId||'agentforge-orchestrator',action:'Review recovered execution result',description:'Durable backend result restored without replay. Review evidence before completion.',risk:'medium'});
     const sealed=sealEvidencePack({...evidence,verifiedPassed:true,approvalId:approval.id});
