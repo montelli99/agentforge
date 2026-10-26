@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-10-26T16:00:34.8156535Z",
+  "client": "@google/gemini-cli@0.65.0",
+  "freshRegistryArchiveIntegrityVerified": true,
+  "scope": "Full CLI with local synthetic model; attempted native write and duplicate reviewed call",
+  "modelRequests": 5,
+  "externalModelRequests": 0,
+  "approvedEffects": 1,
+  "unauthorizedArtifactAbsent": true,
+  "duplicateEffectAbsent": true,
+  "subscriptionProven": false,
+  "scriptSha256": "d653033e13baf79687c13a12ea0781027f1ade91dd4a4a3296437c5e6eeb0c09"
+}

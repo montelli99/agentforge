@@ -25,6 +25,7 @@ try{
    if(process.argv.includes('--docker')&&script==='gemini-broker-transport-acceptance.mjs')args.push('--docker');
    console.log(execFileSync(process.execPath,args,{env,timeout:90000,windowsHide:true,encoding:'utf8',maxBuffer:1048576}).trim());
   }
+  console.log(execFileSync(process.execPath,['--import','tsx','scripts/gemini-full-cli-broker-acceptance.mjs',path.join(root,'package','bundle','gemini.js'),'--negative'],{env,timeout:90000,windowsHide:true,encoding:'utf8',maxBuffer:1048576}).trim());
  }
  console.log(JSON.stringify({officialClientVersion:'0.65.0',verifiedIntegrity:'sha512-'+expected,accountUsed:false}));
 }finally{await fs.rm(root,{recursive:true,force:true});}

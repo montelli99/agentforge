@@ -9,6 +9,7 @@ import {startNativeBrokerEndpoint} from '../src/providers/mcp/nativeBrokerEndpoi
 import {geminiNativeBrokerPolicy} from '../src/providers/models/geminiNativePolicy.ts';
 const bundle=process.argv[2];if(!bundle||!path.isAbsolute(bundle))throw Error('Absolute pinned CLI entry required');
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-full-gemini-'));let connection,model;
+const negative=process.argv.includes('--negative');
 try{
  const work=path.join(root,'work');await fs.mkdir(work);const home=path.join(root,'home');await fs.mkdir(path.join(home,'.gemini'),{recursive:true});
  const store=new WorkspaceStore(path.join(root,'workspace.json'));const task=store.createTask({title:'Synthetic',priority:'medium',status:'ready'});
@@ -21,8 +22,10 @@ try{
   const declarations=(payload.tools??[]).flatMap(tool=>tool.functionDeclarations??[]);
   const findTool=suffix=>{const tool=declarations.find(item=>item.name===suffix||item.name.endsWith('_'+suffix));assert.ok(tool,'Missing broker tool '+suffix);return tool.name;};
   let parts;
-  if(phases.length===0){phases.push('review');parts=[{functionCall:{name:findTool('request_review'),args:{callId:'call',tool:'write',input:{text:'synthetic'}}}}];}
-  else if(phases.length===1){const review=store.listApprovals()[0];assert.equal(review?.status,'pending');assert.equal(effects,0);store.resolveApproval({approvalId:review.id,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});phases.push('execute');parts=[{functionCall:{name:findTool('execute_reviewed'),args:{reviewId:review.id,callId:'call',tool:'write',input:{text:'synthetic'}}}}];}
+  if(negative&&phases.length===0){phases.push('direct-write-attempt');parts=[{functionCall:{name:'write_file',args:{file_path:path.join(work,'unauthorized.txt'),content:'must not appear'}}}];}
+  else if(!phases.includes('review')){if(negative)await assert.rejects(fs.stat(path.join(work,'unauthorized.txt')));phases.push('review');parts=[{functionCall:{name:findTool('request_review'),args:{callId:'call',tool:'write',input:{text:'synthetic'}}}}];}
+  else if(!phases.includes('execute')){const review=store.listApprovals()[0];assert.equal(review?.status,'pending');assert.equal(effects,0);store.resolveApproval({approvalId:review.id,status:'approved',approverUserId:'synthetic-owner',decisionOrigin:'web'});phases.push('execute');parts=[{functionCall:{name:findTool('execute_reviewed'),args:{reviewId:review.id,callId:'call',tool:'write',input:{text:'synthetic'}}}}];}
+  else if(negative&&!phases.includes('duplicate-attempt')){assert.equal(effects,1);phases.push('duplicate-attempt');parts=[{functionCall:{name:findTool('execute_reviewed'),args:{reviewId:store.listApprovals()[0].id,callId:'call',tool:'write',input:{text:'synthetic'}}}}];}
   else{assert.equal(effects,1);phases.push('done');parts=[{text:'Synthetic approved task completed.'}];}
   const reply={candidates:[{content:{role:'model',parts},finishReason:'STOP',index:0}],usageMetadata:{promptTokenCount:10,candidatesTokenCount:5,totalTokenCount:15}};
   if(req.url.includes('streamGenerateContent')){res.writeHead(200,{'Content-Type':'text/event-stream'});res.end('data: '+JSON.stringify(reply)+'\n\n');}else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(reply));}
@@ -37,6 +40,7 @@ try{
  const timer=setTimeout(()=>child.kill(),45000);
  const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});clearTimeout(timer);
  if(code!==0||effects!==1){await fs.writeFile(path.join(root,'failure.log'),output);throw Error(`Synthetic CLI failed: exit=${code}, effects=${effects}, requests=${requests}; diagnostics=${root}`);}
- assert.equal(await fs.readFile(artifact,'utf8'),'one\n');assert.deepEqual(phases,['review','execute','done']);
+ assert.equal(await fs.readFile(artifact,'utf8'),'one\n');assert.deepEqual(phases,negative?['direct-write-attempt','review','execute','duplicate-attempt','done']:['review','execute','done']);
+ if(negative)await assert.rejects(fs.stat(path.join(work,'unauthorized.txt')));
  console.log(JSON.stringify({passed:true,scope:'Full official CLI with synthetic local model and synthetic owner approval; no subscription or Docker proof',requests,effects,phases}));
 }finally{await connection?.close();if(model)await new Promise(resolve=>model.close(resolve));}
