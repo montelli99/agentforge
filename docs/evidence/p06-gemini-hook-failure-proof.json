@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-26T15:29:03.2059917Z",
+  "client": "@google/gemini-cli@0.65.0",
+  "moduleSha256": "4d9cf6435503e5280ecb0f55078793531c8041fe435f60fa8dfce92317c8a28e",
+  "scope": "Installed official hook runner and aggregator; not full CLI tool dispatch",
+  "explicitDenial": "deny",
+  "exit2": "deny",
+  "exit1": "allow",
+  "malformedOutput": "allow",
+  "timeout": "no blocking decision",
+  "modelRequests": 0,
+  "toolsExecuted": 0,
+  "initialAttempt": "Fixture lacked sanitizationConfig; assertion failed before child hooks executed. Corrected configuration and reran all five cases.",
+  "decision": "Hooks alone cannot enforce native tool approval. Keep native client effects disabled until an external broker or equivalent independently enforced boundary is integrated and tested.",
+  "scriptSha256": "6bfd756a1250a87a5056d61d8cf63dceb42ff28db01b3649a2bceaceca1fbc0f"
+}
