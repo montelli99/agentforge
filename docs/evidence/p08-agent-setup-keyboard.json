@@ -1,0 +1,13 @@
+{
+  "requirement": "P08",
+  "recordedAt": "2026-10-26T12:34:21.3332093Z",
+  "sourceBase": "94965c0042b9ff77f6fb2292eeef36d13956ee0d",
+  "passed": true,
+  "keyboardSave": true,
+  "actionFocusRestored": true,
+  "liveStatusAnnounced": true,
+  "wrongPassphraseRefused": true,
+  "restartLocked": true,
+  "connectionIdentityPreserved": true,
+  "scope": "Real Chromium, built UI, synthetic Hermes discovery server; not a full accessibility audit"
+}
