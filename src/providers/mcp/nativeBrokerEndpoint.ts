@@ -28,9 +28,12 @@ export async function startNativeBrokerEndpoint(session:NativeBrokerSession){
     initialized=true;result={protocolVersion:'2025-06-18',capabilities:{tools:{}},serverInfo:{name:'agentforge-broker',version:'0.1.2'}};
    }else{
     if(!initialized)throw Error('Initialize first');
-    if(input.method==='tools/list')result={tools:[{name:'dispatch',description:'Execute one separately approved operation in this session.',inputSchema:{type:'object',additionalProperties:false,required:['approvalId','callId','tool','input'],properties:{approvalId:{type:'string'},callId:{type:'string'},tool:{type:'string'},input:{type:'object'}}}}]};
-    else if(input.method==='tools/call'&&input.params?.name==='dispatch'){
-     try{const receipt=await session.dispatch(input.params.arguments);result={content:[{type:'text',text:JSON.stringify(receipt)}]};}
+    if(input.method==='tools/list'){
+     const definitions=session.hasReviewQueue?[['request_review','Request owner review without executing.',null],['execute_reviewed','Execute the exact owner-approved request.','reviewId']]:[['dispatch','Execute one separately approved operation.','approvalId']];
+     result={tools:definitions.map(([name,description,idKey])=>({name,description,inputSchema:{type:'object',additionalProperties:false,required:[...(idKey?[idKey]:[]),'callId','tool','input'],properties:{...(idKey?{[idKey]:{type:'string'}}:{}),callId:{type:'string'},tool:{type:'string'},input:{type:'object'}}}}))};
+    }
+    else if(input.method==='tools/call'&&(session.hasReviewQueue?['request_review','execute_reviewed'].includes(input.params?.name):input.params?.name==='dispatch')){
+     try{const receipt=await (input.params.name==='request_review'?session.review(input.params.arguments):input.params.name==='execute_reviewed'?session.dispatchReviewed(input.params.arguments):session.dispatch(input.params.arguments));result={content:[{type:'text',text:JSON.stringify(receipt)}]};}
      catch{result={isError:true,content:[{type:'text',text:'Operation not completed. Inspect host approval and recovery state; do not automatically retry.'}]};}
     }else throw Error('Unsupported method or tool');
    }
@@ -47,4 +50,5 @@ export async function startNativeBrokerEndpoint(session:NativeBrokerSession){
    await Promise.all([settled,new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()))]);
   }};
 }
+
 

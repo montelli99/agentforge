@@ -8,6 +8,8 @@ import {NativeToolBroker} from '../../core/runtime/nativeToolBroker.js';
 import {NativeBrokerSession} from '../../core/runtime/nativeBrokerSession.js';
 import {startNativeBrokerEndpoint} from './nativeBrokerEndpoint.js';
 import {McpJsonRpcClient} from './mcpJsonRpcClient.js';
+import {WorkspaceStore} from '../../core/store/workspaceStore.js';
+import {prepareNativeToolReview,authorizeReviewedNativeTool} from '../../core/runtime/nativeToolReview.js';
 
 it('enforces credentials and session approvals over real HTTP before one physical effect',async()=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-mcp-proof-'));const work=path.join(root,'work');await fs.mkdir(work);
@@ -29,4 +31,23 @@ it('enforces credentials and session approvals over real HTTP before one physica
   expect(await fs.readFile(file,'utf8')).toBe('one\n');
   expect((await gate.inspect(approvalId,{...identity,...args})).state).toBe('observed');
  }finally{await connection.close();await fs.rm(root,{recursive:true,force:true});}
+});
+it('exposes review then approved execution through the persisted owner queue',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-mcp-review-'));const work=path.join(root,'work');await fs.mkdir(work);
+ const store=new WorkspaceStore(path.join(root,'workspace.json'));const task=store.createTask({title:'Synthetic',status:'ready',priority:'medium'});
+ const gate=new NativeToolAuthorization(path.join(root,'host'),work);let effects=0;
+ const session=new NativeBrokerSession({taskId:task.id,operationId:'operation',sessionId:'session'},new NativeToolBroker(gate,async()=>{effects++;return {evidence:'synthetic'};}),{
+  prepare:request=>prepareNativeToolReview(store,request),authorize:(id,request)=>authorizeReviewedNativeTool(store,gate,id,request),
+ });
+ const endpoint=await startNativeBrokerEndpoint(session);try{
+  const client=new McpJsonRpcClient({endpoint:endpoint.endpoint,headers:{Authorization:'Bearer '+endpoint.token}});await client.initialize();
+  expect((await client.listTools()).map(tool=>tool.name)).toEqual(['request_review','execute_reviewed']);
+  const args={callId:'call',tool:'write',input:{content:'synthetic'}};
+  await client.callTool('request_review',args);const review=store.listApprovals()[0];expect(review.status).toBe('pending');expect(effects).toBe(0);
+  expect((await client.callTool('execute_reviewed',{reviewId:review.id,...args})).isError).toBe(true);
+  store.resolveApproval({approvalId:review.id,status:'approved',approverUserId:'owner',decisionOrigin:'web'});
+  expect((await client.callTool('execute_reviewed',{reviewId:review.id,...args,input:{content:'changed'}})).isError).toBe(true);
+  expect((await client.callTool('execute_reviewed',{reviewId:review.id,...args})).isError).toBeUndefined();
+  expect((await client.callTool('execute_reviewed',{reviewId:review.id,...args})).isError).toBe(true);expect(effects).toBe(1);
+ }finally{await endpoint.close();await fs.rm(root,{recursive:true,force:true});}
 });

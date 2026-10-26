@@ -1,5 +1,9 @@
 import {NativeToolBroker} from './nativeToolBroker.js';
-import type {NativeToolRequest} from './nativeToolAuthorization.js';
+import {nativeToolRequestDigest,type NativeToolRequest} from './nativeToolAuthorization.js';
+export interface NativeReviewQueue {
+ prepare(request:NativeToolRequest):{id:string;status:string};
+ authorize(reviewId:string,request:NativeToolRequest):Promise<{approvalId:string}>;
+}
 
 export interface NativeSessionIdentity {taskId:string;operationId:string;sessionId:string}
 /** Construct only from a host-created connection. Neither a tool name nor model
@@ -10,10 +14,31 @@ export class NativeBrokerSession {
  private readonly identity:Readonly<NativeSessionIdentity>;
  private readonly controller=new AbortController();
  private readonly pending=new Set<Promise<unknown>>();
- constructor(identity:NativeSessionIdentity,private broker:NativeToolBroker){
+ constructor(identity:NativeSessionIdentity,private broker:NativeToolBroker,private reviews?:NativeReviewQueue){
   for(const value of [identity.taskId,identity.operationId,identity.sessionId])
    if(typeof value!=='string'||!value||value.length>256)throw Error('Invalid host session identity');
   this.identity=Object.freeze({...identity});
+ }
+ get hasReviewQueue(){return !!this.reviews;}
+ async review(payload:unknown){
+  if(this.controller.signal.aborted||!this.reviews)throw Error('Review unavailable');
+  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Invalid review request');
+  const value=payload as Record<string,unknown>;
+  if(Object.keys(value).length!==3||Object.keys(value).some(key=>!['callId','tool','input'].includes(key)))throw Error('Invalid review fields');
+  const request={...this.identity,...value} as NativeToolRequest;nativeToolRequestDigest(request);
+  const review=this.reviews.prepare(structuredClone(request));return {reviewId:review.id,status:review.status};
+ }
+ async dispatchReviewed(payload:unknown){
+  if(this.controller.signal.aborted||!this.reviews)throw Error('Review unavailable');
+  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Invalid reviewed dispatch');
+  const value=payload as Record<string,unknown>;
+  if(Object.keys(value).length!==4||Object.keys(value).some(key=>!['reviewId','callId','tool','input'].includes(key))||typeof value.reviewId!=='string')throw Error('Invalid reviewed dispatch fields');
+  const {reviewId,...args}=value;const request=structuredClone({...this.identity,...args}) as NativeToolRequest;nativeToolRequestDigest(request);
+  const execution=(async()=>{
+   const permission=await this.reviews!.authorize(reviewId,request);
+   return this.dispatch({approvalId:permission.approvalId,callId:request.callId,tool:request.tool,input:request.input});
+  })();
+  this.pending.add(execution);try{return await execution;}finally{this.pending.delete(execution);}
  }
  async close(timeoutMs=5000){
   this.controller.abort();
