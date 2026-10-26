@@ -39,6 +39,11 @@ describe('versioned Markdown memory portability', () => {
       const archived = await provider.query({namespace: 'workspace', projectId: 'selected', includeArchived: true, categories: ['do_not_repeat'], tags: ['lesson']});
       expect(archived).toHaveLength(1);
       expect(archived[0].record.content).toBe(saved.content);
+      expect(await provider.get('workspace',archived[0].record.id)).toEqual(archived[0].record);
+      expect(await provider.get('other',archived[0].record.id)).toBeNull();
+      expect(await provider.get('workspace','missing')).toBeNull();
+      expect(archived[0].record.metadata?.importedRecordId).toBe(saved.id);
+      expect(archived[0].record.id).not.toBe(saved.id);
       expect(await provider.getDoNotRepeatRules('workspace', 'selected')).toEqual([]);
       await fs.writeFile(file, memoryMarkdown({...saved, archived: false}));
       expect(await provider.getDoNotRepeatRules('workspace', 'selected')).toHaveLength(1);
