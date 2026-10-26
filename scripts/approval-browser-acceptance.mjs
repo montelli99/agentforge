@@ -7,6 +7,7 @@ import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
 import http from 'node:http';
 import {createHash} from 'node:crypto';
+const chatJourney=process.env.AGENTFORGE_BROWSER_CHAT_JOURNEY==='1';
 const invoiceCase=process.env.AGENTFORGE_BROWSER_INVOICE_PROOF==='1';
 const artifactPath=invoiceCase?'artifacts/report.json':'artifacts/verified.txt';
 const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
@@ -41,16 +42,20 @@ let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web',repositoryPath:root});
 
+const channel=chatJourney?store.createChannel({workspaceId:workspace.id,spaceId:project.id,name:'General',provider:'web',visibility:'private',archived:false}):undefined;
+const thread=chatJourney?store.createThread(channel.id,'Artifact request'):undefined;
 const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan);
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
 assert.equal((await backend.initialize()).ready,true);
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
 let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(privateSettings,'settings.json')});let browser;
-let modelRequests=0;
+let modelRequests=0,chatRequests=0;
 const plannedCommands=[{checkName:'unit_tests',command,timeoutMs:10000}];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
- const body=JSON.parse(raw);modelRequests++;
+ const body=JSON.parse(raw);
+ if(chatJourney&&body.stream){chatRequests++;res.writeHead(200,{'Content-Type':'text/event-stream'});const tool=body.messages.at(-1)?.role==='tool';const delta=tool?{content:'Task prepared for review.'}:{tool_calls:[{index:0,id:'prepare-synthetic',type:'function',function:{name:'prepare_task',arguments:JSON.stringify({title:'User-created bounded task'})}}]};res.write('data: '+JSON.stringify({id:'synthetic-chat',choices:[{delta,finish_reason:tool?'stop':'tool_calls'}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20}})+'\n\n');res.end('data: [DONE]\n\n');return;}
+ modelRequests++;
  assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
  if(recordedResponse){let response;if(invoiceCase&&!process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE){const evidence=JSON.parse(await readFile(new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url),'utf8'));const commands=evidence.reviewedPlan.commands.map(command=>({...command,checkName:command.checkName==='custom_script'?'unit_tests':command.checkName}));const audit=evidence.attempts.at(-1).audit.at(-1);response=JSON.stringify({id:'recorded-invoice-proof',choices:[{message:{content:JSON.stringify({commands})},finish_reason:'stop'}],usage:{prompt_tokens:audit.inputTokens,completion_tokens:audit.outputTokens,total_tokens:audit.inputTokens+audit.outputTokens}});}else response=await readFile(recordedResponse,'utf8');res.writeHead(200,{'Content-Type':'application/json'});res.end(response);return;}
  if(liveModel){
@@ -85,6 +90,18 @@ try{
  assert.equal(connectionResponse.status(),200,JSON.stringify(await connectionResponse.json()));
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
  assert.equal(modelRequests,0);
+ if(chatJourney){
+ await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();
+ await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');
+ await page.getByLabel('Message',{exact:true}).fill('Create the requested synthetic artifact at '+artifactPath+'. Prepare a task for review.');
+ await page.getByRole('button',{name:'Send ↑',exact:true}).click();await page.getByText('Task prepared for review.',{exact:true}).waitFor();
+ assert.equal(chatRequests,2);const created=store.listTasks().find(t=>t.originThreadId===thread.id);assert.ok(created);taskId=created.id;assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
+ await page.getByLabel('Tasks and runs',{exact:true}).click();await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.locator('[data-section="boundaries"]').click();await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
+ const editor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});await editor.locator('[name=branch]').fill('main');await editor.locator('[name=sha]').fill(baseSha);await editor.locator('[name=allowed]').fill('artifacts/**\nreports/**');await editor.locator('[name=protected]').fill('.env\n.env.*\n.git/**');await editor.locator('[name=outputs]').fill(artifactPath);
+ while(await editor.locator('.boundary-check-row').count()>1)await editor.locator('.boundary-check-row').last().getByRole('button',{name:'Remove',exact:true}).click();
+ await editor.locator('[name=type]').selectOption('unit_tests');await editor.locator('[name=command]').fill(command);await editor.getByRole('button',{name:'Save boundaries',exact:true}).click();await editor.waitFor({state:'hidden'});
+ }else{
  await page.getByLabel('Tasks and runs',{exact:true}).click();
  await page.getByRole('button',{name:'Create your first task',exact:true}).click();
  await page.locator('#task-project').selectOption(project.id);
@@ -133,6 +150,7 @@ try{
  await boundaryEditor.getByRole('button',{name:'Save boundaries',exact:true}).click();
  await boundaryEditor.waitFor({state:'hidden'});
  assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:artifactPath}]);
+ }
  await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption('compatible::synthetic-model');
@@ -199,7 +217,7 @@ try{
  assert.ok(verifiedOutput.content.length>0);
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- const proof={passed:true,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,oneProviderRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
+ const proof={passed:true,chatJourney,chatRequests,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
  proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
  proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
  proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
