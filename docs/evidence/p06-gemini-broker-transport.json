@@ -1,0 +1,14 @@
+{
+  "recordedAt": "2026-10-26T15:36:40.2807238Z",
+  "sourceCommit": "10eaead1029a9b737680ebf8de81dc66579205f1",
+  "client": "@google/gemini-cli@0.65.0",
+  "moduleSha256": "4d9cf6435503e5280ecb0f55078793531c8041fe435f60fa8dfce92317c8a28e",
+  "scope": "Installed official MCP client and transport with synthetic executor; not full CLI worker or model inference",
+  "discovery": true,
+  "missingApprovalDenied": true,
+  "physicalEffectCount": 1,
+  "duplicateDenied": true,
+  "accountUsed": false,
+  "modelRequests": 0,
+  "scriptSha256": "c355ff2018d891c0c1821b3bcb37043c5facd780add1dc24eee491302abab9af"
+}
