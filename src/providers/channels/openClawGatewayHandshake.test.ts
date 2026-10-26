@@ -215,3 +215,13 @@ it('explains pairing without reflecting gateway text or approving the device',as
  await expect(client.connectWhenReady(100)).rejects.not.toThrow('UNTRUSTED_SECRET');
  expect(client.isConnected()).toBe(false);expect(socket.sent).toHaveLength(1);client.stop();
 });
+it('allows a new explicit connection after pairing rejection without resending work',async()=>{
+ const {client,socket}=setup(true);
+ socket.receive({type:'event',event:'connect.challenge',payload:{nonce:'proof',ts:123456789}});
+ socket.receive({type:'res',id:socket.sent[0].id,ok:false,error:{code:'NOT_PAIRED'}});
+ await expect(client.connectWhenReady(100)).rejects.toThrow('pairing required');
+ expect(socket.sent).toHaveLength(1);expect(Socket.latest).toBe(socket);
+ const retry=client.connectWhenReady(1000);const next=Socket.latest;expect(next).not.toBe(socket);
+ authenticate(next,true);await retry;expect(client.isConnected()).toBe(true);
+ expect(next.sent).toHaveLength(1);expect(next.sent[0].method).toBe('connect');client.stop();
+});

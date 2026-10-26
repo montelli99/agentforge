@@ -124,7 +124,14 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
         await new Promise(resolve => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
       }
       throw new Error("Gateway did not become ready before the connection deadline");
-    } catch (error) { this.disconnect(); throw error; }
+    } catch (error) {
+      this.disconnect();
+      // End this attempt. A later explicit connection request may retry after pairing;
+      // this loop never retries a terminal authentication rejection automatically.
+      this.terminalHandshakeFailure = false;
+      this.pairingRequired = false;
+      throw error;
+    }
     finally { this.connectingOperation = false; }
   }
 

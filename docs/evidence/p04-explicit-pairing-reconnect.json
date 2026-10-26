@@ -1,0 +1,17 @@
+{
+  "scope": "Connection retry after terminal handshake rejection; simulated gateway regression, not real-device approval lifecycle",
+  "fixed": "Terminal failure now ends its attempt instead of poisoning later explicit connection requests",
+  "testsPassed": 30,
+  "typecheck": "passed",
+  "build": "passed",
+  "assertions": [
+    "Pairing rejection terminates current attempt",
+    "No automatic retry after rejection",
+    "Fresh explicit attempt can authenticate",
+    "Only connect frame sent; no work replay"
+  ],
+  "hashes": {
+    "src/providers/channels/openClawGatewayTransport.ts": "fb29915f1bcd49f927e476b6b458154b567617f066739305d0c9f3ed58977102",
+    "src/providers/channels/openClawGatewayHandshake.test.ts": "4f38ab6918d0c21910902718af781bf2871ef6524e00ac07e70e47916d89705a"
+  }
+}
