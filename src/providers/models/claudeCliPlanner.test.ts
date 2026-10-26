@@ -58,3 +58,11 @@ it.each(['malformed','unoffered-tool','client-tool-activity'])('emits no chat co
  expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);
  expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
 });
+it('discards completed chat when cancelled before delivery and retains usage',async()=>{
+ const controller=new AbortController(),items=events();const text=JSON.stringify({content:'Completed but cancelled',toolCalls:[]});
+ items[1].message!.content[0].text=text;items[2].result=text;
+ mocks.run.mockImplementation(async()=>{controller.abort();return result(items);});
+ const chunks=[];const consume=async()=>{for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages,signal:controller.signal}))chunks.push(chunk);};
+ await expect(consume()).rejects.toMatchObject({usage:{totalTokens:14},message:expect.stringContaining('cancelled before response delivery')});
+ expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});

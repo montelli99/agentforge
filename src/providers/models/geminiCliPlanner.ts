@@ -81,6 +81,7 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
  async *stream(options:ModelRequestOptions):AsyncIterable<StreamChunk>{
   // Buffer until the entire client transcript and proposed tools are validated.
   const reply=await this.invoke(options,true);
+    if(options.signal?.aborted)throw new ModelProviderError('Gemini chat cancelled before response delivery; no automatic retry',reply.usage);
   yield {id:reply.id,deltaText:reply.content,toolCalls:reply.toolCalls,usage:reply.usage,finishReason:reply.finishReason};
  }
 }

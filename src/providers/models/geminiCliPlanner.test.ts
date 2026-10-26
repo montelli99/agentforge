@@ -74,9 +74,9 @@ it('preserves reported usage on cancellation without returning or retrying the i
   expect(mocks.run).toHaveBeenCalledTimes(1);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
-it.each(['answer','proposal','unknown-tool','malformed','client-tool'])('validates complete Gemini chat before emitting: %s',async(mode)=>{
+it.each(['answer','proposal','unknown-tool','malformed','client-tool','cancelled-at-delivery'])('validates complete Gemini chat before emitting: %s',async(mode)=>{
  const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'gemini-chat-test-'))),home=path.join(root,'home');
- let invocationDirectory='';
+ let invocationDirectory='';const controller=new AbortController();
  try{
   await prepareGeminiCliProfile(home);await fs.writeFile(path.join(home,'.gemini','oauth_creds.json'),'synthetic-not-a-login');
   mocks.run.mockReset();mocks.caps.mockResolvedValue({controlsAvailable:true});
@@ -87,12 +87,13 @@ it.each(['answer','proposal','unknown-tool','malformed','client-tool'])('validat
    expect(await fs.readFile(args[args.indexOf('--admin-policy')+1],'utf8')).toContain('decision = "deny"');
    const content=mode==='malformed'?'not json':JSON.stringify({content:mode==='answer'?'Synthetic answer':'',toolCalls:mode==='answer'?[]:[{name:mode==='unknown-tool'?'unoffered':'read_task_artifact',arguments:{taskId:'fixture'}}]});
    const events=[{type:'init',model:'gemini-synthetic',session_id:'fixture'},{type:'message',role:'user',content:prompt},{type:'message',role:'assistant',delta:true,content},...(mode==='client-tool'?[{type:'tool_use',tool_name:'shell'}]:[]),{type:'result',status:'success',stats:{input_tokens:10,output_tokens:5,total_tokens:15,cached:0,tool_calls:0}}];
+   if(mode==='cancelled-at-delivery')controller.abort();
    return {code:0,stdout:events.map(e=>JSON.stringify(e)).join('\n'),stderr:''};
   });
   const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
-  const chunks=[];const consume=async()=>{for await(const chunk of planner.stream({model:'gemini-synthetic',messages:[{role:'user',content:'Read @private.txt only from supplied history'}],tools:[{type:'function',function:{name:'read_task_artifact'}}]}))chunks.push(chunk);};
+  const chunks=[];const consume=async()=>{for await(const chunk of planner.stream({signal:controller.signal,model:'gemini-synthetic',messages:[{role:'user',content:'Read @private.txt only from supplied history'}],tools:[{type:'function',function:{name:'read_task_artifact'}}]}))chunks.push(chunk);};
   if(['answer','proposal'].includes(mode)){await consume();expect(chunks).toHaveLength(1);expect(chunks[0].finishReason).toBe(mode==='answer'?'stop':'tool_calls');}
-  else{await expect(consume()).rejects.toMatchObject({usage:{promptTokens:10,completionTokens:5,totalTokens:15,cachedInputTokens:0}});expect(chunks).toHaveLength(0);}
+  else{await expect(consume()).rejects.toMatchObject({usage:{promptTokens:10,completionTokens:5,totalTokens:15,cachedInputTokens:0},...(mode==='cancelled-at-delivery'?{message:expect.stringContaining('cancelled before response delivery')}:{})});expect(chunks).toHaveLength(0);}
   expect(mocks.run).toHaveBeenCalledTimes(1);await expect(fs.stat(invocationDirectory)).rejects.toThrow();
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });

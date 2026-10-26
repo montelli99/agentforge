@@ -127,6 +127,7 @@ export class ClaudeCliPlanner implements GenerativeModelProvider {
   async *stream(options: ModelRequestOptions): AsyncIterable<StreamChunk> {
     // Emit only after validating the complete official-client transcript.
     const reply=await this.invoke(options,true);
+    if(options.signal?.aborted)throw new ModelProviderError('Claude chat cancelled before response delivery; no automatic retry',reply.usage);
     yield {id:reply.id,deltaText:reply.content,toolCalls:reply.toolCalls,usage:reply.usage,finishReason:reply.finishReason};
   }
 }
