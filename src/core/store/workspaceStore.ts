@@ -1229,16 +1229,21 @@ export class WorkspaceStore {
   }
 
   saveOperationalMemory(record: OperationalMemoryRecord): void {
-    this.operationalMemories.set(record.id, record);
-    this.emit("operational_memory_saved", "memory", {
-      id: record.id,
-      namespace: record.namespace,
-      category: record.category,
-      title: record.title,
-    });
-    this.persistIfConfigured();
+    const owned = structuredClone(record);
+    const previous = this.operationalMemories.get(owned.id);
+    this.operationalMemories.set(owned.id, owned);
+    try { this.persistIfConfigured(); }
+    catch (error) {
+      if (previous) this.operationalMemories.set(owned.id, previous);
+      else this.operationalMemories.delete(owned.id);
+      throw error;
+    }
+    for (const listener of this.realtimeListeners) {
+      try { listener({type: 'operational_memory_saved', entity: 'memory', data: {
+        id: owned.id, namespace: owned.namespace, category: owned.category, title: owned.title,
+      }}); } catch { /* The saved memory is already durably committed. */ }
+    }
   }
-
   /** Internal migration primitive. The caller validates the archive and authority.
    * Commit the entire reviewed batch and its audit receipt in one snapshot.
    * IDs are never overwritten, and an identical replay is a no-op.

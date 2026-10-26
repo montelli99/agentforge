@@ -86,3 +86,18 @@ it('rolls back deletion on disk failure and only notifies after durable removal'
  expect(listener).toHaveBeenCalledTimes(1);
  expect(store.deleteOperationalMemory('synthetic','delete-me')).toBe(false);
 });
+
+it('rolls back failed creation and editing without publishing phantom memories',()=>{
+ const {file,store}=fixture();store.saveOperationalMemory(record('existing'));
+ const notice=vi.fn();store.subscribe(notice);const before=fs.readFileSync(file,'utf8');
+ const save=vi.spyOn(store,'saveToFile').mockImplementation(()=>{throw Error('disk failure');});
+ expect(()=>store.saveOperationalMemory(record('new'))).toThrow('disk failure');
+ expect(()=>store.saveOperationalMemory({...record('existing'),content:'changed'})).toThrow('disk failure');
+ expect(store.listOperationalMemories('synthetic')).toEqual([record('existing')]);
+ expect(fs.readFileSync(file,'utf8')).toBe(before);expect(notice).not.toHaveBeenCalled();save.mockRestore();
+ store.subscribe(()=>{throw Error('listener failure');});const input=record('new');
+ expect(()=>store.saveOperationalMemory(input)).not.toThrow();input.content='mutated outside store';
+ expect(store.listOperationalMemories('synthetic').find(r=>r.id==='new')).toEqual(record('new'));
+ expect(new WorkspaceStore(file).listOperationalMemories('synthetic').find(r=>r.id==='new')).toEqual(record('new'));
+ expect(notice).toHaveBeenCalledTimes(1);
+});

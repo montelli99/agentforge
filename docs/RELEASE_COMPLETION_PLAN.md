@@ -1141,3 +1141,7 @@ Removed the subscription-only two-command ceiling: draft schema, validation and 
 ### Durable memory deletion repair
 Fixed deletion ordering: persist before notification; restore the in-memory record if persistence fails; isolate listener exceptions after commit. Six batch/lifecycle tests pass, including failed-save rollback with no notification and successful deletion surviving reopen despite a failing listener. This covers local store deletion, not cloud-provider deletion.
 
+
+### Durable memory creation and edit repair
+Creation/edit had the same notification-before-persist ordering. The store now owns a cloned input, restores the prior record on failed persistence (or removes a failed new record), and isolates post-commit notification failures. Ten store/provider/import-route tests pass, including failed create/edit with no phantom notifications and saved input ownership. This is local durability evidence; external adapter lifecycle remains open.
+
