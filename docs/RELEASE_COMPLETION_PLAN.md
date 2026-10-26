@@ -1133,3 +1133,7 @@ The privacy gate now compares tar member inventory with the npm packlist, extrac
 ### Imported memory recall boundaries and hosted checkpoint
 Expanded authenticated import-route acceptance to query the reopened store through the operational memory adapter. Mapped memory retains revision history and remapping provenance, appears in its destination project, and is excluded from old/unrelated projects and other namespaces. Test passed. Exact f58bd66 hosted CI completed successfully in all seven jobs; evidence: evidence/ci-f58bd66.json. Later test/gate changes still require their own hosted run.
 
+
+### Subscription draft command limits
+Removed the subscription-only two-command ceiling: draft schema, validation and Claude/Gemini prompts now share the main planner's maxima (100 commands, 200-character labels, 20000-character commands, one-hour per-command maximum). Timeout remains explicit for CLI drafts. This changes proposals, not client tool permissions or execution approval. Thirty-five adapter/protocol regressions and two bound tests pass. Live subscription lifecycle and managed execution remain open.
+

@@ -83,7 +83,7 @@ export class ClaudeCliPlanner implements GenerativeModelProvider {
     if (options.signal?.aborted) throw Error('Claude planning cancelled before launch');
     if (options.model !== this.config.model || options.tools?.length || options.stream || options.responseFormat !== 'json'
       || options.maxTokens !== undefined) throw Error('Unsupported Claude planner request; no hard token-cap claim');
-    const input = 'Return only a JSON object with commands, an array of one or two objects with checkName, command and timeoutMs (at most 10000). Draft only; do not execute. Use only supplied data.\n' + JSON.stringify(options.messages);
+    const input = 'Return only a JSON object with commands, an array of 1 to 100 objects with checkName, command and timeoutMs (at most 3600000). Draft only; do not execute. Use only supplied data.\n' + JSON.stringify(options.messages);
     if (Buffer.byteLength(input) > 32768) throw Error('Claude planner input exceeds 32KiB');
     const auth = await inspectClaudeCliAuthentication(this.config.executablePath, this.config.configurationDirectory, options.signal);
     if (options.signal?.aborted) throw Error('Claude planning cancelled during account check');
