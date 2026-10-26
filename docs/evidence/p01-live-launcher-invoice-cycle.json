@@ -1,0 +1,48 @@
+{
+  "installedPackage": false,
+  "syntheticOnly": true,
+  "paidRequests": 1,
+  "passed": true,
+  "modelSavedUnlockedAndUsedAfterRestart": true,
+  "browserProjectMatchesRestoredWorker": true,
+  "enabledAfterRestartWithoutStartingTask": true,
+  "livePlanningModel": "mimo-v2.6-flash",
+  "chatProvider": "synthetic",
+  "providerUsage": {
+    "completion_tokens": 749,
+    "prompt_tokens": 2968,
+    "total_tokens": 3717,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": null
+  },
+  "restoredModelDraftedTaskInBrowser": true,
+  "draftDidNotExecute": true,
+  "reviewedPlanExecutedInDocker": true,
+  "finalApprovalStillRequired": true,
+  "independentInvoiceCheck": true,
+  "recordedResultRestoredAfterLauncherRestart": true,
+  "finalApprovalCompleted": true,
+  "receiptsUnchangedThroughRecoveryAndApproval": true,
+  "missingRepositoryRepairedInBrowser": true,
+  "repairDidNotEnableExecution": true,
+  "savedDockerFromBrowser": true,
+  "invalidRepositoryRejected": true,
+  "pendingSelectionSurvivedReload": true,
+  "setupDidNotStartTask": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "invoiceBytesUnchangedThroughRecovery": true,
+  "sourceCommit": "37a5da86f47c5b0c91ce3158a0fca034aa915e26",
+  "reviewer": "Codex inspected exact generated commands before synthetic test approval",
+  "limits": [
+    "Chat response was synthetic; invoice planning used live MiMo",
+    "Source launcher, not installed archive",
+    "One passing attempt after two preserved invalid-plan failures",
+    "No broad reliability claim"
+  ]
+}

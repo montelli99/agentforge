@@ -1057,3 +1057,8 @@ Planner requests now include requiredCheckEntries in output schema, preserving e
 
 The current model interface supports JSON mode without provider-enforced JSON Schema. The planning request now includes the full command schema and explicitly requires checkName for work as well as verification. Existing strict validation remains unchanged. Thirteen planner tests and build pass; no claim of live reliability yet. The combined browser harness now reports a displayed draft rejection immediately instead of waiting 90 seconds for a success message that cannot arrive.
 
+
+### Live invoice planning in clean launcher journey passes
+
+Exact source 37a5da8 passed browser owner/project/model/worker setup, restart/unlock, live MiMo invoice planning, exact-command inspection by Codex, explicit approval, Docker execution, frozen independent invoice verification, another launcher restart, recorded result restoration and final approval. Invoice bytes and receipts remained unchanged. Evidence: evidence/p01-live-launcher-invoice-cycle.json. One paid planning request used 3717 tokens. The introductory chat reply remained synthetic; this was a source launcher, not an installed archive. Two prior rejected live attempts remain recorded, so this is a bounded passing attempt, not consistent reliability or full P01 completion.
+
