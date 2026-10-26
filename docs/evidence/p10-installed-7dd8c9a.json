@@ -1,0 +1,45 @@
+{
+  "recordedAt": "2026-10-26T14:08:29.812Z",
+  "requirement": [
+    "P01",
+    "P03",
+    "P07",
+    "P08",
+    "P10"
+  ],
+  "sourceCommit": "7dd8c9a0d44f5ba9e09807c4cfe550b6cf337b6d",
+  "archiveSha256": "628bcbf3ae0bf9ef8c172e05d4ae933b17c48437319a10ad5e0739bab7576ade",
+  "command": "node scripts/installed-browser-acceptance.mjs <candidate-archive>",
+  "exitCode": 0,
+  "syntheticOnly": true,
+  "liveProviderVerified": false,
+  "realBrowser": true,
+  "realDocker": true,
+  "passedFlows": [
+    "Fresh owner/project/conversation",
+    "Reviewed Docker execution and restart receipt recovery",
+    "Encrypted memory save/restore/forget",
+    "Rejected connection unlock preserves store and keyboard retry succeeds for compatible and local routes",
+    "Streaming reload without replay",
+    "External connector keyboard setup",
+    "Migration review/import/rollback",
+    "External recorded result recovery and cancellation",
+    "Repair through authentication loss",
+    "Verified artifact grounded in final chat",
+    "Timed owner-session expiry and recovery"
+  ],
+  "packageScan": {
+    "passed": true,
+    "files": 486,
+    "scope": "Known private-data signatures and package surface; not a guarantee of absence of all sensitive content"
+  },
+  "hostedCI": {
+    "run": 40336448697,
+    "status": "in_progress_at_recording",
+    "head": "7dd8c9a0d44f5ba9e09807c4cfe550b6cf337b6d"
+  },
+  "limits": [
+    "Synthetic model and external-agent fixtures; live subscription and Hindsight lifecycle remain open",
+    "No final release acceptance or publication claim"
+  ]
+}
