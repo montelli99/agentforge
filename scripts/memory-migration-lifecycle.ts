@@ -8,11 +8,15 @@ import {WorkspaceStore} from '../src/core/store/workspaceStore.js';
 import {OperationalMemoryProvider} from '../src/providers/memory/operationalMemory.js';
 import {reviewMemoryImport} from '../src/server/memoryImport.js';
 import {runBoundedChild} from '../src/providers/models/boundedCliProcess.js';
+import {TaskWorkerRuntime} from '../src/core/runtime/taskWorkerRuntime.js';
 const namespace='synthetic-migration';
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 if(process.argv[2]==='--child'){
  const [file,projectId,phase]=process.argv.slice(3);
  const store=new WorkspaceStore(file);const memory=new OperationalMemoryProvider(store);
+ const task=store.listTasks().find(task=>task.title==='Synthetic launch color recovery')??store.createTask({title:'Synthetic launch color recovery',description:'Recall the synthetic launch color and its conflicting sources.',projectId,priority:'medium',status:'ready'});
+ const runtime=new TaskWorkerRuntime(store,undefined,{repoRoot:path.dirname(file),autoStart:false,memoryProvider:memory,memoryNamespace:namespace});
+ const context=await runtime.getPlanningContext(task.id);
  const records=(await memory.query({namespace,projectId,limit:100})).map(item=>item.record);
  if(phase==='restore-delete'){
   assert.equal(records.length,2);
@@ -26,12 +30,19 @@ if(process.argv[2]==='--child'){
    assert.equal(record.revisions![0].version,1);
   }
   assert.equal((await memory.query({namespace,projectId:'unrelated-project',limit:100})).length,0);
+  assert.ok(context.content.includes('Synthetic launch color is blue.'));assert.ok(context.content.includes('Synthetic launch color is red.'));
+  const recalled=context.sources.flatMap(source=>source.memorySource?[source.memorySource.recordId]:[]);
+  for(const record of records)assert.ok(recalled.includes(record.id));
+  const otherTask=store.createTask({title:'Synthetic launch color recovery elsewhere',projectId:'unrelated-project',priority:'medium',status:'ready'});
+  const isolated=await runtime.getPlanningContext(otherTask.id);assert.ok(!isolated.content.includes('Synthetic launch color is blue.'));assert.ok(!isolated.content.includes('Synthetic launch color is red.'));
   for(const record of records)assert.equal(await memory.delete(namespace,record.id),true);
-  console.log(JSON.stringify({phase,restored:2,deleted:2,provenancePreserved:true,twoHopProjectHistory:true,revisionHistoryPreserved:true,otherProjectEmpty:true}));
+  console.log(JSON.stringify({phase,restored:2,deleted:2,provenancePreserved:true,twoHopProjectHistory:true,revisionHistoryPreserved:true,otherProjectEmpty:true,workerContextPreservedBothFacts:true,workerContextRecordIdsPreserved:true,otherProjectWorkerContextEmpty:true}));
  }else{
   assert.equal(phase,'verify-deleted');assert.equal(records.length,0);
-  console.log(JSON.stringify({phase,remaining:0}));
+  assert.ok(!context.content.includes('Synthetic launch color is blue.'));assert.ok(!context.content.includes('Synthetic launch color is red.'));
+  console.log(JSON.stringify({phase,remaining:0,workerContextDeletedFactsAbsent:true}));
  }
+ runtime.stop();
 }else{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-memory-migration-'));
  try{
