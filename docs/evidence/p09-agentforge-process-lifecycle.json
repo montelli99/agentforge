@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Synthetic AgentForge chat, worker and Docker process integration; pre-approved command and scripted model. No live comparison score.",
+  "outcome": {
+    "id": "synthetic-1-agentforge",
+    "task": "synthetic",
+    "arm": "agentforge",
+    "trial": 1,
+    "status": "passed",
+    "recordedAt": "2026-10-26T17:22:00.554Z",
+    "protocolSha256": "3cb26555ac7f0680b720ebeef74cb06930e53caabaf891ff1c902345a176aace",
+    "artifactPassed": true,
+    "workflowPassed": true,
+    "elapsedMs": 3551.8392999999996,
+    "requests": 0,
+    "usage": null,
+    "finishedAt": "2026-10-26T17:22:04.109Z",
+    "reservationSha256": "641e0dcced174c2e1a0eccd88679d7d2119e324786c9495a77079440f7928083"
+  },
+  "runnerSha256": "c3ec292841eec8d59cac55ee375de5bf548b1788d75d6423ac0e0ed22feb4d4e",
+  "realProvider": false
+}
