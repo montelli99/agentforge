@@ -25,7 +25,7 @@ let store=new WorkspaceStore(path.join(root,'state.json'));const workspace=store
 const task=store.createTask({title:original.title,description:original.description,projectId:project.id,status:'ready',priority:'medium'});
 const contract={...original.contract,taskId:task.id,repository:{baseBranch:'main',baseSha:git(['rev-parse','HEAD'])}};store.updateTask(task.id,{contract});
 const approved={plan:{...JSON.parse(raw),taskId:task.id,source:'human_approved'},contractDigest:executionContractDigest(store.getTask(task.id)),approvedBy:'user-authorized-acceptance-operator',approvedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString()};store.updateTask(task.id,{approvedExecutionPlan:approved});
-const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan));assert.equal((await backend.initialize()).ready,true);
+const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan),{resultJournalDirectory:path.join(root,'host-results')});assert.equal((await backend.initialize()).ready,true);
 let executions=0;const execute=backend.execute.bind(backend);backend.execute=async args=>{executions++;const output=await execute(args);if(process.env.AGENTFORGE_PROOF_CRASH_BEFORE_RECEIPT==='1'){const current=store.getTask(task.id);const content=await fs.readFile(path.join(current.worktree.worktreePath,'artifacts/report.json'));await fs.writeFile(path.join(root,'crash-checkpoint.json'),JSON.stringify({uncertain:true,taskId:task.id,workspaceId:workspace.id,receipts:JSON.stringify(current.executionReceipts),artifactSha256:createHash('sha256').update(content).digest('hex')}));process.exit(74);}return output;};
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
 try{
@@ -42,3 +42,4 @@ try{
  await worker.executeTask(task.id);assert.equal(executions,1);
  const proof={passed:true,scope:'Worker/store reopen and observed-result reconciliation; not process crash or browser',taskId:task.id,executions,receiptSha256:createHash('sha256').update(before).digest('hex'),artifactSha256:createHash('sha256').update(content).digest('hex'),reviewDigest:digest};await fs.writeFile(path.join(root,'acceptance.json'),JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));
 }finally{worker.stop();}
+

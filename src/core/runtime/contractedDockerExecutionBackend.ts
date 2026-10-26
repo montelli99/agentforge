@@ -1,3 +1,4 @@
+import {isDeepStrictEqual} from 'node:util';
 import {ExecutionResultJournal} from './executionResultJournal.js';
 /**
  * A production-oriented verification backend for AgentForge.
@@ -60,6 +61,16 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
   }
   async inspectSurvivors(input: {worktreePath: string; operationId: string}) {
     return this.docker.listWorkspaceContainers(input.worktreePath, input.operationId);
+  }
+
+  async recoverResult(input:{task:Task;operationId:string;worktreePath:string}):Promise<TaskExecutionOutput>{
+    if(!this.options.resultJournalDirectory)throw Error('Durable result recovery is not configured');
+    const output=await new ExecutionResultJournal(this.options.resultJournalDirectory).read(input.task,input.operationId,input.worktreePath);
+    const survivors=await this.inspectSurvivors(input);if(survivors.length)throw Error('Execution containers remain; inspect them before recovery');
+    const files=await collectGitExecutionEvidence(input.worktreePath,input.task.contract.repository.baseSha);
+    const artifacts=await collectExecutionArtifacts(input.worktreePath,files);
+    if(!isDeepStrictEqual(files,output.filesChanged)||!isDeepStrictEqual(artifacts,output.artifacts)||await readGitHeadSha(input.worktreePath)!==output.finalSha)throw Error('Worktree changed since recorded result');
+    return output;
   }
 
   getReadiness(): ExecutionReadiness {
@@ -177,4 +188,5 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     }
   }
 }
+
 

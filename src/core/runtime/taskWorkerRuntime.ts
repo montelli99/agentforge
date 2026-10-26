@@ -50,6 +50,7 @@ export interface TaskExecutionOutput {
  * execution, and evidence collection. The runtime never fabricates any of them.
  */
 export interface TaskExecutionBackend {
+  recoverResult?(input:{task:Task;operationId:string;worktreePath:string}):Promise<TaskExecutionOutput>;
   inspectSurvivors?(input: {worktreePath: string; operationId: string}): Promise<Array<{id: string; state: string}>>;
   getReadiness(): ExecutionReadiness;
   validateTask?(task: Task): Promise<void>;
@@ -396,7 +397,28 @@ export class TaskWorkerRuntime {
   }
 
   private assertReplaySafe(task:Task):void{if(task.planningAudits?.some(item=>item.status!=="completed"))throw Error("Planning usage unknown: reconcile audit before execution.");const receipt=task.executionReceipts?.at(-1);if(receipt){validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());throw Error('Existing execution effect: reconcile operation-bound receipt before retry; no replay permitted.');}}
-  reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(['completed','cancelled'].includes(task.status))throw Error('Finished tasks cannot be resolved again');if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage unknown: reconcile audit before restoring execution');if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');if(task.contract.completion.requireHumanApproval){const approval=receipt.evidence.approvalId?this.store.getApproval(receipt.evidence.approvalId):undefined;if(!approval||approval.taskId!==task.id||approval.status!=='pending')throw Error('Recorded result requires its original pending approval; reconcile approval before restoring');}const status:TaskStatus=task.contract.completion.requireHumanApproval?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
+  reconcileObservedExecution(taskId:string):Task{const task=this.requireTask(taskId);if(['completed','cancelled'].includes(task.status))throw Error('Finished tasks cannot be resolved again');if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage unknown: reconcile audit before restoring execution');if(this.activeTaskExecutions.has(taskId))throw Error('Execution still active');const receipt=task.executionReceipts?.at(-1);if(!receipt)throw Error('No operation-bound receipt');validateReceipt(task,receipt,this.options.workspaceIdentity??'',task.worktree?.worktreePath??this.options.repoRoot??process.cwd());if(receipt.status!=='observed'||!receipt.evidence?.verifiedPassed)throw Error('Uncertain/unverified effect: no automatic completion');if(task.contract.completion.requireHumanApproval||receipt.evidence.approvalId){const approval=receipt.evidence.approvalId?this.store.getApproval(receipt.evidence.approvalId):undefined;if(!approval||approval.taskId!==task.id||approval.status!=='pending')throw Error('Recorded result requires its original pending approval; reconcile approval before restoring');}const status:TaskStatus=(task.contract.completion.requireHumanApproval||receipt.evidence.approvalId)?'waiting_approval':'completed';return this.store.updateTask(taskId,{status,evidencePack:receipt.evidence,completedAt:status==='completed'?new Date().toISOString():undefined});}
+  async recoverJournaledExecution(taskId:string):Promise<Task>{
+    const task=this.requireTask(taskId),receipt=task.executionReceipts?.at(-1);
+    if(!receipt||receipt.status!=='started'||this.activeTaskExecutions.has(taskId)||['completed','cancelled'].includes(task.status))throw Error('No inactive uncertain operation to recover');
+    if(task.planningAudits?.some(item=>item.status!=='completed'))throw Error('Planning usage remains unknown');
+    const worktree=task.worktree?.worktreePath??'';
+    validateReceipt(task,receipt,this.options.workspaceIdentity??'',worktree);
+    if(!this.executionBackend?.recoverResult)throw Error('Backend result recovery unavailable');
+    const before=JSON.stringify(task);
+    const output=await this.executionBackend.recoverResult({task:structuredClone(task),operationId:receipt.operationId,worktreePath:worktree});
+    const current=this.requireTask(taskId);
+    if(JSON.stringify(current)!==before||this.activeTaskExecutions.has(taskId))throw Error('Task changed during recovery; review again');
+    validateReceipt(current,receipt,this.options.workspaceIdentity??'',worktree);
+    if(!requiredChecksPassedByEvidence(current,output.testResults)||!output.testResults.every(result=>result.passed)||!requiredArtifactsPassedByEvidence(current,output.artifacts,output.filesChanged))throw Error('Recorded result did not pass the task contract');
+    const evidence=this.createEvidencePack(current,output);
+    // Recovery always requires a final human decision, even for formerly automatic tasks.
+    const approval=this.store.createApproval({taskId,requesterAgentId:current.assignedAgentId||'agentforge-orchestrator',action:'Review recovered execution result',description:'Durable backend result restored without replay. Review evidence before completion.',risk:'medium'});
+    const sealed=sealEvidencePack({...evidence,verifiedPassed:true,approvalId:approval.id});
+    const observed=observeReceipt(receipt,sealed);
+    return this.store.updateTask(taskId,{status:'waiting_approval',evidencePack:sealed,error:undefined,executionReceipts:current.executionReceipts!.map(item=>item.operationId===receipt.operationId?observed:item)});
+  }
+
   async inspectExecutionSurvivors(taskId: string) {
     const task = this.requireTask(taskId), receipt = task.executionReceipts?.at(-1);
     if (!receipt) throw Error('No operation-bound receipt to inspect');
@@ -535,3 +557,5 @@ function requiredArtifactsPassedByEvidence(task: Task, artifacts: ArtifactRecord
         (!required.sha256 || artifact.sha256.toLowerCase() === required.sha256.toLowerCase()));
   });
 }
+
+

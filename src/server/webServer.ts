@@ -4120,16 +4120,16 @@ export class AgentForgeWebServer {
           || body.operationId !== (receipt?.operationId ?? null) || body.receiptDigest !== (receipt?.receiptDigest ?? null)) {
           res.writeHead(409); res.end(JSON.stringify({ error: "Task or receipt changed. Refresh and review again." })); return;
         }
-        if (body.decision !== "restore-observed" && body.decision !== "keep-quarantined") { res.writeHead(400); res.end(JSON.stringify({ error: "Choose restore-observed or keep-quarantined." })); return; }
+        if (body.decision !== "restore-observed" && body.decision !== "recover-journal" && body.decision !== "keep-quarantined") { res.writeHead(400); res.end(JSON.stringify({ error: "Choose restore-observed, recover-journal or keep-quarantined." })); return; }
         try {
           if (this.taskWorkerRuntime.isTaskExecuting(task.id)) throw new Error("Pause active execution before reviewing its receipt.");
           if (["completed", "cancelled"].includes(current.status)) throw new Error("Finished tasks cannot be resolved again.");
           if (body.decision === "restore-observed" && current.planningAudits?.some(item => item.status !== "completed")) throw new Error("Planning usage is unknown. Keep this task quarantined.");
-          const updated = body.decision === "restore-observed"
+          const updated = body.decision === "recover-journal" ? await this.taskWorkerRuntime.recoverJournaledExecution(task.id) : body.decision === "restore-observed"
             ? this.taskWorkerRuntime.reconcileObservedExecution(task.id)
             : this.store.updateTask(task.id, { status: "paused" });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "authenticated-reviewer", actorType: "user", action: "TASK_RECEIPT_REVIEWED", targetType: "task", targetId: task.id, details: { decision: body.decision, operationId: receipt?.operationId ?? null, receiptDigest: receipt?.receiptDigest ?? null, previousStatus: current.status, replayed: false } });
-          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
+          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "recover-journal" ? "Durable result restored for final approval. No command replayed." : body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
         } catch (error) { res.writeHead(409, { "Cache-Control": "no-store" }); res.end(JSON.stringify({ error: redactRuntimeError(error, "Receipt review failed") })); }
         return;
       }
@@ -5071,4 +5071,5 @@ export class AgentForgeWebServer {
     return renderWorkspaceApp();
   }
 }
+
 

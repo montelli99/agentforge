@@ -615,3 +615,18 @@ This is the durable-result foundation, not completed uncertain-effect recovery:
 reviewed retrieval, surviving-container checks, current artifact validation, and
 reconstruction of pending approval still need integration and crash acceptance.
 Started receipts remain quarantined; no automatic replay or completion added.
+
+P03 durable-result recovery is now connected to the authenticated receipt-review
+route and task review UI. Recovery reads the operation/request-bound host journal,
+refuses surviving containers, compares current Git changes/artifacts/revision with
+the recorded result, rechecks the current task and required checks, and creates a
+pending final human approval. It does not run commands. Even formerly automatic
+contracts retain that review requirement when restoring an observed recovery.
+Real Docker invoice test deliberately exited after backend completion before its
+worker receipt. A fresh process recovered the result with execute replaced by a
+throwing counter: zero executions, independent invoice checker passed, pending
+approval persisted through reopen, and repeated recovery was refused. Evidence:
+evidence/p03-invoice-journal-recovery.json; reproduce with the crash mode of
+useful-task-recovery.mjs then invoice-journal-recovery.mjs. Eighteen focused tests,
+full typechecks and build passed. Browser interaction and negative-path coverage
+for the new reviewed recovery action remain required before release acceptance.
