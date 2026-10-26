@@ -1105,3 +1105,7 @@ Installed 788fa2c planning embedded the fixture rows rather than reading the wor
 ### Complete installed live invoice-to-chat journey
 Installed f58bd66 passed live chat task creation, live planning reading the workspace input, reviewed Docker execution, independent invoice verification, actual launcher restart, receipt-preserving final approval, and live verified-artifact retrieval into chat. Reload did not resend; output hash matched the artifact read by the model. Evidence: evidence/p01-installed-full-live-invoice-chat.json. Five provider requests, 11830 reported tokens, dollar cost unknown. This closes the missing join for this synthetic invoice journey; broader task, provider, recovery and release matrices remain open. Exact f58bd66 CI run 40318190402 is pending.
 
+
+### Partial-effect recovery after orphan removal
+Extended the real Docker worker-kill proof with durable journaling configured. Recovery refuses a missing result both while the orphan runs and after its removal; failed recovery preserves the task, replay remains refused, and the effect count stays one. Passed locally; evidence: evidence/p03-missing-result-after-orphan-removal.json. Successful uncertain-effect resolution and browser recovery remain open.
+
