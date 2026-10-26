@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "unpairedRejectionObserved": true,
+  "exactLocalDeviceApproved": true,
+  "sameClientExplicitReconnect": true,
+  "hostLoopbackConnection": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "sessionCount": 0,
+  "noModelCalls": true,
+  "scope": "Actual pinned OpenClaw gateway: unpaired rejection, exact local device approval via official CLI, same-client explicit reconnect and session discovery. No model or task submission.",
+  "runnerSha256": "91a8c5ebf0f34770009daf3d9a4c4154de5eb5f1a5f5e5bd49d30b6b2c72f236"
+}
