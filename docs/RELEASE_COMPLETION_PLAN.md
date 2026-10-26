@@ -68,8 +68,14 @@ An acceptance entry must identify its evidence file, not merely say tests passed
 - [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
   and the registered connector. Include selected API-session continuity and
   credential-change refusal for existing receipts. Verify successful completion
-  and cancellation, not only failed-run persistence. The live guided browser workflow now connects encrypted credentials, selects the session, reviews the invoice task, independently verifies its artifact, restarts the gateway before first result retrieval, recovers the result and stops a separate active text-only run (`evidence/p08-live-hermes-guided-workflow.json`). The installed archive from 40208f2 also passed (`evidence/p08-installed-hermes-guided-workflow.json`). Installed partial-effect Stop now passes: the initial marker occurs once and the later write is absent (`evidence/p05-installed-partial-effect-stop.json`). Next: reconcile remaining credential-change and session-continuity requirements against existing evidence, then exercise any uncovered cases. Other Hermes session types require
+  and cancellation, not only failed-run persistence. The live guided browser workflow now connects encrypted credentials, selects the session, reviews the invoice task, independently verifies its artifact, restarts the gateway before first result retrieval, recovers the result and stops a separate active text-only run (`evidence/p08-live-hermes-guided-workflow.json`). The installed archive from 40208f2 also passed (`evidence/p08-installed-hermes-guided-workflow.json`). Installed partial-effect Stop now passes: the initial marker occurs once and the later write is absent (`evidence/p05-installed-partial-effect-stop.json`). The credential-change and session-continuity evidence is reconciled below; next carry the accepted integration onto the final installed candidate. Other Hermes session types require
   a separate gateway path; do not present API-only discovery as universal pairing.
+  Reconciliation on October 26: `evidence/p05-reconciled-acceptance.json` verifies
+  the existing real server-key rotation, governed receipt refusal, restored exact
+  output and same-session continuation. The two built runtime files match the
+  recorded rotation hashes. These behavioral checks need no unchanged repeat.
+  Remaining P05 work is final-candidate installed-package acceptance; the rotation
+  check exercises runtime functions, not browser interaction during rotation.
 - [ ] **P06 Model connection matrix.** Inventory every advertised API and official
   subscription route. For EACH record sign-in/configuration, live chat, approved
   tool execution, expiration, interruption, restore, cancellation and sign-out on
