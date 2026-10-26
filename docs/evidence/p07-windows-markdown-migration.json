@@ -1,0 +1,26 @@
+{
+  "requirement": "P07",
+  "passed": true,
+  "syntheticOnly": true,
+  "freshDestinationStore": true,
+  "explicitProjectRemap": true,
+  "reviewDidNotWrite": true,
+  "reopenPreserved": true,
+  "exactTitleAndBody": true,
+  "provenancePreserved": true,
+  "selectedMarkdownRecall": true,
+  "windowsEditedMarkdownRecall": true,
+  "wrongProjectExcluded": true,
+  "sourceUnchanged": true,
+  "limits": [
+    "Local adapters only; no live Hindsight or browser migration in this run"
+  ],
+  "recordedAt": "2026-10-26T14:18:09.592Z",
+  "sourceCommit": "3569f77",
+  "runnerSha256": "1c0820a6d51c414e29b3ce8b1f814645998079ac65c98e831917a55e8afc1bf8",
+  "regression": {
+    "before": "Windows-converted export rejected with Invalid AgentForge memory header",
+    "after": "JSON migration, reopen, LF and CRLF selected-note retrieval preserve title, body and provenance",
+    "focusedTests": 9
+  }
+}
