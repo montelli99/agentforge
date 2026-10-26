@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "caseId": "stock-allocation",
+  "newExecutions": 0,
+  "newModelRequests": 0,
+  "independentScorePassed": true,
+  "finalApprovalCompleted": true,
+  "reopenedCompleted": true,
+  "receiptUnchanged": true,
+  "artifactUnchanged": true,
+  "scope": "Final test-authorized review of an existing synthetic live-model result; disk store reopened, no new execution or inference. Not browser approval or held-out comparison."
+}
