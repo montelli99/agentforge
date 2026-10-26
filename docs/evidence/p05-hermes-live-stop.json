@@ -1,0 +1,11 @@
+{
+  "runId": "run_633c768bb0bf4402bdca7506dc1d6e39",
+  "before": "running",
+  "acknowledgment": "acknowledged",
+  "terminal": "cancelled",
+  "localStatus": "paused",
+  "limits": [
+    "Text-only workload; cancellation of tool side effects is not proved.",
+    "Synthetic reviewer; browser interaction remains separate."
+  ]
+}

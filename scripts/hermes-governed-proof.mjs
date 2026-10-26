@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {WorkspaceStore} from '../dist/core/store/workspaceStore.js';
 import {configureHermesRunConnection} from '../dist/providers/channels/hermesRunConnection.js';
-import {prepareExternalTurnApproval,dispatchExternalTurn,observeExternalTurn} from '../dist/core/runtime/externalTurnDispatch.js';
+import {prepareExternalTurnApproval,dispatchExternalTurn,observeExternalTurn,stopExternalTurn} from '../dist/core/runtime/externalTurnDispatch.js';
 
 export async function proveGovernedHermes({base,token,sessionKey,root}){
  const connection=configureHermesRunConnection({AGENTFORGE_HERMES_URL:base,AGENTFORGE_HERMES_API_KEY:token});
@@ -34,4 +34,25 @@ export async function proveGovernedHermes({base,token,sessionKey,root}){
  assert.equal(reopened.getTask(task.id).evidencePack,undefined);
  await fs.writeFile(path.join(root,'governed-proof.json'),JSON.stringify({runId:receipt.runId,sessionKey,output:output.content,checks:{unapprovedSubmissionRefused:true,reviewedDispatch:true,reopenedReceipt:true,duplicateDispatchRefused:true,changedBindingRefused:true,sessionContextContinued:true,remoteCompletionNotLocalVerification:true},limits:['Synthetic reviewer, not browser review.','Cancellation and useful tool execution remain separate acceptance cases.']},null,2));
  console.log('Governed Hermes session continuation passed.');
+ const stopTask=reopened.createTask({title:'Synthetic Hermes Stop acceptance',priority:'medium',status:'ready'});
+ const stopRequest={connectionId:connection.id,sessionKey,message:'Write a detailed explanation of arithmetic addition using only text. Do not use tools or access files, network, or other resources.'};
+ const stopApproval=prepareExternalTurnApproval(reopened,stopTask.id,'synthetic-proof',stopRequest);
+ reopened.resolveApproval({approvalId:stopApproval.id,status:'approved',approverUserId:'synthetic-proof-reviewer',decisionOrigin:'web'});
+ const stopReceipt=await dispatchExternalTurn(reopened,stopTask.id,stopApproval.id,stopRequest,connection);
+ const beforeStop=await observeExternalTurn(reopened,stopTask.id,connection);
+ assert.ok(['queued','running'].includes(beforeStop.observation.remoteStatus),'Run must be active before Stop');
+ const acknowledged=await stopExternalTurn(reopened,stopTask.id,'synthetic-proof-reviewer',connection);
+ let stopped;
+ for(let i=0;i<60;i++){
+  stopped=await observeExternalTurn(reopened,stopTask.id,connection);
+  if(['cancelled','completed','failed','interrupted'].includes(stopped.observation.remoteStatus))break;
+  await new Promise(resolve=>setTimeout(resolve,1000));
+ }
+ const record={runId:stopReceipt.runId,before:beforeStop.observation.remoteStatus,acknowledgment:acknowledged.stop.status,terminal:stopped.observation.remoteStatus,localStatus:reopened.getTask(stopTask.id).status,limits:['Text-only workload; cancellation of tool side effects is not proved.','Synthetic reviewer; browser interaction remains separate.']};
+ await fs.writeFile(path.join(root,'stop-proof.json'),JSON.stringify(record,null,2));
+ assert.equal(record.acknowledgment,'acknowledged');assert.equal(record.terminal,'cancelled');assert.equal(record.localStatus,'paused');
+ const restoredStop=new WorkspaceStore(file);
+ await assert.rejects(()=>stopExternalTurn(restoredStop,stopTask.id,'synthetic-proof-reviewer',connection),/already recorded/);
+ await assert.rejects(()=>connection.readRunOutput(stopReceipt.runId),/unavailable/);
+ console.log('Real Hermes cancellation observed; repeated Stop refused after reopen.');
 }
