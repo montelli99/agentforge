@@ -828,3 +828,7 @@ P04 live runner now persists a started audit before each provider request and re
 ### P04 durable result recovery
 
 `evidence/p04-durable-result-restart.json` proves recovery of an explicitly fetched exact-run result after the real gateway process restarts, without replay. The gateway run lookup itself returned timeout after restart. AgentForge now persists requested output with run/request/connection identity and a content hash. Seven focused persistence/API tests pass, including rejection of tampering and another connection. Unread-result recovery and installed-package acceptance remain open.
+
+### P04 unread result recovery
+
+`evidence/p04-unread-result-restart.json` now proves recovery of a previously unread final reply after a real gateway restart through exact-run durable transcript metadata. No resend or extra model request occurs during recovery. Thirty-three focused tests pass, including rejection of ambiguous, active, incomplete and mismatched history. Installed-package repetition and broader partial-effect inspection remain open.

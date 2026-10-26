@@ -214,8 +214,9 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   }
 
   /** Return only the terminal reply bound to this run; timeout/history alone is insufficient. */
-  async readRunOutput(runId: string): Promise<{runId:string;content:string}> {
+  async readRunOutput(runId: string, sessionKey?: string): Promise<{runId:string;content:string}> {
     const result = await this.inspectRun(runId);
+    if(result.status==='timeout'&&sessionKey){const history=await this.readSessionHistory(sessionKey,100);return recoverOpenClawHistoryOutput(history,sessionKey,runId);}
     const receipt = result.terminalReceipt as Record<string,unknown> | undefined;
     const reply = result.terminalReply as Record<string,unknown> | undefined;
     if(result.status !== 'ok' || !receipt || receipt.runId !== runId || !reply
@@ -319,4 +320,17 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       }
     });
   }
+}
+
+/** Exact-run transcript recovery; never select the newest message as a substitute. */
+export function recoverOpenClawHistoryOutput(history:Record<string,unknown>&{messages:unknown[]},sessionKey:string,runId:string):{runId:string;content:string}{
+ const info=history.sessionInfo as Record<string,unknown>|undefined;
+ if(history.sessionKey!==sessionKey||info?.hasActiveRun!==false||history.hasMore!==false)throw Error('Incomplete or active history cannot establish saved output');
+ const messages=history.messages as Array<Record<string,unknown>>;
+ const origin=messages.filter(m=>m.role==='user'&&m.idempotencyKey===runId+':user');
+ const replies=messages.filter(m=>m.role==='assistant'&&(m.__openclaw as Record<string,unknown>|undefined)?.runId===runId&&m.stopReason==='stop');
+ if(origin.length!==1||replies.length!==1)throw Error('Exact run history is missing or ambiguous');
+ const reply=replies[0];if(!Array.isArray(reply.content)||!reply.content.length||!reply.content.every(c=>c&&c.type==='text'&&typeof c.text==='string'))throw Error('Unsupported history output');
+ const content=reply.content.map(c=>c.text).join('\n');if(!content.trim()||Buffer.byteLength(content,'utf8')>60000)throw Error('History output exceeds bounds');
+ return {runId,content};
 }

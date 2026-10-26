@@ -401,10 +401,10 @@ export class AgentForgeWebServer {
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
-  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
+  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
 
   /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
-  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
+  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
     if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
     if (connection.displayName !== undefined && (!connection.displayName.trim() || connection.displayName.length > 100 || /[\u0000-\u001f\u007f]/.test(connection.displayName))) throw Error('Invalid external connection display name');
     this.externalRunConnections.set(connection.id, {...connection});
@@ -4076,7 +4076,7 @@ export class AgentForgeWebServer {
         try {
           if(action==='external-output'){
             if(!connection.readRunOutput||receipt?.status!=='accepted'||!receipt.runId)throw Error('Saved output unavailable');
-            const result=await readExternalTurnOutput(this.store,task.id,{id:connection.id,readRunOutput:id=>connection.readRunOutput!(id)});
+            const result=await readExternalTurnOutput(this.store,task.id,{id:connection.id,readRunOutput:(id,sessionKey)=>connection.readRunOutput!(id,sessionKey)});
             res.writeHead(200);res.end(JSON.stringify({runId:result.runId,content:result.content,source:result.source,referenceDataOnly:true,verified:false}));return;
           }
           if(action==='external-stop'){

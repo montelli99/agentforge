@@ -97,14 +97,14 @@ export async function stopExternalTurn(store: WorkspaceStore, taskId: string, re
 }
 
 /** Persist only explicitly requested, exact-run output. This is reference data, not task verification. */
-export async function readExternalTurnOutput(store: WorkspaceStore, taskId: string, connection: {id:string;readRunOutput(runId:string):Promise<{runId:string;content:string}>}):Promise<{runId:string;content:string;source:'saved'|'remote'}> {
+export async function readExternalTurnOutput(store: WorkspaceStore, taskId: string, connection: {id:string;readRunOutput(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>}):Promise<{runId:string;content:string;source:'saved'|'remote'}> {
  if(store.persistenceMode!=='local_json')throw Error('Durable storage required');
  const receipt=store.getTask(taskId)?.externalTurnReceipts?.[0];
  if(!receipt||receipt.status!=='accepted'||!receipt.runId||receipt.connectionId!==connection.id)throw Error('Matching saved run required');
  const valid=(content:unknown):content is string=>typeof content==='string'&&!!content.trim()&&Buffer.byteLength(content,'utf8')<=60000;
  const digest=(content:string)=>crypto.createHash('sha256').update(content).digest('hex');
  if(receipt.output){const o=receipt.output;if(o.requestId!==receipt.requestId||o.runId!==receipt.runId||o.connectionId!==receipt.connectionId||!valid(o.content)||o.sha256!==digest(o.content))throw Error('Saved output identity or integrity mismatch');return {runId:o.runId,content:o.content,source:'saved'};}
- const result=await connection.readRunOutput(receipt.runId);
+ const result=await connection.readRunOutput(receipt.runId,receipt.sessionKey);
  const current=store.getTask(taskId)?.externalTurnReceipts?.[0];
  if(!current||current.requestId!==receipt.requestId||current.runId!==receipt.runId||current.connectionId!==connection.id||result.runId!==receipt.runId||!valid(result.content))throw Error('External output identity changed');
  store.updateTask(taskId,{externalTurnReceipts:[{...current,output:{requestId:receipt.requestId,runId:result.runId,connectionId:connection.id,content:result.content,sha256:digest(result.content),capturedAt:new Date().toISOString()}}]});
