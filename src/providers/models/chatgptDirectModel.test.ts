@@ -28,6 +28,10 @@ describe('offline ChatGPT direct planning seam', () => {
     const failing=vi.fn(async()=>{throw Error('synthetic-secret');});
     await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),failing).open(input))).rejects.toThrow('no retry');
     expect(failing).toHaveBeenCalledTimes(1);
+    const missingType=async()=>new Response(new TextEncoder().encode('event: response.completed\ndata: {"type":"response.completed"}\n\n'));
+    expect(await collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),missingType).open(input))).toEqual([{type:'response.completed'}]);
+    const html=async()=>new Response(new TextEncoder().encode('<html>not a stream</html>\n\n'));
+    await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),html).open(input))).rejects.toThrow('framing');
     const partial=async()=>new Response('data: {"type":"response.completed"}',{headers:{'content-type':'text/event-stream'}});
     await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),partial).open(input))).rejects.toThrow('Incomplete');
   });
