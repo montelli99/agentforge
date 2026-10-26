@@ -1062,3 +1062,8 @@ The current model interface supports JSON mode without provider-enforced JSON Sc
 
 Exact source 37a5da8 passed browser owner/project/model/worker setup, restart/unlock, live MiMo invoice planning, exact-command inspection by Codex, explicit approval, Docker execution, frozen independent invoice verification, another launcher restart, recorded result restoration and final approval. Invoice bytes and receipts remained unchanged. Evidence: evidence/p01-live-launcher-invoice-cycle.json. One paid planning request used 3717 tokens. The introductory chat reply remained synthetic; this was a source launcher, not an installed archive. Two prior rejected live attempts remain recorded, so this is a bounded passing attempt, not consistent reliability or full P01 completion.
 
+
+### Installed live plan rejected during review
+
+Archive 795f1f72aba8b0268685ac753be6510c5a650be41056c84c1afbf74973b494b3 from 689a36e reached live review. Codex refused a conditional write to inputs/invoices.json outside artifacts/**; no approval was issued. Evidence: evidence/p01-installed-live-plan-rejected.json. The harness remains bounded by its five-minute approval deadline. Planner instructions now apply boundaries to conditional branches and prohibit recreating missing inputs. Thirteen tests pass; the change is not yet live-verified.
+
