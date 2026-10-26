@@ -32,3 +32,19 @@ it.each(['home','ancestor'] as const)('rejects a linked %s before inspecting cre
   expect(client.getReadiness().ready).toBe(false);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+it.each(['removed-sign-in','changed-settings'] as const)('invalidates readiness after %s and requires reinitialization',async change=>{
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-native-drift-')));
+ try{
+  await fs.mkdir(path.join(root,'.gemini'));
+  const settings=path.join(root,'.gemini','settings.json'),credentials=path.join(root,'.gemini','oauth_creds.json');
+  const safe=JSON.stringify({security:{auth:{selectedType:'oauth-personal',enforcedType:'oauth-personal',useExternal:false}},hooksConfig:{enabled:false},admin:{extensions:{enabled:false},skills:{enabled:false}}});
+  await fs.writeFile(settings,safe);await fs.writeFile(credentials,'synthetic');await fs.writeFile(path.join(root,'gemini.js'),'// fixture');
+  const client=new GeminiNativeClient({bundlePath:path.join(root,'gemini.js'),homeDirectory:root,model:'gemini-synthetic'});await client.initialize();expect(client.getReadiness().ready).toBe(true);
+  if(change==='removed-sign-in')await fs.unlink(credentials);else await fs.writeFile(settings,'{}');
+  const input={connection:{endpoint:'http://127.0.0.1:12345/mcp',token:'a'.repeat(64)},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal};
+  mocks.run.mockClear();await expect(client.run(input)).rejects.toThrow();expect(client.getReadiness().ready).toBe(false);expect(mocks.run).not.toHaveBeenCalled();
+  await fs.writeFile(settings,safe);await fs.writeFile(credentials,'synthetic');
+  await expect(client.run(input)).rejects.toThrow('not been initialized');
+  await client.initialize();expect(client.getReadiness().ready).toBe(true);
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});

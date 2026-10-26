@@ -53,8 +53,9 @@ export class GeminiNativeClient implements GovernedNativeClient {
  }
  getReadiness(){return {ready:this.ready,blocker:this.ready?undefined:'Initialize the pinned Gemini client and dedicated signed-in profile'};}
  run:GovernedNativeClient['run']=async input=>{
-  if(!this.ready)throw Error('Native client has not been initialized');await this.profile();
-  try{if(await this.fingerprintBundle()!==this.bundleDigest)throw Error('Native bundle changed; initialize again');}
+  if(!this.ready)throw Error('Native client has not been initialized');
+  input.signal.throwIfAborted();
+  try{await this.profile();if(await this.fingerprintBundle()!==this.bundleDigest)throw Error('Native bundle changed; initialize again');}
   catch(error){this.ready=false;this.bundleDigest=undefined;throw error;}
   const endpoint=new URL(input.connection.endpoint);
   if(endpoint.protocol!=='http:'||endpoint.hostname!=='127.0.0.1'||endpoint.pathname!=='/mcp'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!/^[a-f0-9]{64}$/.test(input.connection.token))throw Error('Invalid host broker connection');
