@@ -19,17 +19,20 @@ export async function runComparisonProcess(input:{
  const {directory}=await reserveComparisonAttempt(input.reservation);
  const started=performance.now();
  let status='failed';let artifactPassed=false;let workflowPassed=false;
+ let processPassed=false;
  try{
   await input.stage(directory);
   const result=await runBoundedChild(input.executable,input.args,{cwd:directory,env:input.env,timeoutMs:input.timeoutMs,maxOutputBytes:input.maxOutputBytes});
-  // A nonzero process may still leave a correct artifact; retain both dimensions.
-  const score=await input.score(directory);artifactPassed=score.artifactPassed;workflowPassed=result.code===0&&score.workflowPassed;
-  if(artifactPassed&&workflowPassed)status='passed';
+  processPassed=result.code===0;
  }catch(error){
   status=error instanceof BoundedChildFailure&&error.classification==='timeout'?'timed_out':'failed';
-  // Score partial effects only after the bounded runner has stopped its child.
-  try{artifactPassed=(await input.score(directory)).artifactPassed;}catch{}
  }
+ // Evaluate exactly once after the child has exited or been stopped. An
+ // evaluator failure is evidence, not permission to retry it automatically.
+ try{
+  const score=await input.score(directory);artifactPassed=score.artifactPassed;workflowPassed=processPassed&&score.workflowPassed;
+  if(artifactPassed&&workflowPassed)status='passed';
+ }catch{if(status!=='timed_out')status='failed';}
  let accounting:{requests:number|null;usage:null|{inputTokens:number;outputTokens:number}};
  let accountingTimer:ReturnType<typeof setTimeout>|undefined;
  try{accounting=await Promise.race([Promise.resolve().then(()=>input.accounting()),new Promise<never>((_,reject)=>{accountingTimer=setTimeout(()=>reject(Error('Accounting deadline exceeded')),accountingTimeoutMs);})]);}catch{
