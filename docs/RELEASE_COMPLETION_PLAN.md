@@ -698,3 +698,8 @@ Real Hermes and MiMo passed the production control-plane workflow with a synthet
 ### P05 live cancellation — 2026-10-26
 
 A real Hermes text-only run was observed active, Stop was acknowledged, and subsequent observation reached cancelled. AgentForge retained paused local status, refused repeated Stop after workspace reopen, and refused completed-output retrieval from the cancelled run. Evidence: evidence/p05-hermes-live-stop.json (SHA-256 56798f9949555afcf22aeec6d4def02bff838271783adbf1bd50d2eccdb5ab2e). The first harness attempt was stopped by stale-store protection before cancellation dispatch; evidence/p05-hermes-stop-harness-failure.json records that failure and its repair. This does not establish cancellation of tool side effects or browser human-review acceptance.
+
+
+### P05 runtime tool record — 2026-10-26
+
+Read-only inspection of the disposable Hermes session database confirms the selected arithmetic run first received a blocked execute_code result, then issued a terminal Python calculation with a matching tool-call ID, output 1250 and exit code 0. Evidence: evidence/p05-hermes-terminal-execution.json (SHA-256 857dd9dc21957aba76f90321ae9ac6393c5606a55d0fbdf9d4da18bfc07ca462). The verifier exports only the selected synthetic command/result and a database hash, excluding credentials, configuration and system prompts. This proves one actual arithmetic tool execution, not the still-required useful artifact workflow or cancellation of tool effects.
