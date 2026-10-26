@@ -506,3 +506,13 @@ Claude account-status checking now uses the same immutable host configuration se
 Direct browser regression (authorized automated-test route) now proves strict owner setup, project-mapped memory import, review before write, confirmation and rendered memory with no page errors. Extending it through reload exposed a real UI defect: the collection reset to general while data remained saved. The selected collection is now remembered in browser preferences; the browser regression passes through reload. Run `pnpm build`, set `AGENTFORGE_BROWSER_EXECUTABLE` to an installed Chromium-compatible executable, then `pnpm test:memory:browser`. It uses a fresh browser context and synthetic temporary workspace; it neither accesses a personal browser profile nor calls a model. This closes this memory UI flow only, not complete model setup or first-task acceptance.
 
 Hosted public-package acceptance now installs pinned-tooling Chromium and runs the synthetic memory browser regression before packaging the release. It retains the rendered screenshot as a separate CI artifact. Local browser execution already passed; hosted execution of this new workflow step must still be observed before claiming cross-environment browser acceptance.
+
+P03 invoice worker/store reopen acceptance passed. The reviewed live-model plan
+ran once through TaskWorkerRuntime and produced the independently checked invoice
+report. Reopening WorkspaceStore and recreating the worker preserved the observed
+receipts and artifact. Both explicit reconciliation and a subsequent executeTask
+request restored the saved result without another backend execution (count=1).
+Evidence: evidence/p03-invoice-worker-recovery.json. Reproduce with
+scripts/useful-task-recovery.mjs and the retained reviewed plan/digest. This is
+worker/store reopen evidence, not a process crash or browser proof; those P03
+cases remain open. No new provider request was made for this recovery test.
