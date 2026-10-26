@@ -186,6 +186,11 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
             if(entries.some(([index],position)=>index!==position))throw new ModelProviderError('Incomplete completed output items',usage);
             output=entries.map(([,item])=>item);
           }
+          if(response.output.length&&completedItems.size){
+            const terminalOutput=response.output;
+            const identity=(value:unknown)=>{const i=record(value);return JSON.stringify({type:i.type,id:i.id,call_id:i.call_id,name:i.name,namespace:i.namespace,arguments:i.arguments,content:i.content});};
+            if(completedItems.size!==response.output.length||[...completedItems].some(([index,item])=>identity(item)!==identity(terminalOutput[index])))throw new ModelProviderError('Terminal output contradicts completed items',usage);
+          }
           const messages = output.map(record);
           if (messages.some(i => !['message', 'reasoning',...(this.config.agentTools?['function_call']:[])].includes(i.type as string))) throw new ModelProviderError('Forbidden direct completion activity', usage);
           const allowedNames=new Set(body.tools?.[0].tools.map(f=>f.name)??[]),callIds=new Set<string>();

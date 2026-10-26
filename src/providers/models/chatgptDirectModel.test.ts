@@ -120,3 +120,12 @@ it('rejects mismatched completed-item text and missing item indexes',async()=>{
  await expect(f.provider.generate(options)).rejects.toThrow();
  }
 });
+it('rejects terminal content that contradicts a finalized stream item',async()=>{
+ const final=terminal();const item={...final.response.output[0],id:'item'};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item:{...item,content:[{type:'output_text',text:'other'}]}},{...final,response:{...final.response,output:[item]}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow('contradicts');
+});
+it('does not release finalized items without terminal completion',async()=>{
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item:{...terminal().response.output[0],id:'item'}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow('without response.completed');
+});
