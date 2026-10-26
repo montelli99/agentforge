@@ -1,0 +1,80 @@
+{
+  "requirement": "P09",
+  "recordedAt": "2026-10-26T12:26:01.4468379Z",
+  "attempt": "stock-transfer-balances-1-agentforge",
+  "runtimeBuild": "9f561e7",
+  "harnessCommit": "68ceac6a51ac455c5283145db4d6cd14eac209f7",
+  "archiveSha256": "d5236d695bec6ba30b4cdf0e047eca8d01ad6277442c9baa0448df91fe57fe91",
+  "classification": "Failed attempt; comparison invalid due to asymmetric timeout instructions",
+  "reason": "AgentForge task prompt did not state the 10000ms command timeout required by evaluation. Direct baseline system prompt did. No execution occurred. Do not score as a fair comparative result or retry as a replacement.",
+  "planTimeouts": [
+    {
+      "checkName": "unit_tests",
+      "timeoutMs": null
+    },
+    {
+      "checkName": "prepare_task",
+      "timeoutMs": 60000
+    }
+  ],
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 3,
+    "passed": false,
+    "chatProvider": "mimo-v2.6-flash",
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1824,
+        "outputTokens": 56
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1076,
+          "outputTokens": 25
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1824,
+          "outputTokens": 56
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 749,
+      "prompt_tokens": 2173,
+      "total_tokens": 2922,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "error": "Evaluation command timeout exceeds frozen limit or is absent",
+    "protocolSha256": "40a3653339d7972865a499010b036dd9ac2c72068060f63c94261ceb2993b84a",
+    "totalElapsedMs": 26528.2614,
+    "providerRequests": 3,
+    "chatRequests": 2
+  }
+}
