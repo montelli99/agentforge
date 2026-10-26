@@ -1072,3 +1072,8 @@ Archive 795f1f72aba8b0268685ac753be6510c5a650be41056c84c1afbf74973b494b3 from 68
 
 The live acceptance harness now reads a digest-bound rejected-plan.json and fails promptly with the review reason. Rejection takes precedence over approval; stale or malformed rejection records fail closed. A direct test covers pending, wrong-digest approval, exact approval, rejection precedence and stale rejection. This is test orchestration, not a replacement for product approval controls. The already-rejected old test did not support this channel; its uniquely identified node process tree was stopped without issuing approval.
 
+
+### Installed live invoice cycle passes
+
+Archive eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08 from af90640 passed clean browser owner/project/model/worker setup, restart/unlock, live planning, exact-command review, real Docker execution, frozen invoice verification, second restart, receipt restoration and final approval. Invoice bytes and receipts stayed unchanged. Evidence: evidence/p01-installed-live-launcher-invoice-cycle.json. One request, 4280 tokens; introductory chat remained synthetic. Previous installed rejection is retained. Hosted 3a1b72c passed all seven jobs, evidence/ci-3a1b72c.json; it predates these planner changes, so current exact-build CI remains required.
+
