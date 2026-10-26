@@ -9,6 +9,14 @@ import {inspectGeminiCliTranscript} from './geminiCliTranscript.js';
 import {validateCliPlan} from './subscriptionCliModel.js';
 import {ModelProviderError,type GenerativeModelProvider,type ModelRequestOptions,type ModelResponse,type StreamChunk} from '../../core/providers/model.js';
 
+async function requireUnlinkedPath(target:string):Promise<void>{
+ let current=path.resolve(target);
+ for(;;){
+  const stat=await fs.lstat(current);
+  if(stat.isSymbolicLink())throw Error('Linked Gemini profile paths are not allowed');
+  const parent=path.dirname(current);if(parent===current)return;current=parent;
+ }
+}
 export interface GeminiCliPlannerConfiguration {bundlePath:string;homeDirectory:string;model:string;}
 export async function readGeminiCliPlannerConfiguration(file:string):Promise<GeminiCliPlannerConfiguration>{
  if(!path.isAbsolute(file))throw Error('Select an absolute Gemini planner configuration');
@@ -27,6 +35,7 @@ export class GeminiCliPlanner implements GenerativeModelProvider {
   this.config=Object.freeze({...config});
  }
  private async checkProfile(){
+  await requireUnlinkedPath(path.join(this.config.homeDirectory,'.gemini'));
   const home=await fs.lstat(this.config.homeDirectory);
   if(!home.isDirectory()||home.isSymbolicLink())throw Error('Dedicated Gemini home must be a regular directory');
   const settingsFile=path.join(this.config.homeDirectory,'.gemini','settings.json');

@@ -26,3 +26,18 @@ it('uses only the selected profile, bounded draft protocol and no inherited API 
   expect(mocks.run).toHaveBeenCalledTimes(2);
  }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+it('rejects a redirected profile before reading settings or launching Gemini',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'gemini-linked-profile-'));
+ const home=path.join(root,'home'),other=path.join(root,'other');
+ try{
+  await prepareGeminiCliProfile(other);
+  await fs.writeFile(path.join(other,'.gemini','oauth_creds.json'),'synthetic-placeholder');
+  await fs.mkdir(home);
+  await fs.symlink(path.join(other,'.gemini'),path.join(home,'.gemini'),process.platform==='win32'?'junction':'dir');
+  const planner=new GeminiCliPlanner({bundlePath:path.join(root,'bundle.js'),homeDirectory:home,model:'gemini-synthetic'});
+  mocks.run.mockClear();mocks.caps.mockClear();
+  expect(await planner.isAvailable()).toBe(false);
+  await expect(planner.generate({model:'gemini-synthetic',messages:[{role:'user',content:'Draft a check'}],responseFormat:'json'})).rejects.toThrow('Linked Gemini profile');
+  expect(mocks.run).not.toHaveBeenCalled();expect(mocks.caps).not.toHaveBeenCalled();
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
