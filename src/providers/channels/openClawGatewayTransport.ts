@@ -46,6 +46,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private seq = 0;
   private stopGeneration = 0;
   private terminalHandshakeFailure = false;
+  private pairingRequired = false;
   private connectingOperation = false;
   private grantedScopes = new Set<string>();
   private readonly pending = new Map<string, Pending>();
@@ -76,6 +77,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     this.nonce = undefined;
     this.connectId = undefined;
     this.terminalHandshakeFailure = false;
+    this.pairingRequired = false;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
     this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.disconnect(); }, 30_000);
@@ -115,7 +117,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       while (Date.now() < deadline) {
         if (this.stopGeneration !== generation) throw new Error("Gateway connection cancelled");
         if (this.isConnected()) return;
-        if (this.terminalHandshakeFailure) throw new Error("Gateway authentication or protocol rejected; review the connection settings");
+        if (this.terminalHandshakeFailure) throw new Error(this.pairingRequired ? "OpenClaw device pairing required. Review the pending device with fingerprint " + this.device.deviceId + " in OpenClaw, approve it only if it matches this connection, then reconnect. No task was sent." : "Gateway authentication or protocol rejected; review the connection settings");
         if (!this.socket && Date.now() >= retryAt) {
           this.start(); retryAt = Date.now() + backoff; backoff = Math.min(backoff * 2, 2000);
         }
@@ -268,6 +270,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
         }
         else {
           const error = frame.error as { code?: string; details?: { reason?: string } } | undefined;
+          this.pairingRequired = error?.code === "NOT_PAIRED";
           this.terminalHandshakeFailure = !(error?.code === "UNAVAILABLE" && error.details?.reason === "startup-sidecars");
           this.disconnect();
         }

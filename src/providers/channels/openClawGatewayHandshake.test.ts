@@ -207,3 +207,11 @@ it('returns only a bounded visible terminal reply for the exact completed run',a
  }
  client.stop();
 });
+it('explains pairing without reflecting gateway text or approving the device',async()=>{
+ const {client,socket}=setup(true);
+ socket.receive({type:'event',event:'connect.challenge',payload:{nonce:'proof',ts:123456789}});
+ socket.receive({type:'res',id:socket.sent[0].id,ok:false,error:{code:'NOT_PAIRED',message:'UNTRUSTED_SECRET',details:{requestId:'unsafe'}}});
+ await expect(client.connectWhenReady(100)).rejects.toThrow('OpenClaw device pairing required');
+ await expect(client.connectWhenReady(100)).rejects.not.toThrow('UNTRUSTED_SECRET');
+ expect(client.isConnected()).toBe(false);expect(socket.sent).toHaveLength(1);client.stop();
+});
