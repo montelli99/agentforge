@@ -7,5 +7,5 @@ const answers={
 for(const [id,answer] of Object.entries(answers))test(id+' independently specified answer and corruption rejection',async()=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-v4-score-'));const c=await comparisonCase(id);await c.stage(root);assert.deepEqual(await fs.readdir(root),['input.json']);await fs.mkdir(path.join(root,'artifacts'));const output=path.join(root,'artifacts/result.json');await fs.writeFile(output,JSON.stringify(answer));assert.deepEqual(await c.score(root),{passed:true});
  await fs.writeFile(output,JSON.stringify({...answer,extra:true}));assert.equal((await c.score(root)).passed,false);
- await fs.writeFile(output,JSON.stringify(answer));await fs.appendFile(path.join(root,'input.json'),' ');assert.equal((await c.score(root)).reason,'input-changed');
+ await fs.writeFile(output,JSON.stringify(answer));const input=path.join(root,'input.json');await fs.writeFile(input,(await fs.readFile(input,'utf8')).replace(' ','\t'));assert.equal((await c.score(root)).reason,'input-changed');
 });
