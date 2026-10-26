@@ -1,0 +1,21 @@
+{
+  "case": "Resolved journal placement and crash recovery",
+  "baseCommit": "7fb2493",
+  "changes": [
+    "Reject journal directories resolving inside execution worktree",
+    "Validate before container creation and on save/read"
+  ],
+  "focusedTestsPassed": 12,
+  "buildPassed": true,
+  "realDockerCrash": true,
+  "authenticatedBrowserRecovery": true,
+  "executionsDuringRecovery": 0,
+  "independentInvoiceCheck": true,
+  "pendingFinalApproval": true,
+  "browserAttempt1": "Missing bundled Playwright browser; no recovery execution",
+  "browserAttempt2": "Installed Chrome, fresh synthetic profile, same saved Docker run",
+  "limits": [
+    "Does not defend against a malicious host process racing filesystem replacement.",
+    "Hosted verification for these changes remains pending."
+  ]
+}

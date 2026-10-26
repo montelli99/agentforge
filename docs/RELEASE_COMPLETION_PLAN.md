@@ -713,3 +713,8 @@ Hermes generated the invoice report through its real model and tools. The host i
 ### Hosted archive checkpoint — 2026-10-26
 
 All seven jobs passed for 9b4538e in run 40284746678. Downloaded CI archive hash independently matched 686294ae27e39aa2f3b89238f6aa33d751510173266d09ca307b4979a778c448. Evidence: evidence/hosted-ci-9b4538e.json. Current local public privacy tests passed 27/27 and the archive boundary inspected 464 files without private signatures. Later proof records require the next hosted build; this checkpoint does not close the release backlog.
+
+
+### P03 recovery journal placement — 2026-10-26
+
+Journal placement now validates canonical filesystem paths before execution and on save/read, rejecting directory links into the task workspace. Twelve focused tests and build passed. Real Docker crash output recovered through authenticated Chrome with zero execution during recovery, independent invoice verification, and pending approval retained after reopen. The initial browser launch failed because bundled Chromium was absent; recovery continued against the same saved run using installed Chrome, not by repeating execution. Evidence: evidence/p03-journal-placement-recovery.json.

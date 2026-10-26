@@ -105,6 +105,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     }
     if (input.signal.aborted) throw new TaskExecutionCancelledError();
 
+    if(this.options.resultJournalDirectory)await new ExecutionResultJournal(this.options.resultJournalDirectory).validatePlacement(input.worktreePath);
     const plan = await this.planProvider.getPlan(input.task);
     this.assertPlan(input.task, plan);
     if (input.signal.aborted) throw new TaskExecutionCancelledError();
