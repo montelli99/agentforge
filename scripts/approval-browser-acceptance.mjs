@@ -36,7 +36,7 @@ const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}
     git(root, ["-c", "user.name=AgentForge E2E", "-c", "user.email=e2e@example.invalid", "commit", "-m", "fixture"]);
     const baseSha = git(root, ["rev-parse", "HEAD"]);
 
-    let taskId;
+    let taskId;let taskTitle='User-created bounded task';
     const command = invoiceCase ? "test -s artifacts/report.json" : "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
 let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
@@ -54,6 +54,9 @@ const plannedCommands=[{checkName:'unit_tests',command,timeoutMs:10000}];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw);
+ if(chatJourney&&body.stream&&liveModel){
+ chatRequests++;try{if(chatRequests>6)throw Error('Live chat request ceiling reached');const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:3000,thinking:{type:'disabled'}})});const response=await upstream.text();await writeFile(path.join(root,'live-chat-response-'+chatRequests+'.txt'),response);res.writeHead(upstream.status,{'Content-Type':upstream.headers.get('content-type')||'text/event-stream'});res.end(response);}catch{res.writeHead(502);res.end('Live chat failed; no automatic retry');}return;
+ }
  if(chatJourney&&body.stream){chatRequests++;res.writeHead(200,{'Content-Type':'text/event-stream'});const tool=body.messages.at(-1)?.role==='tool';const reading=!!taskId&&store.getTask(taskId)?.status==='completed';if(reading&&tool){const output=JSON.parse(body.messages.at(-1).content);assert.equal(output.referenceDataOnly,true);assert.ok(output.content.includes('agentforge-docker-e2e'));}const delta=tool?{content:reading?'Verified artifact: agentforge-docker-e2e':'Task prepared for review.'}:{tool_calls:[{index:0,id:reading?'read-synthetic':'prepare-synthetic',type:'function',function:{name:reading?'read_task_artifact':'prepare_task',arguments:JSON.stringify(reading?{taskId,path:artifactPath}:{title:'User-created bounded task'})}}]};res.write('data: '+JSON.stringify({id:'synthetic-chat',choices:[{delta,finish_reason:tool?'stop':'tool_calls'}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20}})+'\n\n');res.end('data: [DONE]\n\n');return;}
  modelRequests++;
  assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
@@ -93,10 +96,10 @@ try{
  if(chatJourney){
  await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();
  await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');
- await page.getByLabel('Message',{exact:true}).fill('Create the requested synthetic artifact at '+artifactPath+'. Prepare a task for review.');
- await page.getByRole('button',{name:'Send ↑',exact:true}).click();await page.getByText('Task prepared for review.',{exact:true}).waitFor();
- assert.equal(chatRequests,2);const created=store.listTasks().find(t=>t.originThreadId===thread.id);assert.ok(created);taskId=created.id;assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
- await page.getByLabel('Tasks and runs',{exact:true}).click();await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.getByLabel('Message',{exact:true}).fill(invoiceCase?(await readFile(new URL('./fixtures/useful-task/PROTOCOL.txt',import.meta.url),'utf8')).split('Acceptance:')[0]+'\nInput data (also present at inputs/invoices.json):\n'+await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url),'utf8')+'\nUse prepare_task now to prepare this work for review; do not execute yet.':'Create the requested synthetic artifact at '+artifactPath+'. Prepare a task for review.');
+ await page.getByRole('button',{name:'Send ↑',exact:true}).click();if(liveModel){const until=Date.now()+120000;while(Date.now()<until&&!store.listTasks().some(t=>t.originThreadId===thread.id))await new Promise(r=>setTimeout(r,200));}else{await page.getByText('Task prepared for review.',{exact:true}).waitFor();assert.equal(chatRequests,2);}
+const created=store.listTasks().find(t=>t.originThreadId===thread.id);assert.ok(created);taskId=created.id;taskTitle=created.title;assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
+ await page.getByLabel('Tasks and runs',{exact:true}).click();await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
  await page.locator('[data-section="boundaries"]').click();await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
  const editor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});await editor.locator('[name=branch]').fill('main');await editor.locator('[name=sha]').fill(baseSha);await editor.locator('[name=allowed]').fill('artifacts/**\nreports/**');await editor.locator('[name=protected]').fill('.env\n.env.*\n.git/**');await editor.locator('[name=outputs]').fill(artifactPath);
  while(await editor.locator('.boundary-check-row').count()>1)await editor.locator('.boundary-check-row').last().getByRole('button',{name:'Remove',exact:true}).click();
@@ -142,7 +145,7 @@ try{
  assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:artifactPath}]);
  assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
  assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(created.id).contract.repository.baseSha,baseSha);
- await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
  await page.locator('[data-section="boundaries"]').click();
  await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
  const boundaryEditor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});
@@ -194,7 +197,7 @@ try{
   await page.locator('input[name=username]').fill('owner');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Sign in',exact:true}).click();
  }
  await page.getByLabel('Tasks and runs',{exact:true}).click();
- await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
  await page.getByRole('button',{name:'Review recorded execution',exact:true}).click();
  await page.getByRole('button',{name:'Restore verified recorded result',exact:true}).click();
  await page.getByText('Validated recorded result restored. No command replayed.',{exact:true}).waitFor();
@@ -217,12 +220,11 @@ try{
  assert.ok(verifiedOutput.content.length>0);
  if(chatJourney){
  await page.getByLabel('Models and routing',{exact:true}).click();await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic proof vault password');await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
- await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');await page.getByLabel('Message',{exact:true}).fill('Read the verified artifact from the completed task.');await page.getByRole('button',{name:'Send ↑',exact:true}).click();await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();
- assert.equal(chatRequests,4);const receipts=JSON.stringify(store.getTask(taskId).executionReceipts);await page.reload();await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,4);assert.equal(JSON.stringify(store.getTask(taskId).executionReceipts),receipts);
+ await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');await page.getByLabel('Message',{exact:true}).fill('Read '+artifactPath+' from completed task '+taskId+' using read_task_artifact and summarize its actual contents.');await page.getByRole('button',{name:'Send ↑',exact:true}).click();if(liveModel){const until=Date.now()+120000;const initial=chatRequests;while(Date.now()<until){const answer=store.listThreadMessages(thread.id).at(-1);if(chatRequests>initial&&answer?.generation?.status==='complete')break;await new Promise(r=>setTimeout(r,200));}const answer=store.listThreadMessages(thread.id).at(-1);assert.equal(answer.generation?.status,'complete');assert.ok(answer.content.includes('950'));await writeFile(path.join(root,'final-chat-answer.json'),JSON.stringify(answer,null,2));}else{await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,4);}const count=chatRequests;const receipts=JSON.stringify(store.getTask(taskId).executionReceipts);await page.reload();if(liveModel)await page.locator('#conversation-feed').getByText('950',{exact:false}).first().waitFor();else await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,count);assert.equal(JSON.stringify(store.getTask(taskId).executionReceipts),receipts);
  }
  assert.equal(modelRequests,1);
  assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
- const proof={passed:true,chatJourney,chatRequests,verifiedArtifactReturnedToChat:chatJourney,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
+ const proof={passed:true,chatJourney,chatRequests,verifiedArtifactReturnedToChat:chatJourney,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests+chatRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
  proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
  proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
  proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");

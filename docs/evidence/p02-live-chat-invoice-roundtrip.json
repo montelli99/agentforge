@@ -1,0 +1,149 @@
+{
+  "passed": true,
+  "chatJourney": true,
+  "chatRequests": [
+    {
+      "id": "6812e9c8-d530-4464-8fa4-251eb0a3de50_9c36befdafe3412bb2ff8396de76802e",
+      "usage": {
+        "completion_tokens": 46,
+        "prompt_tokens": 1220,
+        "total_tokens": 1266,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": null
+      },
+      "toolNames": [
+        "prepare_task"
+      ]
+    },
+    {
+      "id": "31877e24-37a7-4955-ad65-4930f0e285b9_e8134c2ca8d24085b66a37b3b5fb753b",
+      "usage": {
+        "completion_tokens": 175,
+        "prompt_tokens": 2154,
+        "total_tokens": 2329,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1216
+        }
+      },
+      "toolNames": []
+    },
+    {
+      "id": "7dbb5f54-0327-4e6b-96de-52a7b37db3bc_695ce96fc6334726b33a792cb16d6bb6",
+      "usage": {
+        "completion_tokens": 55,
+        "prompt_tokens": 1547,
+        "total_tokens": 1602,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "toolNames": [
+        "read_task_artifact"
+      ]
+    },
+    {
+      "id": "533447f3-883c-4211-b9b4-010051d9761b_38d8c3508c17408c88ec9adea53c5478",
+      "usage": {
+        "completion_tokens": 311,
+        "prompt_tokens": 1941,
+        "total_tokens": 2252,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        }
+      },
+      "toolNames": []
+    }
+  ],
+  "verifiedArtifactReturnedToChat": true,
+  "invoiceCase": true,
+  "syntheticOnly": false,
+  "syntheticTaskData": true,
+  "liveModel": "mimo-v2.6-flash",
+  "credentialMediatedByLocalProxy": true,
+  "syntheticModelDraft": false,
+  "recordedProviderResponse": false,
+  "paidModelRequests": 5,
+  "onePlanningProviderRequest": true,
+  "totalProviderRequests": 5,
+  "createdTaskExecuted": true,
+  "guidedRepositoryRevision": false,
+  "concurrentEditsPreserved": false,
+  "browserCommandReview": true,
+  "authenticatedApproval": true,
+  "approvalDidNotExecute": true,
+  "realDocker": true,
+  "verifiedArtifact": true,
+  "serviceRestartBeforeReview": true,
+  "recordedResultRestored": true,
+  "receiptsUnchanged": true,
+  "finalReviewConfirmed": true,
+  "durableCompletion": true,
+  "completedEvidenceReadableAfterReopen": true,
+  "runnerSourceCommit": "eeb03a18ee10b51304ba245d0adfed328f98bd46",
+  "installedPackage": false,
+  "runnerSha256": "67be349901183426c8574f4ea7de70f331b44a21203e4e24331366267cded5b3",
+  "utc": "2026-10-26T09:02:52.297Z",
+  "scope": "Live source-build chat invoice round trip; installed live archive still pending",
+  "reviewedPlan": {
+    "model": "mimo-v2.6-flash",
+    "digest": "3937fda87dc02b32c9a54acfaea2290105917ea87bfc40411ad80a6d65464151",
+    "plan": {
+      "taskId": "chat-7d053b8f9559456b65f76163",
+      "source": "model",
+      "commands": [
+        {
+          "checkName": "prepare_task",
+          "command": "mkdir -p artifacts && node -e '\nconst fs=require(\"fs\");\nconst invoices=JSON.parse(fs.readFileSync(\"inputs/invoices.json\",\"utf8\"));\nconst best=new Map();\nlet supersededRows=0;\nfor(const inv of invoices){\n  const cur=best.get(inv.id);\n  if(!cur||inv.revision>cur.revision){\n    if(cur) supersededRows++;\n    best.set(inv.id,inv);\n  } else {\n    supersededRows++;\n  }\n}\nlet includedInvoices=0, voidInvoices=0;\nconst groups=new Map();\nfor(const inv of best.values()){\n  if(inv.status===\"void\"){ voidInvoices++; continue; }\n  includedInvoices++;\n  const sign=inv.status===\"refunded\"?-1:1;\n  const key=inv.customer+\"\\u0000\"+inv.currency;\n  let g=groups.get(key);\n  if(!g){ g={customer:inv.customer,currency:inv.currency,netCents:0,count:0}; groups.set(key,g); }\n  g.netCents+=sign*inv.amountCents;\n  g.count++;\n}\nconst rows=[...groups.values()].sort((a,b)=>a.customer<b.customer?-1:a.customer>b.customer?1:a.currency<b.currency?-1:a.currency>b.currency?1:0);\nconst report={rows,includedInvoices,voidInvoices,supersededRows};\nfs.writeFileSync(\"artifacts/report.json\",JSON.stringify(report,null,2)+\"\\n\");\n'",
+          "timeoutMs": 15000
+        },
+        {
+          "checkName": "unit_tests",
+          "command": "test -s artifacts/report.json",
+          "timeoutMs": 5000
+        },
+        {
+          "checkName": "verify_report_content",
+          "command": "node -e 'const fs=require(\"fs\");const r=JSON.parse(fs.readFileSync(\"artifacts/report.json\",\"utf8\"));const exp={rows:[{customer:\"Acme\",currency:\"EUR\",netCents:500,count:1},{customer:\"Acme\",currency:\"USD\",netCents:950,count:2},{customer:\"Beta\",currency:\"EUR\",netCents:-75,count:1},{customer:\"Beta\",currency:\"USD\",netCents:300,count:1},{customer:\"Gamma\",currency:\"USD\",netCents:0,count:1}],includedInvoices:6,voidInvoices:1,supersededRows:2};if(JSON.stringify(r)!==JSON.stringify(exp)){console.error(\"MISMATCH\",JSON.stringify(r));process.exit(1);}console.log(\"report verified\");'",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "taskId": "chat-7d053b8f9559456b65f76163"
+  },
+  "planningUsage": {
+    "completion_tokens": 602,
+    "prompt_tokens": 2811,
+    "total_tokens": 3413,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": null
+  },
+  "frozenInputs": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+  },
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "files": {
+    "browser-proof.json": "60e3ab2f9a50b3fd2f284e6aa421d91535dc212ec0431a3007b406232bfcaf5e",
+    "final-chat-answer.json": "80f2d969e4f14b42addf8646e0df328d029b868de413c9b27aea5c84b61e68f1",
+    "review-plan.json": "65f84d163993521ffb670b66183cfeca8520999ae089e02c4a3bde65507abcb4",
+    "live-provider-response.json": "ec1122cc93d8b60383c2ee26a4ab5333442fd869e6b589fc4b676f56220f2655",
+    "live-chat-response-1.txt": "c248c354ff321f95d789a69a71bec372cc68a8f3542d8e21a543730993f43b68",
+    "live-chat-response-2.txt": "c734f327b080f9931ac30bc30a243b4651c426422037357c76c4687bfb3f0826",
+    "live-chat-response-3.txt": "c1c009a4b40e1fd5f05ddebc78763756edd87af9f43f22abe6c8fbf966d2a64e",
+    "live-chat-response-4.txt": "03c7387b99e0864f564b3b4fb0fae82c05afff49998733972b1bc1276d882e35"
+  }
+}
