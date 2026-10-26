@@ -1004,3 +1004,8 @@ it to planning-only without losing receipts. An explicit startup off setting als
 overrides a saved Docker selection and refuses guided changes. Evidence:
 `evidence/p01-execution-setup-failure-recovery.json`. No paid requests. Build passed;
 this script is already included in the hosted Docker job.
+
+### Hosted saved-execution acceptance
+
+Hosted run 40312592436 passed all seven jobs for exact commit 5ca4e6a. This includes six OS/Node combinations and public-package, installed-browser, and saved-execution restart/final-approval acceptance. Evidence: evidence/ci-5ca4e6a.json. The later missing-repository repair fix is not covered by this run; it requires the next exact-build run. The full P01-P10 scope remains open.
+
