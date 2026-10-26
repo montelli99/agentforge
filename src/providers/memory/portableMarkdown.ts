@@ -34,12 +34,14 @@ export function readPortableMarkdown(text: string, namespace: string, projectId:
   if (!body || body[1].length > 4096) throw Error('Invalid AgentForge memory body');
   // The serializer adds one terminal newline; retain the original body exactly.
   const content = body[2].endsWith('\n') ? body[2].slice(0, -1) : body[2];
+  if (fields.agentforge_title !== undefined && (typeof fields.agentforge_title !== 'string' || fields.agentforge_title.length > 4096))
+    throw Error('Invalid AgentForge memory title');
   const source = fields.agentforge_source as Record<string, unknown> | undefined;
   if (source !== undefined && (!source || typeof source !== 'object' || Array.isArray(source)
     || typeof source.alias !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(source.alias)
     || typeof source.providerId !== 'string' || source.providerId.length > 128
     || typeof source.recordId !== 'string' || source.recordId.length > 1024)) throw Error('Invalid AgentForge memory provenance');
-  return {title: body[1], content, category: fields.agentforge_category as OperationalMemoryRecord['category'],
+  return {title: fields.agentforge_title === undefined ? body[1] : fields.agentforge_title as string, content, category: fields.agentforge_category as OperationalMemoryRecord['category'],
     tags: fields.tags as string[], archived: fields.agentforge_archived, version: fields.agentforge_version as number,
     createdAt: fields.agentforge_created, updatedAt: fields.agentforge_updated,
     metadata: {importedRecordId: fields.agentforge_id, ...(source ? {memorySource: {alias: source.alias, providerId: source.providerId, recordId: source.recordId}} : {})}};

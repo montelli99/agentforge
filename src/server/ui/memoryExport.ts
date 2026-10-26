@@ -17,6 +17,7 @@ export function memoryMarkdown(record: {
     'agentforge_format: "agentforge-memory"',
     'agentforge_schema: 1',
     'agentforge_id: ' + JSON.stringify(record.id),
+    'agentforge_title: ' + JSON.stringify(record.title),
     'agentforge_namespace: ' + JSON.stringify(record.namespace),
     'agentforge_project: ' + JSON.stringify(record.projectId || null),
     'agentforge_version: ' + JSON.stringify(record.version || 1),
