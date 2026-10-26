@@ -1153,3 +1153,7 @@ Memory list/search results now return deep copies so callers cannot mutate durab
 ### Runtime verification after memory durability fixes
 Build 9f561e7 passed rendered memory setup/import, encrypted save/disconnect/restore/forget, wrong-password refusal, explicit restore after restart, composed local recall with provenance and outage refusal, and forced-process termination recovery. Evidence: evidence/p07-durable-memory-runtime-regression.json. No live cloud or installed archive claim for this run.
 
+
+### Concurrent memory writes
+Added stale-writer save/delete tests: both refuse a changed disk snapshot, restore the stale session's prior local record, emit no notification, and retain the other session's newer committed value on disk. Ten batch/lifecycle tests pass. Installed memory acceptance for the 9f561e7 runtime is running separately.
+

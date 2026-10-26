@@ -109,3 +109,14 @@ it('returns detached memory reads so editing a result cannot bypass persistence'
  expect(store.listOperationalMemories('synthetic')).toEqual([record('owned')]);
  expect(new WorkspaceStore(file).listOperationalMemories('synthetic')).toEqual([record('owned')]);
 });
+
+it.each(['save','delete'] as const)('refuses stale %s without erasing another session update',operation=>{
+ const {file,store}=fixture();store.saveOperationalMemory(record('shared'));
+ const stale=new WorkspaceStore(file);const notice=vi.fn();stale.subscribe(notice);
+ store.saveOperationalMemory({...record('shared'),content:'newer committed value',version:3});
+ const action=()=>operation==='save'?stale.saveOperationalMemory({...record('shared'),content:'stale overwrite'}):stale.deleteOperationalMemory('synthetic','shared');
+ expect(action).toThrow(/snapshot changed/i);
+ expect(stale.listOperationalMemories('synthetic')).toEqual([record('shared')]);
+ expect(notice).not.toHaveBeenCalled();
+ expect(new WorkspaceStore(file).listOperationalMemories('synthetic')[0]).toMatchObject({content:'newer committed value',version:3});
+});
