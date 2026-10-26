@@ -1269,3 +1269,16 @@ Hosted run 40340652681 passed for exact source
 b92b63219ee4a20ec31fe5c6851b483dae8ddb54, recorded in
 `evidence/ci-b92b632.json`. This is not final release acceptance and does not
 cover later changes.
+
+### DeepSeek published configuration compatibility
+
+`evidence/p09-deepseek-headless-configuration.json` records successful isolated
+headless help and default-configuration inspection for published 0.2.1-rc.3.
+The published headless help does not expose the permission flags shown in the
+inspected source documentation. Use the installed configuration contract,
+not assumed source/package equivalence. Default configuration selects
+workspace-write with ask approval through DSH_PERMISSION_MODE, and includes a
+telemetry exporter. Before model trials, prepare an isolated container with
+explicit telemetry disabled, constrained network through the measured provider
+proxy, and a reviewed configuration overlay. Do not relax host permissions to
+make a benchmark pass. No model task or comparative score is claimed here.
