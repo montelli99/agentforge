@@ -1,0 +1,85 @@
+{
+  "requirement": "P02/P03/P08",
+  "proof": {
+    "passed": true,
+    "invoiceCase": true,
+    "syntheticOnly": false,
+    "syntheticTaskData": true,
+    "liveModel": "mimo-v2.6-flash",
+    "credentialMediatedByLocalProxy": true,
+    "syntheticModelDraft": false,
+    "recordedProviderResponse": false,
+    "paidModelRequests": 1,
+    "oneProviderRequest": true,
+    "createdTaskExecuted": true,
+    "guidedRepositoryRevision": true,
+    "concurrentEditsPreserved": true,
+    "browserCommandReview": true,
+    "authenticatedApproval": true,
+    "approvalDidNotExecute": true,
+    "realDocker": true,
+    "verifiedArtifact": true,
+    "serviceRestartBeforeReview": true,
+    "recordedResultRestored": true,
+    "receiptsUnchanged": true,
+    "finalReviewConfirmed": true,
+    "durableCompletion": true,
+    "completedEvidenceReadableAfterReopen": true,
+    "runnerSourceCommit": "fccc22c27e4a89fb9aad73f0764707c10115380a",
+    "installedPackage": false,
+    "runnerSha256": "d7448a8e4ec52e4f9fbc40a881d71f2d986537a9e3c6c8d1c6c9db4e58a6b40e"
+  },
+  "attempts": [
+    {
+      "passed": false,
+      "taskStatus": "failed",
+      "error": "Approved execution plan is missing the contracted check command: unit_tests",
+      "planningAudit": [
+        {
+          "id": "3ca9b5cd-4f7c-44da-9f73-63065c13bac9",
+          "taskId": "task-eccab145-6f7c-490a-90aa-d6c67479b673",
+          "model": "compatible::synthetic-model",
+          "requestDigest": "8be6a95d321259d775f2645b6dcd64b53d61bf1194c2ecfe95174c155706a078",
+          "status": "completed",
+          "inputTokens": 1147,
+          "outputTokens": 512,
+          "responseDigest": "214805ef137b73eab914978249161c1fad7f91b939a584295136f95481df774d"
+        }
+      ],
+      "providerResponseSha256": "686172ad1ecf4f473d2cb0e84594e2dab638653a8df776eb87a62b91f2b94941",
+      "planSha256": "864a43b10f8b4806759f0672b7dc4c0d01f629d8270e154096bcb7e22b402ef2",
+      "frozenInputs": {
+        "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+        "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409",
+        "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+      }
+    },
+    {
+      "passed": true,
+      "taskStatus": "completed",
+      "planningAudit": [
+        {
+          "id": "ade693ec-1812-4e93-ae87-575769be5e14",
+          "taskId": "task-a416a8ca-280f-45d7-9479-d91143366bdb",
+          "model": "compatible::synthetic-model",
+          "requestDigest": "0eafffd82533573bb9ccbe6d089e07fe38d3e1dc71dfff443c4c443323f2a347",
+          "status": "completed",
+          "inputTokens": 2715,
+          "outputTokens": 773,
+          "responseDigest": "25a38e7e6983fca6fe14e0dec8be8c6400718c041512c6d3ac6622897e83445a"
+        }
+      ],
+      "providerResponseSha256": "48c43322e5a3765b63e6b9390faf5d54bfc0a19e348787715dec86708b086fda",
+      "planSha256": "5ac9d19e66c8dd28cbac754b935818ba75f67b61e43c120862a68777d808efd0",
+      "frozenInputs": {
+        "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+        "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409",
+        "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+      },
+      "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e"
+    }
+  ],
+  "productionPlannerSha256": "8e0c869243d783a22401edb260c8258ecc3a8d81f58a21ee84bc1134a36af7f8",
+  "scope": "Fresh live model browser task with synthetic input data, review, isolated execution, independent evaluator, service restart and final approval. Not clean installed archive or full recovery matrix.",
+  "repair": "Reject missing exact contracted checks during drafting; prompt requires separate check entries. Synthetic input data included in task description; evaluator never supplied."
+}

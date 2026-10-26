@@ -59,3 +59,13 @@ describe("ModelPlanDraftProvider", () => {
       .rejects.toThrow(/unavailable sandbox tool: jq/i);
   });
 });
+
+it('rejects a combined check before approval and accepts a separate exact check',async()=>{
+ const task={id:'required',title:'Create output',contract:{requiredChecks:[{type:'unit_tests',required:true,command:'test -s artifacts/report.json'}]}} as never;
+ const work={checkName:'unit_tests',command:'node build.js && test -s artifacts/report.json'};
+ const model=(commands:unknown[])=>({generate:async()=>({content:JSON.stringify({commands})})}) as never;
+ await expect(new ModelPlanDraftProvider(model([work]),'test').draft(task)).rejects.toThrow('exact required check');
+ const exact={checkName:'unit_tests',command:'test -s artifacts/report.json'};
+ const draft=await new ModelPlanDraftProvider(model([work,exact]),'test').draft(task);
+ expect(draft.commands).toEqual([work,exact]);expect(draft.source).toBe('model');
+});

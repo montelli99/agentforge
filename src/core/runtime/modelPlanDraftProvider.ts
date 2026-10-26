@@ -29,7 +29,7 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
     const abort=new AbortController();const relay=()=>abort.abort();if(signal?.aborted)abort.abort();signal?.addEventListener("abort",relay,{once:true});
     const request:ModelRequestOptions = {
       model: this.modelName,
-      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. Propose commands that complete the requested deliverables, not commands that only inspect input files. When the task names an output file or state change, include a bounded command that creates any missing parent directory, writes the output, and verifies the requested content. A command that redirects into a nonexistent directory fails. Use POSIX sh and the listed sandbox tools; prefer Node.js for JSON when node is listed. Do not assume jq, Python, or network utilities are installed unless explicitly listed. Follow with every required check. For each required check, copy its type exactly into checkName and copy its command exactly when one is supplied. Keep all commands within the supplied task boundaries. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, description: task.description,
+      messages: [{ role: "system", content: "Return JSON only: {commands:[{checkName,command,timeoutMs}]}. Propose commands that complete the requested deliverables, not commands that only inspect input files. When the task names an output file or state change, include a bounded command that creates any missing parent directory, writes the output, and verifies the requested content. A command that redirects into a nonexistent directory fails. Use POSIX sh and the listed sandbox tools; prefer Node.js for JSON when node is listed. Do not assume jq, Python, or network utilities are installed unless explicitly listed. Follow with every required check as its own array entry. Never combine a required check with the work command using && or other shell syntax; the check command must be an exact standalone string. For each required check, copy its type exactly into checkName and copy its command exactly when one is supplied. Keep all commands within the supplied task boundaries. Never add destructive or network commands." }, { role: "user", content: JSON.stringify({ id: task.id, title: task.title, description: task.description,
         scope: task.contract.scope, authority: task.contract.authority,
         requiredArtifacts: task.contract.completion?.requiredArtifacts, checks: task.contract.requiredChecks,
         sandboxTools: this.sandboxTools }) }],
@@ -63,6 +63,11 @@ export class ModelPlanDraftProvider implements ExecutionPlanProvider {
       return typeof item.checkName !== "string" || !item.checkName.trim() || item.checkName.length > 200 || typeof item.command !== "string" || !item.command.trim() || item.command.length > 20000
         || (item.timeoutMs !== undefined && (typeof item.timeoutMs !== "number" || !Number.isSafeInteger(item.timeoutMs) || item.timeoutMs < 1 || item.timeoutMs > 3_600_000));
     })) throw new Error("Model execution-plan draft failed schema validation.");
+    for (const check of task.contract.requiredChecks.filter(check => check.required)) {
+      if (!commands.some(command => command.checkName === check.type && (!check.command || command.command === check.command))) {
+        throw new Error(`Model draft is missing the exact required check: ${check.type}. Return each required check as a separate command; do not combine it with the work command.`);
+      }
+    }
     if (this.sandboxTools.length) {
       for (const entry of commands as Array<{ command: string }>) {
         const unsupported = /\b(jq|yq|python3?|pip3?)\b(?=\s|$)/gi;

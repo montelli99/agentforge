@@ -10,8 +10,8 @@ import {createHash} from 'node:crypto';
 const invoiceCase=process.env.AGENTFORGE_BROWSER_INVOICE_PROOF==='1';
 const artifactPath=invoiceCase?'artifacts/report.json':'artifacts/verified.txt';
 const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
-const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE || (invoiceCase ? new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url).pathname : undefined);
-if(invoiceCase&&!recordedResponse)throw Error('Invoice browser proof requires the reviewed recorded plan');
+const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE || (invoiceCase && !liveModel ? new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url).pathname : undefined);
+if(invoiceCase&&!recordedResponse&&!liveModel)throw Error('Invoice browser proof requires the reviewed recorded plan');
 if(recordedResponse && liveModel)throw Error('Recorded and live provider modes are mutually exclusive');
 if(liveModel && (!process.env.MIMO_API_KEY || process.env.AGENTFORGE_LIVE_PLANNING_PROOF!=='1'))throw Error('Live browser proof requires explicit opt-in and a MiMo credential');
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
@@ -25,6 +25,7 @@ const executable=process.env.AGENTFORGE_BROWSER_EXECUTABLE;
 if(!executable||!path.isAbsolute(executable))throw Error('Select an absolute Chromium executable');
 process.env.AGENTFORGE_AUTH_STRICT='1';
 const root=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-browser-'));
+if(invoiceCase){const hashes={};for(const name of ['invoices.json','verify.mjs','PROTOCOL.txt'])hashes[name]=createHash('sha256').update(await readFile(new URL('./fixtures/useful-task/'+name,import.meta.url))).digest('hex');await writeFile(path.join(root,'frozen-inputs.json'),JSON.stringify(hashes,null,2));}
 const privateSettings=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-private-'));
 const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}).trim();
     git(root, ["init", "--initial-branch=main"]);
@@ -55,7 +56,7 @@ const provider=http.createServer(async(req,res)=>{
  if(liveModel){
   try{
    if(modelRequests!==1)throw Error('Live proof permits one request only');
-   const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:1500,stream:false})});
+   const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:3000,thinking:{type:'disabled'},stream:false})});
    const response=await upstream.text();
    await writeFile(path.join(root,'live-provider-response.json'),response);
    res.writeHead(upstream.status,{'Content-Type':'application/json'});res.end(response);
@@ -109,7 +110,7 @@ try{
  await page.getByRole('button',{name:'Use current project revision',exact:true}).click();
  await page.getByText('Project revision filled in. Review allowed files and the test command; no task was run.',{exact:true}).waitFor();
  await page.locator('#task-title').fill('User-created bounded task');
- await page.locator('#task-description').fill(invoiceCase?'Reconcile synthetic invoice revisions, refunds, voids and currencies into the reviewed report.':'Synthetic task saved through guided setup.');
+ await page.locator('#task-description').fill(invoiceCase?(await readFile(new URL('./fixtures/useful-task/PROTOCOL.txt',import.meta.url),'utf8')).split('Acceptance:')[0]+'\nInput data (also present at inputs/invoices.json):\n'+await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url),'utf8'):'Synthetic task saved through guided setup.');
  await page.locator('#task-allowed-paths').fill('artifacts/**\nreports/**');
  await page.locator('#task-test-command').fill(command);
  await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill(artifactPath);
