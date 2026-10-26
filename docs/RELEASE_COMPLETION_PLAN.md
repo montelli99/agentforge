@@ -49,10 +49,10 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   artifact, review the actual plan, execute it, independently inspect output and
   approve completion. Save setup screenshots, task journal and output hashes.
   Next: extend the existing live approval journey beyond its predefined fixture.
-- [ ] **P02 Real chat execution (execution proof passed; chat presentation pending).** Use a live model to create a useful artifact
+- [ ] **P02 Real chat execution (live browser task and saved chat presentation proved; unified journey pending).** Use a live model to create a useful artifact
   from synthetic inputs with no embedded solution. Verify output with a separate
   evaluator, record the actual commands and all model attempts, and show the
-  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Next: expose this verified result through the chat journey and carry it into P03. The protocol froze its
+  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Fresh live planning, browser approval, independent invoice verification, restart and final approval are recorded in `evidence/p02-live-invoice-browser-completion.json`; saved chat rendering has separate evidence. Next: combine these into one installed-package chat-to-task journey. The protocol froze its
   input and evaluator before execution. Existing fixed-file proof is supporting
   evidence only and must not be reported as general task competence.
 - [ ] **P03 Recovery matrix.** On that workflow interrupt browser streaming,
@@ -60,17 +60,16 @@ An acceptance entry must identify its evidence file, not merely say tests passed
   Also expire authentication and introduce conflicting memory. Reopen, recover
   context, reconcile effects, and count executions to prove no duplicates.
   Save before/after journals and independently counted outputs for every case.
-  Next: carry the real P02 artifact through service/worker restart.
+  Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Next: finish uncertain-effect and authentication-expiry cases.
 - [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
   session, review/send one useful task, observe and verify its returned artifact,
   disconnect/reconnect, and Stop an active run with partial-effect inspection.
   Save upstream run IDs plus AgentForge receipts and result hashes. Next: run a
-  successful model-backed task; authentication and unknown-run probes do not close it.
+  integrated browser delegation with the live adapter; live arithmetic, invoice artifact, exact-run output, reconnect history and active Stop now have separate evidence.
 - [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
   and the registered connector. Include selected API-session continuity and
   credential-change refusal for existing receipts. Verify successful completion
-  and cancellation, not only failed-run persistence. Next: implement verified
-  output retrieval and run a successful task. Other Hermes session types require
+  and cancellation, not only failed-run persistence. Next: connect the already proved live output, invoice task, continuation and Stop into one browser workflow. Other Hermes session types require
   a separate gateway path; do not present API-only discovery as universal pairing.
 - [ ] **P06 Model connection matrix.** Inventory every advertised API and official
   subscription route. For EACH record sign-in/configuration, live chat, approved
@@ -783,3 +782,9 @@ P04/P08 real-browser acceptance passed for preserved prior status after reload, 
 P04 useful artifact passed on real OpenClaw 2026.10.7 with MiMo: four provider requests, upstream read/write/exec recorded, actual report copied from the stopped disposable container and accepted by the independent frozen invoice verifier. Input hash unchanged; report hash matches the expected verified artifact. Evidence: evidence/p04-openclaw-invoice-artifact.json. Browser review, active-run Stop and complete end-to-end recovery remain open.
 
 P04 Stop proof: actual OpenClaw run observed active, provider request start independently marked by capped proxy, then exact run Stop acknowledged. Subsequent status error/stopReason rpc, no active run, abortedLastRun true; history contained only the user message. Evidence: evidence/p04-openclaw-live-stop.json retains earlier harness/early-stop outcomes. This is text-only cancellation, not cancellation of remote tool effects or provider charges.
+
+## October 26 repair integration
+
+`evidence/p03-invoice-browser-repair.json` records an actual failed live-model invoice task repaired through authenticated browser review, one new Docker operation, independent artifact verification and final approval. Previous receipts are retained. Stale review, changed commands, unknown effects and wrong workspace cannot authorize repair. `scripts/repair-browser-acceptance.mjs` reproduces the approval/execution behavior with synthetic model output and is included in installed-archive CI; it does not replace live-model acceptance.
+
+Hosted CI passed all jobs for `4ae5135a88b8d29fa3fe60298530ab0983379fdd` (run 40291999674). Later repair commits require their own exact-build results. No P01–P10 row is closed solely by these component results.
