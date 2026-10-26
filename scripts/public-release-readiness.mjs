@@ -54,7 +54,14 @@ const externalReleaseProof = [
   ...(hostedCiEvidence.passed ? [] : [hostedCiEvidence.detail]),
   "Registry publication and provenance verification have not been performed by this local audit.",
 ];
+const acceptancePlan = 'docs/RELEASE_COMPLETION_PLAN.md';
+const acceptanceText = fs.readFileSync(path.join(root, acceptancePlan), 'utf8');
+const openAcceptanceItems = [...acceptanceText.matchAll(/^- \[ \] \*\*(P\d{2}) ([^*]+)\*\*/gm)]
+  .map(match => ({id: match[1], requirement: match[2]}));
 const report = {
+  // A checked document item alone cannot prove runtime acceptance.
+  productAcceptance: {verified: false, plan: acceptancePlan, openItems: openAcceptanceItems,
+    detail: 'This audit checks packaging only. Full product acceptance requires the evidence review described in the release plan.'},
   packageReady,
   publishReady: packageReady && externalReleaseProof.length === 0,
   blockers,
