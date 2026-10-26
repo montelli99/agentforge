@@ -703,3 +703,8 @@ A real Hermes text-only run was observed active, Stop was acknowledged, and subs
 ### P05 runtime tool record — 2026-10-26
 
 Read-only inspection of the disposable Hermes session database confirms the selected arithmetic run first received a blocked execute_code result, then issued a terminal Python calculation with a matching tool-call ID, output 1250 and exit code 0. Evidence: evidence/p05-hermes-terminal-execution.json (SHA-256 857dd9dc21957aba76f90321ae9ac6393c5606a55d0fbdf9d4da18bfc07ca462). The verifier exports only the selected synthetic command/result and a database hash, excluding credentials, configuration and system prompts. This proves one actual arithmetic tool execution, not the still-required useful artifact workflow or cancellation of tool effects.
+
+
+### P05 useful invoice artifact — 2026-10-26
+
+Hermes generated the invoice report through its real model and tools. The host independently copied the actual file and passed the frozen invoice checker; a separate copy/hash check confirmed unchanged input. Evidence: evidence/p05-hermes-invoice-artifact.json (SHA-256 903c3fdf0cc6ca51e67123854ba500bb8790b2ef3ffca15184fc809e8c4098fb). First failed attempt retained in p05-hermes-invoice-attempt1.json. Corrected paths use the existing permitted /opt/data directory and eight turns, without weakening runtime controls. This direct runtime case does not close the unified browser workflow or tool-effect cancellation.
