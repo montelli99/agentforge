@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {createReadStream} from 'node:fs';
+import {createHash} from 'node:crypto';
 import type {GovernedNativeClient} from '../../core/runtime/nativeClientExecutionBackend.js';
 import {inspectClaudeCliAuthentication,inspectClaudeCliCapabilities} from './claudeCliCapabilities.js';
 import {runBoundedChild} from './boundedCliProcess.js';
@@ -9,6 +11,7 @@ import {runBoundedChild} from './boundedCliProcess.js';
  * acceptance passes. CLI permissions alone are not an OS isolation boundary. */
 export class ClaudeNativeClient implements GovernedNativeClient {
  private ready=false;
+ private executableDigest:string|undefined;
  private config:Readonly<{executablePath:string;configurationDirectory:string;model:string}>;
  constructor(config:{executablePath:string;configurationDirectory:string;model:string}){
   if(!path.isAbsolute(config.executablePath)||!path.isAbsolute(config.configurationDirectory)||!/^claude-[a-zA-Z0-9._-]{1,120}$/.test(config.model))throw Error('Explicit Claude executable, dedicated profile and model required');
@@ -18,18 +21,27 @@ export class ClaudeNativeClient implements GovernedNativeClient {
   let current=path.resolve(this.config.configurationDirectory);
   for(;;){const stat=await fs.lstat(current);if(!stat.isDirectory()||stat.isSymbolicLink())throw Error('Linked or invalid Claude profile');const parent=path.dirname(current);if(parent===current)break;current=parent;}
  }
+ private async fingerprintExecutable(){
+  const executable=path.resolve(this.config.executablePath);let current=executable;
+  for(;;){const stat=await fs.lstat(current);if(stat.isSymbolicLink()||(current===executable?!stat.isFile():!stat.isDirectory()))throw Error('Linked or invalid native executable rejected');const parent=path.dirname(current);if(parent===current)break;current=parent;}
+  const hash=createHash('sha256');for await(const chunk of createReadStream(executable))hash.update(chunk);return hash.digest('hex');
+ }
  async initialize(signal?:AbortSignal){
-  this.ready=false;await this.profile();
+  this.ready=false;this.executableDigest=undefined;await this.profile();
+  const before=await this.fingerprintExecutable();
   const capabilities=await inspectClaudeCliCapabilities(this.config.executablePath,signal);
   if(capabilities.version!=='2.1.310'||!capabilities.controlsAvailable)throw Error('Verified Claude 2.1.310 controls required');
   const auth=await inspectClaudeCliAuthentication(this.config.executablePath,this.config.configurationDirectory,signal);
   if(auth.connectionKind!=='subscription')throw Error('Official subscription sign-in required; no API fallback');
-  signal?.throwIfAborted();this.ready=true;return this.getReadiness();
+  if(before!==await this.fingerprintExecutable())throw Error('Native executable changed during inspection');
+  signal?.throwIfAborted();this.executableDigest=before;this.ready=true;return this.getReadiness();
  }
  getReadiness(){return {ready:this.ready,blocker:this.ready?undefined:'Initialize the pinned Claude client with a dedicated subscription profile'};}
  run:GovernedNativeClient['run']=async input=>{
   if(!this.ready)throw Error('Native client has not been initialized');
   input.signal.throwIfAborted();
+  try{if(await this.fingerprintExecutable()!==this.executableDigest)throw Error('Native executable changed; initialize again');}
+  catch(error){this.ready=false;this.executableDigest=undefined;throw error;}
   // Recheck account type and client version before every launch.
   await this.initialize(input.signal);
   const endpoint=new URL(input.connection.endpoint);
