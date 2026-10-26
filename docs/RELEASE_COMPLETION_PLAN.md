@@ -1113,3 +1113,7 @@ Extended the real Docker worker-kill proof with durable journaling configured. R
 ### Browser recovery rejects changed artifacts
 Real Docker invoice execution exited after durable output but before receipt completion. Recovery rejected a changed report without mutating task or approvals; restoring original bytes allowed authenticated browser recovery with zero executions, independent invoice verification and pending final approval retained through reload. Evidence: evidence/p03-browser-tamper-and-result-recovery.json. Reuses the recorded model plan; no new paid requests. Remaining fault and authentication cases stay open.
 
+
+### Expired application session recovery
+The browser recovery test now installs a server-created expired synthetic session. Recovery returns 401 without task/approval mutation; owner signs in through the UI and restores the recorded result without execution. Passed; evidence: evidence/p03-expired-session-recovery.json. A harness method-name error was corrected before rerun. External provider token expiry remains separate and open.
+
