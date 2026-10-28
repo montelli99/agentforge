@@ -2916,6 +2916,42 @@ export class AgentForgeWebServer {
       return;
     }
 
+    const teamHandoffMatch = path.match(/^\/api\/team-runs\/([^/]+)\/handoffs$/);
+    if (req.method === "POST" && teamHandoffMatch) {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamHandoffMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.fromAgentId, 120) || !isBoundedString(body.toAgentId, 120) || !isBoundedString(body.instruction, 8000)) {
+        res.writeHead(400); res.end(JSON.stringify({ error: "Handoff sender, recipient, and bounded instruction are required." })); return;
+      }
+      try {
+        const handoff = this.teamCoordinator.queueHandoff(run, body.fromAgentId, body.toAgentId, body.instruction);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_handoff_queued", targetType: "task", targetId: run.taskId, details: { runId: run.id, handoffId: handoff.id, fromAgentId: handoff.fromAgentId, toAgentId: handoff.toAgentId, executionStarted: false } });
+        res.writeHead(201); res.end(JSON.stringify(handoff));
+      } catch (error) { res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Handoff could not be queued." })); }
+      return;
+    }
+
+    const teamAcceptMatch = path.match(/^\/api\/team-runs\/([^/]+)\/handoffs\/([^/]+)\/accept$/);
+    if (req.method === "POST" && teamAcceptMatch) {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamAcceptMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.agentId, 120)) { res.writeHead(400); res.end(JSON.stringify({ error: "Accepting agent is required." })); return; }
+      try {
+        const handoff = this.teamCoordinator.acceptHandoff(run, decodeURIComponent(teamAcceptMatch[2]), body.agentId);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_handoff_accepted", targetType: "task", targetId: run.taskId, details: { runId: run.id, handoffId: handoff.id, agentId: handoff.toAgentId, executionStarted: false } });
+        res.writeHead(200); res.end(JSON.stringify(handoff));
+      } catch (error) { res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Handoff could not be accepted." })); }
+      return;
+    }
+
     if (req.method === "POST" && path === "/api/tasks") {
       if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
         this.store.recordAudit({
