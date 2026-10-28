@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { WorkspaceStore } from "./core/store/workspaceStore.js";
+import type { TaskWorkerRuntime } from "./core/runtime/taskWorkerRuntime.js";
 
 export type TeamRunStatus = "planned" | "awaiting_execution" | "completed" | "blocked";
 export type TeamHandoffStatus = "queued" | "accepted" | "returned" | "blocked";
@@ -123,5 +124,23 @@ export class TeamCoordinator {
     handoff.updatedAt = new Date().toISOString();
     this.store.createMessage({ channelId: run.channelId, threadId: run.threadId, authorId: agentId, authorType: "agent", content: `[handoff:${handoff.id}] Accepted.` });
     return handoff;
+  }
+
+  /** Execute only through the existing governed worker; never creates a bypass. */
+  async execute(run: TeamRun, worker: Pick<TaskWorkerRuntime, "isRunning" | "executeTask">): Promise<unknown> {
+    if (!worker.isRunning()) {
+      run.status = "blocked";
+      throw new Error("Team execution is unavailable: no governed worker is connected.");
+    }
+    const task = this.store.getTask(run.taskId);
+    if (!task) throw new Error("Team task is missing from the workspace.");
+    if (!task.approvedExecutionPlan && !task.executionRepairs?.length) {
+      run.status = "awaiting_execution";
+      throw new Error("Team execution requires a reviewed and approved task plan.");
+    }
+    run.status = "awaiting_execution";
+    const result = await worker.executeTask(run.taskId);
+    run.status = "completed";
+    return result;
   }
 }

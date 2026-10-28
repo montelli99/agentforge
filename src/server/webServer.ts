@@ -2916,6 +2916,25 @@ export class AgentForgeWebServer {
       return;
     }
 
+    const teamExecuteMatch = path.match(/^\/api\/team-runs\/([^/]+)\/execute$/);
+    if (req.method === "POST" && teamExecuteMatch) {
+      if (!hasPermission(caller.permissions, "tasks:execute") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:execute" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamExecuteMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      try {
+        const task = await this.teamCoordinator.execute(run, this.taskWorkerRuntime);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_run_execution_handoff", targetType: "task", targetId: run.taskId, details: { runId: run.id, executionStarted: true, governedWorker: true } });
+        res.writeHead(200); res.end(JSON.stringify({ run, task }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Team execution was not started.";
+        res.writeHead(message.includes("unavailable") || message.includes("requires") ? 409 : 422);
+        res.end(JSON.stringify({ error: message, run, executionStarted: false }));
+      }
+      return;
+    }
+
     const teamHandoffMatch = path.match(/^\/api\/team-runs\/([^/]+)\/handoffs$/);
     if (req.method === "POST" && teamHandoffMatch) {
       if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {

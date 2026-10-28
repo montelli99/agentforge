@@ -17,5 +17,7 @@ describe("TeamCoordinator", () => {
     expect(coordinator.acceptHandoff(run, handoff.id, specialist.id).status).toBe("accepted");
     expect(store.getTask(run.taskId)?.status).toBe("ready");
     expect(store.listMessages(run.channelId)).toHaveLength(3);
+    await expect(coordinator.execute(run, { isRunning: () => false, executeTask: async () => { throw new Error("must not run"); } })).rejects.toThrow(/no governed worker/);
+    expect(run.status).toBe("blocked");
   });
 });
