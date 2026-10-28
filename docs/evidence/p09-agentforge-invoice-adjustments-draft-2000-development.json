@@ -1,0 +1,88 @@
+{
+  "passed": true,
+  "caseId": "invoice-adjustments",
+  "model": "mimo-v2.6-flash",
+  "maxOutputTokens": 2000,
+  "scoredComparison": false,
+  "inputSha256": "9c6fb3c66ab764167c7283238a64c47a3f899c59c9b99c581dd67229fe731bdb",
+  "audits": [
+    {
+      "id": "715a044a-3b1e-4604-a6ff-5651118e371e",
+      "taskId": "AF-4BAEDBB2",
+      "model": "mimo-v2.6-flash",
+      "requestDigest": "df92f8b80b089a100a8623e967f0a5c27db3f822170fdc42aba9b2a1d5f7b9cc",
+      "status": "completed",
+      "inputTokens": 821,
+      "outputTokens": 805,
+      "responseDigest": "fc99df41197502a9b91733dc14dcb13451ae83b0972ceff2bfe6bf76f3aa7318"
+    }
+  ],
+  "scope": "Live draft for a shared development case; no approval, execution, artifact score or competitive result.",
+  "status": "drafted-not-approved",
+  "task": {
+    "title": "Synthetic invoice-adjustments",
+    "description": "Read input.json. For each invoice calculate balanceCents = billedCents minus all settled payments minus all approved credits; ignore pending payments and rejected credits. Negative balances must remain negative. Output artifacts/result.json as {\"invoices\":[{\"id\":string,\"balanceCents\":integer}],\"totalBalanceCents\":integer}. Sort invoices by id ascending. Include every invoice and no extra fields. Do not change input.json.",
+    "status": "ready",
+    "priority": "medium",
+    "projectId": "proj-default",
+    "contract": {
+      "id": "contract-AF-4BAEDBB2",
+      "taskId": "AF-4BAEDBB2",
+      "version": 1,
+      "repository": {
+        "baseBranch": "unresolved",
+        "baseSha": "unresolved"
+      },
+      "workspace": {
+        "requireIsolatedWorktree": true
+      },
+      "scope": {
+        "allowedPaths": [
+          "artifacts/result.json"
+        ],
+        "protectedPaths": [
+          "input.json"
+        ],
+        "maxFilesChanged": 1
+      },
+      "authority": {
+        "externalMessage": false,
+        "productionWrite": false,
+        "deployment": false,
+        "forcePush": false,
+        "deleteFiles": false,
+        "networkOutbound": false
+      },
+      "requiredChecks": [],
+      "completion": {
+        "requireEvidencePack": true,
+        "requireHumanApproval": true,
+        "requiredArtifacts": [
+          {
+            "path": "artifacts/result.json"
+          }
+        ]
+      },
+      "createdAt": "2026-10-26T18:20:56.895Z"
+    },
+    "id": "AF-4BAEDBB2",
+    "createdAt": "2026-10-26T18:20:56.895Z",
+    "updatedAt": "2026-10-26T18:20:56.897Z"
+  },
+  "draft": {
+    "taskId": "AF-4BAEDBB2",
+    "source": "model",
+    "commands": [
+      {
+        "checkName": "generate_artifacts_result",
+        "command": "mkdir -p artifacts && node -e 'const fs=require(\"fs\");const input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));const invs=input.invoices||input;const out=invs.map(inv=>{let bal=inv.billedCents;for(const p of (inv.payments||[])){if(p.status===\"settled\")bal-=p.amountCents;}for(const c of (inv.credits||[])){if(c.status===\"approved\")bal-=c.amountCents;}return {id:inv.id,balanceCents:bal};});out.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);const total=out.reduce((s,x)=>s+x.balanceCents,0);fs.writeFileSync(\"artifacts/result.json\",JSON.stringify({invoices:out,totalBalanceCents:total}));'",
+        "timeoutMs": 60000
+      },
+      {
+        "checkName": "verify_artifacts_result",
+        "command": "node -e 'const fs=require(\"fs\");const input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));const res=JSON.parse(fs.readFileSync(\"artifacts/result.json\",\"utf8\"));const invs=input.invoices||input;const exp=invs.map(inv=>{let bal=inv.billedCents;for(const p of (inv.payments||[])){if(p.status===\"settled\")bal-=p.amountCents;}for(const c of (inv.credits||[])){if(c.status===\"approved\")bal-=c.amountCents;}return {id:inv.id,balanceCents:bal};}).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);const expTotal=exp.reduce((s,x)=>s+x.balanceCents,0);const fail=m=>{console.error(\"FAIL: \"+m);process.exit(1);};if(!res||typeof res!==\"object\")fail(\"result not object\");const keys=Object.keys(res).sort().join(\",\");if(keys!==\"invoices,totalBalanceCents\")fail(\"bad top-level keys: \"+keys);if(!Array.isArray(res.invoices))fail(\"invoices not array\");if(res.invoices.length!==exp.length)fail(\"count mismatch \"+res.invoices.length+\" vs \"+exp.length);for(let i=0;i<exp.length;i++){const a=res.invoices[i],b=exp[i];const ak=Object.keys(a).sort().join(\",\");if(ak!==\"balanceCents,id\")fail(\"bad invoice keys at \"+i+\": \"+ak);if(a.id!==b.id)fail(\"id mismatch at \"+i);if(!Number.isInteger(a.balanceCents))fail(\"non-integer balance at \"+i);if(a.balanceCents!==b.balanceCents)fail(\"balance mismatch at \"+i+\" id=\"+a.id+\" got \"+a.balanceCents+\" want \"+b.balanceCents);}for(let i=1;i<res.invoices.length;i++){if(res.invoices[i-1].id>res.invoices[i].id)fail(\"not sorted at \"+i);}if(!Number.isInteger(res.totalBalanceCents))fail(\"total not integer\");if(res.totalBalanceCents!==expTotal)fail(\"total mismatch got \"+res.totalBalanceCents+\" want \"+expTotal);const sum=res.invoices.reduce((s,x)=>s+x.balanceCents,0);if(sum!==res.totalBalanceCents)fail(\"total != sum of balances\");console.log(\"OK: \"+res.invoices.length+\" invoices, total \"+res.totalBalanceCents);'",
+        "timeoutMs": 60000
+      }
+    ]
+  }
+}

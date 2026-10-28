@@ -1405,3 +1405,14 @@ opt-in and a new evidence destination; no credential values are emitted.
 The script typechecks but has not yet been executed. Run it only after the pending
 natural-expiry acceptance, because it deliberately disconnects the dedicated
 acceptance account. This preparation does not close P06 live lifecycle acceptance.
+
+### Product-reference review: personal AI operating system video
+
+The supplied reference video ([I Built My Own AI Personal OS](https://youtu.be/BtJklgHcYPw?si=9FvEFhgkVx-W_ixN)) describes, at approximately 1:06–8:21, isolated workspaces with selective memory sharing, multiple provider subscriptions, named agents and teams, automations, dashboards, voice and mobile channels, and a cloud mode. These are product-direction requirements, not release evidence. AgentForge already has workspace, agent, memory, migration, voice and activity surfaces, but the current release checklist correctly keeps live voice, mobile/cloud operation, broad provider activation and guided setup as separate acceptance items. No private data or Kevin integration is derived from the video.
+
+The first live invoice-adjustments planning attempt is retained in
+`evidence/p09-agentforge-invoice-adjustments-draft-development.json`: the provider
+request completed with reported usage, but the model response failed the execution
+plan schema. The planner now supports an explicit bounded development output budget
+and records sanitized failure reasons; this is a development example and does not
+close P09 or establish competitive superiority.
