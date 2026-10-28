@@ -19,5 +19,8 @@ describe("TeamCoordinator", () => {
     expect(store.listMessages(run.channelId)).toHaveLength(3);
     await expect(coordinator.execute(run, { isRunning: () => false, executeTask: async () => { throw new Error("must not run"); } })).rejects.toThrow(/no governed worker/);
     expect(run.status).toBe("blocked");
+    const restored = new TeamCoordinator(store).restoreRuns();
+    expect(restored).toHaveLength(1);
+    expect(restored[0]).toMatchObject({ id: run.id, leadAgentId: lead.id, specialistAgentIds: [specialist.id], objective: "Prepare a bounded comparison" });
   });
 });

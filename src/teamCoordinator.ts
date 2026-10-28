@@ -37,6 +37,8 @@ export interface StartTeamRunInput {
   projectId?: string;
 }
 
+const TEAM_MARKER = "\n\n[agentforge-team-run:";
+
 /**
  * Provider-neutral team coordination boundary.
  *
@@ -81,8 +83,10 @@ export class TeamCoordinator {
       originThreadId: thread.id,
     });
     const now = new Date().toISOString();
+    const runId = `team-${crypto.randomUUID().slice(0, 8)}`;
+    const marker = `${TEAM_MARKER}${JSON.stringify({ id: runId, leadAgentId: input.leadAgentId, specialistAgentIds: roster.filter(id => id !== input.leadAgentId) })}]`;
     const run: TeamRun = {
-      id: `team-${crypto.randomUUID().slice(0, 8)}`,
+      id: runId,
       taskId: task.id,
       channelId: channel.id,
       threadId: thread.id,
@@ -93,6 +97,7 @@ export class TeamCoordinator {
       handoffs: [],
       createdAt: now,
     };
+    this.store.updateTask(task.id, { description: objective + marker });
     this.store.createMessage({
       channelId: channel.id,
       threadId: thread.id,
@@ -101,6 +106,24 @@ export class TeamCoordinator {
       content: `Team run planned: ${objective}`,
     });
     return run;
+  }
+
+  /** Rebuild planned runs from durable workspace records after a process restart. */
+  restoreRuns(): TeamRun[] {
+    const runs: TeamRun[] = [];
+    for (const task of this.store.listTasks()) {
+      const markerStart = task.description.lastIndexOf(TEAM_MARKER);
+      if (markerStart < 0) continue;
+      const markerText = task.description.slice(markerStart + TEAM_MARKER.length);
+      const end = markerText.lastIndexOf("]");
+      if (end < 0) continue;
+      try {
+        const metadata = JSON.parse(markerText.slice(0, end)) as { id: string; leadAgentId: string; specialistAgentIds: string[] };
+        if (!metadata.id || !metadata.leadAgentId || !Array.isArray(metadata.specialistAgentIds) || !task.originChannelId || !task.originThreadId) continue;
+        runs.push({ id: metadata.id, taskId: task.id, channelId: task.originChannelId, threadId: task.originThreadId, leadAgentId: metadata.leadAgentId, specialistAgentIds: metadata.specialistAgentIds, objective: task.description.slice(0, markerStart), status: task.status === "completed" ? "completed" : "planned", handoffs: [], createdAt: task.createdAt });
+      } catch { /* Ignore malformed records; normal task recovery remains intact. */ }
+    }
+    return runs;
   }
 
   queueHandoff(run: TeamRun, fromAgentId: string, toAgentId: string, instruction: string): TeamHandoff {

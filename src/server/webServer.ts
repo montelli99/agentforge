@@ -463,6 +463,7 @@ export class AgentForgeWebServer {
     this.callLifecycleManager = new CallLifecycleManager(this.store);
     this.controller = new AgentForgeController(undefined, this.operationalMemory);
     this.teamCoordinator = new TeamCoordinator(this.store);
+    for (const run of this.teamCoordinator.restoreRuns()) this.teamRuns.set(run.id, run);
     const telegramChatModel = options.conversation
       ? selectTelegramChatModel(options.conversation.provider, options.conversation.models,
         process.env.AGENTFORGE_TELEGRAM_CHAT_MODEL?.trim())
