@@ -80,6 +80,7 @@ import { CapabilitySetupExecutor } from "../capabilitySetupExecutor.js";
 import { ChannelConnectionRegistry } from "../channelConnectionRegistry.js";
 import { ChannelRuntimeRegistry } from "../channelRuntimeRegistry.js";
 import { AgentForgeController } from "../controller/agentController.js";
+import { TeamCoordinator, type TeamRun } from "../teamCoordinator.js";
 import { PUBLIC_SYSTEM_MANIFEST } from "../publicSystemManifest.js";
 import { JevUltrafastBrowserPolicy, type BrowserAction, type BrowserObservation } from "../providers/browser/jevUltrafastBrowser.js";
 import { BrowserSessionRegistry } from "../providers/browser/browserSessionRegistry.js";
@@ -387,6 +388,8 @@ export class AgentForgeWebServer {
   readonly nativeGateway: NativeAgentForgeGateway;
   readonly browserSessions = new BrowserSessionRegistry();
   readonly controller: AgentForgeController;
+  readonly teamCoordinator: TeamCoordinator;
+  private readonly teamRuns = new Map<string, TeamRun>();
   readonly workflowEngine: WorkflowEngine;
   readonly processAgentBridge = new ProcessAgentBridge();
   readonly localSandbox = new LocalSandboxComputeProvider();
@@ -459,6 +462,7 @@ export class AgentForgeWebServer {
     this.correctionRegistry = new CorrectionRegistry(this.store);
     this.callLifecycleManager = new CallLifecycleManager(this.store);
     this.controller = new AgentForgeController(undefined, this.operationalMemory);
+    this.teamCoordinator = new TeamCoordinator(this.store);
     const telegramChatModel = options.conversation
       ? selectTelegramChatModel(options.conversation.provider, options.conversation.models,
         process.env.AGENTFORGE_TELEGRAM_CHAT_MODEL?.trim())
@@ -2881,6 +2885,34 @@ export class AgentForgeWebServer {
     if (req.method === "GET" && path === "/api/tasks") {
       res.writeHead(200);
       res.end(JSON.stringify(this.store.listTasks().map(task => this.taskWorkerRuntime?.presentTask(task) ?? task)));
+      return;
+    }
+
+    if (req.method === "GET" && path === "/api/team-runs") {
+      res.writeHead(200);
+      res.end(JSON.stringify(Array.from(this.teamRuns.values()).map(run => ({ ...run, handoffs: run.handoffs.map(handoff => ({ ...handoff })) }))));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/team-runs") {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.title, 180) || !isBoundedString(body.objective, 8000)
+        || !isBoundedString(body.leadAgentId, 120) || !Array.isArray(body.specialistAgentIds)
+        || body.specialistAgentIds.length < 1 || body.specialistAgentIds.length > 32
+        || body.specialistAgentIds.some((id: unknown) => !isBoundedString(id, 120))) {
+        res.writeHead(400); res.end(JSON.stringify({ error: "A lead, at least one specialist, and bounded team objective are required." })); return;
+      }
+      try {
+        const run = this.teamCoordinator.startRun({ title: body.title, objective: body.objective, leadAgentId: body.leadAgentId, specialistAgentIds: body.specialistAgentIds, ...(typeof body.projectId === "string" ? { projectId: body.projectId } : {}) });
+        this.teamRuns.set(run.id, run);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_run_planned", targetType: "task", targetId: run.taskId, details: { runId: run.id, leadAgentId: run.leadAgentId, specialistAgentIds: run.specialistAgentIds, executionStarted: false } });
+        res.writeHead(201); res.end(JSON.stringify(run));
+      } catch (error) {
+        res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Team run could not be planned." }));
+      }
       return;
     }
 

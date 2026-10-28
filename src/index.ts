@@ -9,6 +9,7 @@ export * from "./publicSystemManifest.js";
 export * from "./workflowEngine.js";
 export * from "./setupOrchestrator.js";
 export * from "./contextPacket.js";
+export * from "./teamCoordinator.js";
 export * from "./memoryEvaluation.js";
 export * from "./releaseReadiness.js";
 export * from "./processAgentBridge.js";
