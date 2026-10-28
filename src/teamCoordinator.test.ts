@@ -5,7 +5,7 @@ import { WorkspaceStore } from "./core/store/workspaceStore.js";
 const agent = (name: string) => ({ name, role: "specialist", description: name, status: "idle" as const, harnessPolicy: { preferredHarnessId: "native", autoResume: false }, modelPolicy: { preferredTier: 1 as const, preferredModel: "test", preferredProvider: "test", allowCloudFallback: false }, decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "none" as const }, memoryNamespace: `test/${name}`, tools: [], permissions: [], assignedChannelIds: [] });
 
 describe("TeamCoordinator", () => {
-  it("plans a governed lead/specialist run and queues an in-team handoff without executing", () => {
+  it("plans a governed lead/specialist run and queues an in-team handoff without executing", async () => {
     const store = new WorkspaceStore();
     const lead = store.createAgent(agent("Lead"));
     const specialist = store.createAgent(agent("Researcher"));
