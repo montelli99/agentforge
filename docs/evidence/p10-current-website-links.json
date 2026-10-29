@@ -1,0 +1,16 @@
+{
+  "requirement": "P10 public documentation surface",
+  "recordedAtUtc": "2026-10-29T17:55:00Z",
+  "sourceCommit": "7b947e73c5b9cb6966fa9d6a60074e9ad0ca34bb",
+  "command": "pnpm test:website",
+  "result": {
+    "passed": true,
+    "pagesChecked": 42,
+    "localLinksResolved": true,
+    "pagesWithFooterNavigation": 39
+  },
+  "limits": [
+    "This verifies local documentation links and footer navigation only; it does not prove deployment hosting, provider availability, or marketing performance.",
+    "No private data or Kevin integrations are included."
+  ]
+}
