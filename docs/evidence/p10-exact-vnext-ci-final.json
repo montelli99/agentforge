@@ -1,0 +1,16 @@
+{
+  "evidenceId": "P10-exact-vnext-hosted-ci-final",
+  "recordedAt": "2026-10-29T18:16:00Z",
+  "sourceCommit": "14f4845b9ae6062b1fe72985c352b82f2c3de9cc",
+  "workflow": "AgentForge CI",
+  "runId": "40928534477",
+  "runConclusion": "success",
+  "jobCount": 7,
+  "allJobsPassed": true,
+  "scope": "Exact merged vnext commit hosted CI and public package acceptance.",
+  "limits": [
+    "Does not close the separate product-acceptance rows P01-P09.",
+    "Does not prove registry publication or provenance; npm publication remains deferred.",
+    "Does not prove arbitrary task competence or competitive superiority."
+  ]
+}
