@@ -1,0 +1,14 @@
+{
+  "requirement": "P08 guided encrypted external-agent setup",
+  "sourceCommit": "7a85219a0f37527e7b8f71157a7da1c6fa40610f",
+  "passed": true,
+  "keyboardSave": true,
+  "actionFocusRestored": true,
+  "liveStatusAnnounced": true,
+  "restartLocked": true,
+  "wrongPassphraseRefused": true,
+  "connectionIdentityPreserved": true,
+  "readOnlyRequests": 2,
+  "secretFieldsCleared": true,
+  "scope": "Synthetic Hermes endpoint; no real credentials or private integrations used."
+}
