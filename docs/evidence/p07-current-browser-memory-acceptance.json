@@ -1,0 +1,43 @@
+{
+  "requirement": "P07 memory matrix (current browser slice)",
+  "recordedAtUtc": "2026-10-29T17:45:00Z",
+  "sourceCommit": "85c40a75c35f899fddaf5edb06818868ce7bc8d0",
+  "commands": [
+    "AGENTFORGE_BROWSER_EXECUTABLE=<absolute Chromium path> pnpm test:memory:browser",
+    "AGENTFORGE_BROWSER_EXECUTABLE=<absolute Chromium path> pnpm test:migration:browser"
+  ],
+  "memoryBrowser": {
+    "passed": true,
+    "realBrowser": true,
+    "syntheticOnly": true,
+    "ownerSetup": true,
+    "reloadPreserved": true,
+    "projectMapping": true,
+    "reviewBeforeWrite": true,
+    "confirmedImport": true,
+    "renderedSavedMemory": true,
+    "selectedNoteConnected": true,
+    "encryptedSelectionSaved": true,
+    "disconnectPreservedNote": true,
+    "restoredSelection": true,
+    "serverRestartExplicitRestore": true,
+    "wrongPassphraseRefused": true,
+    "forgotSelectionPreservedNote": true,
+    "pageErrors": []
+  },
+  "migrationBrowser": {
+    "passed": true,
+    "syntheticOnly": true,
+    "reviewBeforeWrite": true,
+    "explicitConfirmation": true,
+    "offlineImport": true,
+    "noSourcePrivilegesGranted": true,
+    "durableImport": true,
+    "confirmedRollback": true,
+    "durableRollback": true
+  },
+  "limits": [
+    "This is a built-in/local memory and migration browser slice; it does not prove live Hindsight composition, migration, deletion or outage behavior.",
+    "No credentials, private files or Kevin integrations are included."
+  ]
+}
