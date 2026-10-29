@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-10-29T17:02:00Z",
+  "syntheticTask": true,
+  "task": "What day follows Thursday?",
+  "records": [
+    {
+      "model": "mimo-v2.6-pro",
+      "status": "passed",
+      "syntheticTask": true,
+      "response": "Friday",
+      "latencyMs": 2410,
+      "usage": {"promptTokens": 22, "completionTokens": 5, "totalTokens": 27},
+      "externalApiSpendUsd": "unmeasured"
+    },
+    {
+      "model": "mimo-v2.6-flash",
+      "status": "passed",
+      "syntheticTask": true,
+      "response": "Friday",
+      "latencyMs": 1298,
+      "usage": {"promptTokens": 36, "completionTokens": 17, "totalTokens": 53},
+      "externalApiSpendUsd": "unmeasured"
+    }
+  ],
+  "retainedFailures": [
+    "An initial Pro request at maxTokens=20 returned empty content with usage reported; the bounded rerun used maxTokens=100 and returned Friday."
+  ],
+  "limits": [
+    "Synthetic prompt only; monetary spend is unmeasured.",
+    "This proves MiMo adapter smoke behavior, not full subscription lifecycle or arbitrary task competence."
+  ]
+}
