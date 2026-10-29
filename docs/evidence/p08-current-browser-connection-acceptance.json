@@ -1,0 +1,25 @@
+{
+  "requirement": "P08 guided browser experience",
+  "recordedAtUtc": "2026-10-29T17:40:00Z",
+  "sourceCommit": "2410a159264dcdb7fa5bba21da88e31478139fb8",
+  "command": "AGENTFORGE_BROWSER_EXECUTABLE=<absolute Chromium path> pnpm test:connections:browser",
+  "result": {
+    "passed": true,
+    "syntheticOnly": true,
+    "realBrowser": true,
+    "encryptedSave": true,
+    "restartLocked": true,
+    "explicitUnlockRestoresRoute": true,
+    "streamedResponse": true,
+    "midStreamReload": true,
+    "reloadWithoutReplay": true,
+    "provider401Refused": true,
+    "explicitRetryRecovered": true,
+    "rejectedAuditPreserved": true,
+    "draftingDidNotApproveOrExecute": true
+  },
+  "limits": [
+    "Uses a local synthetic provider and Chromium; no external provider credential is stored or exercised.",
+    "This closes the current connection setup, keyboard recovery and rejection path only; it does not close every P08 provider setup flow."
+  ]
+}
