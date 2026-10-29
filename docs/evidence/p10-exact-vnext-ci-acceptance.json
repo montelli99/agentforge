@@ -1,0 +1,23 @@
+{
+  "evidenceId": "P10-exact-vnext-hosted-ci",
+  "recordedAt": "2026-10-29T18:11:00Z",
+  "sourceCommit": "5567566877c4858df39dbac68d19a51014139a3a",
+  "workflow": "AgentForge CI",
+  "runId": "40926196850",
+  "runConclusion": "success",
+  "jobs": [
+    {"name": "Public package and isolated execution acceptance", "jobId": "123632926120", "conclusion": "success"},
+    {"name": "Build & Test (windows-latest, Node 22.x)", "jobId": "123632926613", "conclusion": "success"},
+    {"name": "Build & Test (macos-latest, Node 22.x)", "jobId": "123632926671", "conclusion": "success"},
+    {"name": "Build & Test (windows-latest, Node 24.x)", "jobId": "123632926692", "conclusion": "success"},
+    {"name": "Build & Test (ubuntu-latest, Node 24.x)", "jobId": "123632926750", "conclusion": "success"},
+    {"name": "Build & Test (macos-latest, Node 24.x)", "jobId": "123632926776", "conclusion": "success"},
+    {"name": "Build & Test (ubuntu-latest, Node 22.x)", "jobId": "123632927113", "conclusion": "success"}
+  ],
+  "scope": "Exact merged vnext commit hosted CI and public package acceptance.",
+  "limits": [
+    "Does not close the separate product-acceptance rows P01-P09.",
+    "Does not prove registry publication or provenance; npm publication remains deferred.",
+    "Does not prove arbitrary task competence or competitive superiority."
+  ]
+}
