@@ -1,0 +1,38 @@
+{
+  "requirement": "P02 live model approval and execution",
+  "recordedAtUtc": "2026-10-29T17:18:00Z",
+  "sourceCommit": "7aaabef2559b51236c5b288a1760a5f4bd22d902",
+  "provider": "mimo",
+  "command": "AGENTFORGE_LIVE_TESTS=1 pnpm exec vitest run src/mimoProvider.test.ts --maxWorkers=1 --reporter=verbose",
+  "result": {
+    "passed": true,
+    "testFiles": 1,
+    "tests": 29,
+    "models": {
+      "mimo-v2.6-pro": {
+        "passed": true,
+        "latencyMs": 6454,
+        "reportedUsage": {"promptTokens": 37, "completionTokens": 29, "totalTokens": 66},
+        "response": "AGENTFORGE MIMO PRO WORKS"
+      },
+      "mimo-v2.6-flash": {
+        "passed": true,
+        "latencyMs": 2124,
+        "reportedUsage": {"promptTokens": 36, "completionTokens": 27, "totalTokens": 63},
+        "response": "AGENTFORGE MIMO WORKS"
+      }
+    },
+    "coverage": [
+      "provider registration and credential safety",
+      "capability declarations and vision routing",
+      "cancellation",
+      "provider-neutral routing",
+      "live text generation"
+    ]
+  },
+  "limits": [
+    "Authenticated live MiMo execution only; no provider secret is stored in this evidence.",
+    "This does not claim arbitrary task competence, subscription entitlement, quota, or external spend.",
+    "The recorded response strings are smoke-test outputs, not a quality benchmark."
+  ]
+}
