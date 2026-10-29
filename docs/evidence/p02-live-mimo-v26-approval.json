@@ -23,9 +23,17 @@
     "durableCompletion": true,
     "completedEvidenceReadableAfterReopen": true
   },
+  "browserChatJourney": {
+    "passed": true,
+    "model": "mimo-v2.6-pro",
+    "totalProviderRequests": 7,
+    "verifiedArtifactReturnedToChat": true,
+    "verifiedArtifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+    "multiToolLoop": true
+  },
   "limitations": [
     "This proves the governed approval/execution path, not general autonomous task competence.",
-    "The optional live chat-journey harness still needs a provider-tool-loop fixture; the core execution proof passed."
+    "This is a bounded synthetic task and does not establish general autonomous task competence or competitive superiority."
   ],
   "credentialsPersisted": false
 }
