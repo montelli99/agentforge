@@ -1,0 +1,27 @@
+{
+  "requirement": "P07",
+  "recordedAt": "2026-10-29T17:07:00Z",
+  "result": {
+    "passed": true,
+    "syntheticOnly": true,
+    "actualLocalAdapters": true,
+    "workerPlanningContext": true,
+    "workerSourceProvenance": true,
+    "workerOutageFailsClosed": true,
+    "workerRestoredContentFresh": true,
+    "workerDisconnectStopsRecall": true,
+    "conflictingValuesPreserved": true,
+    "projectIsolation": true,
+    "unselectedFileExcluded": true,
+    "storeReopenPreserved": true,
+    "missingSourceFailsClosed": true,
+    "restoredSourceFresh": true
+  },
+  "sources": ["saved:ceiling", "notes:6adc91ca3f49608dfb12cf261b9b8e0d2f77ca7955d60afc32a27ed341fe525f"],
+  "notesSha256": "365b78897f451b01c971b4d212ffdca9d5e7091f8581ee24a2516d7a313534a2",
+  "limits": [
+    "No live Hindsight account was used.",
+    "This proves worker planning context and local adapter composition, not command execution or browser setup.",
+    "Conflict recognition by an LLM is a separate acceptance case."
+  ]
+}
