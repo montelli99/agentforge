@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "liveScoringAllowed": false,
+  "reason": "Invalid comparative protocol: command-timeout constraints were stated to the direct arm but not the AgentForge arm. First attempt retained; no replacement or further scored attempts under this version.",
+  "evidence": "docs/evidence/p09-v2-first-live-attempt.json"
+}

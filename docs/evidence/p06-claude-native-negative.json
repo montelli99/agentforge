@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "clientVersion": "2.1.310",
+  "requests": 4,
+  "forbiddenRejected": true,
+  "markerExists": false,
+  "brokerCalls": [
+    "read_result"
+  ],
+  "command": "node --import tsx scripts/claude-native-tool-surface.ts <official-executable> --negative",
+  "priorAttempts": [
+    {
+      "passed": false,
+      "reason": "Initial test asserted absent file only; explicit rejection not established"
+    },
+    {
+      "passed": false,
+      "reason": "JSON response to streaming request caused request replay; replaced with SSE response and asserted error tool_result"
+    }
+  ],
+  "scope": "Installed official CLI against synthetic local API; not live subscription or OS isolation acceptance"
+}

@@ -1,0 +1,40 @@
+{
+  "recordedAt": "2026-10-26T17:29:09.601Z",
+  "status": "passed",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "model": "mimo-v2.6-flash",
+  "maxRequests": 3,
+  "maxOutputTokens": 1000,
+  "syntheticTask": true,
+  "scoredComparison": false,
+  "providerCredentialInClient": false,
+  "proxySha256": "7a8e68d14e0352d2f025ebe737b4d8a83dd0cf05eda7db5754d4b6d5e89689ba",
+  "elapsedMs": 11518.7899,
+  "exitCode": 0,
+  "artifactMatches": true,
+  "artifactSha256": "c797d6b20c31b1c56816fdacfed01cc2564c87c29ed6ecf0323a348723e45664",
+  "audits": [
+    {
+      "request": 1,
+      "status": "response",
+      "usage": {
+        "inputTokens": 5673,
+        "outputTokens": 33
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 5405.751398
+    },
+    {
+      "request": 2,
+      "status": "response",
+      "usage": {
+        "inputTokens": 5742,
+        "outputTokens": 2
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 1486.9158889999999
+    }
+  ]
+}

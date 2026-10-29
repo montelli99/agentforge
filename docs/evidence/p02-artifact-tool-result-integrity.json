@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "chatJourney": true,
+  "chatRequests": 4,
+  "verifiedChatReads": [
+    {
+      "callId": "read-synthetic",
+      "taskId": "chat-a5a9a15fbcfbf6729fbbc801",
+      "path": "artifacts/verified.txt",
+      "sha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9"
+    }
+  ],
+  "verifiedArtifactReturnedToChat": true,
+  "invoiceCase": false,
+  "syntheticOnly": true,
+  "syntheticTaskData": true,
+  "liveModel": null,
+  "credentialMediatedByLocalProxy": false,
+  "syntheticModelDraft": true,
+  "recordedProviderResponse": false,
+  "paidModelRequests": 0,
+  "onePlanningProviderRequest": true,
+  "totalProviderRequests": 5,
+  "createdTaskExecuted": true,
+  "guidedRepositoryRevision": false,
+  "concurrentEditsPreserved": false,
+  "browserCommandReview": true,
+  "authenticatedApproval": true,
+  "approvalDidNotExecute": true,
+  "realDocker": true,
+  "verifiedArtifact": true,
+  "serviceRestartBeforeReview": true,
+  "recordedResultRestored": true,
+  "receiptsUnchanged": true,
+  "finalReviewConfirmed": true,
+  "durableCompletion": true,
+  "completedEvidenceReadableAfterReopen": true,
+  "runnerSourceCommit": "0b47874b3350c9362914b2555ef384ed2a5b2b08",
+  "installedPackage": false,
+  "runnerSha256": "97b8f2d6de44476de4bc534eb80a64703681adc393b6b23fde08fa9fdb1fc2d8",
+  "scope": "Synthetic full browser journey with real Docker; verifies the artifact tool result supplied to the final model request matches exact task, path and evidence SHA-256. Earlier live evidence remains separate."
+}

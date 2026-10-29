@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "32fba83614e281d4dc37e7477b8f5275b251f9f8",
+  "checks": {
+    "committedGitBlobs": {
+      "passed": true,
+      "evidenceFiles": 18,
+      "comparison": "Original recorded hash with LF/CRLF-only normalization"
+    },
+    "repositoryPrivacy": {
+      "passed": true,
+      "testsPassed": 27
+    },
+    "publicLinks": {
+      "passed": true,
+      "testsPassed": 2,
+      "linksResolved": 2622,
+      "allowlistedDocuments": 92
+    }
+  },
+  "limitations": [
+    "Privacy scanner covers its configured signatures and path rules, not a universal proof of absence",
+    "No current-build package or live provider acceptance claimed by these checks"
+  ]
+}

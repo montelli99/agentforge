@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {ObsidianMemoryProvider} from '../dist/providers/memory/obsidianMemory.js';
+import {queryMemoryBounded,memorySourceIdentity} from '../dist/core/providers/memory.js';
+const query={namespace:'synthetic',projectId:'proof',queryText:'launch',limit:8};
+if(process.argv[2]==='child'){
+ const rows=await queryMemoryBounded(new ObsidianMemoryProvider(process.argv[3],'synthetic','proof',['selected.md']),query);
+ console.log(JSON.stringify(rows));
+}else{
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-obsidian-lifecycle-')));
+ const selected=path.join(root,'selected.md');
+ await fs.writeFile(selected,'Synthetic launch color: blue.');
+ await fs.writeFile(path.join(root,'unselected.md'),'Synthetic excluded sentinel.');
+ const provider=new ObsidianMemoryProvider(root,'synthetic','proof',['selected.md']);
+ const first=await queryMemoryBounded(provider,query);assert.equal(first.length,1);
+ await fs.writeFile(selected,'Synthetic launch color: green.');
+ const edited=await queryMemoryBounded(provider,query);assert.equal(edited[0].record.id,first[0].record.id);
+ assert.equal(edited[0].record.content,'Synthetic launch color: green.');
+ assert.notEqual(edited[0].record.metadata.contentSha256,first[0].record.metadata.contentSha256);
+ await fs.unlink(selected);await assert.rejects(()=>queryMemoryBounded(provider,query),/failed/);
+ await fs.writeFile(selected,'Synthetic launch color: restored amber.');
+ const child=spawnSync(process.execPath,[fileURLToPath(import.meta.url), 'child',root],{encoding:'utf8',windowsHide:true,timeout:30000});
+ assert.equal(child.status,0,child.stderr);const restored=JSON.parse(child.stdout);
+ assert.equal(restored[0].record.content,'Synthetic launch color: restored amber.');
+ assert.equal(restored[0].record.id,first[0].record.id);
+ assert.deepEqual(await queryMemoryBounded(provider,{...query,projectId:'different'}),[]);
+ const disconnected=new ObsidianMemoryProvider(root,'synthetic','proof',[]);
+ assert.deepEqual(await queryMemoryBounded(disconnected,query),[]);
+ assert.equal(await fs.readFile(selected,'utf8'),'Synthetic launch color: restored amber.');
+ assert.ok(!JSON.stringify(restored).includes('excluded sentinel'));
+ const evidence={requirement:'P07',checks:{selectedFileOnly:true,editVisibleWithoutReconnect:true,missingFileFailsVisibly:true,newProcessReadsRestoredContent:true,stableRecordId:true,changedContentHash:true,projectIsolation:true,disconnectStopsRecallWithoutDeletingNote:true},source:memorySourceIdentity(provider,restored[0].record),limits:['Actual local-file adapter proof, not Obsidian application UI.','Hindsight live account, combined live providers, migration and guided browser lifecycle remain separate.'],recordedAt:new Date().toISOString()};
+ const destination=process.argv[2]??path.join(root,'lifecycle-evidence.json');
+ await fs.writeFile(destination,JSON.stringify(evidence,null,2)+'\n');
+ console.log('Evidence: '+destination);
+ console.log('PASS: selected-note edit, outage, restore, process restart and disconnect.');
+}

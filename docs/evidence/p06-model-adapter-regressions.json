@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "d5c633f9a0629c5fa7c6ed3e2ba62664cbbb23d8",
+  "testFiles": 25,
+  "limitation": "Local regression evidence, not live account authentication or model execution proof.",
+  "tests": 159,
+  "passed": true,
+  "scope": "Model adapter regression suite after subscription draft-bound changes",
+  "command": "pnpm exec vitest run src/providers/models --maxWorkers=1",
+  "recordedUtc": "2026-10-26T12:05:31.0737908Z"
+}

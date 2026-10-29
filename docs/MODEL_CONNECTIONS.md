@@ -71,10 +71,13 @@ no multi-connection file is supplied. Existing MiMo configuration is unchanged.
    `AGENTFORGE_PLAN_CLI_CONFIG`. It is not a general chat subscription bridge.
 2. **Claude:** the user signs in through the unmodified Claude Code client.
    AgentForge must not collect Claude account tokens or repurpose them as API
-   credentials. A managed official-client worker is not implemented here.
+   credentials. A pinned managed-worker implementation exists, but it is not
+   enabled by server startup. Live authentication, operating-system isolation,
+   and the complete guided workflow remain required before activation.
 3. **Google:** Gemini CLI supports Google-account sign-in, including eligible Pro
-   and Ultra accounts. A managed Gemini CLI worker is not implemented here; the
-   Gemini API connection above is a separate route.
+   and Ultra accounts. A pinned managed-worker implementation and dedicated-profile
+   preparation command exist, but server activation and live account/isolation
+   acceptance remain incomplete. The Gemini API connection above is a separate route.
 4. **Other consumer subscriptions:** no undocumented cookie or token bridges.
    Use a documented API or official client rather than claiming subscription
    interoperability that has not been implemented and verified.
@@ -108,8 +111,11 @@ project configuration, workspace exports, or release artifacts.
 
 The web setup now implements official sign-in, model selection, chat/tool requests,
 plan drafting, protected saved-account restoration, renewal, and sign-out on
-Windows. Live account lifecycle and clean-install browser acceptance remain
-unproven. This implementation status is not a claim of production readiness.
+Windows. Dedicated-account live checks have demonstrated chat/tool requests,
+restore, explicit renewal, cancellation followed by restore, and recovery after
+a worker crash. Natural token expiry, live sign-out, and the complete clean-install
+subscription browser journey remain open. These bounded checks do not establish
+production readiness or support on other operating systems.
 
 1. Sign in to AgentForge as an owner or administrator. Open **Models**, choose
    **Use a subscription**, and continue to **Connect your model**.
@@ -180,10 +186,10 @@ and validates initialization/activity/result events. It rejects exposed tools,
 tool activity and ambiguous results, and preserves validated usage on failures.
 Synthetic validation and a real signed-out refusal have passed. Signed-in
 inference, managed-policy isolation and the complete approval journey have not.
-It is therefore not activated by the server or advertised as a working connection.
+It can be explicitly selected for draft generation with `AGENTFORGE_PLAN_PROVIDER=claude-cli` and an absolute `AGENTFORGE_PLAN_CLAUDE_CONFIG` file. This experimental opt-in is not proof of signed-in lifecycle acceptance. Generated commands still require review and the separate approved Docker execution backend.
 Event rejection detects activity; it cannot reverse an already performed effect.
 
-Gemini managed planning remains disabled and incomplete. Its internal stream
+Gemini draft generation can be explicitly selected with `AGENTFORGE_PLAN_PROVIDER=gemini-cli` and an absolute `AGENTFORGE_PLAN_GEMINI_CONFIG` file. Its full managed lifecycle remains incomplete. Its internal stream
 validator now checks a single initialization, the exact requested model and
 prompt, assistant text deltas, a final successful result and zero tool calls.
 It rejects unexpected activity and retains valid usage when rejecting a result.
@@ -274,3 +280,92 @@ This route is experimental: live subscription inference, effective client isolat
 and the complete user journey have not been accepted. Requested client flags and
 transcript checks are not an OS sandbox. This is a planner route, not streaming
 Claude chat or permission to run the official client against private repositories.
+
+Use the exact resolved home returned by prepare-gemini for GEMINI_CLI_HOME and the planner homeDirectory. On systems where temporary directories have filesystem aliases, this resolves the newly created location; the planner still refuses linked profile paths.
+
+### Experimental Gemini subscription planner
+
+Prepare a new dedicated profile with `agentforge connections prepare-gemini`,
+then use its returned physical home for official Google sign-in. Do not select
+an existing personal profile. AgentForge does not collect account passwords or
+copy credentials. The profile disables hooks, extensions, MCP and skills.
+
+The launcher accepts `AGENTFORGE_PLAN_PROVIDER=gemini-cli` and
+`AGENTFORGE_PLAN_GEMINI_CONFIG`, an absolute path to a private JSON file with
+exactly these fields:
+
+```json
+{
+  "bundlePath": "/absolute/path/to/official/bundle/gemini.js",
+  "homeDirectory": "/absolute/physical/path/to/dedicated-home",
+  "model": "gemini-YOUR-AVAILABLE-MODEL"
+}
+```
+
+On Windows use absolute Windows paths, escaping backslashes in JSON. No API key
+or account token belongs in this file. Use an account-supported model identifier;
+the placeholder above is not a model recommendation. The client must advertise
+the required controls, and the profile must retain the prepared restrictions.
+
+This route drafts a plan for review. It does not provide streaming chat or run
+proposed commands. Approved execution goes through AgentForge's governed worker.
+Cancellation rejects the response, retains valid reported usage when available,
+and never automatically retries or falls back to API billing.
+
+Official 0.65.0 user-setting authentication mismatch rejection and policy-engine
+tool denial have been exercised without an account. Complete live login,
+inference and full-client enforcement remain acceptance work; engine checks
+and requested flags are not an operating-system sandbox.
+
+### Experimental Claude subscription chat
+
+To select the bounded Claude chat adapter, set AGENTFORGE_CHAT_PROVIDER to
+claude-cli and AGENTFORGE_CHAT_CLAUDE_CONFIG to an absolute JSON configuration
+path. The configuration has the same executablePath, configurationDirectory
+and model fields as the planner above. Use a dedicated, explicitly selected
+official-client profile; never include credentials in this file or the repository.
+Remove AGENTFORGE_CHAT_API_KEY and AGENTFORGE_MODEL_CONNECTIONS_FILE from this
+launch configuration: ambiguous API fallback is rejected. Restart the service
+after changing host configuration.
+
+In guided subscription setup, Check Claude client account reports the selected
+profile's sign-in separately from whether Claude is configured for chat. A
+configured route is not proof of working inference. Send a short synthetic
+message to check a full response. The adapter validates the complete client
+transcript before emitting its buffered response; it does not stream tokens
+as they arrive. Tool proposals go through AgentForge's existing permissions;
+client-native tools remain disabled. Task execution still requires reviewed
+plans and the separately configured execution backend.
+
+Signed-in live acceptance and managed native-client execution remain incomplete.
+This experimental route does not change those release requirements.
+
+### Experimental Gemini Google-sign-in chat
+
+Set `AGENTFORGE_CHAT_PROVIDER=gemini-cli` and
+`AGENTFORGE_CHAT_GEMINI_CONFIG` to an absolute JSON configuration file containing
+`bundlePath`, `homeDirectory`, and `model`, as described for the dedicated Gemini
+planner profile above. Use the prepared dedicated profile and official sign-in;
+do not copy personal account credentials into the repository. Remove
+`AGENTFORGE_CHAT_API_KEY` and `AGENTFORGE_MODEL_CONNECTIONS_FILE` from this launch
+configuration: ambiguous API fallback is rejected. Restart after host changes.
+
+This route supports buffered chat answers and proposals for the tools offered by
+AgentForge. It validates the entire official-client transcript before emitting
+an answer. Client-native tools remain denied; task execution still requires
+AgentForge's existing approval and execution setup. Profile file presence is not
+proof of authentication, subscription entitlement, quota, or model availability.
+Only a successful official-client request can establish access for that request.
+The installation checker is separate and does not activate this chat route.
+Live signed-in acceptance and native managed execution remain release work.
+
+### Hermes credential changes and saved runs
+
+The pinned Hermes API server scopes durable runs by profile and API key. A new
+key can authenticate while an old run returns 404; it does not inherit the old
+credential’s saved runs. AgentForge binds receipts to the original connection
+identity and refuses to replay an old operation under a changed credential.
+Do not resubmit an uncertain task to recover its result. Restore the original
+authorized connection to inspect the old run, or use a separately supported
+server migration procedure. The disposable server rotation proof is recorded
+in `evidence/p05-hermes-server-key-rotation.json`; it submitted no new task.

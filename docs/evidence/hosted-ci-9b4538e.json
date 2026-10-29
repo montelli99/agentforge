@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "9b4538e24f6a32868b46a6d35fa9f15f4d1a21b9",
+  "runId": 40284746678,
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40284746678",
+  "conclusion": "success",
+  "jobsPassed": 7,
+  "archive": "agentforge-0.1.2.tgz",
+  "sha256": "686294ae27e39aa2f3b89238f6aa33d751510173266d09ca307b4979a778c448",
+  "downloadedHashMatched": true,
+  "scope": "Exact hosted build, six OS/Node test combinations, public package, isolated execution, installed browser acceptance",
+  "limits": [
+    "Later Hermes evidence scripts and records are not in this archive.",
+    "Does not prove every release backlog requirement or competitive superiority.",
+    "Not promoted to a new public release."
+  ]
+}

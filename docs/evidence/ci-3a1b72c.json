@@ -1,0 +1,1253 @@
+{
+  "conclusion": "success",
+  "headSha": "3a1b72c3bf9d538064a25deeb5af526c38f27003",
+  "jobs": [
+    {
+      "completedAt": "2026-10-26T11:37:30Z",
+      "conclusion": "success",
+      "databaseId": 121544174454,
+      "name": "Public package and isolated execution acceptance",
+      "startedAt": "2026-10-26T11:23:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:19Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:21Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:22Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:24Z",
+          "conclusion": "success",
+          "name": "Setup Node.js",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:26Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:37Z",
+          "conclusion": "success",
+          "name": "Prepare isolated acceptance images",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:02Z",
+          "conclusion": "success",
+          "name": "Verify public release boundary",
+          "number": 7,
+          "startedAt": "2026-10-26T11:23:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:03Z",
+          "conclusion": "success",
+          "name": "Verify Docker survivor discovery after worker death",
+          "number": 8,
+          "startedAt": "2026-10-26T11:24:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:05Z",
+          "conclusion": "success",
+          "name": "Verify saved execution setup through restart and final approval",
+          "number": 9,
+          "startedAt": "2026-10-26T11:24:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:35:57Z",
+          "conclusion": "success",
+          "name": "Prepare isolated browser acceptance",
+          "number": 10,
+          "startedAt": "2026-10-26T11:24:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:36:34Z",
+          "conclusion": "success",
+          "name": "Verify memory setup and reload in Chromium",
+          "number": 11,
+          "startedAt": "2026-10-26T11:35:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:36:35Z",
+          "conclusion": "success",
+          "name": "Retain synthetic browser evidence",
+          "number": 12,
+          "startedAt": "2026-10-26T11:36:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:36:36Z",
+          "conclusion": "success",
+          "name": "Retain synthetic delegation evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:36:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:36:37Z",
+          "conclusion": "success",
+          "name": "Package exact verified commit",
+          "number": 14,
+          "startedAt": "2026-10-26T11:36:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:26Z",
+          "conclusion": "success",
+          "name": "Verify installed release archive in Chromium",
+          "number": 15,
+          "startedAt": "2026-10-26T11:36:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:27Z",
+          "conclusion": "success",
+          "name": "Retain verified release package",
+          "number": 16,
+          "startedAt": "2026-10-26T11:37:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:27Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js",
+          "number": 30,
+          "startedAt": "2026-10-26T11:37:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:27Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 31,
+          "startedAt": "2026-10-26T11:37:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:28Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 32,
+          "startedAt": "2026-10-26T11:37:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:37:28Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 33,
+          "startedAt": "2026-10-26T11:37:28Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174454"
+    },
+    {
+      "completedAt": "2026-10-26T11:25:04Z",
+      "conclusion": "success",
+      "databaseId": 121544174850,
+      "name": "Build & Test (ubuntu-latest, Node 24.x)",
+      "startedAt": "2026-10-26T11:23:21Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:22Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:23Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:24Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:27Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 24.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:28Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:37Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:39Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:24:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:39Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:24:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:40Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:24:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:40Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:24:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:40Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:24:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:41Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:24:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:42Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:24:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:48Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:24:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:02Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:24:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:02Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:25:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:02Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:25:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:02Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 24.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:25:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:02Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:25:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:03Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:25:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:03Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:25:03Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174850"
+    },
+    {
+      "completedAt": "2026-10-26T11:24:57Z",
+      "conclusion": "success",
+      "databaseId": 121544174885,
+      "name": "Build & Test (ubuntu-latest, Node 22.x)",
+      "startedAt": "2026-10-26T11:23:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:19Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:20Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:22Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:25Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 22.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:26Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:33Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:35Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:24:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:35Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:24:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:35Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:24:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:36Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:24:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:36Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:24:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:36Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:24:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:38Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:24:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:44Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:24:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:24:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 22.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:55Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:55Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:24:55Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174885"
+    },
+    {
+      "completedAt": "2026-10-26T11:25:24Z",
+      "conclusion": "success",
+      "databaseId": 121544174897,
+      "name": "Build & Test (macos-latest, Node 24.x)",
+      "startedAt": "2026-10-26T11:23:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:19Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:21Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:25Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:33Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 24.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:37Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:50Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:52Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:24:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:24:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:54Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:55Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:24:56Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:24:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:03Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:24:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:20Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:25:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:20Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:25:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:20Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:25:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:21Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 24.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:25:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:21Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:25:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:21Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:25:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:22Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:25:21Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174897"
+    },
+    {
+      "completedAt": "2026-10-26T11:28:02Z",
+      "conclusion": "success",
+      "databaseId": 121544174955,
+      "name": "Build & Test (windows-latest, Node 24.x)",
+      "startedAt": "2026-10-26T11:23:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:18Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:24Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:28Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:40Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 24.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:44Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:40Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:43Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:25:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:44Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:25:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:44Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:25:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:45Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:25:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:46Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:25:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:47Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:25:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:48Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:25:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:56Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:25:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:27:57Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:25:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:27:57Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:27:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:27:58Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:27:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:27:59Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 24.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:27:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:27:59Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:27:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:01Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:27:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:01Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:28:01Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174955"
+    },
+    {
+      "completedAt": "2026-10-26T11:28:50Z",
+      "conclusion": "success",
+      "databaseId": 121544174992,
+      "name": "Build & Test (windows-latest, Node 22.x)",
+      "startedAt": "2026-10-26T11:23:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:17Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:23Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:27Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:40Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 22.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:44Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:57Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:00Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:25:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:02Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:26:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:02Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:26:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:03Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:26:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:04Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:26:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:05Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:26:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:06Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:26:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:26:14Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:26:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:45Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:26:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:45Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:28:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:46Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:28:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:47Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 22.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:28:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:47Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:28:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:49Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:28:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:28:49Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:28:49Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544174992"
+    },
+    {
+      "completedAt": "2026-10-26T11:25:46Z",
+      "conclusion": "success",
+      "databaseId": 121544175017,
+      "name": "Build & Test (macos-latest, Node 22.x)",
+      "startedAt": "2026-10-26T11:23:17Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-26T11:23:20Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-26T11:23:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:23Z",
+          "conclusion": "success",
+          "name": "Checkout Source",
+          "number": 2,
+          "startedAt": "2026-10-26T11:23:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:27Z",
+          "conclusion": "success",
+          "name": "Setup pnpm",
+          "number": 3,
+          "startedAt": "2026-10-26T11:23:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:35Z",
+          "conclusion": "success",
+          "name": "Setup Node.js 22.x",
+          "number": 4,
+          "startedAt": "2026-10-26T11:23:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:23:39Z",
+          "conclusion": "success",
+          "name": "Clean Install Dependencies",
+          "number": 5,
+          "startedAt": "2026-10-26T11:23:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:07Z",
+          "conclusion": "success",
+          "name": "Typecheck, test, and build",
+          "number": 6,
+          "startedAt": "2026-10-26T11:23:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:10Z",
+          "conclusion": "success",
+          "name": "Verify Gemini deny policy against pinned official client",
+          "number": 7,
+          "startedAt": "2026-10-26T11:25:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:12Z",
+          "conclusion": "success",
+          "name": "Verify interrupted execution is not replayed",
+          "number": 8,
+          "startedAt": "2026-10-26T11:25:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:13Z",
+          "conclusion": "success",
+          "name": "Verify selected-note memory lifecycle across restart",
+          "number": 9,
+          "startedAt": "2026-10-26T11:25:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:13Z",
+          "conclusion": "success",
+          "name": "Provider accounting parser",
+          "number": 10,
+          "startedAt": "2026-10-26T11:25:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:13Z",
+          "conclusion": "success",
+          "name": "Composed local memory lifecycle",
+          "number": 11,
+          "startedAt": "2026-10-26T11:25:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:14Z",
+          "conclusion": "success",
+          "name": "Verify encrypted memory selection after process termination",
+          "number": 12,
+          "startedAt": "2026-10-26T11:25:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:16Z",
+          "conclusion": "success",
+          "name": "Retain selected-note lifecycle evidence",
+          "number": 13,
+          "startedAt": "2026-10-26T11:25:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:23Z",
+          "conclusion": "success",
+          "name": "Verify built-launcher persistence across restart",
+          "number": 14,
+          "startedAt": "2026-10-26T11:25:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:40Z",
+          "conclusion": "success",
+          "name": "Verify package developer CLI workflow",
+          "number": 15,
+          "startedAt": "2026-10-26T11:25:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:40Z",
+          "conclusion": "success",
+          "name": "Validate local Windows watchdog syntax",
+          "number": 16,
+          "startedAt": "2026-10-26T11:25:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:41Z",
+          "conclusion": "success",
+          "name": "Verify Working Tree Cleanliness",
+          "number": 17,
+          "startedAt": "2026-10-26T11:25:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:41Z",
+          "conclusion": "success",
+          "name": "Post Setup Node.js 22.x",
+          "number": 32,
+          "startedAt": "2026-10-26T11:25:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:41Z",
+          "conclusion": "success",
+          "name": "Post Setup pnpm",
+          "number": 33,
+          "startedAt": "2026-10-26T11:25:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:42Z",
+          "conclusion": "success",
+          "name": "Post Checkout Source",
+          "number": 34,
+          "startedAt": "2026-10-26T11:25:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-26T11:25:44Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-26T11:25:42Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698/job/121544175017"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/montelli99/agentforge/actions/runs/40314677698"
+}

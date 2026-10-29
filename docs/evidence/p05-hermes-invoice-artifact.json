@@ -1,0 +1,56 @@
+{
+  "requirement": "P05",
+  "runId": "run_5a3002daffb94bd583270668c3153503",
+  "model": "mimo-v2.6-flash",
+  "requests": 6,
+  "independentCheckerPassed": true,
+  "inputUnchanged": true,
+  "inputSha256": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "artifact": {
+    "rows": [
+      {
+        "customer": "Acme",
+        "currency": "EUR",
+        "netCents": 500,
+        "count": 1
+      },
+      {
+        "customer": "Acme",
+        "currency": "USD",
+        "netCents": 950,
+        "count": 2
+      },
+      {
+        "customer": "Beta",
+        "currency": "EUR",
+        "netCents": -75,
+        "count": 1
+      },
+      {
+        "customer": "Beta",
+        "currency": "USD",
+        "netCents": 300,
+        "count": 1
+      },
+      {
+        "customer": "Gamma",
+        "currency": "USD",
+        "netCents": 0,
+        "count": 1
+      }
+    ],
+    "includedInvoices": 6,
+    "voidInvoices": 1,
+    "supersededRows": 2
+  },
+  "attempts": [
+    "First attempt failed: incompatible write path and four-turn limit.",
+    "Second attempt passed in allowed directory with eight-turn limit."
+  ],
+  "limits": [
+    "Direct runtime submission, not unified browser review.",
+    "Fixture hashes were confirmed after this run against previously frozen fixtures; pre-request hashing was added for subsequent runs.",
+    "Tool-effect cancellation remains open."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "command": "pnpm test",
+  "testFilesPassed": 152,
+  "recordedUtc": "2026-10-26T12:13:30.4278163Z",
+  "exitCode": 0,
+  "durationSeconds": 76.68,
+  "testsPassed": 890,
+  "passed": true,
+  "limitation": "Local suite only; skipped opt-in live checks and broader acceptance requirements remain unproven.",
+  "testsSkipped": 2,
+  "sourceCommit": "243e018a52cfb6868cb49859f4e2d1df206accd0"
+}

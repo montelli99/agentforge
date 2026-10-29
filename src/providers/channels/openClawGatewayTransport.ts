@@ -44,17 +44,31 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
   private connectId?: string;
   private handshakeTimer?: ReturnType<typeof setTimeout>;
   private seq = 0;
+  private stopGeneration = 0;
+  private terminalHandshakeFailure = false;
+  private pairingRequired = false;
+  private connectingOperation = false;
   private grantedScopes = new Set<string>();
   private readonly pending = new Map<string, Pending>();
   private readonly subscribers = new Set<(update: TelegramBotUpdate) => Promise<void>>();
   private readonly device;
 
-  constructor(private readonly options: { url: string; token?: string; identityPath: string }) {
+  constructor(private readonly options: { url: string; token?: string; identityPath: string; enableTaskDelegation?: boolean }) {
+    this.options = Object.freeze({...options});
     const parsed = new URL(options.url);
-    if (parsed.protocol !== "wss:" && !(parsed.protocol === "ws:" && ["127.0.0.1", "localhost", "::1"].includes(parsed.hostname))) {
+    if (parsed.protocol !== "wss:" && !(parsed.protocol === "ws:" && ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname))) {
       throw new Error("Gateway URL must use wss://, or ws:// on loopback only.");
     }
     this.device = identity(options.identityPath);
+  }
+
+  /** Public fingerprint only; private key material is never exposed. */
+  getDeviceFingerprint(): string { return this.device.deviceId; }
+
+  /** Configuration binding, not proof of server identity. Credential changes require explicit rebinding. */
+  getConnectionId(): string {
+    return 'openclaw-' + crypto.createHmac('sha256', this.device.privateKeyPem)
+      .update(JSON.stringify({url: new URL(this.options.url).href, token: this.options.token ?? '', ...(this.options.enableTaskDelegation?{taskDelegation:true}:{})})).digest('hex');
   }
 
   // Only an authenticated handshake establishes connection authority.
@@ -65,18 +79,22 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     if (this.socket) return;
     this.nonce = undefined;
     this.connectId = undefined;
+    this.terminalHandshakeFailure = false;
+    this.pairingRequired = false;
     const socket = new WebSocket(this.options.url);
     this.socket = socket;
-    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.stop(); }, 30_000);
+    this.handshakeTimer = setTimeout(() => { if (this.socket === socket) this.disconnect(); }, 30_000);
     socket.addEventListener("message", event => { if (this.socket === socket) this.handle(String(event.data)); });
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
-      this.stop();
+      this.disconnect();
     });
-    socket.addEventListener("error", () => { if (this.socket === socket) this.stop(); });
+    socket.addEventListener("error", () => { if (this.socket === socket) this.disconnect(); });
   }
 
-  stop(): void {
+  stop(): void { this.stopGeneration++; this.disconnect(); }
+
+  private disconnect(): void {
     clearTimeout(this.handshakeTimer);
     this.handshakeTimer = undefined;
     const socket = this.socket;
@@ -88,6 +106,36 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     for (const pending of this.pending.values()) pending.reject(new Error("gateway disconnected; delivery may be uncertain"));
     this.pending.clear();
     socket?.close();
+  }
+
+  async connectWhenReady(timeoutMs = 30_000): Promise<void> {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) throw new Error("Invalid gateway connection deadline");
+    if (this.connectingOperation) throw new Error("Gateway connection is already in progress");
+    this.connectingOperation = true;
+    const generation = this.stopGeneration;
+    const deadline = Date.now() + timeoutMs;
+    let retryAt = 0;
+    let backoff = 250;
+    try {
+      while (Date.now() < deadline) {
+        if (this.stopGeneration !== generation) throw new Error("Gateway connection cancelled");
+        if (this.isConnected()) return;
+        if (this.terminalHandshakeFailure) throw new Error(this.pairingRequired ? "OpenClaw device pairing required. Review the pending device with fingerprint " + this.device.deviceId + " in OpenClaw, approve it only if it matches this connection, then reconnect. No task was sent." : "Gateway authentication or protocol rejected; review the connection settings");
+        if (!this.socket && Date.now() >= retryAt) {
+          this.start(); retryAt = Date.now() + backoff; backoff = Math.min(backoff * 2, 2000);
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+      }
+      throw new Error("Gateway did not become ready before the connection deadline");
+    } catch (error) {
+      this.disconnect();
+      // End this attempt. A later explicit connection request may retry after pairing;
+      // this loop never retries a terminal authentication rejection automatically.
+      this.terminalHandshakeFailure = false;
+      this.pairingRequired = false;
+      throw error;
+    }
+    finally { this.connectingOperation = false; }
   }
 
   subscribe(handler: (update: TelegramBotUpdate) => Promise<void>): () => void {
@@ -108,8 +156,91 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
     return parsed;
   }
 
+  /** Metadata-only discovery. No transcript import, default selection or send. */
+  async listSessions(limit = 25, offset = 0): Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger(offset) || offset < 0) throw Error('Invalid session page bounds');
+    if (!this.isConnected()) throw Error('gateway authentication not complete');
+    if (!['operator.read','operator.write','operator.admin'].some(scope=>this.grantedScopes.has(scope))) throw Error('gateway did not grant session read permission');
+    const result=await this.request<Record<string,unknown>>('sessions.list',{limit,offset,rowMode:'compact'});
+    if (!result || !Array.isArray(result.sessions) || result.sessions.length > limit) throw Error('Invalid gateway session page');
+    const keys=new Set<string>();
+    const sessions=result.sessions.map((row:unknown)=>{
+      if (!row || typeof row !== 'object' || Array.isArray(row)) throw Error('Invalid gateway session row');
+      const value=row as Record<string,unknown>;
+      const key=value.key;
+      if (typeof key!=='string'||!key.trim()||key.length>512||/[\u0000-\u001f\u007f]/.test(key)||keys.has(key)) throw Error('Invalid or duplicate gateway session key');
+      keys.add(key);
+      const label=value.displayName ?? value.label;
+      const name=typeof label==='string'&&label.trim()&&label.length<=200&&!/[\u0000-\u001f\u007f]/.test(label)?label:key;
+      return {key,name};
+    });
+    const next=result.nextOffset;
+    if (next!==undefined&&next!==null&&(!Number.isSafeInteger(next)||Number(next)<=offset)) throw Error('Invalid gateway session pagination');
+    return {sessions,...(next===undefined||next===null?{}:{nextOffset:Number(next)})};
+  }
+
+  /** Read one explicitly bound session; never infer a session or replay a turn. */
+  async readSessionHistory(sessionKey: string, limit = 50): Promise<Record<string, unknown> & { messages: unknown[] }> {
+    if (!sessionKey.trim() || sessionKey.length > 512 || /[\u0000-\u001f]/.test(sessionKey)) throw new Error("An explicit valid gateway session key is required");
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error("History limit must be between 1 and 100");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!["operator.read", "operator.write", "operator.admin"].some(scope => this.grantedScopes.has(scope))) throw new Error("gateway did not grant history read permission");
+    const result = await this.request<Record<string, unknown>>("chat.history", { sessionKey, limit });
+    if (!result || !Array.isArray(result.messages)) throw new Error("gateway returned invalid session history");
+    // Preserve activity fields exactly. Missing activeRunIds is not proof of idle.
+    return result as Record<string, unknown> & { messages: unknown[] };
+  }
+
+  /** Low-level dispatch. The caller must durably record approval and request ID first. */
+  async submitSessionTurn(sessionKey: string, message: string, idempotencyKey: string): Promise<{ runId: string }> {
+    if (!sessionKey.trim() || sessionKey.length > 512 || /[\u0000-\u001f]/.test(sessionKey)) throw new Error("An explicit valid gateway session key is required");
+    if (!message.trim() || message.length > 32_000) throw new Error("Gateway message must contain between 1 and 32000 characters");
+    if (!/^[a-zA-Z0-9_-]{8,128}$/.test(idempotencyKey)) throw new Error("A durable gateway request identifier is required");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!this.grantedScopes.has("operator.write") && !this.grantedScopes.has("operator.admin")) throw new Error("gateway did not grant message write permission");
+    if (!this.options.enableTaskDelegation || !this.grantedScopes.has("operator.admin")) throw new Error("Task delegation requires explicit enablement and gateway-granted operator.admin scope for command suppression");
+    const result = await this.request<Record<string, unknown>>("chat.send", {
+      sessionKey, message, idempotencyKey, deliver: false, suppressCommandInterpretation: true,
+    });
+    if (!result || typeof result.runId !== "string" || !result.runId.trim() || result.runId.length > 512) throw new Error("gateway returned no run receipt; submission may be uncertain");
+    return { runId: result.runId };
+  }
+
+  /** Observe a previously saved run without resubmission. Timeout is not completion. */
+  async inspectRun(runId: string): Promise<Record<string, unknown> & {runId: string; status: string}> {
+    if (!runId.trim() || runId.length > 512 || /[\u0000-\u001f]/.test(runId)) throw new Error("An explicit valid gateway run ID is required");
+    if (!this.isConnected()) throw new Error("gateway authentication not complete");
+    if (!["operator.read", "operator.write", "operator.admin"].some(scope => this.grantedScopes.has(scope))) throw new Error("gateway did not grant run read permission");
+    const result = await this.request<Record<string, unknown>>("agent.wait", {runId, timeoutMs: 0});
+    if (!result || result.runId !== runId || typeof result.status !== "string" || !result.status.trim()) throw new Error("gateway returned an invalid or mismatched run observation");
+    return result as Record<string, unknown> & {runId: string; status: string};
+  }
+
+  /** Return only the terminal reply bound to this run; timeout/history alone is insufficient. */
+  async readRunOutput(runId: string, sessionKey?: string): Promise<{runId:string;content:string}> {
+    const result = await this.inspectRun(runId);
+    if(result.status==='timeout'&&sessionKey){const history=await this.readSessionHistory(sessionKey,100);return recoverOpenClawHistoryOutput(history,sessionKey,runId);}
+    const receipt = result.terminalReceipt as Record<string,unknown> | undefined;
+    const reply = result.terminalReply as Record<string,unknown> | undefined;
+    if(result.status !== 'ok' || !receipt || receipt.runId !== runId || !reply
+      || reply.disposition !== 'visible' || typeof reply.text !== 'string'
+      || !reply.text.trim() || Buffer.byteLength(reply.text,'utf8') > 60000)
+      throw Error('Completed OpenClaw text output unavailable or exceeds 60 KB');
+    return {runId,content:reply.text};
+  }
+  /** Request cancellation of exactly one saved run; never send session-wide Stop. */
+  async requestRunStop(sessionKey: string, runId: string): Promise<{acknowledged: boolean}> {
+    for (const value of [sessionKey,runId]) if (!value.trim() || value.length>512 || /[\u0000-\u001f]/.test(value)) throw new Error('An explicit session and run ID are required for Stop');
+    if (!this.isConnected()) throw new Error('gateway authentication not complete');
+    if (!this.grantedScopes.has('operator.write') && !this.grantedScopes.has('operator.admin')) throw new Error('gateway did not grant Stop permission');
+    const result=await this.request<Record<string,unknown>>('chat.abort',{sessionKey,runId,preserveSideRuns:true,discardPendingInput:false});
+    if (!result || result.ok!==true || typeof result.aborted!=='boolean' || !Array.isArray(result.runIds) || !result.runIds.every(id=>typeof id==='string')) throw new Error('Invalid Stop receipt; cancellation may be uncertain');
+    // Even acknowledgement is not evidence that every downstream effect ended.
+    return {acknowledged:result.aborted===true && result.runIds.includes(runId)};
+  }
+
   private sendConnect(signedAt: number) {
-    const scopes = ["operator.read", "operator.write"];
+    const scopes = ["operator.read", "operator.write", ...(this.options.enableTaskDelegation ? ["operator.admin"] : [])];
     const payload = ["v2", this.device.deviceId, "gateway-client", "backend", "operator", scopes.join(","), String(signedAt), this.options.token ?? "", this.nonce ?? ""].join("|");
     const publicRaw = (crypto.createPublicKey(this.device.publicKeyPem).export({ type: "spki", format: "der" }) as Buffer).subarray(-32);
     const signature = b64url(crypto.sign(null, Buffer.from(payload), crypto.createPrivateKey(this.device.privateKeyPem)));
@@ -132,7 +263,7 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
         const challenge = event.payload as { nonce?: unknown; ts?: unknown } | undefined;
         const nonce = challenge?.nonce;
         if (!this.connectId && !this.connected) {
-          if (typeof nonce !== "string" || !nonce.trim() || typeof challenge?.ts !== "number" || !Number.isSafeInteger(challenge.ts) || challenge.ts < 0) { this.stop(); return; }
+          if (typeof nonce !== "string" || !nonce.trim() || typeof challenge?.ts !== "number" || !Number.isSafeInteger(challenge.ts) || challenge.ts < 0) { this.terminalHandshakeFailure = true; this.disconnect(); return; }
           this.nonce = nonce; this.sendConnect(challenge.ts);
         }
       } else if (event.event === "chat" && this.connected) this.emitChat(event.payload);
@@ -148,7 +279,12 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
           this.handshakeTimer = undefined;
           this.connected = true;
         }
-        else this.stop();
+        else {
+          const error = frame.error as { code?: string; details?: { reason?: string } } | undefined;
+          this.pairingRequired = error?.code === "NOT_PAIRED";
+          this.terminalHandshakeFailure = !(error?.code === "UNAVAILABLE" && error.details?.reason === "startup-sidecars");
+          this.disconnect();
+        }
         return;
       }
       const waiter = this.pending.get(frame.id); if (!waiter) return;
@@ -187,4 +323,17 @@ export class OpenClawGatewayTransport implements TelegramGatewayBridge {
       }
     });
   }
+}
+
+/** Exact-run transcript recovery; never select the newest message as a substitute. */
+export function recoverOpenClawHistoryOutput(history:Record<string,unknown>&{messages:unknown[]},sessionKey:string,runId:string):{runId:string;content:string}{
+ const info=history.sessionInfo as Record<string,unknown>|undefined;
+ if(history.sessionKey!==sessionKey||info?.hasActiveRun!==false||history.hasMore!==false)throw Error('Incomplete or active history cannot establish saved output');
+ const messages=history.messages as Array<Record<string,unknown>>;
+ const origin=messages.filter(m=>m.role==='user'&&m.idempotencyKey===runId+':user');
+ const replies=messages.filter(m=>m.role==='assistant'&&(m.__openclaw as Record<string,unknown>|undefined)?.runId===runId&&m.stopReason==='stop');
+ if(origin.length!==1||replies.length!==1)throw Error('Exact run history is missing or ambiguous');
+ const reply=replies[0];if(!Array.isArray(reply.content)||!reply.content.length||!reply.content.every(c=>c&&c.type==='text'&&typeof c.text==='string'))throw Error('Unsupported history output');
+ const content=reply.content.map(c=>c.text).join('\n');if(!content.trim()||Buffer.byteLength(content,'utf8')>60000)throw Error('History output exceeds bounds');
+ return {runId,content};
 }

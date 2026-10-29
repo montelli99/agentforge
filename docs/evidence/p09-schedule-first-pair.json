@@ -1,0 +1,107 @@
+{
+  "protocolCommit": "0aa3afa",
+  "attempts": [
+    {
+      "id": "schedule-overlaps",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:36:50.765Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 406,
+        "totalTokens": 1040
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "18f1c460-6105-4991-935a-2dbf14c33fb9",
+        "taskId": "schedule-overlaps-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cee3f9e78e0e40141aad53e5e04b3a49a817e66ae520807e71d9eec6993d1fce",
+        "status": "completed",
+        "inputTokens": 634,
+        "outputTokens": 406,
+        "responseDigest": "277ca597be5c43236da992aed87038d31bbba078a972521319bd1bcca608ca4f"
+      },
+      "planSha256": "bb06512a90b59c78f367008bf072813f42a301bf31446ed2bc470ee93e61234d",
+      "planningElapsedMs": 9501.292099999999,
+      "review": {
+        "approvedDigest": "bb06512a90b59c78f367008bf072813f42a301bf31446ed2bc470ee93e61234d",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:37:25.723Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json content",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 1984.8764,
+      "wallElapsedMs": 36941.8764
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:37:00.348Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 428,
+        "totalTokens": 1062
+      },
+      "cost": null,
+      "planSha256": "eda4100f448a9e0f0a36bb32a9f3ccf59ee41448e3cdec4347a06e50b8700404",
+      "planningElapsedMs": 22526.3204,
+      "review": {
+        "approvedDigest": "eda4100f448a9e0f0a36bb32a9f3ccf59ee41448e3cdec4347a06e50b8700404",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:37:40.600Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contains expected overlapping pairs",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 2003.6951,
+      "wallElapsedMs": 42253.6951
+    }
+  ],
+  "interpretation": "Both artifacts are independently correct; both self-checks wrongly omit two overlapping pairs. Both command sequences failed.",
+  "remainingAttempts": 10
+}

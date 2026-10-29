@@ -1,0 +1,21 @@
+{
+  "recordedAt": "2026-10-26T15:16:34.967Z",
+  "sources": [
+    "https://code.claude.com/docs/en/hooks",
+    "https://geminicli.com/docs/hooks/reference/"
+  ],
+  "findings": [
+    "Both official clients document pre-tool hooks and post-tool observations.",
+    "Gemini documents exit code 2 as blocking and other nonzero exits as warning-only continuation.",
+    "Post-tool observation cannot retroactively authorize an effect."
+  ],
+  "implementationDecision": "Do not treat a generic failing hook as an approval boundary. Require actual pinned-client denial-on-missing-approval proof and external isolation before enabling native effects.",
+  "requiredNegativeProofs": [
+    "approval service unavailable",
+    "malformed hook input or response",
+    "hook timeout and crash",
+    "expired or wrong-operation approval",
+    "duplicate tool request after restart"
+  ],
+  "complete": false
+}

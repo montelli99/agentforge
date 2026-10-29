@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "changedArtifactRefused": true,
+  "syntheticSurvivorRefused": true,
+  "artifactRestoredAfterProbe": true,
+  "noExecution": true
+}

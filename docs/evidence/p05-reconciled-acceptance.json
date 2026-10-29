@@ -1,0 +1,28 @@
+{
+  "recordedAt": "2026-10-26T17:33:48.075Z",
+  "sourceCommit": "833484697dedaa87eaca95f19e1027b691390003",
+  "evidenceSha256": {
+    "p05-governed-server-rotation.json": "acfd9ac553de4d69765570937f8dcb92774e087bb1082bd45e3eb12a10badbb4",
+    "p05-hermes-governed-continuation.json": "cbc9f0e56ce5759e2bf87bd8ec3694cbcfc836fde030dc6ec66e2f81d1961819",
+    "p08-installed-hermes-guided-workflow.json": "fc86feafd8c3dc59290f1081e48fcef2a2c508dc1bd149027cb549e8615128f8",
+    "p05-installed-partial-effect-stop.json": "2703a12dceff72141ddd72082480163949ef859ff5781f192f0c0f7af1526835"
+  },
+  "matchingBuiltRuntime": {
+    "dist/core/runtime/externalTurnDispatch.js": "3a14f47401edc90644621f7ba74e62691ca903c9e7b38c203a8d5afc43a127ca",
+    "dist/providers/channels/hermesRunConnection.js": "c5cd8de1ff25633cc9dd9ccd7a5d755d5f7e0b24ff97fbb7ba9c3613078d0690"
+  },
+  "verifiedBehaviors": [
+    "guided selection and reviewed useful task",
+    "unread output after server restart",
+    "same-session continuation",
+    "partial-effect Stop",
+    "actual server key rotation and local receipt refusal",
+    "exact original output after original key restoration"
+  ],
+  "newProviderRequests": 0,
+  "scope": "Reconciliation of existing synthetic acceptance records and identical built runtime files. Not a new live run or final-package acceptance.",
+  "remaining": [
+    "Final candidate installed-package verification",
+    "Browser interaction specifically during credential rotation remains outside these records"
+  ]
+}

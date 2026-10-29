@@ -1,0 +1,18 @@
+{
+  "runId": "run_0d44928a68114c45a7125760a2ecfe77",
+  "sessionKey": "run_982f6824ced447de925523d08ce0fe67",
+  "output": "Prior total: 1250. Add 50: 1250 + 50 = 1300. New total: 1300.",
+  "checks": {
+    "unapprovedSubmissionRefused": true,
+    "reviewedDispatch": true,
+    "reopenedReceipt": true,
+    "duplicateDispatchRefused": true,
+    "changedBindingRefused": true,
+    "sessionContextContinued": true,
+    "remoteCompletionNotLocalVerification": true
+  },
+  "limits": [
+    "Synthetic reviewer, not browser review.",
+    "Cancellation and useful tool execution remain separate acceptance cases."
+  ]
+}

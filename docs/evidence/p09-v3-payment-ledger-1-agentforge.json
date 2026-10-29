@@ -1,0 +1,75 @@
+{
+  "attempt": "payment-ledger-1-agentforge",
+  "classification": "Infrastructure failure: Git line-ending conversion changed staged input",
+  "sourceBytes": 543,
+  "worktreeBytes": 581,
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 3,
+    "passed": false,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 31391.239,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1868,
+        "outputTokens": 263
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1100,
+          "outputTokens": 27
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1868,
+          "outputTokens": 263
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 865,
+      "prompt_tokens": 2191,
+      "total_tokens": 3056,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 25847.823500000002,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "error": "invalid-submission-file\n\nfalse !== true\n",
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "totalElapsedMs": 62758.5267,
+    "providerRequests": 3,
+    "chatRequests": 2
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "outcome": "Not a full journey pass; no replacement attempt"
+}

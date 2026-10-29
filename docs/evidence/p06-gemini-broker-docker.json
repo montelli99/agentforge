@@ -1,0 +1,20 @@
+{
+  "recordedAt": "2026-10-26T15:45:00.8524017Z",
+  "sourceCommit": "f0c723382fad4550b4cf21e79e98bf6cb80594e6",
+  "scope": "Gemini 0.65.0 bundled MCP transport through session broker into real Docker; synthetic approved plan, not model-driven worker",
+  "imageId": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "moduleSha256": "4d9cf6435503e5280ecb0f55078793531c8041fe435f60fa8dfce92317c8a28e",
+  "attempts": [
+    "Rejected: verifier checkName did not match custom_script contract",
+    "Failed output assertion: append retained new-file placeholder",
+    "Passed after using initially empty tracked output",
+    "Passed with explicit all-verification-results assertion"
+  ],
+  "missingApprovalDenied": true,
+  "duplicateDenied": true,
+  "physicalAppendCount": 1,
+  "durableOutputRecovered": true,
+  "remainingContainers": 0,
+  "modelRequests": 0,
+  "scriptSha256": "0ccfb55fea97f496203a1300eacd31363c428cae5ced0d13afb3bdbf791190e3"
+}

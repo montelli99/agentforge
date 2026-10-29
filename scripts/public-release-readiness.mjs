@@ -17,9 +17,7 @@ function runGate(scriptName) {
     });
     return { passed: true, detail: `${scriptName} passed.` };
   } catch (error) {
-    const stderr = typeof error.stderr === "string" ? error.stderr.trim() : "";
-    const message = stderr || error.message;
-    return { passed: false, detail: `${scriptName} failed: ${message}` };
+    return { passed: false, detail: `${scriptName} failed. Run this gate locally for diagnostics; raw subprocess output is excluded from the shareable report.` };
   }
 }
 
@@ -41,8 +39,9 @@ try {
   execFileSync(process.execPath, [path.join(root, "scripts", "hosted-ci-evidence-acceptance.mjs")], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   hostedCiEvidence = { passed: true, detail: "Recorded hosted CI evidence matches HEAD and reports all seven jobs passed." };
 } catch (error) {
-  const stderr = typeof error.stderr === "string" ? error.stderr.trim() : "";
-  hostedCiEvidence = { passed: false, detail: stderr || "Hosted CI evidence is not recorded for HEAD." };
+  hostedCiEvidence = { passed: false, detail: !process.env.AGENTFORGE_CI_RUN_ID
+    ? "Set AGENTFORGE_CI_RUN_ID to a completed hosted run for this exact commit."
+    : "Hosted CI or its release artifact could not be verified for the exact clean checkout. Run hosted-ci-evidence-acceptance.mjs locally for diagnostics." };
 }
 check("hosted-ci-evidence", hostedCiEvidence.passed, hostedCiEvidence.detail);
 
@@ -55,7 +54,14 @@ const externalReleaseProof = [
   ...(hostedCiEvidence.passed ? [] : [hostedCiEvidence.detail]),
   "Registry publication and provenance verification have not been performed by this local audit.",
 ];
+const acceptancePlan = 'docs/RELEASE_COMPLETION_PLAN.md';
+const acceptanceText = fs.readFileSync(path.join(root, acceptancePlan), 'utf8');
+const openAcceptanceItems = [...acceptanceText.matchAll(/^- \[ \] \*\*(P\d{2}) ([^*]+)\*\*/gm)]
+  .map(match => ({id: match[1], requirement: match[2]}));
 const report = {
+  // A checked document item alone cannot prove runtime acceptance.
+  productAcceptance: {verified: false, plan: acceptancePlan, openItems: openAcceptanceItems,
+    detail: 'This audit checks packaging only. Full product acceptance requires the evidence review described in the release plan.'},
   packageReady,
   publishReady: packageReady && externalReleaseProof.length === 0,
   blockers,

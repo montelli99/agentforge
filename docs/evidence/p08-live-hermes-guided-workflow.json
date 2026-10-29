@@ -1,0 +1,231 @@
+{
+  "requirements": [
+    "P05",
+    "P08"
+  ],
+  "recordedAt": "2026-10-26T10:19:13.644Z",
+  "sourceCommit": "ff47ae5",
+  "runnerSha256": "941733e18a5aa843b4bcbe70eac205e14b658d93c67ced83ea2ed3cca45010f0",
+  "packageSha256": null,
+  "scope": "Source build, real pinned Hermes and MiMo, synthetic inputs",
+  "proof": {
+    "passed": true,
+    "guidedBrowserConnection": true,
+    "setupSentNoModelRequests": true,
+    "installedPackage": false,
+    "gatewayProcessRestart": true,
+    "unreadResultRecovered": true,
+    "browserStop": true,
+    "invoiceUnchangedAfterStop": true,
+    "browserSessionSelection": true,
+    "reviewBeforeSend": true,
+    "submissions": 2,
+    "runId": "run_d2bb363b5bd74e05b8c5996341c78446",
+    "sessionKey": "run_0dc8c7f2279a4168abb562d6ce6aeb98",
+    "independentInvoiceCheck": true,
+    "outputVisible": true,
+    "reloadWithoutResend": true,
+    "notLocallyVerified": true,
+    "limits": [
+      "Broader partial effects and installed-package acceptance remain open."
+    ]
+  },
+  "restart": {
+    "beforeStartedAt": "2026-10-26T10:17:02.480712833Z",
+    "afterStartedAt": "2026-10-26T10:18:03.325175924Z",
+    "runId": "run_d2bb363b5bd74e05b8c5996341c78446",
+    "recoveredBeforeFirstRead": true,
+    "requestsBeforeRestart": 12,
+    "requestsAfterRestart": 12,
+    "submissions": 1
+  },
+  "stop": {
+    "runId": "run_f1625faaa2f94137aaebe39822c05f7f",
+    "before": "running",
+    "after": "cancelled",
+    "invoiceUnchanged": true
+  },
+  "providerAccounting": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T10:17:13.533Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 70
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:17.583Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T10:17:17.685Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13944,
+        "outputTokens": 41
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:20.698Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T10:17:20.974Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14062,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:21.972Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T10:17:22.134Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 308,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:24.251Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T10:17:24.328Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14156,
+        "outputTokens": 49
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:29.984Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T10:17:30.029Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:32.502Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T10:17:32.857Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14436,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:34.016Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T10:17:34.111Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14859,
+        "outputTokens": 526
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:44.932Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T10:17:45.303Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15454,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:47.669Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T10:17:47.908Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15755,
+        "outputTokens": 78
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:50.519Z"
+    },
+    {
+      "requestNumber": 11,
+      "startedAt": "2026-10-26T10:17:50.676Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 348,
+        "outputTokens": 4
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:17:56.661Z"
+    },
+    {
+      "requestNumber": 12,
+      "startedAt": "2026-10-26T10:17:56.749Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15980,
+        "outputTokens": 288
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:18:01.248Z"
+    },
+    {
+      "requestNumber": 13,
+      "startedAt": "2026-10-26T10:18:12.511Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16296,
+        "outputTokens": 1334
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T10:18:49.450Z"
+    }
+  ],
+  "fixtures": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409"
+  },
+  "hashes": {
+    "browser-proof.json": "ecf42c4980135eded8ba99b17db93da6793d1e3035e42d4d7916143b0bfffae1",
+    "browser-report.json": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "guided-hermes-setup.png": "533d795b89d75d4e97a71d83b39d521306d64be23271c538ba0718a857a38ea5"
+  },
+  "priorAttempt": {
+    "passed": false,
+    "reason": "Bundled browser missing after seed task; repeated with installed Chrome",
+    "accounting": {
+      "unavailable": true,
+      "reason": "Evidence file empty or incomplete",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "limitations": [
+    "Current installed package remains unproved",
+    "Stop test is text-only with existing invoice unchanged; broader partial tool effects open",
+    "Cost unknown"
+  ]
+}

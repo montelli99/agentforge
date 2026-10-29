@@ -1,0 +1,24 @@
+{
+  "requirement": "P04",
+  "runtime": "OpenClaw 2026.10.7",
+  "runId": "proof-1793001641005",
+  "status": "ok",
+  "response": "Net: **1250 cents**\n\nCalculation: 1200 − 250 + 300 = 1250",
+  "providerRequests": 1,
+  "model": "mimo-v2.6-flash",
+  "requestsSuppressedCommands": true,
+  "requiredScope": "operator.admin",
+  "explicitDelegationEnabled": true,
+  "privateProfilesMounted": false,
+  "toolExecutionProven": false,
+  "browserReviewProven": false,
+  "fullWorkflowAccepted": false,
+  "costUsd": "unknown",
+  "usage": {
+    "input": 11167,
+    "output": 34,
+    "totalTokens": 12225,
+    "cacheRead": 1024
+  },
+  "rawResultSha256": "b5bb3bf4000b36219e6a0598f93a673909fb8d1dcfa8ba135b4ed1e5e8e12617"
+}

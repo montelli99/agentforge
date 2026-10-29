@@ -149,6 +149,7 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
     try {
       iterator = this.transport.open({ url: `${resource}/responses`, body, grant, signal: controller.signal })[Symbol.asyncIterator]();
       let content = '', events = 0;
+      const completedItems=new Map<number,RecordValue>();
       while (true) {
         const next = await Promise.race([iterator.next(), aborted]);
         if (next.done) throw new ModelProviderError('Direct stream ended without response.completed', usage);
@@ -163,6 +164,12 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
           const item = record(event.item);
           if (!['message', 'reasoning',...(this.config.agentTools?['function_call']:[])].includes(item.type as string)) throw new ModelProviderError('Forbidden direct output activity', usage);
         }
+        if(event.type==='response.output_item.done'){
+          const index=event.output_index,item=record(event.item);
+          if(!Number.isSafeInteger(index)||Number(index)<0||Number(index)>1023||completedItems.has(Number(index))||typeof item.id!=='string')throw new ModelProviderError('Malformed completed output item',usage);
+          completedItems.set(Number(index),item);
+          if(Buffer.byteLength(JSON.stringify([...completedItems.values()]))>(this.config.maxOutputBytes??1048576))throw new ModelProviderError('Direct output exceeds local byte bound',usage);
+        }
         if (event.type === 'response.output_text.delta') {
           if (typeof event.delta !== 'string') throw new ModelProviderError('Malformed direct text delta', usage);
           content += event.delta;
@@ -171,7 +178,20 @@ export class ChatGPTDirectModel implements GenerativeModelProvider {
         if (event.type === 'response.completed') {
           usage = usageOf(response.usage);
           if (response.status !== 'completed' || typeof response.id !== 'string' || !Array.isArray(response.output)) throw new ModelProviderError('Malformed direct completion', usage);
-          const messages = response.output.map(record);
+          // Some direct streams finalize each item separately and omit the
+          // repeated output array in response.completed. Never use partial items.
+          let output=response.output;
+          if(output.length===0&&completedItems.size){
+            const entries=[...completedItems.entries()].sort((a,b)=>a[0]-b[0]);
+            if(entries.some(([index],position)=>index!==position))throw new ModelProviderError('Incomplete completed output items',usage);
+            output=entries.map(([,item])=>item);
+          }
+          if(response.output.length&&completedItems.size){
+            const terminalOutput=response.output;
+            const identity=(value:unknown)=>{const i=record(value);return JSON.stringify({type:i.type,id:i.id,call_id:i.call_id,name:i.name,namespace:i.namespace,arguments:i.arguments,content:i.content});};
+            if(completedItems.size!==response.output.length||[...completedItems].some(([index,item])=>identity(item)!==identity(terminalOutput[index])))throw new ModelProviderError('Terminal output contradicts completed items',usage);
+          }
+          const messages = output.map(record);
           if (messages.some(i => !['message', 'reasoning',...(this.config.agentTools?['function_call']:[])].includes(i.type as string))) throw new ModelProviderError('Forbidden direct completion activity', usage);
           const allowedNames=new Set(body.tools?.[0].tools.map(f=>f.name)??[]),callIds=new Set<string>();
           const toolCalls:NonNullable<ModelResponse['toolCalls']>=messages.filter(i=>i.type==='function_call').map(i=>{

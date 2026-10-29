@@ -1,0 +1,151 @@
+{
+  "passed": true,
+  "browserStop": true,
+  "invoiceUnchangedAfterStop": true,
+  "browserSessionSelection": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "runId": "run_c1c51449a9a841589a0671e3223b3643",
+  "sessionKey": "run_757c345908424e3c8c216484811bc7e5",
+  "independentInvoiceCheck": true,
+  "outputVisible": true,
+  "reloadWithoutResend": true,
+  "notLocallyVerified": true,
+  "limits": [
+    "Process restart and broader partial effects remain open."
+  ],
+  "stop": {
+    "runId": "run_73545721f3454e49b300ed9e21d14cc3",
+    "before": "running",
+    "after": "cancelled",
+    "invoiceUnchanged": true
+  },
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:53:11.571Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 38
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:17.204Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:53:17.308Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13912,
+        "outputTokens": 35
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:18.673Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:53:18.935Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13977,
+        "outputTokens": 45
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:20.987Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:53:21.065Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:23.836Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:53:24.107Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14253,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:26.475Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T09:53:26.546Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14676,
+        "outputTokens": 421
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:34.399Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T09:53:34.587Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15166,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:38.925Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T09:53:39.156Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15467,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:43.432Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T09:53:43.505Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15895,
+        "outputTokens": 203
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:53:51.690Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T09:53:53.657Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 16126,
+        "outputTokens": 1500
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:54:33.713Z"
+    }
+  ],
+  "providerRequests": 10,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerSha256": "4c044bf4122a0cc3dfb81f5307679a97de6be27bfafb76766730993d02098732",
+  "proxyRunnerSha256": "53f440ab07491086e1d46db9478b3538f1aced59b3bfa33ed7b10343eb0de881",
+  "recordedAt": "2026-10-26T09:54:33.886Z",
+  "scope": "Live source-build browser session selection, reviewed invoice, independently checked output, saved result display, active run Stop and unchanged invoice afterward. This is not a tool-side-effect cancellation proof."
+}

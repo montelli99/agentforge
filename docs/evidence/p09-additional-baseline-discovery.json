@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-26T14:35:44.427Z",
+  "status": "discovery-only-not-benchmark-results",
+  "baselines": [
+    {
+      "name": "DeepSeek Harness",
+      "officialProduct": "https://www.deepseek.com/en/harness/",
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "observedHead": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
+      "identityEvidence": "Official product page links the deepseek-ai repository; git ls-remote independently resolved HEAD",
+      "executed": false,
+      "next": "Inspect pinned installation and model configuration; freeze new tasks and scoring before any comparison run"
+    },
+    {
+      "name": "Grokbot",
+      "candidate": "https://github.com/vnavani/Grokbot",
+      "identity": "Repository describes an open-source alternative, not established as the exact product requested",
+      "executed": false
+    },
+    {
+      "name": "Muse",
+      "identity": "Exact product/distribution still unresolved; do not substitute a similarly named project",
+      "executed": false
+    }
+  ],
+  "comparisonRules": [
+    "Preserve frozen v3 attempts and scores unchanged",
+    "Use new synthetic inputs and freeze evaluator before execution",
+    "Record model, actual request/token usage, time, failures and recovery requirements separately",
+    "No downloaded code or installers executed during this discovery",
+    "No competitive superiority conclusion from feature descriptions"
+  ]
+}

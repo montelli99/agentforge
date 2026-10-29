@@ -616,15 +616,19 @@ export function renderWorkspaceApp(): string {
 
     // Browser sessions use an HttpOnly, same-site cookie. The token is never
     // copied into localStorage, URLs, workspace records, or rendered content.
+    let authenticationBackground = null;
     function openAuthenticationGate(mode = 'setup') {
       document.querySelector('.auth-gate')?.remove();
       const gate = document.createElement('section');
       gate.className = 'auth-gate';
       gate.setAttribute('role', 'dialog');
       gate.setAttribute('aria-modal', 'true');
+      gate.setAttribute('aria-labelledby', 'authentication-title');
       const isSetup = mode === 'setup';
-      gate.innerHTML = '<div class="auth-gate-card"><div class="auth-gate-mark" aria-hidden="true">✳</div><h1>' + (isSetup ? 'Secure this workspace' : 'Welcome back') + '</h1><p>' + (isSetup ? 'Create the local owner password before this workspace starts. AgentForge stores only a password hash in local workspace data; the password never appears in a URL or browser storage.' : 'Sign in to continue to this protected AgentForge workspace.') + '</p><form><label class="auth-username"' + (isSetup ? ' hidden' : '') + '>Owner username<input name="username" autocomplete="username" value="owner" required></label><label>' + (isSetup ? 'Your name' : 'Username') + '<input name="displayName" autocomplete="name" maxlength="120"' + (isSetup ? '' : ' hidden') + '></label><label>Password<input name="password" type="password" autocomplete="' + (isSetup ? 'new-password' : 'current-password') + '" minlength="12" required></label><button class="btn" type="submit">' + (isSetup ? 'Secure & continue' : 'Sign in') + '</button></form><div role="status" aria-live="polite"></div><footer><span>Local-only by default</span><button type="button" data-mode>' + (isSetup ? 'Already set up? Sign in' : 'First use? Set up the owner account') + '</button></footer></div>';
+      gate.innerHTML = '<div class="auth-gate-card"><div class="auth-gate-mark" aria-hidden="true">✳</div><h1 id="authentication-title">' + (isSetup ? 'Secure this workspace' : 'Welcome back') + '</h1><p>' + (isSetup ? 'Create the local owner password before this workspace starts. AgentForge stores only a password hash in local workspace data; the password never appears in a URL or browser storage.' : 'Sign in to continue to this protected AgentForge workspace.') + '</p><form><label class="auth-username"' + (isSetup ? ' hidden' : '') + '>Owner username<input name="username" autocomplete="username" value="owner" required></label>' + (isSetup ? '<label>Your name<input name="displayName" autocomplete="name" maxlength="120"></label>' : '') + '<label>Password<input name="password" type="password" autocomplete="' + (isSetup ? 'new-password' : 'current-password') + '" minlength="12" aria-describedby="authentication-password-hint" required></label><p id="authentication-password-hint">Use at least 12 characters. This is your local AgentForge password.</p><button class="btn" type="submit">' + (isSetup ? 'Secure & continue' : 'Sign in') + '</button></form><div role="status" aria-live="polite"></div><footer><span>Local-only by default</span><button type="button" data-mode>' + (isSetup ? 'Already set up? Sign in' : 'First use? Set up the owner account') + '</button></footer></div>';
       document.body.append(gate);
+      if (!authenticationBackground) authenticationBackground = Array.from(document.body.children).filter(element => element !== gate && !['SCRIPT', 'STYLE'].includes(element.tagName)).map(element => ({ element, inert: element.inert }));
+      for (const saved of authenticationBackground) saved.element.inert = true;
       const form = gate.querySelector('form');
       const status = gate.querySelector('[role=status]');
       gate.querySelector('[data-mode]').onclick = () => openAuthenticationGate(isSetup ? 'login' : 'setup');
@@ -642,13 +646,15 @@ export function renderWorkspaceApp(): string {
           const result = await response.json();
           if (!response.ok) throw new Error(result.error || 'Authentication could not be completed.');
           gate.remove();
+          for (const saved of authenticationBackground || []) saved.element.inert = saved.inert;
+          authenticationBackground = null;
           startAuthenticatedWorkspace();
         } catch (error) {
           status.textContent = error instanceof Error ? error.message : 'Authentication could not be completed.';
           submit.disabled = false;
         }
       };
-      gate.querySelector('input:not([hidden])')?.focus();
+      gate.querySelector(isSetup ? '[name=displayName]' : '[name=username]')?.focus();
     }
 
     function escapeHtml(value) {
@@ -2830,13 +2836,14 @@ ${goalClient}
       await startAuthenticatedWorkspace();
     }
     async function openInitialWorkspaceView(){
+      const initialNavigationSequence=viewRequestSequence;
       let initialView='home';
       let hasSavedView=false;
       try{const saved=localStorage.getItem('agentforge-last-view');if(Array.from(document.querySelectorAll('.nav-item')).some(link=>(link.getAttribute('onclick')||'').includes("'"+saved+"'"))){initialView=saved;hasSavedView=true;}}catch{}
       if(!hasSavedView){
         try{const workspaceState=await fetch('/api/workspace').then(response=>response.json());const experience=workspaceState.workspace?.experience;if(experience==='workspace')initialView='messages';else if(experience==='studio')initialView='studio';else if(!experience)initialView='onboarding';}catch{}
       }
-      switchView(initialView);
+      if(viewRequestSequence===initialNavigationSequence)await switchView(initialView);
     }
     void startWorkspace();
   </script>

@@ -1,0 +1,53 @@
+{
+  "id": "inventory-reconciliation",
+  "prompt": "Read input.json. Produce result.json containing onHandBySku after applying adjustments exactly once per eventId. Reject duplicate IDs with differing content by listing them in conflicts and do not apply any event for those IDs. Sort object keys and conflicts lexically. Do not modify input.json.",
+  "input": {
+    "opening": {
+      "A": 12,
+      "B": 5,
+      "C": 0
+    },
+    "events": [
+      {
+        "eventId": "e1",
+        "sku": "A",
+        "delta": -3
+      },
+      {
+        "eventId": "e2",
+        "sku": "B",
+        "delta": 4
+      },
+      {
+        "eventId": "e1",
+        "sku": "A",
+        "delta": -3
+      },
+      {
+        "eventId": "e3",
+        "sku": "C",
+        "delta": 7
+      },
+      {
+        "eventId": "e4",
+        "sku": "A",
+        "delta": 2
+      },
+      {
+        "eventId": "e4",
+        "sku": "A",
+        "delta": 6
+      }
+    ]
+  },
+  "expected": {
+    "onHandBySku": {
+      "A": 9,
+      "B": 9,
+      "C": 7
+    },
+    "conflicts": [
+      "e4"
+    ]
+  }
+}

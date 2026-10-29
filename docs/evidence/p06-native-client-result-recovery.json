@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-10-26T15:55:25.9432123Z",
+  "scope": "Official Gemini 0.65.0 bundled MCP client disconnected and reconstructed against same host session after real Docker execution",
+  "savedResultRead": true,
+  "verificationPassed": true,
+  "clientSelectedPathRejected": true,
+  "changedArtifactRejected": true,
+  "artifactAppendCountAfterReconnect": 1,
+  "hostRestartTested": false,
+  "subscriptionInferenceTested": false,
+  "scriptSha256": "2031c94c6c5810fb01bf3331d423b73c39905c6291d9c399bb235429124b6e60"
+}

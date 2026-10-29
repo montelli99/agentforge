@@ -1,0 +1,70 @@
+{
+  "status": "passed",
+  "syntheticOnly": true,
+  "developmentOnly": true,
+  "usage": {
+    "promptTokens": 512,
+    "completionTokens": 501,
+    "totalTokens": 1013
+  },
+  "cost": null,
+  "audit": {
+    "id": "a60fee45-4fd0-4f31-9461-c71a4b6660e4",
+    "taskId": "verification-development",
+    "model": "mimo-v2.6-flash",
+    "requestDigest": "58717c4399a34a3490cfbc877bcafc5323a4ef870d8eb190ae3af638827b02db",
+    "status": "completed",
+    "inputTokens": 512,
+    "outputTokens": 501,
+    "responseDigest": "196e13e82a4b52409095100cfd9730f9411a84c834690ad7348ecbeb5ad38b51"
+  },
+  "planSha256": "96dc16f5bfa737f09a75e2152d67b05c1e4f4b5f63b24c6a35c5b42951d53887",
+  "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "commands": [
+    {
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "checkName": "writeResult"
+    },
+    {
+      "exitCode": 0,
+      "stdout": "verified 3 lines, total 1173\n",
+      "stderr": "",
+      "checkName": "verifyResult"
+    }
+  ],
+  "independentArtifactPass": true,
+  "mutations": [
+    {
+      "kind": "wrong-total",
+      "rejected": true,
+      "artifactUnchanged": true
+    },
+    {
+      "kind": "missing-zero-row",
+      "rejected": true,
+      "artifactUnchanged": true
+    }
+  ],
+  "outputSha256": "4e87dd205c9301373dffd2d422f0a0e5f858e7e551e0b1b42425a4de2a25ce2f",
+  "plan": {
+    "taskId": "verification-development",
+    "source": "model",
+    "commands": [
+      {
+        "checkName": "writeResult",
+        "command": "mkdir -p . && node -e 'const fs=require(\"fs\");const input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));const lines=input.rows.map(r=>({id:r.id,netCents:(r.quantity-r.returned)*r.unitCents})).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);const totalCents=lines.reduce((s,l)=>s+l.netCents,0);fs.writeFileSync(\"result.json\",JSON.stringify({lines,totalCents}));'",
+        "timeoutMs": 10000
+      },
+      {
+        "checkName": "verifyResult",
+        "command": "node -e 'const fs=require(\"fs\");const input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));const result=JSON.parse(fs.readFileSync(\"result.json\",\"utf8\"));const expected=input.rows.map(r=>({id:r.id,netCents:(r.quantity-r.returned)*r.unitCents})).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);const expectedTotal=expected.reduce((s,l)=>s+l.netCents,0);if(JSON.stringify(Object.keys(result).sort())!==JSON.stringify([\"lines\",\"totalCents\"]))throw new Error(\"unexpected top-level keys\");if(result.lines.length!==expected.length)throw new Error(\"line count mismatch\");for(let i=0;i<expected.length;i++){if(result.lines[i].id!==expected[i].id)throw new Error(\"id mismatch at \"+i);if(result.lines[i].netCents!==expected[i].netCents)throw new Error(\"netCents mismatch at \"+i);if(JSON.stringify(Object.keys(result.lines[i]).sort())!==JSON.stringify([\"id\",\"netCents\"]))throw new Error(\"unexpected line keys at \"+i);}if(result.totalCents!==expectedTotal)throw new Error(\"totalCents mismatch\");const zeroRows=expected.filter(l=>l.netCents===0);for(const z of zeroRows){if(!result.lines.some(l=>l.id===z.id&&l.netCents===0))throw new Error(\"missing zero-value row \"+z.id);}console.log(\"verified\",result.lines.length,\"lines, total\",result.totalCents);'",
+        "timeoutMs": 10000
+      }
+    ]
+  },
+  "scope": "One development case, not held-out superiority or general correctness. Generated verifier recomputes the same formula; separate fixed oracle and mutation checks provide additional evidence.",
+  "sourceBase": "bbc46b1",
+  "plannerSha256": "297d5445c3824a5282654a4c33a3c6c557b5d0d7901ba57ac8f13659f4e340ac"
+}

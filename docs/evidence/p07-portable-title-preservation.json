@@ -1,0 +1,11 @@
+{
+  "requirement": "P07",
+  "recordedAt": "2026-10-26T12:28:20.5451147Z",
+  "baseCommit": "bf8341340f2a10e08e19d0c666327790177c6814",
+  "change": "Preserve exact multiline titles in portable Markdown metadata with backward-compatible heading fallback",
+  "checks": [
+    "21 tests across Markdown export, Obsidian import, collection import and authorized import routes",
+    "Application and script typechecking passed"
+  ],
+  "scope": "Local regression; does not establish live Hindsight migration or full release acceptance"
+}

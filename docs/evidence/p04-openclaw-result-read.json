@@ -1,0 +1,13 @@
+{
+  "requirement": "P04",
+  "baseCommit": "d2602018af81fdd2416580a965ba9174cb34186b",
+  "runtime": "OpenClaw 2026.10.7",
+  "runId": "proof-1793002381387",
+  "status": "ok",
+  "resultReadMatchesTerminalReply": true,
+  "providerRequests": 1,
+  "containerStopped": true,
+  "rawSha256": "9481140b7022941f1aef52b1737555dbd4c30d6063d107b9e9371fb86e14fb5b",
+  "sourceSha256": "9e74f808eed76db81e1b05b88c612112670569e9881a90aaed12026dc1ed12e2",
+  "scope": "Actual authenticated adapter result read for the exact completed run. Browser presentation and complete governed live user journey remain separate acceptance items."
+}

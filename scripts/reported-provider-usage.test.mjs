@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {reportedUsage} from './reported-provider-usage.mjs';
+test('reads JSON accounting without inventing cost',()=>assert.deepEqual(reportedUsage('{"usage":{"prompt_tokens":4,"completion_tokens":2}}'),{usage:{inputTokens:4,outputTokens:2},cost:null}));
+test('stream cumulative usage is not added across frames',()=>assert.deepEqual(reportedUsage('data: {"usage":{"prompt_tokens":4,"completion_tokens":1}}\n\ndata: {"usage":{"prompt_tokens":4,"completion_tokens":3}}\n\ndata: [DONE]\n','text/event-stream'),{usage:{inputTokens:4,outputTokens:3},cost:null}));
+test('missing, malformed and negative accounting stays unknown',()=>{for(const text of ['{}','broken','{"usage":{"prompt_tokens":-1,"completion_tokens":2}}','{"usage":{"prompt_tokens":1.5,"completion_tokens":2}}'])assert.deepEqual(reportedUsage(text),{usage:null,cost:null});});

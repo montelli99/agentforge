@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-10-26T16:19:44.627Z",
+  "scope": "Official account sign-in, protected saved-session restore, catalog and one independently checked synthetic arithmetic response",
+  "model": "gpt-6-luna",
+  "passed": true,
+  "expected": {
+    "invoiceId": "A",
+    "totalCents": 3000
+  },
+  "actual": {
+    "invoiceId": "A",
+    "totalCents": 3000
+  },
+  "usage": {
+    "promptTokens": 47,
+    "completionTokens": 40,
+    "totalTokens": 87,
+    "cachedInputTokens": 0
+  },
+  "failuresRetained": [
+    "Initial registration location redirected by Windows; canonical separate app-data location used",
+    "Valid 568400-byte catalog rejected by former 128KiB limit",
+    "Local unsupported maxTokens argument rejected before inference",
+    "HTTP 200 SSE without content-type rejected",
+    "Completed output item omitted from repeated terminal output array"
+  ],
+  "fixes": [
+    "Catalog-only 1MiB bound; token responses remain 128KiB",
+    "Missing content-type requires valid bounded SSE framing",
+    "Empty terminal output uses completed indexed items; text equality remains required"
+  ],
+  "testsPassed": 22,
+  "typecheckPassed": true,
+  "fullTaskExecutionProven": false,
+  "renewalProven": false,
+  "files": {
+    "src/providers/models/chatgptDirectModel.ts": "c84d892a28d3b29d77cf2b64c9371069686fd4e01d682c90695f0ae60b0328d4",
+    "src/providers/models/chatgptDirectTransport.ts": "91218f8a2d7dbbb0356d32a26c4a0227f4d6dacf74506da59c2936273ca3f284",
+    "src/providers/models/chatgptDirectSignInRuntime.ts": "30bcef00eca66131fcbf4ee46acbfa52c2db4e27c6f439a766a9e9c529c0ee19"
+  }
+}

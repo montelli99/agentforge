@@ -6,7 +6,8 @@ export class BoundedChildFailure extends Error {
 }
 export async function runBoundedChild(executable:string,args:string[],options:{cwd?:string;input?:string;signal?:AbortSignal;timeoutMs:number;maxOutputBytes?:number;env?:NodeJS.ProcessEnv;onLaunch?:(pid:number|undefined)=>void}) {
  if(options.signal?.aborted)throw new Error('child cancelled before launch');if(!Number.isSafeInteger(options.timeoutMs)||options.timeoutMs<1)throw new Error('invalid child deadline');
- const child=spawn(executable,args,{cwd:options.cwd,env:options.env,stdio:['pipe','pipe','pipe'],windowsHide:true,detached:process.platform!=='win32'});options.onLaunch?.(child.pid);let stdout='',stderr='',reason:string|undefined;let stopping:Promise<void>|undefined;let forceTimer:ReturnType<typeof setTimeout>|undefined;const limit=options.maxOutputBytes??1024*1024;
+ const outputLimit=options.maxOutputBytes??1024*1024;if(!Number.isSafeInteger(outputLimit)||outputLimit<1)throw new Error('invalid child output limit');
+ const child=spawn(executable,args,{cwd:options.cwd,env:options.env,stdio:['pipe','pipe','pipe'],windowsHide:true,detached:process.platform!=='win32'});options.onLaunch?.(child.pid);let stdout='',stderr='',reason:string|undefined;let stopping:Promise<void>|undefined;let forceTimer:ReturnType<typeof setTimeout>|undefined;const limit=outputLimit;
  const decoders={stdout:new StringDecoder('utf8'),stderr:new StringDecoder('utf8')};let collectedBytes=0;
  // A process group reaches descendants holding output pipes, even after the leader exits.
  const signalGroup=(signal:NodeJS.Signals)=>{if(!child.pid)return;try{process.kill(-child.pid,signal);}catch(error){if((error as NodeJS.ErrnoException).code!=='ESRCH')child.kill(signal);}};

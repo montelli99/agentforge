@@ -1,0 +1,155 @@
+{
+  "passed": true,
+  "chatJourney": true,
+  "chatRequests": 5,
+  "verifiedArtifactReturnedToChat": true,
+  "invoiceCase": true,
+  "syntheticOnly": false,
+  "syntheticTaskData": true,
+  "liveModel": "mimo-v2.6-flash",
+  "credentialMediatedByLocalProxy": true,
+  "syntheticModelDraft": false,
+  "recordedProviderResponse": false,
+  "paidModelRequests": 6,
+  "onePlanningProviderRequest": true,
+  "totalProviderRequests": 6,
+  "createdTaskExecuted": true,
+  "guidedRepositoryRevision": false,
+  "concurrentEditsPreserved": false,
+  "browserCommandReview": true,
+  "authenticatedApproval": true,
+  "approvalDidNotExecute": true,
+  "realDocker": true,
+  "verifiedArtifact": true,
+  "serviceRestartBeforeReview": true,
+  "recordedResultRestored": true,
+  "receiptsUnchanged": true,
+  "finalReviewConfirmed": true,
+  "durableCompletion": true,
+  "completedEvidenceReadableAfterReopen": true,
+  "runnerSourceCommit": "ef006a9143fbc34e22f07493ce6e498eb27685b7",
+  "installedPackage": true,
+  "runnerSha256": "67be349901183426c8574f4ea7de70f331b44a21203e4e24331366267cded5b3",
+  "utc": "2026-10-26T09:04:31.541Z",
+  "archiveSha256": "cd3a83cc9e1ec1886d0a904ff1a7835e0d9cd52dc87ebcf5951b947657c49f61",
+  "scope": "Fresh consumer installation of exact hashed archive, live MiMo chat and planning, reviewed Docker execution, independent invoice verifier, restart and final artifact read into chat. One bounded invoice workflow; not the full release matrix.",
+  "runtimeModuleHashes": {
+    "dist/server/webServer.js": "b4c31fcccc72fda42b14c9267dc87735301ea69a9777b37b735d4880ad2d40f6",
+    "dist/server/conversationRuntime.js": "7438a334d9bf99773a2fad389805ba257ddfedd38f580baf49d9b6e98ff67fbb",
+    "dist/server/conversationTools.js": "25c26ca6604bec9e417e0f6f91665a1c67130f998aa67034aee7790c7fa565dd",
+    "dist/server/taskArtifactReader.js": "aa040b3e0940965906388fdd9afd1dbb80dbfb9623d74ced79599e081c166faf",
+    "dist/core/runtime/taskWorkerRuntime.js": "454c666fd18e48a356abac1183e0d6bd8082b9c7abc176fcbad6e8fbc100a19b"
+  },
+  "chat": [
+    {
+      "file": "live-chat-response-1.txt",
+      "sha256": "eacb5643417b88a09eedfa3b41575fa5f3fb9abf61cbc49897b4979166e43b11",
+      "requestId": "7f98eb8a-2222-4d34-813f-3e487b40d97e_41c1ad16b7c346478ff48c332f8d0d7b",
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 1220,
+        "total_tokens": 1284,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1216
+        }
+      },
+      "toolNames": [
+        "prepare_task"
+      ]
+    },
+    {
+      "file": "live-chat-response-2.txt",
+      "sha256": "2515655e79981c3e2eed891cccc2a6ba21e93b01d90b99da8831dff3fa2f1e73",
+      "requestId": "2730b7ab-31b5-40e3-a4a4-67db33ae14f3_dddfbac2e6354ce0b215f7c6f3837504",
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 1308,
+        "total_tokens": 1349,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1216
+        }
+      },
+      "toolNames": [
+        "prepare_task"
+      ]
+    },
+    {
+      "file": "live-chat-response-3.txt",
+      "sha256": "f98975e4e49665a28158f2cee7d5b180855ec1f21ef6e8040b57df4b0128843c",
+      "requestId": "6121b060-f82f-4457-aaa8-610e867aa63f_661173ff7bc54b5e9cdeaa512148ee81",
+      "usage": {
+        "completion_tokens": 214,
+        "prompt_tokens": 2221,
+        "total_tokens": 2435,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1280
+        }
+      },
+      "toolNames": []
+    },
+    {
+      "file": "live-chat-response-4.txt",
+      "sha256": "48fb9d220ac75aa81c79f5dabf95e5add01556f97b5c7de733d11c73fcaf9dea",
+      "requestId": "7880e1e3-1b16-4b18-af0e-de491ec5c07d_6eb99f3c8a234e198d9e1373d1632972",
+      "usage": {
+        "completion_tokens": 52,
+        "prompt_tokens": 1575,
+        "total_tokens": 1627,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        }
+      },
+      "toolNames": [
+        "read_task_artifact"
+      ]
+    },
+    {
+      "file": "live-chat-response-5.txt",
+      "sha256": "a079fa5196814f72a116169a33171839e4871ccc7d397d292d948d7999361848",
+      "requestId": "4718e0ea-9f89-477e-9457-c77bde982cb1_b667a88556524bc5a574d0e66ce4e21b",
+      "usage": {
+        "completion_tokens": 257,
+        "prompt_tokens": 1966,
+        "total_tokens": 2223,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        }
+      },
+      "toolNames": []
+    }
+  ],
+  "planningUsage": {
+    "completion_tokens": 565,
+    "prompt_tokens": 2788,
+    "total_tokens": 3353,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": null
+  },
+  "frozenInputs": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8"
+  },
+  "files": {
+    "review-plan.json": "cbfe56e6f82fcaaa8f1be2f29d55ff69774510dc088f6126c64358c60ed76936",
+    "final-chat-answer.json": "9231610baaf7150623a91a3e157a122d89db269f068eb926e6469d1531a2753b",
+    "browser-proof.json": "179c021e7ef637d0f33f2bdbd85009cadd5eecd496d4df504b39cdc89a98d01e"
+  }
+}

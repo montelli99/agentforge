@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "command": "node --import tsx scripts/memory-migration-lifecycle.ts",
+  "exportSha256": "2245de0e1f0b321271ec2741c0cd3eccc13b04ddc0e2f2fac814ef168c38ce7f",
+  "reviewSha256": "935e3a57b604f39105e43668c3febaafa7e9ad2967a8573c6ab88702e6aafe1c",
+  "restored": 2,
+  "deleted": 2,
+  "remainingAfterSecondFreshProcess": 0,
+  "conflictingFactsRetained": true,
+  "provenancePreserved": true,
+  "otherProjectEmpty": true,
+  "duplicateImportAddsZero": true,
+  "scope": "Built-in memory only; no external provider or browser proof"
+}

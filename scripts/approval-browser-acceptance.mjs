@@ -1,10 +1,20 @@
+import {fileURLToPath} from 'node:url';
 import {builtModule} from './built-package-under-test.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtemp,writeFile,readFile} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {chromium} from 'playwright';
 import http from 'node:http';
+import {createHash} from 'node:crypto';
+const chatJourney=process.env.AGENTFORGE_BROWSER_CHAT_JOURNEY==='1';
+const invoiceCase=process.env.AGENTFORGE_BROWSER_INVOICE_PROOF==='1';
+const artifactPath=invoiceCase?'artifacts/report.json':'artifacts/verified.txt';
+const liveModel=process.env.AGENTFORGE_BROWSER_LIVE_MODEL;
+const recordedResponse=process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE || (invoiceCase && !liveModel ? new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url).pathname : undefined);
+if(invoiceCase&&!recordedResponse&&!liveModel)throw Error('Invoice browser proof requires the reviewed recorded plan');
+if(recordedResponse && liveModel)throw Error('Recorded and live provider modes are mutually exclusive');
+if(liveModel && (!process.env.MIMO_API_KEY || process.env.AGENTFORGE_LIVE_PLANNING_PROOF!=='1'))throw Error('Live browser proof requires explicit opt-in and a MiMo credential');
 const {WorkspaceStore}=await builtModule('core/store/workspaceStore.js');
 
 const {ApprovedPlanProvider}=await builtModule('core/runtime/approvedPlanProvider.js');
@@ -16,37 +26,69 @@ const executable=process.env.AGENTFORGE_BROWSER_EXECUTABLE;
 if(!executable||!path.isAbsolute(executable))throw Error('Select an absolute Chromium executable');
 process.env.AGENTFORGE_AUTH_STRICT='1';
 const root=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-browser-'));
+if(invoiceCase){const hashes={};for(const name of ['invoices.json','verify.mjs','PROTOCOL.txt'])hashes[name]=createHash('sha256').update(await readFile(new URL('./fixtures/useful-task/'+name,import.meta.url))).digest('hex');await writeFile(path.join(root,'frozen-inputs.json'),JSON.stringify(hashes,null,2));}
 const privateSettings=await mkdtemp(path.join(os.tmpdir(),'agentforge-approval-private-'));
 const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:'pipe'}).trim();
     git(root, ["init", "--initial-branch=main"]);
     await writeFile(path.join(root, "README.md"), "# AgentForge Docker E2E\n", "utf8");
+    if(invoiceCase){await mkdir(path.join(root,'inputs'));await writeFile(path.join(root,'inputs/invoices.json'),await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url)));git(root,['add','inputs']);}
     git(root, ["add", "README.md"]);
     git(root, ["-c", "user.name=AgentForge E2E", "-c", "user.email=e2e@example.invalid", "commit", "-m", "fixture"]);
     const baseSha = git(root, ["rev-parse", "HEAD"]);
 
-    let taskId;
-    const command = "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
+    let taskId;let taskTitle='User-created bounded task';
+    const command = invoiceCase ? "test -s artifacts/report.json" : "node -e \"require('node:fs').mkdirSync('artifacts',{recursive:true});require('node:fs').writeFileSync('artifacts/verified.txt','agentforge-docker-e2e')\"";
 let store=new WorkspaceStore(path.join(root,'state.json'));
 const workspace=store.createWorkspace({name:'Synthetic approval workspace'});
 const project=store.createSpace({workspaceId:workspace.id,name:'Synthetic approval project',provider:'web',repositoryPath:root});
 
+const channel=chatJourney?store.createChannel({workspaceId:workspace.id,spaceId:project.id,name:'General',provider:'web',visibility:'private',archived:false}):undefined;
+const thread=chatJourney?store.createThread(channel.id,'Artifact request'):undefined;
 const plans=new ApprovedPlanProvider(async id=>store.getTask(id)?.approvedExecutionPlan);
 const backend=new ContractedDockerExecutionBackend(new DockerComputeProvider({defaultImage:'node:22-alpine',maxMemoryBytes:256*1024*1024,cpuQuota:1}),plans);
 assert.equal((await backend.initialize()).ready,true);
 let worker=new TaskWorkerRuntime(store,backend,{repoRoot:root,automaticDispatch:false,autoStart:true,requireEffectReceipts:true,workspaceIdentity:workspace.id});
 let server=new AgentForgeWebServer(store,0,undefined,worker,{settingsFilePath:path.join(privateSettings,'settings.json')});let browser;
-let modelRequests=0;
+let modelRequests=0,chatRequests=0;const verifiedChatReads=[];
 const plannedCommands=[{checkName:'unit_tests',command,timeoutMs:10000}];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
- const body=JSON.parse(raw);modelRequests++;
+ const body=JSON.parse(raw);
+ if(chatJourney&&body.stream&&taskId&&store.getTask(taskId)?.status==='completed'){
+  for(const message of body.messages.filter(m=>m.role==='tool')){
+   const call=body.messages.flatMap(m=>m.tool_calls||[]).find(c=>c.id===message.tool_call_id);
+   if(call?.function?.name!=='read_task_artifact')continue;
+   const args=JSON.parse(call.function.arguments),result=JSON.parse(message.content);
+   assert.equal(args.taskId,taskId);assert.equal(args.path,artifactPath);assert.equal(result.path,artifactPath);assert.equal(result.referenceDataOnly,true);
+   const artifact=store.getTask(taskId).evidencePack.artifacts.find(a=>a.path===artifactPath);assert.equal(result.sha256,artifact.sha256);assert.equal(createHash('sha256').update(result.content).digest('hex'),artifact.sha256);
+   if(!verifiedChatReads.some(r=>r.callId===call.id))verifiedChatReads.push({callId:call.id,taskId,path:artifactPath,sha256:artifact.sha256});
+  }
+ }
+
+ if(chatJourney&&body.stream&&liveModel){
+ chatRequests++;try{if(chatRequests>6)throw Error('Live chat request ceiling reached');const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:3000,thinking:{type:'disabled'}})});const response=await upstream.text();await writeFile(path.join(root,'live-chat-response-'+chatRequests+'.txt'),response);res.writeHead(upstream.status,{'Content-Type':upstream.headers.get('content-type')||'text/event-stream'});res.end(response);}catch{res.writeHead(502);res.end('Live chat failed; no automatic retry');}return;
+ }
+ if(chatJourney&&body.stream){chatRequests++;res.writeHead(200,{'Content-Type':'text/event-stream'});const tool=body.messages.at(-1)?.role==='tool';const reading=!!taskId&&store.getTask(taskId)?.status==='completed';if(reading){assert.equal(tool,true,'The first final-answer request must already contain verified artifact data');assert.ok(verifiedChatReads.length>0,'The preloaded artifact must pass hash and provenance checks');}if(reading&&tool){const output=JSON.parse(body.messages.at(-1).content);assert.equal(output.referenceDataOnly,true);assert.ok(output.content.includes('agentforge-docker-e2e'));}const delta=tool?{content:reading?'Verified artifact: agentforge-docker-e2e':'Task prepared for review.'}:{tool_calls:[{index:0,id:reading?'read-synthetic':'prepare-synthetic',type:'function',function:{name:reading?'read_task_artifact':'prepare_task',arguments:JSON.stringify(reading?{taskId,path:artifactPath}:{title:'User-created bounded task'})}}]};res.write('data: '+JSON.stringify({id:'synthetic-chat',choices:[{delta,finish_reason:tool?'stop':'tool_calls'}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20}})+'\n\n');res.end('data: [DONE]\n\n');return;}
+ modelRequests++;
  assert.equal(req.url,'/v1/chat/completions');assert.equal(body.model,'synthetic-model');
+ if(recordedResponse){let response;if(invoiceCase&&!process.env.AGENTFORGE_BROWSER_RECORDED_RESPONSE){const evidence=JSON.parse(await readFile(new URL('../docs/evidence/p02-useful-invoice-acceptance.json',import.meta.url),'utf8'));const commands=evidence.reviewedPlan.commands.map(command=>({...command,checkName:command.checkName==='custom_script'?'unit_tests':command.checkName}));const audit=evidence.attempts.at(-1).audit.at(-1);response=JSON.stringify({id:'recorded-invoice-proof',choices:[{message:{content:JSON.stringify({commands})},finish_reason:'stop'}],usage:{prompt_tokens:audit.inputTokens,completion_tokens:audit.outputTokens,total_tokens:audit.inputTokens+audit.outputTokens}});}else response=await readFile(recordedResponse,'utf8');res.writeHead(200,{'Content-Type':'application/json'});res.end(response);return;}
+ if(liveModel){
+  try{
+   if(modelRequests!==1)throw Error('Live proof permits one request only');
+   const upstream=await fetch('https://token-plan-sgp.xiaomimimo.com/v1/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.MIMO_API_KEY},body:JSON.stringify({...body,model:liveModel,max_tokens:3000,thinking:{type:'disabled'},stream:false})});
+   const response=await upstream.text();
+   await writeFile(path.join(root,'live-provider-response.json'),response);
+   res.writeHead(upstream.status,{'Content-Type':'application/json'});res.end(response);
+  }catch{res.writeHead(502,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Live proof request failed; no retry permitted'}));}
+  return;
+ }
  res.writeHead(200,{'Content-Type':'application/json'});
- res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));
+ res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30,prompt_tokens_details:null}}));
 });
 await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
 try{
  await server.start();browser=await chromium.launch({headless:true,executablePath:executable});const page=await browser.newPage();
+ const browserErrors=[];page.on('pageerror',error=>browserErrors.push(error.message));
  await page.goto(server.getBaseUrl());await page.locator('input[name=displayName]').fill('Synthetic reviewer');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();
  await page.getByLabel('Models and routing',{exact:true}).click();
@@ -62,6 +104,18 @@ try{
  assert.equal(connectionResponse.status(),200,JSON.stringify(await connectionResponse.json()));
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
  assert.equal(modelRequests,0);
+ if(chatJourney){
+ await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();
+ await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');
+ await page.getByLabel('Message',{exact:true}).fill(invoiceCase?(await readFile(new URL('./fixtures/useful-task/PROTOCOL.txt',import.meta.url),'utf8')).split('Acceptance:')[0]+'\nInput data (also present at inputs/invoices.json):\n'+await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url),'utf8')+'\nUse prepare_task now to prepare this work for review; do not execute yet.':'Create the requested synthetic artifact at '+artifactPath+'. Prepare a task for review.');
+ await page.getByRole('button',{name:'Send ↑',exact:true}).click();if(liveModel){const until=Date.now()+120000;while(Date.now()<until&&!store.listTasks().some(t=>t.originThreadId===thread.id))await new Promise(r=>setTimeout(r,200));}else{await page.getByText('Task prepared for review.',{exact:true}).waitFor();assert.equal(chatRequests,2);}
+const created=store.listTasks().find(t=>t.originThreadId===thread.id);assert.ok(created);taskId=created.id;taskTitle=created.title;assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
+ await page.getByLabel('Tasks and runs',{exact:true}).click();await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
+ await page.locator('[data-section="boundaries"]').click();await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
+ const editor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});await editor.locator('[name=branch]').fill('main');await editor.locator('[name=sha]').fill(baseSha);await editor.locator('[name=allowed]').fill('artifacts/**\nreports/**');await editor.locator('[name=protected]').fill('.env\n.env.*\n.git/**');await editor.locator('[name=outputs]').fill(artifactPath);
+ while(await editor.locator('.boundary-check-row').count()>1)await editor.locator('.boundary-check-row').last().getByRole('button',{name:'Remove',exact:true}).click();
+ await editor.locator('[name=type]').selectOption('unit_tests');await editor.locator('[name=command]').fill(command);await editor.getByRole('button',{name:'Save boundaries',exact:true}).click();await editor.waitFor({state:'hidden'});
+ }else{
  await page.getByLabel('Tasks and runs',{exact:true}).click();
  await page.getByRole('button',{name:'Create your first task',exact:true}).click();
  await page.locator('#task-project').selectOption(project.id);
@@ -87,10 +141,10 @@ try{
  await page.getByRole('button',{name:'Use current project revision',exact:true}).click();
  await page.getByText('Project revision filled in. Review allowed files and the test command; no task was run.',{exact:true}).waitFor();
  await page.locator('#task-title').fill('User-created bounded task');
- await page.locator('#task-description').fill('Synthetic task saved through guided setup.');
+ await page.locator('#task-description').fill(invoiceCase?(await readFile(new URL('./fixtures/useful-task/PROTOCOL.txt',import.meta.url),'utf8')).split('Acceptance:')[0]+'\nInput data (also present at inputs/invoices.json):\n'+await readFile(new URL('./fixtures/useful-task/invoices.json',import.meta.url),'utf8'):'Synthetic task saved through guided setup.');
  await page.locator('#task-allowed-paths').fill('artifacts/**\nreports/**');
  await page.locator('#task-test-command').fill(command);
- await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill('artifacts/verified.txt');
+ await page.getByLabel('Required output files (optional) · one exact path per line',{exact:true}).fill(artifactPath);
  await page.locator('#task-modal').getByRole('button',{name:'Save Task',exact:true}).click();
  await page.locator('#task-modal').waitFor({state:'hidden'});
  const created=store.listTasks().find(value=>value.title==='User-created bounded task');
@@ -99,36 +153,51 @@ try{
  assert.deepEqual(created.contract.scope.allowedPaths,['artifacts/**','reports/**']);
  assert.deepEqual(created.contract.scope.protectedPaths,['.env','.env.*','.git/**']);
  assert.equal(created.contract.completion.requireHumanApproval,true);
- assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
+ assert.deepEqual(created.contract.completion.requiredArtifacts,[{path:artifactPath}]);
  assert.equal(created.approvedExecutionPlan,undefined);assert.equal(created.executionReceipts?.length||0,0);
  assert.equal(new WorkspaceStore(path.join(root,'state.json')).getTask(created.id).contract.repository.baseSha,baseSha);
- await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
  await page.locator('[data-section="boundaries"]').click();
  await page.getByRole('button',{name:'Edit boundaries',exact:true}).click();
  const boundaryEditor=page.getByRole('dialog',{name:'Edit execution boundaries',exact:true});
- assert.equal(await boundaryEditor.getByLabel('Required output files · one exact path per line',{exact:true}).inputValue(),'artifacts/verified.txt');
+ assert.equal(await boundaryEditor.getByLabel('Required output files · one exact path per line',{exact:true}).inputValue(),artifactPath);
  await boundaryEditor.getByRole('button',{name:'Save boundaries',exact:true}).click();
  await boundaryEditor.waitFor({state:'hidden'});
- assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:'artifacts/verified.txt'}]);
+ assert.deepEqual(store.getTask(taskId).contract.completion.requiredArtifacts,[{path:artifactPath}]);
+ }
  await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.getByRole('heading',{name:'Review execution plan',exact:true}).waitFor();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption('compatible::synthetic-model');
  await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
  await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
  assert.equal(modelRequests,1);
- assert.deepEqual(store.getTask(taskId).executionPlanDraft.commands,plannedCommands);
+ assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
+ if(!liveModel&&!recordedResponse)assert.deepEqual(store.getTask(taskId).executionPlanDraft.commands,plannedCommands);
+ if(liveModel){
+  const plan=store.getTask(taskId).executionPlanDraft;
+  const digest=createHash('sha256').update(JSON.stringify(plan.commands)).digest('hex');
+  await writeFile(path.join(root,'review-plan.json'),JSON.stringify({model:liveModel,digest,plan,taskId},null,2));
+  console.log(JSON.stringify({status:'awaiting-test-plan-inspection',review:path.join(root,'review-plan.json'),approvalFile:path.join(root,'reviewed-digest.txt')}));
+  const until=Date.now()+300000;let reviewed=false;
+  while(Date.now()<until){try{reviewed=(await readFile(path.join(root,'reviewed-digest.txt'),'utf8')).trim()===digest;}catch{}if(reviewed)break;await new Promise(resolve=>setTimeout(resolve,500));}
+  assert.equal(reviewed,true,'The exact live plan must be inspected before browser approval');
+ }
  assert.equal(store.getTask(taskId).planningAudits.at(-1).status,'completed');
- assert.match(await page.locator('.execution-command-list').innerText(),/verified.txt/);
+ assert.ok((await page.locator('.execution-command-list').innerText()).includes(artifactPath));
  assert.equal(store.getTask(taskId).approvedExecutionPlan,undefined);
  await page.getByRole('button',{name:'Approve these commands',exact:true}).click();
  await page.getByText('Approved until',{exact:false}).waitFor();
  assert.equal(store.getTask(taskId).approvedExecutionPlan.approvedBy,'user-owner');
  assert.equal(store.listTasks().some(value=>value.executionReceipts?.length),false);
+ const runResponse=page.waitForResponse(response=>response.url().endsWith('/api/tasks/'+taskId+'/run')&&response.request().method()==='POST');
  await page.getByRole('button',{name:'Run task',exact:true}).click();
+ const runResult=await runResponse;
+ assert.equal(runResult.ok(),true,JSON.stringify(await runResult.json()));
  const deadline=Date.now()+60000;
  while(!['waiting_approval','failed'].includes(store.getTask(taskId).status)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
  const result=store.getTask(taskId);assert.equal(result.status,'waiting_approval');assert.equal(result.evidencePack.verifiedPassed,true);assert.equal(result.executionReceipts.at(-1).status,'observed');
- assert.equal(await readFile(path.join(result.worktree.worktreePath,'artifacts/verified.txt'),'utf8'),'agentforge-docker-e2e');
+ if(invoiceCase)execFileSync(process.execPath,['scripts/fixtures/useful-task/verify.mjs',path.join(result.worktree.worktreePath,artifactPath)],{stdio:'pipe'});
+ else assert.equal(await readFile(path.join(result.worktree.worktreePath,artifactPath),'utf8'),'agentforge-docker-e2e');
  const savedReceipts=JSON.parse(JSON.stringify(result.executionReceipts));
  const oldUrl=server.getBaseUrl();worker.stop();await server.stop();
  store=new WorkspaceStore(path.join(root,'state.json'));
@@ -139,7 +208,7 @@ try{
   await page.locator('input[name=username]').fill('owner');await page.locator('input[name=password]').fill('Synthetic reviewer password');await page.getByRole('button',{name:'Sign in',exact:true}).click();
  }
  await page.getByLabel('Tasks and runs',{exact:true}).click();
- await page.getByRole('button').filter({has:page.getByText('User-created bounded task',{exact:true})}).click();
+ await page.getByRole('button').filter({has:page.getByText(taskTitle,{exact:true})}).click();
  await page.getByRole('button',{name:'Review recorded execution',exact:true}).click();
  await page.getByRole('button',{name:'Restore verified recorded result',exact:true}).click();
  await page.getByText('Validated recorded result restored. No command replayed.',{exact:true}).waitFor();
@@ -156,7 +225,21 @@ try{
  const restored=new WorkspaceStore(path.join(root,'state.json'));
  assert.equal(restored.getTask(taskId).status,'completed');
  assert.equal(restored.getTask(taskId).evidencePack.approvedBy,'user-owner');
+ const {readVerifiedTaskArtifact}=await builtModule('server/taskArtifactReader.js');
+ const verifiedOutput=await readVerifiedTaskArtifact(restored.getTask(taskId),artifactPath);
+ assert.equal(verifiedOutput.referenceDataOnly,true);
+ assert.ok(verifiedOutput.content.length>0);
+ if(chatJourney){
+ await page.getByLabel('Models and routing',{exact:true}).click();await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic proof vault password');await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
+ await page.getByLabel('Messages',{exact:true}).click();await page.locator('.conversation-row').filter({hasText:'Artifact request'}).click();await page.getByLabel('Response model',{exact:true}).selectOption('compatible::synthetic-model');await page.getByLabel('Message',{exact:true}).fill('Read '+artifactPath+' from completed task '+taskId+' using read_task_artifact and summarize its actual contents.');await page.getByRole('button',{name:'Send ↑',exact:true}).click();if(liveModel){const until=Date.now()+120000;const initial=chatRequests;while(Date.now()<until){const answer=store.listThreadMessages(thread.id).at(-1);if(chatRequests>initial&&answer?.generation?.status==='complete')break;await new Promise(r=>setTimeout(r,200));}const answer=store.listThreadMessages(thread.id).at(-1);assert.equal(answer.generation?.status,'complete');const expectedContent=invoiceCase?'950':'agentforge-docker-e2e';assert.ok(answer.content.includes(expectedContent));await writeFile(path.join(root,'final-chat-answer.json'),JSON.stringify(answer,null,2));}else{await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,3,'Two task-preparation requests plus one automatically grounded final answer');}const count=chatRequests;const receipts=JSON.stringify(store.getTask(taskId).executionReceipts);await page.reload();if(liveModel){const expectedContent=invoiceCase?'950':'agentforge-docker-e2e';await page.locator('#conversation-feed').getByText(expectedContent,{exact:false}).first().waitFor();}else await page.getByText('Verified artifact: agentforge-docker-e2e',{exact:true}).waitFor();assert.equal(chatRequests,count);assert.equal(JSON.stringify(store.getTask(taskId).executionReceipts),receipts);
+ }
+ if(chatJourney)assert.ok(verifiedChatReads.length>0,'Final chat must consume the exact verified artifact tool result');
  assert.equal(modelRequests,1);
- console.log(JSON.stringify({passed:true,syntheticOnly:true,syntheticModelDraft:true,oneModelRequest:true,createdTaskExecuted:true,guidedRepositoryRevision:true,concurrentEditsPreserved:true,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true}));
+ assert.deepEqual(browserErrors,[],'Browser handlers must not fail silently');
+ const proof={passed:true,chatJourney,chatRequests,verifiedChatReads,verifiedArtifactReturnedToChat:chatJourney,invoiceCase,syntheticOnly:!liveModel,syntheticTaskData:true,liveModel:liveModel||null,credentialMediatedByLocalProxy:!!liveModel,syntheticModelDraft:!liveModel&&!recordedResponse,recordedProviderResponse:!!recordedResponse,paidModelRequests:liveModel?modelRequests+chatRequests:0,onePlanningProviderRequest:true,totalProviderRequests:modelRequests+chatRequests,createdTaskExecuted:true,guidedRepositoryRevision:!chatJourney,concurrentEditsPreserved:!chatJourney,browserCommandReview:true,authenticatedApproval:true,approvalDidNotExecute:true,realDocker:true,verifiedArtifact:true,serviceRestartBeforeReview:true,recordedResultRestored:true,receiptsUnchanged:true,finalReviewConfirmed:true,durableCompletion:true,completedEvidenceReadableAfterReopen:true};
+ proof.runnerSourceCommit=git(fileURLToPath(new URL("..",import.meta.url)),["rev-parse","HEAD"]);
+ proof.installedPackage=!!process.env.AGENTFORGE_PACKAGE_ROOT;
+ proof.runnerSha256=createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex");
+ await writeFile(path.join(root,"browser-proof.json"),JSON.stringify(proof,null,2));
+ console.log(JSON.stringify({...proof,evidenceDirectory:root}));
 }finally{await browser?.close();worker.stop();await server.stop();await new Promise(resolve=>provider.close(resolve));}
-

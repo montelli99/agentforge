@@ -1,0 +1,50 @@
+import {it,expect,vi} from 'vitest';
+import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
+const mocks=vi.hoisted(()=>({run:vi.fn(),capabilities:vi.fn(async()=>({version:'0.65.0',controlsAvailable:true}))}));
+vi.mock('./boundedCliProcess.js',()=>({runBoundedChild:mocks.run}));
+vi.mock('./geminiCliCapabilities.js',()=>({inspectGeminiCliCapabilities:mocks.capabilities}));
+import {GeminiNativeClient} from './geminiNativeClient.js';
+it('uses isolated connection settings without giving the broker secret to the prompt',async()=>{
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-native-profile-')));try{
+ await fs.mkdir(path.join(root,'.gemini'));await fs.writeFile(path.join(root,'.gemini','settings.json'),JSON.stringify({security:{auth:{selectedType:'oauth-personal',enforcedType:'oauth-personal',useExternal:false}},hooksConfig:{enabled:false},admin:{extensions:{enabled:false},skills:{enabled:false}}}));
+ const client=new GeminiNativeClient({bundlePath:path.join(root,'gemini.js'),homeDirectory:root,model:'gemini-2.5-flash'});
+ await expect(client.initialize()).rejects.toThrow();expect(client.getReadiness().ready).toBe(false);
+ await fs.writeFile(path.join(root,'.gemini','oauth_creds.json'),'synthetic-not-a-credential');
+ await fs.writeFile(path.join(root,'gemini.js'),'// synthetic bundle');
+ await client.initialize();const token='a'.repeat(64);let temporary='';
+ mocks.run.mockImplementation(async(_exe,args,options)=>{temporary=options.cwd;expect(args.join(' ')).not.toContain(token);expect(options.env.GEMINI_API_KEY).toBeUndefined();expect(options.env.GOOGLE_GEMINI_BASE_URL).toBeUndefined();const settings=JSON.parse(await fs.readFile(options.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH,'utf8'));expect(settings.security.auth.enforcedType).toBe('oauth-personal');expect(settings.mcpServers['agentforge-broker'].headers.Authorization).toBe('Bearer '+token);return {code:0,stdout:'',stderr:''};});
+ await client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal});
+ await expect(fs.stat(temporary)).rejects.toThrow();
+ mocks.run.mockClear();
+ await fs.writeFile(path.join(root,'gemini.js'),'// changed bundle');
+ await expect(client.run({connection:{endpoint:'http://127.0.0.1:12345/mcp',token},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal})).rejects.toThrow('Native bundle changed');
+ expect(mocks.run).not.toHaveBeenCalled();expect(client.getReadiness().ready).toBe(false);
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
+it.each(['home','ancestor'] as const)('rejects a linked %s before inspecting credentials',async kind=>{
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-native-link-')));
+ try{
+  const physical=path.join(root,'physical');await fs.mkdir(path.join(physical,'home'),{recursive:true});
+  const link=path.join(root,'linked');
+  await fs.symlink(kind==='home'?path.join(physical,'home'):physical,link,process.platform==='win32'?'junction':'dir');
+  const client=new GeminiNativeClient({bundlePath:path.join(root,'gemini.js'),homeDirectory:kind==='home'?link:path.join(link,'home'),model:'gemini-synthetic'});
+  await expect(client.initialize()).rejects.toThrow('Linked native profile rejected');
+  expect(client.getReadiness().ready).toBe(false);
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});
+it.each(['removed-sign-in','changed-settings'] as const)('invalidates readiness after %s and requires reinitialization',async change=>{
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'af-native-drift-')));
+ try{
+  await fs.mkdir(path.join(root,'.gemini'));
+  const settings=path.join(root,'.gemini','settings.json'),credentials=path.join(root,'.gemini','oauth_creds.json');
+  const safe=JSON.stringify({security:{auth:{selectedType:'oauth-personal',enforcedType:'oauth-personal',useExternal:false}},hooksConfig:{enabled:false},admin:{extensions:{enabled:false},skills:{enabled:false}}});
+  await fs.writeFile(settings,safe);await fs.writeFile(credentials,'synthetic');await fs.writeFile(path.join(root,'gemini.js'),'// fixture');
+  const client=new GeminiNativeClient({bundlePath:path.join(root,'gemini.js'),homeDirectory:root,model:'gemini-synthetic'});await client.initialize();expect(client.getReadiness().ready).toBe(true);
+  if(change==='removed-sign-in')await fs.unlink(credentials);else await fs.writeFile(settings,'{}');
+  const input={connection:{endpoint:'http://127.0.0.1:12345/mcp',token:'a'.repeat(64)},request:{callId:'execute-approved-task',tool:'execute_approved_task',input:{contractDigest:'b'.repeat(64)}},signal:new AbortController().signal};
+  mocks.run.mockClear();await expect(client.run(input)).rejects.toThrow();expect(client.getReadiness().ready).toBe(false);expect(mocks.run).not.toHaveBeenCalled();
+  await fs.writeFile(settings,safe);await fs.writeFile(credentials,'synthetic');
+  await expect(client.run(input)).rejects.toThrow('not been initialized');
+  await client.initialize();expect(client.getReadiness().ready).toBe(true);
+ }finally{await fs.rm(root,{recursive:true,force:true});}
+});

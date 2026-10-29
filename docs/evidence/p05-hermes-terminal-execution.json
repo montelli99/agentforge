@@ -1,0 +1,22 @@
+{
+  "requirement": "P05",
+  "runId": "run_6b0f7d50a2ba4a8cb15f8f8b2b4745b1",
+  "command": {
+    "name": "terminal",
+    "arguments": "{\"command\": \"python3 -c \\\"print(1200 - 250 + 300)\\\"\"}"
+  },
+  "terminalResult": {
+    "output": "1250",
+    "exit_code": 0,
+    "error": null,
+    "approval": "Command was flagged (script execution via -e/-c flag) and auto-approved by smart approval."
+  },
+  "earlierExecuteCodeBlocked": true,
+  "sourceDatabaseSha256": "64d0e374f65ca9ed5fca59a9783821e2f5fd7919d40aa6d7de50adbf8b2ed61d",
+  "recordedAt": "2026-10-26T07:21:00.615Z",
+  "limits": [
+    "Runtime-record evidence for one arithmetic command, not a useful artifact workflow.",
+    "Does not prove cancellation of tool effects or the browser review journey."
+  ],
+  "privacy": "Only selected synthetic command and result exported; no profiles, configuration, credentials or system prompts."
+}

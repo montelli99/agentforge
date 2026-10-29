@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "9b0dbcdbda6ff973b4fe01c9c3ec4a38aeb021d5",
+  "runId": 40365284696,
+  "conclusion": "success",
+  "jobsPassed": 7,
+  "platforms": [
+    "windows",
+    "ubuntu",
+    "macos"
+  ],
+  "nodeVersions": [
+    22,
+    24
+  ],
+  "includesPublicPackageAndIsolatedExecution": true,
+  "laterSourceCovered": false
+}

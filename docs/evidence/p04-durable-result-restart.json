@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "liveBrowserDelegation": true,
+  "gatewayProcessRestart": true,
+  "resultRecoveredAfterGatewayRestart": true,
+  "reconnectedWithoutResend": true,
+  "activeRunObservedBeforeStop": true,
+  "browserStopAcknowledged": true,
+  "remoteRunInactiveAfterStop": true,
+  "terminalStopReason": "rpc",
+  "invoiceUnchangedAfterStop": true,
+  "realPairedGateway": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "providerRequests": 6,
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:35:57.698Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12300,
+        "outputTokens": 19
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:36:02.005Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:36:02.251Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12623,
+        "outputTokens": 377
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:36:07.026Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:36:07.262Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13025,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:36:10.336Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:36:10.744Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13275,
+        "outputTokens": 35
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:36:12.643Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:36:13.386Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13593,
+        "outputTokens": 255
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:36:18.335Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T09:36:49.917Z",
+      "status": "started",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "runId": "d9bd6998-512e-4a05-9a9e-fc3097df8624",
+  "independentInvoiceCheck": true,
+  "externalResultVisible": true,
+  "reloadDidNotResend": true,
+  "notAutomaticallyCompleted": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "scope": "Source-build browser recovery of an explicitly fetched result across actual gateway restart; no task resend. Does not prove recovery of an unread result or installed-package acceptance. Saved-result UI label was added after this build and has not yet been browser-verified.",
+  "runtimeHashes": {
+    "dist/core/runtime/externalTurnDispatch.js": "29321d6cdca1885a97bb09ae8cf3a247a0b6ee8fed1687a775d2abb43ef3a351",
+    "dist/server/webServer.js": "aaf1dcf6f70bf42c9a515ec1fa0cfa3b3f597bcad640c2d8616f5c45ed39a7d8",
+    "dist/providers/channels/openClawGatewayTransport.js": "2fee94cf99dde289f86cf55cb3d6f53bc9487124dc1e8bad63b2df5c0509c547"
+  },
+  "runnerSha256": "3466d714c6e0c910145486ed84825b0c58d04149b3d69c684815fb81385fab6c",
+  "restart": {
+    "beforeStartedAt": "2026-10-26T09:35:28.977197344Z",
+    "afterStartedAt": "2026-10-26T09:36:22.424003773Z",
+    "resultRecovered": true,
+    "submissions": 1,
+    "requests": 5
+  },
+  "upstreamAfterRestart": {
+    "runId": "d9bd6998-512e-4a05-9a9e-fc3097df8624",
+    "status": "timeout"
+  },
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "recordedAt": "2026-10-26T09:37:26.520Z"
+}

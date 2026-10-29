@@ -1,0 +1,24 @@
+{
+  "claude": {
+    "version": "2.1.310",
+    "controlsAvailable": true,
+    "missingControls": [],
+    "authenticationVerified": false,
+    "isolationVerified": false,
+    "inferencePerformed": false
+  },
+  "claudeEmptyProfile": {
+    "loggedIn": false,
+    "connectionKind": "signed-out",
+    "inferenceVerified": false
+  },
+  "gemini": {
+    "version": "0.65.0",
+    "controlsAvailable": true,
+    "missingControls": [],
+    "authenticationVerified": false,
+    "isolationVerified": false,
+    "inferencePerformed": false
+  },
+  "limitation": "Capability advertisement and empty-profile refusal only; no inference, account entitlement or isolation enforcement proof."
+}

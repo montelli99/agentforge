@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-10-26T17:37:55.540Z",
+  "passed": true,
+  "stage": "complete",
+  "model": "gpt-6-luna",
+  "requests": 1,
+  "usage": {
+    "promptTokens": 141,
+    "completionTokens": 67,
+    "totalTokens": 208,
+    "cachedInputTokens": 0
+  },
+  "limits": [
+    "Synthetic built-in memory recovered through TaskWorkerRuntime in a fresh process.",
+    "One live model decision, not a browser journey or proof of all conflicting-memory cases.",
+    "No execution tools exposed and no task effects performed."
+  ],
+  "contextSha256": "14da5925d9005c85ed0117aa2096b43eefd4e1f4d159493d092d809574d84376",
+  "result": {
+    "status": "needs_clarification",
+    "selectedColor": null,
+    "candidateColors": [
+      "blue",
+      "red"
+    ],
+    "sourceIds": [
+      "mem-6c84d35a",
+      "mem-d5012c94"
+    ]
+  }
+}

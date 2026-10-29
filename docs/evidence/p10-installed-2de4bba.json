@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-10-26T17:47:03.984Z",
+  "sourceCommit": "2de4bba9a32d729dfc5bc2fe6b850bc0528cb0b4",
+  "passed": true,
+  "installedArchive": true,
+  "archiveSha256": "32bca37141d40b008e0ca41f857abe7dd4bbefaed9e67e33c20469c9f87a1a53",
+  "runnerSha256": "df41798860817b2f769fa922b11898bea4ac86ed9ed11eb8d2ccea305c3dc42d",
+  "scenarioCount": 13,
+  "scenarios": [
+    "memory migration",
+    "first project and authentication focus",
+    "saved execution setup and restart",
+    "memory connection lifecycle",
+    "compatible model connection lifecycle",
+    "external-agent connection setup",
+    "approval and Docker execution",
+    "offline import and rollback",
+    "external run recovery",
+    "repair after authentication loss",
+    "chat through verified artifact",
+    "local model connection lifecycle",
+    "repair after timed owner-session expiry"
+  ],
+  "privacyScan": {
+    "passed": true,
+    "shippedFiles": 506,
+    "exactArchiveHashMatched": true
+  },
+  "paidProviderRequests": 0,
+  "limits": [
+    "Synthetic providers and disposable local data; no new live provider acceptance.",
+    "Known private-data signatures scanned; not a universal guarantee of absence.",
+    "This is candidate development verification, not final release acceptance or publication."
+  ]
+}

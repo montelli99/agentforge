@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-26T16:13:39.047Z",
+  "sourceCommit": "7db8c1e8d92b65771b45c2b1c9bfe36462f84a40",
+  "scope": "Focused native approval lifecycle and dedicated profile isolation",
+  "approvalSuite": {
+    "files": 7,
+    "testsPassed": 24,
+    "cases": [
+      "pending review launches no client",
+      "approval proceeds but no output cannot claim success",
+      "pending cancellation launches no client",
+      "rejection launches no client",
+      "expiry launches no client",
+      "approval followed immediately by cancellation cannot revive task"
+    ]
+  },
+  "profileSuite": {
+    "testsPassed": 3,
+    "cases": [
+      "isolated settings keep broker token out of prompt",
+      "linked home rejected",
+      "linked ancestor rejected"
+    ]
+  },
+  "typecheckPassed": true,
+  "liveSubscriptionProven": false,
+  "files": {
+    "src/core/runtime/nativeClientExecutionBackend.ts": "51150d1adff6150cdddb830802ec80b20488fe09a873da2bc5ece8c2033d4e1a",
+    "src/core/runtime/nativeClientExecutionBackend.test.ts": "b2ee917324036971b7da5140cfd502597e2d97970b49974fa989ceafdb070c60",
+    "src/providers/models/geminiNativeClient.ts": "c10608a4b492b7001ed1309028855312103d9dda8456713cfd042d8c4142fb26",
+    "src/providers/models/geminiNativeClient.test.ts": "d132a19669018deac2bb5d823d0e04e0df550f6d08cd09a4638744ac4e34156e"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "requirement": "P07",
+  "installedSourceCommit": "40208f2",
+  "archiveSha256": "70ad1fcc8c496bd12feb32e101acebbc41405eb9241d3272731875780646c6fc",
+  "proof": {
+    "composed": true,
+    "installedPackage": true,
+    "completed": true,
+    "syntheticOnly": true,
+    "liveModel": "mimo-v2.6-flash",
+    "requests": 2,
+    "accounting": [
+      {
+        "requestNumber": 1,
+        "startedAt": "2026-10-26T10:29:26.604Z",
+        "status": "completed",
+        "usage": {
+          "promptTokens": 761,
+          "completionTokens": 57,
+          "totalTokens": 818
+        },
+        "cost": null,
+        "finishedAt": "2026-10-26T10:29:30.300Z"
+      },
+      {
+        "requestNumber": 2,
+        "startedAt": "2026-10-26T10:29:30.316Z",
+        "status": "completed",
+        "usage": {
+          "promptTokens": 1159,
+          "completionTokens": 402,
+          "totalTokens": 1561
+        },
+        "cost": null,
+        "finishedAt": "2026-10-26T10:29:40.116Z"
+      }
+    ],
+    "tools": [
+      "search_project_memory",
+      "search_history"
+    ],
+    "reopenedBeforeRecall": true,
+    "createdTasks": 0,
+    "answer": "Here's the evidence I found — and it contains a conflict:\n\n**Two saved records with different values:**\n\n1. **\"Launch spending ceiling\"** (source: agentforge_operational, alias \"saved\", version 1, updated 2026-01-01): states the approved ceiling is **USD 1200**.\n2. **\"selected\"** (source: Obsidian notes, version 1, updated 2026-10-26): states the approved ceiling is **USD 1800**.\n\n**What I can and can't conclude:**\n\n- The two records directly disagree. I can't tell from these results alone which one supersedes the other. The Obsidian note is dated later (October 2026 vs. January 2026), but a later timestamp doesn't by itself prove it's the authoritative revision — the operational record may simply not have been re-versioned, or the note may be a draft/proposal.\n- The note's title, \"selected,\" is ambiguous — it could mean a selected figure, but I don't have context on what it was selected for.\n- My searches are bounded retrievals, not an exhaustive inventory. There may be other records or revision histories I didn't retrieve, so I can't claim these are the only saved values.\n- The conversation history search returned only your current question, so there's no prior chat discussion here to break the tie.\n\n**Suggested next step (not an action I've taken):** Before relying on either number, check the revision history or an authoritative source for both records to determine which is current. If you know which one should win, tell me and I'll treat that as your confirmation — but I won't pick one on my own.",
+    "scope": "One live-model conflicting-memory recall after store reopen; semantic result independently reviewed"
+  },
+  "proofSha256": "3cb1bb1bb768cca6c650f721d22e4b98a532f10ba84a1117ed2ab4ff25c52a26",
+  "review": {
+    "bothConflictingValues": true,
+    "noUnjustifiedAuthority": true,
+    "noTaskCreated": true
+  },
+  "limits": [
+    "Synthetic development case, not held-out comparison",
+    "Monetary cost unknown"
+  ]
+}

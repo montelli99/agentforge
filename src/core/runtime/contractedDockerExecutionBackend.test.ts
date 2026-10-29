@@ -3,6 +3,12 @@ import { DockerComputeProvider } from "../compute/dockerComputeProvider.js";
 import { ContractedDockerExecutionBackend, type ExecutionPlanProvider } from "./contractedDockerExecutionBackend.js";
 import { ApprovedPlanProvider } from "./approvedPlanProvider.js";
 import type { Task } from "../types/task.js";
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {NativeToolAuthorization} from './nativeToolAuthorization.js';
+import {createNativeDockerSession} from './nativeDockerBroker.js';
 
 const task: Task = {
   id: "task-docker-backend", projectId: "default", title: "Run checks", description: "", priority: "medium", status: "ready",
@@ -18,6 +24,21 @@ const task: Task = {
 };
 
 describe("ContractedDockerExecutionBackend", () => {
+  it('native broker permission cannot bypass the stored plan approval',async()=>{
+    const root=await fs.mkdtemp(path.join(os.tmpdir(),'af-native-docker-'));try{
+      const work=path.join(root,'work');await fs.mkdir(work);let creations=0;
+      const docker={isAvailable:async()=>({available:true}),createEnvironment:async()=>{creations++;throw Error('Must not start');}} as unknown as DockerComputeProvider;
+      const backend=new ContractedDockerExecutionBackend(docker,new ApprovedPlanProvider(async()=>undefined));await backend.initialize();
+      const authorization=new NativeToolAuthorization(path.join(root,'host'),work);
+      const identity={taskId:task.id,operationId:'operation',sessionId:'session'};
+      const bound=createNativeDockerSession({identity,task,worktreePath:work,authorization,backend});
+      const approvalId=randomUUID();const args={callId:bound.callId,tool:bound.tool,input:bound.input};
+      await authorization.approve(approvalId,{...identity,...args},'owner',Date.now()+60000);
+      await expect(bound.session.dispatch({approvalId,...args})).rejects.toThrow(/approve an execution plan/);
+      expect(creations).toBe(0);expect((await authorization.inspect(approvalId,{...identity,...args})).state).toBe('unconfirmed');
+      await bound.session.close();
+    }finally{await fs.rm(root,{recursive:true,force:true});}
+  });
   it("starts unavailable until Docker and an approved plan are both ready", () => {
     const unavailablePlan: ExecutionPlanProvider = {
       getReadiness: () => ({ ready: false, blocker: "Plan review is pending." }),
@@ -89,3 +110,4 @@ describe("ContractedDockerExecutionBackend", () => {
     expect(environmentCreateCalls).toBe(0);
   });
 });
+

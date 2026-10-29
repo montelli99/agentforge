@@ -110,7 +110,7 @@ function openConversationCreate(initialTitle='') {
     return;
   }
   const dialog = document.createElement('dialog'); dialog.className='conversation-dialog';
-  dialog.innerHTML='<form><h2>New conversation</h2><label>Title<input name="title" required maxlength="200" class="form-control" placeholder="What are you working on?"></label><label>Project<select name="project" class="form-control" required></select></label><label>Channel<select name="channel" class="form-control" required disabled></select></label><p class="conversation-feedback" role="status" aria-live="polite"></p><footer><button type="button" class="btn btn-secondary" data-create-channel hidden>Add a General channel</button><button type="button" class="btn btn-secondary">Cancel</button><button type="submit" class="btn">Create conversation</button></footer></form>';
+  dialog.innerHTML='<form><h2>New conversation</h2><label>Title<input name="title" required maxlength="200" class="form-control" placeholder="What are you working on?"></label><label>Project<select name="project" aria-label="Project" class="form-control" required></select></label><label>Channel<select name="channel" aria-label="Channel" class="form-control" required disabled></select></label><p class="conversation-feedback" role="status" aria-live="polite"></p><footer><button type="button" class="btn btn-secondary" data-create-channel hidden>Add a General channel</button><button type="button" class="btn btn-secondary">Cancel</button><button type="submit" class="btn">Create conversation</button></footer></form>';
   const projectSelect=dialog.querySelector('[name=project]');
   const channelSelect=dialog.querySelector('[name=channel]');
   const feedback=dialog.querySelector('.conversation-feedback');

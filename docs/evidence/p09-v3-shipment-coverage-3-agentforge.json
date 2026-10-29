@@ -1,0 +1,95 @@
+{
+  "attempt": "shipment-coverage-3-agentforge",
+  "result": {
+    "installedPackage": true,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 4,
+    "passed": false,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 23575.926,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1271,
+        "outputTokens": 16
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1092,
+          "outputTokens": 25
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1853,
+          "outputTokens": 49
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1271,
+          "outputTokens": 16
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 554,
+      "prompt_tokens": 2238,
+      "total_tokens": 2792,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 19266.990999999998,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "evaluationCase": "shipment-coverage",
+    "independentEvaluation": {
+      "passed": true,
+      "reason": "match",
+      "outputSha256": "241652dc8fe9576a3aac5af226bdf38ba939b21d9243316665ca21f7bf41e9aa"
+    },
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "error": "The expression evaluated to a falsy value:\n\n  assert(verifiedReads.length>0)\n",
+    "protocolSha256": "f263a2f5f7ce5d9d9c744236ac1a54c02752cc2582a38223b387ba3897ff7863",
+    "totalElapsedMs": 56889.01960000001,
+    "providerRequests": 4,
+    "chatRequests": 3
+  },
+  "package": {
+    "runtimeSource": "50430be",
+    "harnessCommit": "90e835aa7a9dcaed50265bf6925a6e8ce6cc4405",
+    "archiveSha256": "1A0E11FBBA941AFB9004774DA0B7287C7DBEC5082CA026F91F410C3B4F19E8B0",
+    "protocolSha256": "F263A2F5F7CE5D9D9C744236AC1A54C02752CC2582A38223B387BA3897FF7863"
+  },
+  "executionHarnessCommit": "9bc209bafb3107e324ac8e05395c75d7fac0029a",
+  "fixtureRepairCommit": "8ad0611",
+  "classification": "Artifact passed; journey failed: final model response did not invoke artifact read",
+  "limitation": "Retained failure; no replacement. Diagnose and repair separately from frozen evaluation."
+}

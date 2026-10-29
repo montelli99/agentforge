@@ -31,5 +31,6 @@ it.each([
 it('accepts a terminal successful turn and preserves usage',async()=>{
  const {run,provider}=fixture([{type:'thread.started'},{type:'turn.started'},message,done]);
  const result=await provider.generate({model:'gpt-fixture',messages:[{role:'user',content:'Synthetic draft'}],responseFormat:'json'});
+ expect(run.mock.calls[1][2].input).toContain("1 to 100 commands each timeoutMs <=3600000");
  expect(result.content).toBe(plan);expect(result.usage?.totalTokens).toBe(5);expect(run).toHaveBeenCalledTimes(2);
 });

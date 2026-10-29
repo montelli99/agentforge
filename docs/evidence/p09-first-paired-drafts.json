@@ -1,0 +1,52 @@
+{
+  "protocolCommit": "0aa3afa",
+  "status": "incomplete-awaiting-reviewed-execution",
+  "attempts": [
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "awaiting-review",
+      "startedAt": "2026-10-26T10:33:09.187Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 555,
+        "totalTokens": 1116
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "afce9d16-0f7e-491b-b851-db4bad6bc96b",
+        "taskId": "inventory-reconciliation-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cddb4c7931b4f35928b15b47c2c3217a607458b0546c5b638244d08eb56c3e69",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 555,
+        "responseDigest": "e210dbd95edd62422877dba1ad0b45dc45b3b8710c33b3a303862cf99a1cbf0b"
+      },
+      "planSha256": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+      "planningElapsedMs": 13666.3505
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "direct",
+      "status": "awaiting-review",
+      "startedAt": "2026-10-26T10:33:22.940Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 527,
+        "totalTokens": 1088
+      },
+      "cost": null,
+      "planSha256": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+      "planningElapsedMs": 13604.930699999999
+    }
+  ],
+  "scope": "First pair only, no commands executed and no task completion scored",
+  "remainingAttempts": 16
+}

@@ -1908,8 +1908,8 @@ function handleSettingsPage(_req: http.IncomingMessage, res: http.ServerResponse
         <div class="form-group">
           <label class="form-label">Model</label>
           <select class="form-select" id="mimoModel">
-            <option value="mimo-v2.5-pro">mimo-v2.5-pro (coding/reasoning, no vision)</option>
-            <option value="mimo-v2.5">mimo-v2.5 (text + vision)</option>
+            <option value="mimo-v2.6-pro">mimo-v2.6-pro (coding/reasoning, no vision)</option>
+            <option value="mimo-v2.6-flash">mimo-v2.6-flash (text + vision)</option>
           </select>
         </div>
       </div>
@@ -2043,7 +2043,7 @@ function seedDemoData(): void {
       description: "TypeScript, Python, testing, and Git worktree isolation.",
       status: "idle",
       harnessPolicy: { preferredHarnessId: "pi", autoResume: true },
-      modelPolicy: { preferredTier: 4, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
+      modelPolicy: { preferredTier: 4, preferredModel: "mimo-v2.6-pro", preferredProvider: "mimo", allowCloudFallback: true },
       decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "local_workspace" },
       memoryNamespace: "engineering", tools: ["git", "terminal", "vitest", "diff_viewer"],
       permissions: ["repo:read", "repo:branch", "test:run"], assignedChannelIds: ["chan-development"],
@@ -2053,7 +2053,7 @@ function seedDemoData(): void {
       description: "Reviews incoming workspace requests and routes evidence for approval.",
       status: "idle",
       harnessPolicy: { preferredHarnessId: "pydantic", autoResume: true },
-      modelPolicy: { preferredTier: 3, preferredModel: "mimo-v2.5-pro", preferredProvider: "mimo", allowCloudFallback: true },
+      modelPolicy: { preferredTier: 3, preferredModel: "mimo-v2.6-pro", preferredProvider: "mimo", allowCloudFallback: true },
       decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "none" },
       memoryNamespace: "operations", tools: ["records_client", "conversation_client", "knowledge_base"],
       permissions: ["records:read", "records:write", "voice:outbound"], assignedChannelIds: ["chan-general", "chan-calls"],

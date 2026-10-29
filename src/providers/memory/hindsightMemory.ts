@@ -8,7 +8,9 @@ export class HindsightMemoryProvider implements MemoryProvider {
  }
  async query(query:MemoryQuery):Promise<MemorySearchResult[]>{
   if(query.namespace!==this.namespace||query.projectId!==this.projectId||query.globalOnly)return [];
-  if(query.categories&&!query.categories.includes('general_fact'))return [];
+  if(query.categories?.length&&!query.categories.includes('general_fact'))return [];
+  // This read-only adapter exposes only the explicitly selected chat-context tag.
+  if(query.tags?.some(tag=>tag!=='chat-context'))return [];
   if(!query.queryText?.trim())return [];
   if(query.queryText.length>2000)throw Error('Memory query exceeds limit');
   const signal=AbortSignal.any([AbortSignal.timeout(15000),...(query.signal?[query.signal]:[])]);signal.throwIfAborted();

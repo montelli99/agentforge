@@ -1,0 +1,104 @@
+{
+  "partialStop": true,
+  "passed": true,
+  "installedPackage": true,
+  "liveBrowserDelegation": true,
+  "gatewayProcessRestart": true,
+  "previouslyUnreadResult": true,
+  "resultRecoveredAfterGatewayRestart": true,
+  "reconnectedWithoutResend": true,
+  "activeRunObservedBeforeStop": true,
+  "browserStopAcknowledged": true,
+  "remoteRunInactiveAfterStop": true,
+  "terminalStopReason": "rpc",
+  "invoiceUnchangedAfterStop": true,
+  "realPairedGateway": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "providerRequests": 5,
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T14:14:05.474Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12300,
+        "outputTokens": 19
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T14:14:08.625Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T14:14:08.878Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12623,
+        "outputTokens": 405
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T14:14:18.424Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T14:14:18.669Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13053,
+        "outputTokens": 25
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T14:14:20.222Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T14:14:20.578Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13303,
+        "outputTokens": 187
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T14:14:27.126Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T14:14:54.487Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12207,
+        "outputTokens": 82
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T14:14:58.855Z"
+    }
+  ],
+  "runId": "cba393f1-90ef-4fb4-be3a-835efd79bedf",
+  "independentInvoiceCheck": true,
+  "externalResultVisible": true,
+  "reloadDidNotResend": true,
+  "notAutomaticallyCompleted": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "recordedAt": "2026-10-26T14:16:13.939Z",
+  "runtimeSourceCommit": "7dd8c9a0d44f5ba9e09807c4cfe550b6cf337b6d",
+  "archiveSha256": "628bcbf3ae0bf9ef8c172e05d4ae933b17c48437319a10ad5e0739bab7576ade",
+  "runnerSha256": "8783119fe8cd5aad6a4197981a06671e11ec30054eba28411762cf9a8a62bdf6",
+  "partialEffects": {
+    "first": "once\n",
+    "late": false
+  },
+  "observationAfterStopMs": 47000,
+  "scheduledSecondWriteDelayMs": 45000,
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerExitCode": 0,
+  "limits": [
+    "One controlled command cancellation with synthetic data; not every tool or detached child process",
+    "Model usage reported; monetary costs unknown",
+    "Final release candidate reconciliation remains open"
+  ]
+}

@@ -28,6 +28,10 @@ describe('offline ChatGPT direct planning seam', () => {
     const failing=vi.fn(async()=>{throw Error('synthetic-secret');});
     await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),failing).open(input))).rejects.toThrow('no retry');
     expect(failing).toHaveBeenCalledTimes(1);
+    const missingType=async()=>new Response(new TextEncoder().encode('event: response.completed\ndata: {"type":"response.completed"}\n\n'));
+    expect(await collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),missingType).open(input))).toEqual([{type:'response.completed'}]);
+    const html=async()=>new Response(new TextEncoder().encode('<html>not a stream</html>\n\n'));
+    await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),html).open(input))).rejects.toThrow('framing');
     const partial=async()=>new Response('data: {"type":"response.completed"}',{headers:{'content-type':'text/event-stream'}});
     await expect(collect(new DirectResponsesTransport(()=>({credentials,grantId:'grant'}),partial).open(input))).rejects.toThrow('Incomplete');
   });
@@ -102,4 +106,26 @@ describe('offline ChatGPT direct planning seam', () => {
     const stalled = new ChatGPTDirectModel({ enabled: true, model: options.model, deadlineMs: 10 }, { currentGrant: () => grant }, () => ({ accountId: 'mock', grantId: 'mock', expiresAt: grant.expiresAt, response: { models: [{ slug: options.model, display_name: 'Mock', visibility: 'list' }] } }), { open(request) { signal = request.signal; return { [Symbol.asyncIterator]: () => ({ next: () => new Promise(() => {}) }) }; } });
     await expect(stalled.generate(options)).rejects.toThrow('deadline'); expect(signal?.aborted).toBe(true);
   });
+});
+
+it('uses completed items when terminal output omits their repeated content',async()=>{
+ const final=terminal();const item={...final.response.output[0],id:'synthetic-item',status:'completed'};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item},{...final,response:{...final.response,output:[]}}]);
+ expect((await f.provider.generate(options)).content).toBe('{}');
+});
+it('rejects mismatched completed-item text and missing item indexes',async()=>{
+ for(const [index,text] of [[0,'changed'],[1,'{}']] as const){
+ const final=terminal();const item={id:'synthetic-item',type:'message',content:[{type:'output_text',text}]};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:index,item},{...final,response:{...final.response,output:[]}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow();
+ }
+});
+it('rejects terminal content that contradicts a finalized stream item',async()=>{
+ const final=terminal();const item={...final.response.output[0],id:'item'};
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item:{...item,content:[{type:'output_text',text:'other'}]}},{...final,response:{...final.response,output:[item]}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow('contradicts');
+});
+it('does not release finalized items without terminal completion',async()=>{
+ const f=fixture([{type:'response.output_text.delta',delta:'{}'},{type:'response.output_item.done',output_index:0,item:{...terminal().response.output[0],id:'item'}}]);
+ await expect(f.provider.generate(options)).rejects.toThrow('without response.completed');
 });

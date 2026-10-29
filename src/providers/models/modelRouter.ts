@@ -69,7 +69,7 @@ export class ModelRouter {
     // Complex/expert: prefer MiMo if available (cost-effective frontier)
     if (hasMiMo && !spec.forceLocalOnly) {
       const needsVision = spec.requiresVision === true;
-      const model = needsVision ? "mimo-v2.5" : "mimo-v2.5-pro";
+      const model = needsVision ? "mimo-v2.6-flash" : "mimo-v2.6-pro";
       return {
         tier: 4,
         providerId: "mimo",
@@ -115,7 +115,7 @@ export class ModelRouter {
     return {
       tier: 4,
       providerId: hasMiMo ? "mimo" : "openai",
-      model: hasMiMo ? "mimo-v2.5-pro" : (spec.taskComplexity === "expert" ? "gpt-4o" : "gpt-4o-mini"),
+      model: hasMiMo ? "mimo-v2.6-pro" : (spec.taskComplexity === "expert" ? "gpt-4o" : "gpt-4o-mini"),
       reason: "Default configuration target",
     };
   }

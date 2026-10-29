@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "browserSessionSelection": true,
+  "reviewBeforeSend": true,
+  "submissions": 1,
+  "runId": "run_924b0b558ef542619819890d7343a552",
+  "sessionKey": "run_6bef2f3ab88e43609195d929a36d5daf",
+  "independentInvoiceCheck": true,
+  "outputVisible": true,
+  "reloadWithoutResend": true,
+  "notLocallyVerified": true,
+  "limits": [
+    "Browser active Stop and process restart remain separate proof."
+  ],
+  "recordedAt": "2026-10-26T09:52:23.147Z",
+  "scope": "Source-build browser with real pinned Hermes API installation and live MiMo, explicit session selection/review, independent invoice check and reload without resend. Not a held-out benchmark.",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerSha256": "fc51a96c9052966fcb8b9446ded059aa23d58734236d84c2ef10fe49b55258de",
+  "fixtureHashes": {
+    "invoices.json": "c8b943bf2b2c77c6c0aefdd5876336417f227f3d7b7c9601660e9621bb5279b5",
+    "PROTOCOL.txt": "31cf998760fc54860a2ff1701905774350eb9d246e43b71619bea5c17ce7fdf8",
+    "verify.mjs": "0c144052df4951b002bf3b1e30db0a4311e3c192b04234326e489c42a8b0d409"
+  },
+  "usage": null,
+  "cost": null,
+  "totalProviderRequests": null,
+  "accountingLimitation": "This runner did not persist total provider requests after browser stage. Seed used five; combined total unreported."
+}

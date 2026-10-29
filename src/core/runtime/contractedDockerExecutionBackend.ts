@@ -1,3 +1,5 @@
+import {isDeepStrictEqual} from 'node:util';
+import {ExecutionResultJournal} from './executionResultJournal.js';
 /**
  * A production-oriented verification backend for AgentForge.
  *
@@ -32,6 +34,7 @@ export interface ExecutionPlanProvider {
 
 export interface ContractedDockerExecutionBackendOptions {
   agentId?: string;
+  resultJournalDirectory?: string;
 }
 
 /**
@@ -58,6 +61,16 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
   }
   async inspectSurvivors(input: {worktreePath: string; operationId: string}) {
     return this.docker.listWorkspaceContainers(input.worktreePath, input.operationId);
+  }
+
+  async recoverResult(input:{task:Task;operationId:string;worktreePath:string}):Promise<TaskExecutionOutput>{
+    if(!this.options.resultJournalDirectory)throw Error('Durable result recovery is not configured');
+    const output=await new ExecutionResultJournal(this.options.resultJournalDirectory).read(input.task,input.operationId,input.worktreePath);
+    const survivors=await this.inspectSurvivors(input);if(survivors.length)throw Error('Execution containers remain; inspect them before recovery');
+    const files=await collectGitExecutionEvidence(input.worktreePath,input.task.contract.repository.baseSha);
+    const artifacts=await collectExecutionArtifacts(input.worktreePath,files);
+    if(!isDeepStrictEqual(files,output.filesChanged)||!isDeepStrictEqual(artifacts,output.artifacts)||await readGitHeadSha(input.worktreePath)!==output.finalSha)throw Error('Worktree changed since recorded result');
+    return output;
   }
 
   getReadiness(): ExecutionReadiness {
@@ -92,6 +105,7 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     }
     if (input.signal.aborted) throw new TaskExecutionCancelledError();
 
+    if(this.options.resultJournalDirectory)await new ExecutionResultJournal(this.options.resultJournalDirectory).validatePlacement(input.worktreePath);
     const plan = await this.planProvider.getPlan(input.task);
     this.assertPlan(input.task, plan);
     if (input.signal.aborted) throw new TaskExecutionCancelledError();
@@ -153,7 +167,9 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
       // not complete evidence unless the control plane can identify the exact
       // repository state it inspected.
       const finalSha = await readGitHeadSha(input.worktreePath);
-      return { commandsExecuted, testResults, filesChanged, artifacts, finalSha };
+      const output={ commandsExecuted, testResults, filesChanged, artifacts, finalSha };
+      if(this.options.resultJournalDirectory&&input.operationId)await new ExecutionResultJournal(this.options.resultJournalDirectory).save(input.task,input.operationId,input.worktreePath,output);
+      return output;
     } finally {
       try { await this.docker.destroyEnvironment(environment.id); } finally { await nonDeleting?.discardUnwrittenPlaceholders(); }
     }
@@ -173,3 +189,5 @@ export class ContractedDockerExecutionBackend implements TaskExecutionBackend {
     }
   }
 }
+
+

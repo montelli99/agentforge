@@ -1,0 +1,58 @@
+{
+  "recordedAt": "2026-10-26T17:31:08.853Z",
+  "status": "failed",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "model": "mimo-v2.6-flash",
+  "maxRequests": 3,
+  "maxOutputTokens": 1000,
+  "syntheticTask": true,
+  "scoredComparison": false,
+  "providerCredentialInClient": false,
+  "caseId": "invoice-adjustments",
+  "inputSha256": "9c6fb3c66ab764167c7283238a64c47a3f899c59c9b99c581dd67229fe731bdb",
+  "proxySha256": "7a8e68d14e0352d2f025ebe737b4d8a83dd0cf05eda7db5754d4b6d5e89689ba",
+  "elapsedMs": 38380.1169,
+  "exitCode": 1,
+  "artifactMatches": true,
+  "inputUnchanged": true,
+  "score": {
+    "passed": true
+  },
+  "artifactSha256": "31332122935db002a05c8b919449c1ebf0b5619d31d02b016f4b74d5f89c50b1",
+  "audits": [
+    {
+      "request": 1,
+      "status": "response",
+      "usage": {
+        "inputTokens": 5734,
+        "outputTokens": 73
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 8780.941728
+    },
+    {
+      "request": 2,
+      "status": "response",
+      "usage": {
+        "inputTokens": 6583,
+        "outputTokens": 314
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 10620.103633
+    },
+    {
+      "request": 3,
+      "status": "response",
+      "usage": {
+        "inputTokens": 6978,
+        "outputTokens": 472
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "elapsedMs": 14362.908109999997
+    }
+  ],
+  "error": "Acceptance assertion failed"
+}

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "scope": "Worker/store reopen and observed-result reconciliation; not process crash or browser",
+  "taskId": "AF-32F4027A",
+  "executions": 1,
+  "receiptSha256": "17291d98abb9f5bc485437b5fba9f2498b49c870c443aa875bda016cbf2b0eb1",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "reviewDigest": "badeded5bb8c85e23fe1396d1219d762c3bd13f9202c8c21cbbad4de91bbbfdf"
+}

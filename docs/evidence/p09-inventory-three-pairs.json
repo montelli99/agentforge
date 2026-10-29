@@ -1,0 +1,324 @@
+{
+  "protocolCommit": "0aa3afa",
+  "attempts": [
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "passed",
+      "startedAt": "2026-10-26T10:33:09.187Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 555,
+        "totalTokens": 1116
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "afce9d16-0f7e-491b-b851-db4bad6bc96b",
+        "taskId": "inventory-reconciliation-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cddb4c7931b4f35928b15b47c2c3217a607458b0546c5b638244d08eb56c3e69",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 555,
+        "responseDigest": "e210dbd95edd62422877dba1ad0b45dc45b3b8710c33b3a303862cf99a1cbf0b"
+      },
+      "planSha256": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+      "planningElapsedMs": 13666.3505,
+      "review": {
+        "approvedDigest": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:44.574Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 0,
+          "stdout": "OK {\"conflicts\":[\"e4\"],\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7}}\n",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify input.json unmodified",
+          "exitCode": 0,
+          "stdout": "input.json intact\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "8438d8797a4a1b53ad078d9aa72945ece457248161b4e95484d0804d03b20bea"
+      },
+      "executionElapsedMs": 3385.8364,
+      "wallElapsedMs": 98771.8364
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:33:22.940Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 527,
+        "totalTokens": 1088
+      },
+      "cost": null,
+      "planSha256": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+      "planningElapsedMs": 13604.930699999999,
+      "review": {
+        "approvedDigest": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:48.039Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflict detection",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2040.1000000000001,
+      "wallElapsedMs": 87138.1
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 2,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:11.762Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 536,
+        "totalTokens": 1097
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "c9813047-6695-4687-82c1-94983c5cfbf0",
+        "taskId": "inventory-reconciliation-2",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "88ff69820b5f4bb15fbaaf88c529b2776bbbf4b195b56f2bc492fcb78e461a03",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 536,
+        "responseDigest": "9763033c4d330539e012fccb153d1f8d784086e35679382b0017d7af634e776c"
+      },
+      "planSha256": "5fdcab6656569013fb5890e83e52f71730fc6eb63882a0ef1f916a935cc4dc04",
+      "planningElapsedMs": 13932.3606,
+      "review": {
+        "approvedDigest": "5fdcab6656569013fb5890e83e52f71730fc6eb63882a0ef1f916a935cc4dc04",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:35:46.913Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2519.7278,
+      "wallElapsedMs": 37669.7278
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 2,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:25.782Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 524,
+        "totalTokens": 1085
+      },
+      "cost": null,
+      "planSha256": "87b1143091f6ded5b4f52bfd8ab03976f33125e52f37e503a10be2cdd56e1594",
+      "planningElapsedMs": 15772.6314,
+      "review": {
+        "approvedDigest": "87b1143091f6ded5b4f52bfd8ab03976f33125e52f37e503a10be2cdd56e1594",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:35:49.514Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2029.4651,
+      "wallElapsedMs": 25759.4651
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 3,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:59.754Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 441,
+        "totalTokens": 1002
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "7487e7a4-b41a-4ce4-a77e-d6a2da8674e3",
+        "taskId": "inventory-reconciliation-3",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "ff558300f00ca60abc4006180c6198c25977ea439e74decd6c5de5efdb9b96b3",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 441,
+        "responseDigest": "0dd495f26f930b7b4b344aadc7a3f6dc6cfabe53210fbff1780bc3c1d3f6ade9"
+      },
+      "planSha256": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+      "planningElapsedMs": 9301.9593,
+      "review": {
+        "approvedDigest": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:36:24.210Z"
+      },
+      "commands": [
+        {
+          "checkName": "writeResult",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verifyResult",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2022.5694999999998,
+      "wallElapsedMs": 26476.5695
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 3,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:36:09.148Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 441,
+        "totalTokens": 1002
+      },
+      "cost": null,
+      "planSha256": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+      "planningElapsedMs": 9722.9874,
+      "review": {
+        "approvedDigest": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:36:26.324Z"
+      },
+      "commands": [
+        {
+          "checkName": "writeResult",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verifyResult",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 1983.4044000000001,
+      "wallElapsedMs": 19158.4044
+    }
+  ],
+  "summary": {
+    "agentforge": {
+      "artifactPasses": 3,
+      "commandSequencePasses": 1,
+      "trials": 3
+    },
+    "direct": {
+      "artifactPasses": 3,
+      "commandSequencePasses": 0,
+      "trials": 3
+    }
+  },
+  "interpretation": "Equal independent artifact accuracy on this case. Five plans fail a wrong model-generated self-check. Small planning/executor comparison only; no overall superiority demonstrated.",
+  "remainingAttempts": 12
+}

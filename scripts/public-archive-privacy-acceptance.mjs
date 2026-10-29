@@ -7,6 +7,7 @@
  * contact data in shipped text assets.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -58,7 +59,7 @@ const sensitivePatterns = [
   { label: "private email address", pattern: /\b[A-Z0-9._%+-]+@(?!example\.com\b)[A-Z0-9.-]+\.[A-Z]{2,}\b/i },
   { label: "North American phone number", pattern: /(?:\+?1[\s.-]?)?(?:\([2-9]\d{2}\)|[2-9]\d{2})[\s.-]\d{3}[\s.-]\d{4}\b/ },
 ];
-const textExtensions = new Set([".js", ".mjs", ".cjs", ".json", ".md", ".txt"]);
+const textExtensions = new Set([".js", ".mjs", ".cjs", ".ts", ".json", ".md", ".txt", ".html", ".css", ".yaml", ".yml", ".map"]);
 const matches = [];
 for (const relativePath of shippedFiles) {
   if (!textExtensions.has(path.extname(relativePath).toLowerCase())) continue;
@@ -74,7 +75,23 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-public-archive
 try {
   const packageOutput = runNpm(["pack", "--json", "--pack-destination", tempDir]);
   const [packed] = JSON.parse(packageOutput);
-  assert.ok(fs.existsSync(path.join(tempDir, packed.filename)), "npm pack did not create the declared archive.");
+  const archivePath = path.join(tempDir, packed.filename);
+  assert.ok(fs.existsSync(archivePath), "npm pack did not create the declared archive.");
+  const members = execFileSync('tar', ['-tzf', archivePath], {encoding:'utf8', stdio:['ignore','pipe','pipe']}).trim().split(/\r?\n/);
+  assert.deepEqual([...members].sort(), shippedFiles.map(file=>'package/'+file).sort(), 'Packed archive inventory differs from inspected packlist');
+  const extracted = path.join(tempDir, 'extracted');
+  fs.mkdirSync(extracted);
+  execFileSync('tar', ['-xzf', archivePath, '-C', extracted], {stdio:'pipe'});
+  const archiveMatches = [];
+  for (const relativePath of shippedFiles) {
+    const file = path.join(extracted, 'package', relativePath);
+    assert.ok(fs.lstatSync(file).isFile(), 'Archive member is not a regular file: '+relativePath);
+    if (!textExtensions.has(path.extname(relativePath).toLowerCase())) continue;
+    const contents=fs.readFileSync(file,'utf8');
+    for(const {label,pattern} of sensitivePatterns)if(pattern.test(contents))archiveMatches.push(relativePath+': '+label);
+  }
+  assert.deepEqual(archiveMatches, [], 'Packed archive contains possible private data');
+  console.log(JSON.stringify({passed:true, actualArchiveContentsScanned:true, scannedFileCount:shippedFiles.length, archiveSha256:createHash("sha256").update(fs.readFileSync(archivePath)).digest("hex"), limitation:"Known private-data signatures in package text files; not proof that all sensitive content is absent."}));
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

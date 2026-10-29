@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-10-26T17:37:09.343Z",
+  "passed": true,
+  "command": "node --import tsx scripts/memory-migration-lifecycle.ts",
+  "runnerSha256": "5b517254ca9a214a6486b8d4685faabb688c5320fe76324fe79743755237bb8c",
+  "checks": {
+    "twoHopMigration": true,
+    "freshProcessWorkerContextBothConflictingFacts": true,
+    "sourceRecordIdsPreserved": true,
+    "otherProjectContextExcluded": true,
+    "deletedFactsAbsentFromWorkerContextAfterRestart": true
+  },
+  "providerRequests": 0,
+  "limitations": [
+    "Built-in operational memory and actual TaskWorkerRuntime planning-context path.",
+    "No live model, external adapter, browser, or conflict-resolution decision is proved."
+  ]
+}

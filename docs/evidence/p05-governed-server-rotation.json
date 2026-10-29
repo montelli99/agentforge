@@ -1,0 +1,31 @@
+{
+  "requirement": "P05",
+  "runId": "run_541c7f2062214fc7ace09429cafd835b",
+  "status": "completed",
+  "output": "1250\n\nCalculation: 1200 − 250 = 950, then 950 + 300 = 1250.",
+  "checks": {
+    "governedRotationRefused": true,
+    "serverCredentialRotated": true,
+    "rotatedKeyCannotReadOldScope": true,
+    "originalKeyRestoredExactOutput": true,
+    "containerRestart": true,
+    "registeredConnectorOutput": true,
+    "newConnectorSameOutput": true,
+    "apiSessionListed": true,
+    "rotatedCredentialChangesBinding": true,
+    "serverRejectsWrongCredential": true,
+    "originalCredentialStillReadsSameOutput": true
+  },
+  "submissionCalls": 0,
+  "limits": [
+    "Existing real browser receipt copied into disposable workspace; original evidence unchanged. No new approval, submission or cancellation.",
+    "Actual server credential rotation changes run namespace; AgentForge rejected the new binding locally, then restored original result after original key restoration.",
+    "This exercises governed runtime functions, not browser clicking during rotation."
+  ],
+  "recordedAt": "2026-10-26T14:30:33.922Z",
+  "runnerSha256": "54e1ec05353fd8d52a0b3b641d1a3c5f35659ea53aa6173f5fa1778519ced22d",
+  "runtimeHashes": {
+    "dist/core/runtime/externalTurnDispatch.js": "3a14f47401edc90644621f7ba74e62691ca903c9e7b38c203a8d5afc43a127ca",
+    "dist/providers/channels/hermesRunConnection.js": "c5cd8de1ff25633cc9dd9ccd7a5d755d5f7e0b24ff97fbb7ba9c3613078d0690"
+  }
+}

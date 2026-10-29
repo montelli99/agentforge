@@ -1,0 +1,907 @@
+{
+  "protocolCommit": "0aa3afa",
+  "sourceCommit": "d742c85",
+  "scope": "ModelPlanDraftProvider versus direct same-model request, identical isolated executor; not the full browser/worker product or external competitors",
+  "attempts": [
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:39:40.409Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 566,
+        "totalTokens": 1233
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "887be530-20eb-4d0b-8131-492b61472d91",
+        "taskId": "explicit-policy-precedence-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "782fd5628dca2150c5529f3805d57c11b51a9f6ebc4e0c547220e5233ef98821",
+        "status": "completed",
+        "inputTokens": 667,
+        "outputTokens": 566,
+        "responseDigest": "ae69767f6db365e7fd66c1ee108070f3f01dedab9c331cab1113649314d30083"
+      },
+      "planSha256": "32a03203e52baf5616fbb9e85d17e38beb21572b791520ed9f955327b95bb2ba",
+      "planningElapsedMs": 13439.905,
+      "review": {
+        "approvedDigest": "32a03203e52baf5616fbb9e85d17e38beb21572b791520ed9f955327b95bb2ba",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:40:16.472Z"
+      },
+      "commands": [
+        {
+          "checkName": "work",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verify result.json content",
+          "exitCode": 0,
+          "stdout": "OK\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "3936bf92968319faf217032193f483e2503fef6dc4328059fd89a1fcf565e281"
+      },
+      "executionElapsedMs": 2003.384,
+      "wallElapsedMs": 38064.384
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:39:53.931Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 464,
+        "totalTokens": 1131
+      },
+      "cost": null,
+      "planSha256": "9c5027301239c78b82b3a623b844b9c13a20fcb8ec0f50e6280ac81ba6828841",
+      "planningElapsedMs": 9851.9371,
+      "review": {
+        "approvedDigest": "9c5027301239c78b82b3a623b844b9c13a20fcb8ec0f50e6280ac81ba6828841",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:40:18.554Z"
+      },
+      "commands": [
+        {
+          "checkName": "work",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verify",
+          "exitCode": 0,
+          "stdout": "result.json verified\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "2427e2b3e4c5efe77d091e9b84a514800bf31635822d7c5b5f65e2a520671d32"
+      },
+      "executionElapsedMs": 2016.0189999999998,
+      "wallElapsedMs": 26638.019
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 2,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:40:32.439Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 552,
+        "totalTokens": 1219
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "80cfa298-956b-4d74-8b5c-9884f4650981",
+        "taskId": "explicit-policy-precedence-2",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "d6ce851420d313978ccd36d7a82b4fd285f7ad4713cd254f697e93ed67408342",
+        "status": "completed",
+        "inputTokens": 667,
+        "outputTokens": 552,
+        "responseDigest": "4bcb9b94cc3bc6efdc68da5de04b3e433214e2a009059b10aa90661c24039788"
+      },
+      "planSha256": "240b5b4bf94c3f1711577412850e3bd6a55b922a9e23fbeda800ad6dbcb6d3dd",
+      "planningElapsedMs": 9842.194800000001,
+      "review": {
+        "approvedDigest": "240b5b4bf94c3f1711577412850e3bd6a55b922a9e23fbeda800ad6dbcb6d3dd",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:41:03.238Z"
+      },
+      "commands": [
+        {
+          "checkName": "write result.json",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verify result.json",
+          "exitCode": 0,
+          "stdout": "result.json verified\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "3936bf92968319faf217032193f483e2503fef6dc4328059fd89a1fcf565e281"
+      },
+      "executionElapsedMs": 2099.2074000000002,
+      "wallElapsedMs": 32897.2074
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 2,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:40:42.358Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 560,
+        "totalTokens": 1227
+      },
+      "cost": null,
+      "planSha256": "7e87aa2eafa81b3f146dc82f4ce4b8f3f6713f7d4d5f72e924cc41d09916187d",
+      "planningElapsedMs": 13191.975799999998,
+      "review": {
+        "approvedDigest": "7e87aa2eafa81b3f146dc82f4ce4b8f3f6713f7d4d5f72e924cc41d09916187d",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:41:05.44Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with computed effective limits and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 0,
+          "stdout": "result.json verified\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "fb4a861ec7661825d2f4e3467778d94331ebf1b6509c6834707c1a071d607598"
+      },
+      "executionElapsedMs": 2111.7405,
+      "wallElapsedMs": 25192.7405
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 3,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:41:08.027Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 425,
+        "totalTokens": 1092
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "f246580d-6184-448e-8c33-1de2ea9eb920",
+        "taskId": "explicit-policy-precedence-3",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "5e51fad30c16d48cfbc7337e853eec30a428278dec2c026ffef391485a7db476",
+        "status": "completed",
+        "inputTokens": 667,
+        "outputTokens": 425,
+        "responseDigest": "f9cdb513b1813d0be85332d585a34903c5d1558f061befb01ea30623a02975b9"
+      },
+      "planSha256": "f8e02e859c75d7e093d3ee494d472c3ec6c0eeb3c6b3c757ce15c6f410f75df1",
+      "planningElapsedMs": 9696.593799999999,
+      "review": {
+        "approvedDigest": "f8e02e859c75d7e093d3ee494d472c3ec6c0eeb3c6b3c757ce15c6f410f75df1",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:44:36.418Z"
+      },
+      "commands": [],
+      "error": "Attempt wall-clock deadline exceeded before execution",
+      "score": {
+        "passed": false,
+        "reason": "missing-output"
+      },
+      "executionElapsedMs": 4.671099999999996,
+      "wallElapsedMs": 208394.6711
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 3,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:41:17.802Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 385,
+        "totalTokens": 1052
+      },
+      "cost": null,
+      "planSha256": "04a6fad5fc464948d51559600adec5d43dbb4369de00946347bc8032a5c95c49",
+      "planningElapsedMs": 10834.9804,
+      "review": {
+        "approvedDigest": "04a6fad5fc464948d51559600adec5d43dbb4369de00946347bc8032a5c95c49",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:44:36.488Z"
+      },
+      "commands": [],
+      "error": "Attempt wall-clock deadline exceeded before execution",
+      "score": {
+        "passed": false,
+        "reason": "missing-output"
+      },
+      "executionElapsedMs": 4.743600000000001,
+      "wallElapsedMs": 198688.7436
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "passed",
+      "startedAt": "2026-10-26T10:33:09.187Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 555,
+        "totalTokens": 1116
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "afce9d16-0f7e-491b-b851-db4bad6bc96b",
+        "taskId": "inventory-reconciliation-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cddb4c7931b4f35928b15b47c2c3217a607458b0546c5b638244d08eb56c3e69",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 555,
+        "responseDigest": "e210dbd95edd62422877dba1ad0b45dc45b3b8710c33b3a303862cf99a1cbf0b"
+      },
+      "planSha256": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+      "planningElapsedMs": 13666.3505,
+      "review": {
+        "approvedDigest": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:44.574Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 0,
+          "stdout": "OK {\"conflicts\":[\"e4\"],\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7}}\n",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify input.json unmodified",
+          "exitCode": 0,
+          "stdout": "input.json intact\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "8438d8797a4a1b53ad078d9aa72945ece457248161b4e95484d0804d03b20bea"
+      },
+      "executionElapsedMs": 3385.8364,
+      "wallElapsedMs": 98771.8364
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:33:22.94Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 527,
+        "totalTokens": 1088
+      },
+      "cost": null,
+      "planSha256": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+      "planningElapsedMs": 13604.930699999999,
+      "review": {
+        "approvedDigest": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:48.039Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflict detection",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2040.1000000000001,
+      "wallElapsedMs": 87138.1
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 2,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:11.762Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 536,
+        "totalTokens": 1097
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "c9813047-6695-4687-82c1-94983c5cfbf0",
+        "taskId": "inventory-reconciliation-2",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "88ff69820b5f4bb15fbaaf88c529b2776bbbf4b195b56f2bc492fcb78e461a03",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 536,
+        "responseDigest": "9763033c4d330539e012fccb153d1f8d784086e35679382b0017d7af634e776c"
+      },
+      "planSha256": "5fdcab6656569013fb5890e83e52f71730fc6eb63882a0ef1f916a935cc4dc04",
+      "planningElapsedMs": 13932.3606,
+      "review": {
+        "approvedDigest": "5fdcab6656569013fb5890e83e52f71730fc6eb63882a0ef1f916a935cc4dc04",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:35:46.913Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2519.7278,
+      "wallElapsedMs": 37669.7278
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 2,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:25.782Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 524,
+        "totalTokens": 1085
+      },
+      "cost": null,
+      "planSha256": "87b1143091f6ded5b4f52bfd8ab03976f33125e52f37e503a10be2cdd56e1594",
+      "planningElapsedMs": 15772.6314,
+      "review": {
+        "approvedDigest": "87b1143091f6ded5b4f52bfd8ab03976f33125e52f37e503a10be2cdd56e1594",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:35:49.514Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2029.4651,
+      "wallElapsedMs": 25759.4651
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 3,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:35:59.754Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 441,
+        "totalTokens": 1002
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "7487e7a4-b41a-4ce4-a77e-d6a2da8674e3",
+        "taskId": "inventory-reconciliation-3",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "ff558300f00ca60abc4006180c6198c25977ea439e74decd6c5de5efdb9b96b3",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 441,
+        "responseDigest": "0dd495f26f930b7b4b344aadc7a3f6dc6cfabe53210fbff1780bc3c1d3f6ade9"
+      },
+      "planSha256": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+      "planningElapsedMs": 9301.9593,
+      "review": {
+        "approvedDigest": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:36:24.21Z"
+      },
+      "commands": [
+        {
+          "checkName": "writeResult",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verifyResult",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2022.5694999999998,
+      "wallElapsedMs": 26476.5695
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 3,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:36:09.148Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 441,
+        "totalTokens": 1002
+      },
+      "cost": null,
+      "planSha256": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+      "planningElapsedMs": 9722.9874,
+      "review": {
+        "approvedDigest": "174cd6ce3d7d3f66ce8e4c6774cdb8c944e75c829aa240a34796f8c0050d22c0",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:36:26.324Z"
+      },
+      "commands": [
+        {
+          "checkName": "writeResult",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verifyResult",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 1983.4044000000001,
+      "wallElapsedMs": 19158.4044
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:36:50.765Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 406,
+        "totalTokens": 1040
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "18f1c460-6105-4991-935a-2dbf14c33fb9",
+        "taskId": "schedule-overlaps-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cee3f9e78e0e40141aad53e5e04b3a49a817e66ae520807e71d9eec6993d1fce",
+        "status": "completed",
+        "inputTokens": 634,
+        "outputTokens": 406,
+        "responseDigest": "277ca597be5c43236da992aed87038d31bbba078a972521319bd1bcca608ca4f"
+      },
+      "planSha256": "bb06512a90b59c78f367008bf072813f42a301bf31446ed2bc470ee93e61234d",
+      "planningElapsedMs": 9501.292099999999,
+      "review": {
+        "approvedDigest": "bb06512a90b59c78f367008bf072813f42a301bf31446ed2bc470ee93e61234d",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:37:25.723Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json content",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 1984.8764,
+      "wallElapsedMs": 36941.8764
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:37:00.348Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 428,
+        "totalTokens": 1062
+      },
+      "cost": null,
+      "planSha256": "eda4100f448a9e0f0a36bb32a9f3ccf59ee41448e3cdec4347a06e50b8700404",
+      "planningElapsedMs": 22526.3204,
+      "review": {
+        "approvedDigest": "eda4100f448a9e0f0a36bb32a9f3ccf59ee41448e3cdec4347a06e50b8700404",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:37:40.6Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contains expected overlapping pairs",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 2003.6951,
+      "wallElapsedMs": 42253.6951
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 2,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:37:55.391Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 440,
+        "totalTokens": 1074
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "986e93a6-b117-42fb-957a-06af8a063cb2",
+        "taskId": "schedule-overlaps-2",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "159841ac33562693652f773efd7ccc8fc67a381044a1ddc0ce14b65e0146f3a9",
+        "status": "completed",
+        "inputTokens": 634,
+        "outputTokens": 440,
+        "responseDigest": "b250fb4bdb98dc90fb3f0450cebc0e72764d980ab964c579b941ffbcdaef76ed"
+      },
+      "planSha256": "efc316e1fdc0d8e769a9f97bc4db6bbc5c4ee7d606dd7592dfedd17b5db53cd4",
+      "planningElapsedMs": 13152.0717,
+      "review": {
+        "approvedDigest": "efc316e1fdc0d8e769a9f97bc4db6bbc5c4ee7d606dd7592dfedd17b5db53cd4",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:38:26.118Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json content",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch [ 'a-b', 'b-d', 'c-d' ] [ 'a-b', 'a-c', 'a-d', 'b-c', 'b-d', 'c-d' ]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 2564.0278,
+      "wallElapsedMs": 33290.027799999996
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 2,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:38:08.621Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 398,
+        "totalTokens": 1032
+      },
+      "cost": null,
+      "planSha256": "9c8823c4ef0c5ca33e3c3fde2604fe60e7a129be0e49317cf3b627e8c1ff11dd",
+      "planningElapsedMs": 6755.6411,
+      "review": {
+        "approvedDigest": "9c8823c4ef0c5ca33e3c3fde2604fe60e7a129be0e49317cf3b627e8c1ff11dd",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:38:28.77Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json exists and contains expected pairs",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 2090.9739,
+      "wallElapsedMs": 22238.9739
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 3,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:38:41.277Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 412,
+        "totalTokens": 1046
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "37db7f22-25ed-40f9-a406-2a97d669b8fb",
+        "taskId": "schedule-overlaps-3",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "93b03c040464cfcb31b4861c4981218b7975b23b5038dff0e7ccf3f795be9082",
+        "status": "completed",
+        "inputTokens": 634,
+        "outputTokens": 412,
+        "responseDigest": "3a8fbc7e588c0b5860f68749533cc770f052539145d338d0c086bd5aa8b28197"
+      },
+      "planSha256": "36757deb85ad0310964552080b20630219e84d96d65169d2827da856bfd67c08",
+      "planningElapsedMs": 22079.640499999998,
+      "review": {
+        "approvedDigest": "36757deb85ad0310964552080b20630219e84d96d65169d2827da856bfd67c08",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:39:23.491Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contains expected overlapping pairs",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 1975.2105999999999,
+      "wallElapsedMs": 44187.2106
+    },
+    {
+      "id": "schedule-overlaps",
+      "trial": 3,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:39:03.425Z",
+      "inputSha256": "2d490cb3417c2352964ba39db0ceed7a8a7e2728e8c18cde1c66bc6bbfb9242d",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 634,
+        "completionTokens": 421,
+        "totalTokens": 1055
+      },
+      "cost": null,
+      "planSha256": "f770281726b4290200ae8abf063e1028e81414565d9572386a90b276e41cc457",
+      "planningElapsedMs": 10027.850699999999,
+      "review": {
+        "approvedDigest": "f770281726b4290200ae8abf063e1028e81414565d9572386a90b276e41cc457",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:39:25.549Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with overlapping appointment ID pairs",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json exists and contains expected pairs",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Unexpected overlaps: [[\"a\",\"b\"],[\"b\",\"d\"],[\"c\",\"d\"]]\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "5b6ae69009f0a68f0b86e59198b5210b286f6b3f801cae23a964c07c61373850"
+      },
+      "executionElapsedMs": 2551.5272,
+      "wallElapsedMs": 24674.5272
+    }
+  ],
+  "summary": [
+    {
+      "arm": "agentforge",
+      "attempts": 9,
+      "artifactPasses": 6,
+      "fullSequencePasses": 1,
+      "preExecutionTimeouts": 1,
+      "reportedTokens": 9919.0,
+      "cost": null
+    },
+    {
+      "arm": "direct",
+      "attempts": 9,
+      "artifactPasses": 6,
+      "fullSequencePasses": 0,
+      "preExecutionTimeouts": 1,
+      "reportedTokens": 9734.0,
+      "cost": null
+    }
+  ],
+  "limitations": [
+    "Policy prompt did not specify the exact nested schema required by its scorer. Four executed policy mismatches cannot establish reasoning failure.",
+    "Two final attempts expired awaiting review; retained without replacement and not attributed to model latency.",
+    "Review was performed by Codex under synthetic-test authorization, not a human as originally specified.",
+    "Wall time includes review scheduling and uses wall clock across processes, not fully monotonic end-to-end timing.",
+    "Execution used source build, not a newly installed release archive.",
+    "Small repeated task set does not establish population-level advantage. No cost data supplied by provider."
+  ],
+  "conclusion": "No competitive superiority established. Correct artifacts and failed generated self-checks must be distinguished."
+}

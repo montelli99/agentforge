@@ -1,4 +1,97 @@
-## Current release status — 2026-10-25
+# Current release status — 2026-10-26
+
+AgentForge's full release remains in progress. The published v0.1.2 archive below
+is an earlier prerelease; it does not contain the current integration branch.
+The complete acceptance scope remains [P01–P10](RELEASE_COMPLETION_PLAN.md).
+
+## Verified development progress
+
+- Live ChatGPT subscription sign-in, inference, explicit renewal and protected
+  session restore have evidence in [the acceptance index](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-acceptance-index.json).
+  The ordinary chat/task-worker path completed a synthetic approved Docker task
+  with a [disconnected response](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-runtime-disconnect.json).
+  [Actual worker termination](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-runtime-crash.json) after durable
+  output recovered to pending final approval without execution replay.
+  [Live cancellation](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p06-chatgpt-live-cancellation.json) delivered no
+  actions and allowed an explicit subsequent restore. These are bounded cases,
+  not evidence for every crash point, automatic token expiry or browser setup.
+- Pinned installed OpenClaw and Hermes completed synthetic invoice workflows,
+  recovered unread results and exercised Stop. See [OpenClaw recovery](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p04-installed-unread-restart.json),
+  [Hermes guided workflow](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p08-installed-hermes-guided-workflow.json), and
+  [Hermes partial-effect Stop](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p05-installed-partial-effect-stop.json).
+  Their installed revisions are recorded in those files and are not the final candidate.
+- [Two-hop memory migration](https://github.com/montelli99/agentforge/blob/5e6e7b7e47aca10b3e29906442fd50248154710b/docs/evidence/p07-two-hop-memory-migration.json) preserved
+  conflicting facts, revisions and project history, rejected conflicting overwrite,
+  and preserved deletion across fresh processes. This covers built-in memory;
+  live Hindsight acceptance is outstanding.
+- Claude and Gemini governed native-client implementations exist. Installed-client
+  synthetic-service tests exercise broker restrictions and duplicate refusal.
+  Native-client isolation, live authenticated lifecycle, and server/UI activation
+  remain unfinished; these workers are not enabled as accepted production routes.
+- All seven [hosted jobs for f2d3685](https://github.com/montelli99/agentforge/actions/runs/40364187208)
+  passed. Later changes require their own exact-revision hosted result and installed
+  package checks. Do not carry an earlier green result forward implicitly.
+
+## Remaining release gates
+
+Finish the full clean-install browser journey; remaining provider lifecycle and
+platform coverage; native-worker isolation/activation; live Hindsight composition
+and migration; credential-change integration; final candidate regression and soak;
+remaining matched comparison baselines; exact-build merge, distribution, demo and
+launch reconciliation. Historical GitHub cache removal still needs provider
+confirmation. npm remains deferred. No competitive superiority claim is supported.
+
+Reproducible acceptance procedures are in [the runbook](RELEASE_RUNBOOK.md).
+Private workspaces, account profiles and integrations are excluded from release inputs.
+
+## Historical release checkpoint — 2026-10-25
+
+
+The full release goal remains incomplete. GitHub distribution is available as an
+[early-access prerelease v0.1.2](https://github.com/montelli99/agentforge/releases/tag/v0.1.2),
+not a stable-release acceptance claim. npm publication is deferred; installing
+from the GitHub archive does not require an npm account.
+
+Published source revision: `cfd876d0c497be489473476c6b24a874fbd13498`.
+Published archive SHA-256:
+`8f0ba13226eb617d7668e8bd1f6054586dac6c0964ddb62b6c4289bc14f76f91`.
+All seven [exact-revision CI jobs](https://github.com/montelli99/agentforge/actions/runs/40238565372)
+passed. The release includes its commit marker, checksums and verification record.
+The installed-archive browser journeys use synthetic model responses; they do
+not establish real-model quality or complete first-user onboarding.
+
+Subsequent gateway changes passed all seven
+[hosted jobs for 998bb6f](https://github.com/montelli99/agentforge/actions/runs/40239791266)
+and merged in [PR #10](https://github.com/montelli99/agentforge/pull/10).
+These changes are on vnext, not in the published v0.1.2 archive. They cover
+challenge authentication, bounded waits, interrupted-delivery uncertainty,
+identity preservation and no automatic send replay. A real loopback WebSocket
+fixture verifies signatures and reconnection; it is not an OpenClaw installation.
+Live OpenClaw/Hermes task delegation and guided connection remain unaccepted.
+
+PR #11 adds reviewed external delegation, durable run observations and scoped
+Stop requests. Disposable OpenClaw authentication and unknown-run inspection
+have been exercised; an actual completed OpenClaw model task has not. Hermes
+now has an experimental, explicitly configured Runs connector. Its packaged adapter passed authenticated discovery, API-session pagination, and failed-run observation after restart against a pinned isolated Hermes image. Successful model-backed delegation and result verification remain unaccepted. The connection selector uses a readable configured
+name while approvals bind to the internal identity. Stop outcomes survive reload
+without resending and explicitly retain uncertainty or partial-effect review.
+Synthetic browser acceptance covers these controls, not real remote completion.
+
+The live planning probe found and repaired null optional usage breakdown handling.
+Browser acceptance also found and repaired a duplicated rendering block that
+prevented the Run handler from sending its request. Saved-response execution and
+restart recovery now pass locally; hosted verification and publication of the
+new integration revision remain separate gates. Do not describe these branch
+changes as already installed by the published archive.
+
+Still open: clean first-user onboarding through a useful real-model task;
+live subscription lifecycle and managed workers; uncertain-effect reconciliation;
+live memory-provider acceptance and migration; held-out comparative evaluation;
+completed long-duration stability evidence; demonstration and launch reconciliation.
+Historical hosting-cache removal awaits provider confirmation. The remaining
+requirements in RELEASE_COMPLETION_PLAN.md remain part of the active goal.
+
+## Earlier release checkpoint — 2026-10-25
 
 The full release is not accepted. The automated-browser service blocker is
 resolved: direct regression tests are authorized and run in fresh synthetic

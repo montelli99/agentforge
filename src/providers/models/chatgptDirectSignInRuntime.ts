@@ -50,7 +50,7 @@ export async function loadVerifiedSignInRuntime(directory: string): Promise<Veri
 }
 
 async function boundedJson(url: string, init: RequestInit, signal: AbortSignal, request: Request,
-  failureMessage = 'Sign-in endpoint request failed.'): Promise<unknown> {
+  failureMessage = 'Sign-in endpoint request failed.', limit = 128 * 1024): Promise<unknown> {
   let response: Response;
   try {
     signal.throwIfAborted();
@@ -60,7 +60,7 @@ async function boundedJson(url: string, init: RequestInit, signal: AbortSignal, 
     if (!response.ok || !response.body || !/\bapplication\/(?:json|[a-z0-9.+-]+\+json)\b/i.test(response.headers.get('content-type') ?? '')) {
       throw Error('Sign-in endpoint response rejected.');
     }
-    const limit = 128 * 1024;
+
     const chunks: Uint8Array[] = [];
     let size = 0;
     const reader = response.body.getReader();
@@ -127,10 +127,10 @@ export async function createRefreshIdentityVerifier(factory:VerifierFactory,prev
 /** Complete protected renewal path; activation must withdraw its old grant
  * before calling and publish the returned credentials only after this resolves. */
 export async function renewStoredChatGPTSession(store:DirectTokenStore,clientId:string,subject:string,
-  verifierDirectory:string,signal?:AbortSignal,request:Request=fetch):Promise<DirectCredentials>{
+  verifierDirectory:string,signal?:AbortSignal,request:Request=fetch,force=false):Promise<DirectCredentials>{
   const factory=await loadVerifiedSignInRuntime(verifierDirectory);
   return renewDirectSession(store,clientId,subject,{
-    signal,
+    signal,force,
     refresh:(client,token,abort)=>createIsolatedRefreshTransport(abort,request).refresh(client,token),
     verifier:(previous,abort)=>createRefreshIdentityVerifier(factory,previous,abort,request),
   });
@@ -152,7 +152,7 @@ export function createIsolatedCatalogTransport(signal: AbortSignal, request: Req
     }
     return boundedJson(MODELS_ENDPOINT, { method: 'GET', cache: 'no-store', headers: {
       Accept: 'application/json', Authorization: `Bearer ${accessToken}`,
-    } }, signal, request, 'Model catalog request failed.');
+    } }, signal, request, 'Model catalog request failed.', 1024 * 1024);
   } };
 }
 

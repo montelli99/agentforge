@@ -7,7 +7,7 @@ import { MiMoModelProvider } from "../src/providers/models/mimoModel.js";
 const provider = new MiMoModelProvider();
 if (!(await provider.isAvailable())) throw new Error("MiMo route is not configured");
 const privateDir = resolve(process.env.AGENTFORGE_RESEARCH_PRIVATE_DIR || resolve(process.env.LOCALAPPDATA || homedir(), "AgentForge", "research-private"));
-const models = ["mimo-v2.5", "mimo-v2.5-pro"] as const;
+const models = ["mimo-v2.6-flash", "mimo-v2.6-pro"] as const;
 const prompts = [
   "In one sentence, explain what an agent workspace does. Do not mention any real company.",
   "In two sentences, suggest a safe first step for a synthetic team that needs task approvals and a shared record. Do not claim you performed an action.",

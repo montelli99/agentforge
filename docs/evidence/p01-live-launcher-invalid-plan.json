@@ -1,0 +1,18 @@
+{
+  "passed": false,
+  "sourceCommit": "446469674d26c72c7428ad2b5bf7abd79942604a",
+  "paidRequests": 1,
+  "model": "mimo-v2.6-flash",
+  "usage": {
+    "completion_tokens": 778,
+    "prompt_tokens": 2811,
+    "total_tokens": 3589,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens_details": null
+  },
+  "failure": "Required unit_tests check renamed to node_version; draft rejected before approval or execution",
+  "responseSha256": "e3c3b1d3cf5136e2a6943b4665b6e150a87f24123c84b440b833ac963c478b94",
+  "scope": "Live planner in combined launcher journey; chat response synthetic"
+}

@@ -1,0 +1,18 @@
+{
+  "requirement": "P03/P08/P10",
+  "candidateCommit": "a898e56693d1a1193c40b739270bbf2b54c899ba",
+  "archiveSha256": "702db011a96f20f66d5a3a06f8aade310702dd849d2800fb8433987d52156f36",
+  "proof": {
+    "passed": true,
+    "reviewedNewOperation": true,
+    "originalReceiptPreserved": true,
+    "repairExecutions": 1,
+    "outputUnchanged": true,
+    "syntheticModel": true,
+    "finalBrowserApproval": true,
+    "durableCompletion": true
+  },
+  "runnerSha256": "4d0197f5961d4dbf338e1859bfb4e9e9e6f0b8a241d245f51849ad8296328143",
+  "screenshotSha256": "5cb9ff09f8dcf33cc34bf20fb6dfdde50a93da8f3a39e0ee5a21254b8835dfe9",
+  "scope": "Fresh package install; actual browser and Docker with deterministic synthetic failure and corrected plan. No live model inference in this regression."
+}

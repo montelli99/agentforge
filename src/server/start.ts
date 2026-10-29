@@ -1,3 +1,7 @@
+import {configureGeminiChat} from '../providers/models/geminiChatConfiguration.js';
+import {readExecutionSetup} from './executionSetup.js';
+import {configureClaudeChat} from '../providers/models/claudeChatConfiguration.js';
+import {GeminiCliPlanner,readGeminiCliPlannerConfiguration} from '../providers/models/geminiCliPlanner.js';
 import { readModelConnections } from "../providers/models/modelConnections.js";
 import {configureChatGPTDirectPlanner} from "../providers/models/chatgptDirectPlanner.js";
 import {SubscriptionCliModelProvider,readSubscriptionCliConfiguration} from "../providers/models/subscriptionCliModel.js";
@@ -26,6 +30,7 @@ import { TeleprotoTelegramUserSessionClient } from "../providers/channels/telepr
 import { readTelegramSessionConfig } from "../providers/channels/telegramSessionConfig.js";
 import { OperationalMemoryProvider } from "../providers/memory/operationalMemory.js";
 import { OpenClawGatewayTransport } from "../providers/channels/openClawGatewayTransport.js";
+import { configureHermesRunConnection } from "../providers/channels/hermesRunConnection.js";
 import { DiscordGatewayTransport } from "../providers/channels/discordGatewayTransport.js";
 import { readDiscordBotToken } from "../providers/channels/discordBotConfig.js";
 import { SlackSocketModeTransport } from "../providers/channels/slackSocketModeTransport.js";
@@ -40,11 +45,13 @@ const workspaceFilePath = getDefaultWorkspaceFilePath();
 const completionStorePath = path.join(path.dirname(workspaceFilePath), "completion-sessions.json");
 // Dedicated opt-in only: never adopt production or unrelated application credentials.
 const chatKey = process.env.AGENTFORGE_CHAT_API_KEY;
+const claudeChat=configureClaudeChat(process.env);
+const geminiChat=await configureGeminiChat(process.env);
 const configuredConnections = process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE ? readModelConnections(process.env.AGENTFORGE_MODEL_CONNECTIONS_FILE) : undefined;
-const chatModels = configuredConnections?.models ?? (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
+const chatModels = geminiChat?.models ?? claudeChat?.models ?? configuredConnections?.models ?? (process.env.AGENTFORGE_CHAT_MODELS || "").split(",").map(value => value.trim()).filter(Boolean);
 const chatBase = process.env.AGENTFORGE_CHAT_BASE_URL || "https://api.openai.com/v1";
 const chatProviderName = process.env.AGENTFORGE_CHAT_PROVIDER || "openai-compatible";
-if (!["openai-compatible", "mimo"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
+if (!["openai-compatible", "mimo", "claude-cli", "gemini-cli"].includes(chatProviderName)) throw new Error("Unknown AgentForge chat provider.");
 if (chatKey && chatModels.length) {
   const endpoint = new URL(chatBase);
   if (endpoint.username || endpoint.password || (endpoint.protocol !== "https:" && !(endpoint.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname)))) throw new Error("Chat endpoint requires HTTPS or localhost HTTP.");
@@ -52,31 +59,35 @@ if (chatKey && chatModels.length) {
 const store = new WorkspaceStore(workspaceFilePath);
 const operationalMemory = new OperationalMemoryProvider(store);
 const completion = new CompletionEngine(undefined, new JsonCompletionSessionStore(completionStorePath));
-const chatProvider = configuredConnections?.provider ?? (chatModels.length
+const chatProvider = geminiChat?.provider ?? claudeChat?.provider ?? configuredConnections?.provider ?? (chatModels.length
   ? chatProviderName === "mimo" && process.env.MIMO_API_KEY
     ? new MiMoModelProvider()
     : chatProviderName === "openai-compatible" && chatKey
       ? new OpenAIModelProvider(chatKey, chatBase)
       : undefined
   : undefined);
-const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct","claude-cli"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
+const planProviderName=process.env.AGENTFORGE_PLAN_PROVIDER;if(planProviderName&&!["codex-cli","chatgpt-direct","claude-cli","gemini-cli"].includes(planProviderName))throw Error("Unsupported opt-in plan provider");
 const cliPlanConfig=planProviderName==="codex-cli"?readSubscriptionCliConfiguration(process.env.AGENTFORGE_PLAN_CLI_CONFIG??""):undefined;
 const claudePlanConfig=planProviderName==='claude-cli'?readClaudeCliPlannerConfiguration(process.env.AGENTFORGE_PLAN_CLAUDE_CONFIG??''):undefined;
-const selectedPlanProvider=claudePlanConfig?new ClaudeCliPlanner(claudePlanConfig):cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=claudePlanConfig?.model??cliPlanConfig?.model??chatModels[0];
+const geminiPlanConfig=planProviderName==='gemini-cli'?await readGeminiCliPlannerConfiguration(process.env.AGENTFORGE_PLAN_GEMINI_CONFIG??''):undefined;
+const selectedPlanProvider=geminiPlanConfig?new GeminiCliPlanner(geminiPlanConfig):claudePlanConfig?new ClaudeCliPlanner(claudePlanConfig):cliPlanConfig?new SubscriptionCliModelProvider(cliPlanConfig):chatProvider;const selectedPlanModel=geminiPlanConfig?.model??claudePlanConfig?.model??cliPlanConfig?.model??chatModels[0];
 const planningAccounting = {requireReportedUsage:true,persist:async (audit: import("../core/runtime/executionReceipt.js").PlanningAudit)=>{const task=store.getTask(audit.taskId);if(!task)throw new Error("Planning audit task missing");if(audit.status==="started"&&(task.planningAudits??[]).some(item=>item.id!==audit.id&&item.status!=="completed"))throw new Error("Unresolved planning usage: inspect audit before another invocation.");store.updateTask(task.id,{planningAudits:[...(task.planningAudits??[]).filter(item=>item.id!==audit.id),audit]});}};
 const planDraftProvider = planProviderName === "chatgpt-direct"
   ? configureChatGPTDirectPlanner(process.env, planningAccounting)
   : selectedPlanProvider && selectedPlanModel ? new ModelPlanDraftProvider(selectedPlanProvider, selectedPlanModel, ["sh", "node"], undefined, planningAccounting) : undefined;
 let taskRuntime: TaskWorkerRuntime | undefined;
-const executionMode = process.env.AGENTFORGE_EXECUTION_MODE;
+const executionSetupFilePath=path.join(path.dirname(workspaceFilePath),"execution-setup.json");
+let savedExecution: ReturnType<typeof readExecutionSetup> | undefined;
+if(process.env.AGENTFORGE_EXECUTION_MODE===undefined){try{savedExecution=readExecutionSetup(executionSetupFilePath);}catch{console.error("Saved execution setup is invalid or its repository is unavailable. Execution remains off; repair it in Compute setup.");savedExecution={version:1,mode:"off"};}}
+const executionMode = process.env.AGENTFORGE_EXECUTION_MODE ?? savedExecution?.mode;
 if (executionMode && executionMode !== "off" && executionMode !== "approved-docker") {
   throw new Error("Unknown AgentForge execution mode. Use off or approved-docker.");
 }
 if (executionMode === "approved-docker") {
-  const repository = process.env.AGENTFORGE_EXECUTION_REPO;
+  const repository = process.env.AGENTFORGE_EXECUTION_MODE!==undefined?process.env.AGENTFORGE_EXECUTION_REPO:(savedExecution?.mode==="approved-docker"?savedExecution.repository:undefined);
   if (!repository || !path.isAbsolute(repository)) throw new Error("Approved Docker execution requires an explicit absolute AGENTFORGE_EXECUTION_REPO.");
   const plans = new ApprovedPlanProvider(async taskId => store.getTask(taskId)?.approvedExecutionPlan);
-  const backend = new ContractedDockerExecutionBackend(new DockerComputeProvider({ maxMemoryBytes: 1024 * 1024 * 1024, cpuQuota: 1 }), plans);
+  const backend = new ContractedDockerExecutionBackend(new DockerComputeProvider({ maxMemoryBytes: 1024 * 1024 * 1024, cpuQuota: 1 }), plans, {resultJournalDirectory:path.join(path.dirname(workspaceFilePath),'execution-results')});
   await backend.initialize();
   taskRuntime = new TaskWorkerRuntime(store, backend, {
     repoRoot: repository,
@@ -95,9 +106,9 @@ const server = new AgentForgeWebServer(
   port,
   completion,
   taskRuntime,
-  { conversation: chatProvider ? { provider: chatProvider, models: chatModels,
-    connections: configuredConnections?.connections, memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
-    planDraftProvider, indexedMemory, claudeAccountConfiguration: claudePlanConfig },
+  { executionSetupFilePath, conversation: chatProvider ? { provider: chatProvider, models: chatModels,
+    connections: geminiChat?.connections ?? claudeChat?.connections ?? configuredConnections?.connections, memoryNamespace: process.env.AGENTFORGE_CHAT_MEMORY_NAMESPACE || undefined } : undefined,
+    planDraftProvider, indexedMemory, geminiClientBundle: geminiChat?.config.bundlePath ?? geminiPlanConfig?.bundlePath, claudeAccountConfiguration: claudeChat?.config ?? claudePlanConfig },
 );
 
 // Telegram is a direct AgentForge-owned MTProto user session and does not
@@ -153,18 +164,24 @@ if (!telegramSessionConfig && telegramBotToken) {
   server.telegram.attachLiveTransport(telegramBotTransport);
 }
 
-// Optional migration path: attach to an already-authenticated OpenClaw/Hermes
+// Optional migration path: attach to an OpenClaw gateway (Hermes is unverified).
 // gateway. This bridge is never required by the native MTProto path above.
 const gatewayUrl = process.env.AGENTFORGE_GATEWAY_URL?.trim();
 if (gatewayUrl) {
   gatewayTransport = new OpenClawGatewayTransport({
     url: gatewayUrl,
+    enableTaskDelegation: process.env.AGENTFORGE_GATEWAY_TASK_DELEGATION === '1',
     token: process.env.AGENTFORGE_GATEWAY_TOKEN?.trim() || undefined,
     identityPath: process.env.AGENTFORGE_GATEWAY_IDENTITY_PATH || path.join(path.dirname(workspaceFilePath), "gateway-device.json"),
   });
   gatewayRelay = server.telegram.createGatewayRelay(gatewayTransport);
+  const registeredGateway = gatewayTransport;
+  server.registerExternalRunConnection({id: registeredGateway.getConnectionId(), displayName: 'OpenClaw (experimental)', isConnected:()=>registeredGateway.isConnected(), listSessions:(limit,offset)=>registeredGateway.listSessions(limit,offset), inspectRun: runId => registeredGateway.inspectRun(runId), readRunOutput:(runId,sessionKey)=>registeredGateway.readRunOutput(runId,sessionKey), submitSessionTurn: (sessionKey,message,requestId) => registeredGateway.submitSessionTurn(sessionKey,message,requestId), requestRunStop:(sessionKey,runId)=>registeredGateway.requestRunStop(sessionKey,runId)});
   server.telegram.attachGatewayRelay(gatewayRelay);
 }
+
+const hermesConnection=configureHermesRunConnection(process.env);
+if(hermesConnection)server.registerExternalRunConnection(hermesConnection);
 
 // Discord Gateway is also opt-in and runtime-only. The token is never written
 // to workspace state or exposed through the public manifest.
@@ -210,15 +227,17 @@ server.start().then(async () => {
     }
   }
   if (gatewayTransport && gatewayRelay) {
-    gatewayTransport.start();
+    await gatewayTransport.connectWhenReady();
     gatewayRelay.start();
-    console.log("[AgentForge vNext] Optional OpenClaw/Hermes relay connected; native AgentForge Telegram remains available.");
+    console.log("[AgentForge vNext] Optional OpenClaw gateway authenticated; complete relay compatibility remains experimental.");
   }
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (shuttingDown) return;
     shuttingDown = true;
+    gatewayRelay?.stop();
+    gatewayTransport?.stop();
     console.log(`[AgentForge vNext] Received ${signal}; stopping runtime cleanly.`);
     await server.nativeGateway.stop(configuredChannels);
     await server.stop();
@@ -269,3 +288,4 @@ server.start().then(async () => {
   console.error("Failed to start AgentForge vNext Web Server:", redactRuntimeError(err));
   process.exit(1);
 });
+

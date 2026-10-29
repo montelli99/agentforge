@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "caseId": "stock-allocation",
+  "model": "mimo-v2.6-flash",
+  "scoredComparison": false,
+  "inputSha256": "5fc90029a29da7fc88733d9b5788165a38b48cd57e44663d6aa43d5dc995f8e3",
+  "audits": [
+    {
+      "id": "1a23fe87-29a5-4894-8db8-6c632c4ffde4",
+      "taskId": "AF-403EE8A8",
+      "model": "mimo-v2.6-flash",
+      "requestDigest": "3e70aeaca48f1f5b973dafd63fc48e9dda5c7b97768da9b3af9c07e4415bd772",
+      "status": "completed",
+      "inputTokens": 828,
+      "outputTokens": 637,
+      "responseDigest": "cb8eb822314c81ae01371a476a6a953bef34fcdafece67793b8c25e77a2cd2eb"
+    }
+  ],
+  "scope": "Live draft for a shared development case; no approval, execution, artifact score or competitive result.",
+  "status": "drafted-not-approved",
+  "task": {
+    "title": "Synthetic stock-allocation",
+    "description": "Read input.json. Process orders by ascending priority number, breaking ties by id ascending. Allocate each order only if remaining stock for its sku covers its entire quantity; otherwise allocate zero and leave stock unchanged. Output artifacts/result.json as {\"orders\":[{\"id\":string,\"allocated\":integer}],\"remaining\":{sku:integer}}. Orders must appear in processing order. Include all SKUs in remaining, no extra fields, and preserve input.json.",
+    "status": "ready",
+    "priority": "medium",
+    "projectId": "proj-default",
+    "contract": {
+      "id": "contract-AF-403EE8A8",
+      "taskId": "AF-403EE8A8",
+      "version": 1,
+      "repository": {
+        "baseBranch": "unresolved",
+        "baseSha": "unresolved"
+      },
+      "workspace": {
+        "requireIsolatedWorktree": true
+      },
+      "scope": {
+        "allowedPaths": [
+          "artifacts/result.json"
+        ],
+        "protectedPaths": [
+          "input.json"
+        ],
+        "maxFilesChanged": 1
+      },
+      "authority": {
+        "externalMessage": false,
+        "productionWrite": false,
+        "deployment": false,
+        "forcePush": false,
+        "deleteFiles": false,
+        "networkOutbound": false
+      },
+      "requiredChecks": [],
+      "completion": {
+        "requireEvidencePack": true,
+        "requireHumanApproval": true,
+        "requiredArtifacts": [
+          {
+            "path": "artifacts/result.json"
+          }
+        ]
+      },
+      "createdAt": "2026-10-26T18:11:18.229Z"
+    },
+    "id": "AF-403EE8A8",
+    "createdAt": "2026-10-26T18:11:18.229Z",
+    "updatedAt": "2026-10-26T18:11:18.231Z"
+  },
+  "draft": {
+    "taskId": "AF-403EE8A8",
+    "source": "model",
+    "commands": [
+      {
+        "checkName": "generate_allocation_result",
+        "command": "mkdir -p artifacts && node -e '\nconst fs=require(\"fs\");\nconst input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));\nconst orders=input.orders.slice().sort((a,b)=>{\n  if(a.priority!==b.priority) return a.priority-b.priority;\n  return a.id<b.id?-1:(a.id>b.id?1:0);\n});\nconst remaining={};\nfor(const sku of Object.keys(input.stock)) remaining[sku]=input.stock[sku];\nconst out=[];\nfor(const o of orders){\n  const q=Number(o.quantity);\n  if(remaining[o.sku]>=q){\n    remaining[o.sku]-=q;\n    out.push({id:String(o.id),allocated:q});\n  }else{\n    out.push({id:String(o.id),allocated:0});\n  }\n}\nfs.writeFileSync(\"artifacts/result.json\",JSON.stringify({orders:out,remaining}));\n'",
+        "timeoutMs": 60000
+      },
+      {
+        "checkName": "verify_result_invariants",
+        "command": "node -e '\nconst fs=require(\"fs\");\nconst input=JSON.parse(fs.readFileSync(\"input.json\",\"utf8\"));\nconst res=JSON.parse(fs.readFileSync(\"artifacts/result.json\",\"utf8\"));\nconst expected=input.orders.slice().sort((a,b)=>a.priority!==b.priority?a.priority-b.priority:(a.id<b.id?-1:(a.id>b.id?1:0)));\nconst rem={...input.stock};\nconst expOut=[];\nfor(const o of expected){\n  if(rem[o.sku]>=o.quantity){rem[o.sku]-=o.quantity;expOut.push({id:String(o.id),allocated:o.quantity});}\n  else expOut.push({id:String(o.id),allocated:0});\n}\nif(JSON.stringify(res.orders)!==JSON.stringify(expOut)) throw new Error(\"orders mismatch: \"+JSON.stringify(res.orders));\nif(JSON.stringify(res.remaining)!==JSON.stringify(rem)) throw new Error(\"remaining mismatch: \"+JSON.stringify(res.remaining));\nconst keys=Object.keys(res.remaining).sort();\nconst inKeys=Object.keys(input.stock).sort();\nif(JSON.stringify(keys)!==JSON.stringify(inKeys)) throw new Error(\"sku set mismatch\");\nif(Object.keys(res).sort().join()!==\"orders,remaining\") throw new Error(\"extra/missing top-level fields\");\nfor(const o of res.orders){\n  if(Object.keys(o).sort().join()!==\"allocated,id\") throw new Error(\"extra fields in order\");\n  if(typeof o.allocated!==\"number\"||!Number.isInteger(o.allocated)) throw new Error(\"non-integer allocated\");\n}\nconsole.log(\"OK\");\n'",
+        "timeoutMs": 60000
+      }
+    ]
+  }
+}

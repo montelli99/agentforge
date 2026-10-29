@@ -24,3 +24,13 @@ it('preserves an existing profile and refuses to reuse it', async () => {
 it('rejects relative paths before creating anything', async () => {
   await expect(prepareGeminiCliProfile('relative-home')).rejects.toThrow('absolute path');
 });
+it('returns the physical profile location when its parent uses a filesystem alias', async () => {
+  const directory = await root();
+  const physical = path.join(directory, 'physical');
+  const alias = path.join(directory, 'alias');
+  await fs.mkdir(physical);
+  await fs.symlink(physical, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const result = await prepareGeminiCliProfile(path.join(alias, 'new-home'));
+  expect(result.home).toBe(await fs.realpath(path.join(physical, 'new-home')));
+  expect(result.home).not.toBe(path.join(alias, 'new-home'));
+});

@@ -16,15 +16,15 @@ class Socket extends EventTarget {
 }
 const dirs: string[] = [];
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true }); });
-function setup() {
+function setup(enableTaskDelegation = false) {
   vi.stubGlobal("WebSocket", Socket);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "agentforge-handshake-")); dirs.push(dir);
-  const client = new OpenClawGatewayTransport({ url: "ws://127.0.0.1:18789", identityPath: path.join(dir, "device.json") });
+  const client = new OpenClawGatewayTransport({ url: "ws://127.0.0.1:18789", identityPath: path.join(dir, "device.json"), enableTaskDelegation });
   client.start(); return { client, socket: Socket.latest };
 }
-function authenticate(socket: Socket) {
+function authenticate(socket: Socket, admin = false) {
   socket.receive({ type: "event", event: "connect.challenge", payload: { nonce: "test-challenge", ts: 123456789 } });
-  socket.receive({ type: "res", id: socket.sent[0].id, ok: true, payload: { type: "hello-ok", protocol: 4, auth: { role: "operator", scopes: ["operator.read", "operator.write"] } } });
+  socket.receive({ type: "res", id: socket.sent[0].id, ok: true, payload: { type: "hello-ok", protocol: 4, auth: { role: "operator", scopes: ["operator.read", "operator.write", ...(admin ? ["operator.admin"] : [])] } } });
 }
 describe("gateway authentication and interrupted delivery", () => {
   it("requires the matching challenge response before sends or inbound events", async () => {
@@ -100,4 +100,128 @@ describe("current gateway protocol contract", () => {
     await expect(client.sendMessage(1, "test")).rejects.toThrow(/write permission/);
     expect(socket.sent).toHaveLength(1); client.stop();
   });
+});
+
+it('lists bounded metadata without transcript import or implicit session selection', async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const page=client.listSessions(2,4);
+ expect(socket.sent[1]).toMatchObject({method:'sessions.list',params:{limit:2,offset:4,rowMode:'compact'}});
+ socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{sessions:[{key:'agent:main:chosen',displayName:'Chosen agent',messages:['not imported']}],nextOffset:8}});
+ expect(await page).toEqual({sessions:[{key:'agent:main:chosen',name:'Chosen agent'}],nextOffset:8});
+ await expect(client.listSessions(101)).rejects.toThrow(/bounds/);
+ const bad=client.listSessions();
+ socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{sessions:[{key:'same'},{key:'same'}]}});
+ await expect(bad).rejects.toThrow(/duplicate/);
+ expect(socket.sent).toHaveLength(3);client.stop();
+});
+
+it('reads only the selected session and preserves unknown active-run state', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const result = client.readSessionHistory('agent:main:synthetic-probe', 10);
+  expect(socket.sent[1]).toMatchObject({method: 'chat.history', params: {sessionKey: 'agent:main:synthetic-probe', limit: 10}});
+  socket.receive({type: 'res', id: socket.sent[1].id, ok: true, payload: {messages: [], sessionInfo: {hasActiveRun: true}}});
+  expect(await result).toEqual({messages: [], sessionInfo: {hasActiveRun: true}});
+  await expect(client.readSessionHistory('')).rejects.toThrow(/explicit/);
+  await expect(client.readSessionHistory('selected', 101)).rejects.toThrow(/limit/);
+  expect(socket.sent).toHaveLength(2); client.stop();
+});
+
+it('retries temporary network failure but stops on rejected authentication', async () => {
+  vi.useFakeTimers(); const {client, socket} = setup();
+  const ready = client.connectWhenReady(2000);
+  socket.dispatchEvent(new Event('error'));
+  await vi.advanceTimersByTimeAsync(30);
+  const next = Socket.latest;
+  expect(next).not.toBe(socket);
+  next.receive({type:'event',event:'connect.challenge',payload:{nonce:'test',ts:123}});
+  next.receive({type:'res',id:next.sent[0].id,ok:false,error:{code:'UNAUTHORIZED'}});
+  const rejected = expect(ready).rejects.toThrow(/rejected/);
+  await vi.advanceTimersByTimeAsync(30); await rejected;
+  await vi.advanceTimersByTimeAsync(2000); expect(Socket.latest).toBe(next);
+});
+it('cancels pending startup when explicitly stopped', async () => {
+  vi.useFakeTimers(); const {client} = setup();
+  const ready = client.connectWhenReady(2000); const rejected = expect(ready).rejects.toThrow(/cancelled/);
+  client.stop(); await vi.advanceTimersByTimeAsync(30); await rejected;
+  expect(client.isConnecting()).toBe(false);
+});
+
+it('binds a turn to an explicit session and durable request ID without external delivery', async () => {
+  const {client, socket} = setup(true); authenticate(socket, true);
+  const result = client.submitSessionTurn('agent:main:synthetic', 'Synthetic task', 'request_12345');
+  expect(socket.sent[1]).toMatchObject({method:'chat.send',params:{sessionKey:'agent:main:synthetic',message:'Synthetic task',idempotencyKey:'request_12345',deliver:false,suppressCommandInterpretation:true}});
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{runId:'upstream-run-1'}});
+  await expect(result).resolves.toEqual({runId:'upstream-run-1'});
+  await expect(client.submitSessionTurn('selected','test','')).rejects.toThrow(/durable/);
+  expect(socket.sent).toHaveLength(2); client.stop();
+});
+it('reports a missing run receipt as uncertain rather than completed', async () => {
+  const {client, socket} = setup(true); authenticate(socket, true);
+  const result = client.submitSessionTurn('agent:main:synthetic', 'Synthetic task', 'request_12345');
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{status:'accepted'}});
+  await expect(result).rejects.toThrow(/uncertain/); expect(socket.sent).toHaveLength(2); client.stop();
+});
+
+it('observes only the saved run and never turns a timeout into completion or replay', async () => {
+  const {client, socket} = setup(); authenticate(socket);
+  const observation = client.inspectRun('saved-run');
+  expect(socket.sent[1]).toMatchObject({method:'agent.wait',params:{runId:'saved-run',timeoutMs:0}});
+  socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{runId:'saved-run',status:'timeout'}});
+  await expect(observation).resolves.toEqual({runId:'saved-run',status:'timeout'});
+  const wrong = client.inspectRun('saved-run');
+  socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{runId:'other-run',status:'ok'}});
+  await expect(wrong).rejects.toThrow(/mismatched/);
+  await expect(client.inspectRun('')).rejects.toThrow(/explicit/);
+  expect(socket.sent.slice(1).every(frame=>frame.method==='agent.wait')).toBe(true);
+  expect(socket.sent).toHaveLength(3); client.stop();
+});
+
+it('scopes Stop to a saved session and run without claiming an unrelated receipt',async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const result=client.requestRunStop('selected-session','saved-run');
+ expect(socket.sent[1]).toMatchObject({method:'chat.abort',params:{sessionKey:'selected-session',runId:'saved-run',preserveSideRuns:true,discardPendingInput:false}});
+ socket.receive({type:'res',id:socket.sent[1].id,ok:true,payload:{ok:true,aborted:true,runIds:['other-run']}});
+ await expect(result).resolves.toEqual({acknowledged:false});
+ await expect(client.requestRunStop('selected-session','')).rejects.toThrow(/explicit/);
+ const matched=client.requestRunStop('selected-session','saved-run');
+ socket.receive({type:'res',id:socket.sent[2].id,ok:true,payload:{ok:true,aborted:true,runIds:['saved-run']}});
+ await expect(matched).resolves.toEqual({acknowledged:true});client.stop();
+});
+it('requires both explicit delegation enablement and granted admin scope without weakening suppression',async()=>{
+ for(const [enabled,granted] of [[false,false],[true,false],[false,true]]){
+  const {client,socket}=setup(enabled);authenticate(socket,granted);
+  expect(socket.sent[0].params.scopes.includes('operator.admin')).toBe(enabled);
+  await expect(client.submitSessionTurn('chosen','Synthetic task','request_12345')).rejects.toThrow('explicit enablement');
+  expect(socket.sent).toHaveLength(1);client.stop();
+ }
+});
+it('returns only a bounded visible terminal reply for the exact completed run',async()=>{
+ const {client,socket}=setup();authenticate(socket);
+ const read=client.readRunOutput('saved-run');
+ socket.receive({type:'res',id:socket.sent.at(-1).id,ok:true,payload:{runId:'saved-run',status:'ok',terminalReceipt:{runId:'saved-run'},terminalReply:{disposition:'visible',text:'Synthetic result'}}});
+ await expect(read).resolves.toEqual({runId:'saved-run',content:'Synthetic result'});
+ for(const override of [{status:'timeout'},{terminalReceipt:{runId:'other-run'}},{terminalReply:{disposition:'hidden',text:'hidden'}},{terminalReply:{disposition:'visible',text:'x'.repeat(60001)}}]){
+  const rejected=client.readRunOutput('saved-run');
+  socket.receive({type:'res',id:socket.sent.at(-1).id,ok:true,payload:{runId:'saved-run',status:'ok',terminalReceipt:{runId:'saved-run'},terminalReply:{disposition:'visible',text:'Synthetic result'},...override}});
+  await expect(rejected).rejects.toThrow('output unavailable');
+ }
+ client.stop();
+});
+it('explains pairing without reflecting gateway text or approving the device',async()=>{
+ const {client,socket}=setup(true);
+ socket.receive({type:'event',event:'connect.challenge',payload:{nonce:'proof',ts:123456789}});
+ socket.receive({type:'res',id:socket.sent[0].id,ok:false,error:{code:'NOT_PAIRED',message:'UNTRUSTED_SECRET',details:{requestId:'unsafe'}}});
+ await expect(client.connectWhenReady(100)).rejects.toThrow('OpenClaw device pairing required');
+ await expect(client.connectWhenReady(100)).rejects.not.toThrow('UNTRUSTED_SECRET');
+ expect(client.isConnected()).toBe(false);expect(socket.sent).toHaveLength(1);client.stop();
+});
+it('allows a new explicit connection after pairing rejection without resending work',async()=>{
+ const {client,socket}=setup(true);
+ socket.receive({type:'event',event:'connect.challenge',payload:{nonce:'proof',ts:123456789}});
+ socket.receive({type:'res',id:socket.sent[0].id,ok:false,error:{code:'NOT_PAIRED'}});
+ await expect(client.connectWhenReady(100)).rejects.toThrow('pairing required');
+ expect(socket.sent).toHaveLength(1);expect(Socket.latest).toBe(socket);
+ const retry=client.connectWhenReady(1000);const next=Socket.latest;expect(next).not.toBe(socket);
+ authenticate(next,true);await retry;expect(client.isConnected()).toBe(true);
+ expect(next.sent).toHaveLength(1);expect(next.sent[0].method).toBe('connect');client.stop();
 });

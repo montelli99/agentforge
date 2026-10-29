@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "89ff526331c1e2b3ff275e3e07a1785a91485d4e",
+  "command": "pnpm exec vitest run --reporter=json",
+  "success": true,
+  "passedTests": 898,
+  "failedTests": 0,
+  "pendingTests": 2,
+  "testFiles": 154,
+  "limitation": "Local full regression; skipped tests do not count as live provider proof."
+}

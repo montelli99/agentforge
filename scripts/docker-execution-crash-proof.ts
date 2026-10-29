@@ -25,7 +25,7 @@ const git = (cwd: string, args: string[]) => execFileSync('git', args, {cwd, enc
 async function runtime(root: string) {
   const store = new WorkspaceStore(path.join(root, 'state.json'));
   const docker = new DockerComputeProvider({defaultImage: image, maxMemoryBytes: 256 * 1024 * 1024, cpuQuota: 1});
-  const backend = new ContractedDockerExecutionBackend(docker, new ApprovedPlanProvider(async id => store.getTask(id)?.approvedExecutionPlan));
+  const backend = new ContractedDockerExecutionBackend(docker, new ApprovedPlanProvider(async id => store.getTask(id)?.approvedExecutionPlan), {resultJournalDirectory: path.join(root, 'results')});
   const readiness = await backend.initialize();
   assert.equal(readiness.ready, true, 'Docker must be available; this proof cannot silently skip');
   return {store, docker, worker: new TaskWorkerRuntime(store, backend, {
@@ -95,7 +95,17 @@ if (process.argv[2] === 'child') {
     assert.equal((await fs.readFile(marker, 'utf8')).match(/effect\n/g)?.length, 1);
     assert.equal(recovered.worker.presentTask(recovered.store.getTask(taskId)!).status, 'paused');
     assert.equal(recovered.store.getTask(taskId)!.executionReceipts!.length, 1);
-    console.log(JSON.stringify({passed: true, actualWorkerKilled: true, liveDockerSurvivorFound: true,
+    const frozenTask = JSON.stringify(recovered.store.getTask(taskId));
+    await assert.rejects(recovered.worker.recoverJournaledExecution(taskId), /ENOENT/);
+    assert.equal(JSON.stringify(recovered.store.getTask(taskId)), frozenTask);
+    // Removing the orphan must not convert an unrecorded partial effect into success.
+    for (const container of survivors.containers) execFileSync('docker', ['rm', '--force', container.id], {stdio: 'pipe', timeout: 15000});
+    assert.equal((await recovered.worker.inspectExecutionSurvivors(taskId)).containers.length, 0);
+    await assert.rejects(recovered.worker.recoverJournaledExecution(taskId), /ENOENT/);
+    await assert.rejects(recovered.worker.executeTask(taskId), /no replay permitted/);
+    assert.equal(JSON.stringify(recovered.store.getTask(taskId)), frozenTask);
+    assert.equal((await fs.readFile(marker, 'utf8')).match(/effect\n/g)?.length, 1);
+    console.log(JSON.stringify({passed: true, missingResultRecoveryRefusedBeforeAndAfterOrphanRemoval: true, taskUnchangedByFailedRecovery: true, actualWorkerKilled: true, liveDockerSurvivorFound: true,
       operationScoped: true, replayRefused: true, uncertainCompletionRefused: true, effectCount: 1,
       limitation: 'Discovery and replay refusal; does not prove automatic effect reconciliation or end-user recovery UI.'}, null, 2));
   } finally {

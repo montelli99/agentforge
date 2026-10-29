@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-10-26T15:15:36.934Z",
+  "files": [
+    {
+      "file": "src/server/start.ts",
+      "sha256": "8bf4292471f9cf5028ef55f55fa4bd19b116a49d9cab774d19b391ebac6adae8"
+    },
+    {
+      "file": "src/core/runtime/taskWorkerRuntime.ts",
+      "sha256": "6c0ddea47e9db3fdbb4be5e48d499ea80cdaf11541fbffc8b18181d16084157b"
+    },
+    {
+      "file": "src/core/runtime/contractedDockerExecutionBackend.ts",
+      "sha256": "65d7a754ddb9a35f1928074ec4e85e6e3e8193c236842be2d1fa86ad700fd90b"
+    },
+    {
+      "file": "src/providers/models/claudeCliPlanner.ts",
+      "sha256": "430abe48a8e0f8ea744d550c33bbd4f383e7b16908a82eaeef49d018e9bcff11"
+    },
+    {
+      "file": "src/providers/models/geminiCliPlanner.ts",
+      "sha256": "84b08ca7b7d4cf417675195e48854e6c8fabd182a5012a286a7dcc8b4e7a8f9e"
+    }
+  ],
+  "implemented": [
+    "Claude and Gemini explicitly selected as bounded plan providers at startup",
+    "ModelPlanDraftProvider supplies drafts to existing review flow",
+    "Approved Docker backend enforces task contract and durable result verification"
+  ],
+  "missing": [
+    "Native-client task execution backend",
+    "Native-client per-effect approval integration and transcript-backed receipts",
+    "Native-client process survival discovery and result reconciliation",
+    "Authenticated subscription lifecycle acceptance"
+  ],
+  "implementationConstraint": "Do not enable native client tools inside the planner or present the existing reviewed-command route as native client execution.",
+  "next": "Implement an isolated native execution boundary with operation-bound lifecycle receipts and explicit effect authorization before connecting official clients.",
+  "complete": false
+}

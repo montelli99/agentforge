@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "0625af825fc4f1e4b0cbe08aae2bc9ad0855815d",
+  "recordedAtUtc": "2026-10-26T18:00:43.3116390Z",
+  "buildPassed": true,
+  "actualArchiveContentsScanned": true,
+  "scannedFileCount": 506,
+  "archiveSha256": "e19f06845ebdc2ed5e3591746c2b7ce9f7003d40eb56aef2d52f4ca48623e64b",
+  "privacyCheckPassed": true,
+  "limitation": "Known private-data signatures in package text files; not proof that all sensitive content is absent. Installed archive workflow and hosted CI remain separate acceptance."
+}

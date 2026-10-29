@@ -1,0 +1,19 @@
+{
+  "submissions": 2,
+  "liveModel": false,
+  "initialAttempt": "One unchanged expected label missed the newly included prior status; corrected expected label and full rerun passed",
+  "browser": "Chrome",
+  "syntheticRuntime": true,
+  "screenshotSha256": "353c163d1558c6779f7bdd9cd2e9f613da007d44d0f2ddf9c600a8d59e3ec43b",
+  "passed": true,
+  "runReads": 1,
+  "requirement": "P04/P08",
+  "checks": [
+    "Prior ok remains visible alongside latest timeout after reload",
+    "Stop acknowledgement survives reload",
+    "Resume remains unavailable for delegated tasks",
+    "Repeated stop not offered",
+    "Session selection race rejects stale destination",
+    "Exact message review required before send"
+  ]
+}

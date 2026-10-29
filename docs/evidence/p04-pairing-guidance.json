@@ -1,0 +1,15 @@
+{
+  "guidanceVerified": true,
+  "connectionAccepted": false,
+  "observation": {
+    "passed": false,
+    "error": "OpenClaw device pairing required. Review the pending device with fingerprint 65c8d72a46d5772818be4eea2e678f43deb0604e3d30e16d35ee26ad8196ae8c in OpenClaw, approve it only if it matches this connection, then reconnect. No task was sent.",
+    "noModelCalls": true,
+    "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+  },
+  "expected": "Unpaired disposable gateway rejects authentication with actionable local-fingerprint guidance; no device autoapproval or model call.",
+  "tests": 23,
+  "typecheck": "passed",
+  "build": "passed",
+  "sourceSha256": "73f1b14df7c8973ad11e95a380b1b5b78c86a28549bcb68cd517626457c5f702"
+}

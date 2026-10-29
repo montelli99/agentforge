@@ -1,0 +1,13 @@
+{
+  "requirementId": "P03",
+  "testFileSha256": "58F0611FEE88422BF996BE05ED70F3DCC4CEE327AFC99EA7752B092498478CF7",
+  "recordedUtc": "2026-10-26T11:53:22.8716216Z",
+  "passed": true,
+  "limitation": "Real Docker partial-effect safety test; does not prove browser recovery or successful resolution of an uncertain effect.",
+  "effectCount": 1,
+  "missingResultRecoveryRefusedBeforeAndAfterOrphanRemoval": true,
+  "actualWorkerKilled": true,
+  "replayRefused": true,
+  "sourceCommit": "10682e91d68be883609879bb209eeb7fcb601db0",
+  "taskUnchangedByFailedRecovery": true
+}

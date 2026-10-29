@@ -1,0 +1,67 @@
+{
+  "processRestart": {
+    "passed": true,
+    "requirement": "P07/P03",
+    "separateProcesses": true,
+    "forcedTermination": true,
+    "noAutomaticSharing": true,
+    "wrongPassphraseRefused": true,
+    "explicitRestore": true,
+    "noteUnchanged": true,
+    "limitations": [
+      "Authenticated HTTP acceptance; browser journey is covered separately.",
+      "No remote provider tested."
+    ]
+  },
+  "limitation": "Local built runtime with synthetic data; no live cloud provider or installed archive in this run.",
+  "composition": {
+    "workerPlanningContext": true,
+    "workerSourceProvenance": true,
+    "workerOutageFailsClosed": true,
+    "workerRestoredContentFresh": true,
+    "workerDisconnectStopsRecall": true,
+    "requirement": "P07",
+    "passed": true,
+    "syntheticOnly": true,
+    "actualLocalAdapters": true,
+    "chatToolBoundary": true,
+    "sourceIds": [
+      "saved:ceiling",
+      "notes:6adc91ca3f49608dfb12cf261b9b8e0d2f77ca7955d60afc32a27ed341fe525f"
+    ],
+    "sources": [
+      {
+        "providerId": "agentforge_operational",
+        "recordId": "ceiling",
+        "alias": "saved"
+      },
+      {
+        "providerId": "obsidian",
+        "recordId": "6adc91ca3f49608dfb12cf261b9b8e0d2f77ca7955d60afc32a27ed341fe525f",
+        "alias": "notes"
+      }
+    ],
+    "conflictingValuesPreserved": true,
+    "projectIsolation": true,
+    "unselectedFileExcluded": true,
+    "storeReopenPreserved": true,
+    "missingSourceFailsClosed": true,
+    "restoredSourceFresh": true,
+    "notesSha256": "365b78897f451b01c971b4d212ffdca9d5e7091f8581ee24a2516d7a313534a2",
+    "limits": [
+      "No live Hindsight account",
+      "Worker planning context proved; no command execution or browser setup in this case",
+      "Conflict recognition by an LLM is a separate acceptance case"
+    ]
+  },
+  "sourceCommit": "9f561e703697326572d08d75632cc23ce43b42cd",
+  "recordedUtc": "2026-10-26T12:08:51.3176259Z",
+  "browser": {
+    "wrongPassphraseRefused": true,
+    "sourceNotesPreserved": true,
+    "encryptedSaveRestoreForget": true,
+    "explicitRestoreAfterRestart": true,
+    "screenshotSha256": "3ACF981A8EE165824F5E5E2B3598CCADF10BB7EBA8E29145CDC0E388EB957AC7",
+    "passed": true
+  }
+}

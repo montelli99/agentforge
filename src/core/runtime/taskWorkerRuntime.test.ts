@@ -112,8 +112,17 @@ describe("TaskWorkerRuntime & Server Integration", () => {
     expect(store.listAuditEntries().some(entry => entry.action === "TASK_WORKER_BACKEND_CONFIGURED")).toBe(true);
   });
 
+  it('preserves the current backend when replacement is unready or memory setup is active', async () => {
+    const original=testExecutionBackend();runtime.configureBackend(original);runtime.start();
+    const unready={...testExecutionBackend(),getReadiness:()=>({ready:false,blockers:['unavailable'],capabilities:{modelPlanning:false,isolatedCompute:false,realVerification:false,evidenceCollection:false}})};
+    expect(()=>runtime.configureBackend(unready)).toThrow('current environment was preserved');
+    expect(runtime.isRunning()).toBe(true);expect(runtime.canExecuteTasks()).toBe(true);
+    await runtime.withMemoryChange(async()=>{expect(()=>runtime.configureBackend(testExecutionBackend())).toThrow('Finish active tasks');});
+    expect(runtime.isRunning()).toBe(true);
+  });
   it("runs only through an explicit execution backend", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
+    const originalBackend = testExecutionBackend();
+    const simRuntime = new TaskWorkerRuntime(store, originalBackend, {
       repoRoot: process.cwd(),
       autoStart: false,
       requireEffectReceipts: true,
@@ -149,7 +158,16 @@ describe("TaskWorkerRuntime & Server Integration", () => {
         },
       });
 
+      const executeOriginal=originalBackend.execute;
+      let replacementRefused=false;
+      originalBackend.execute=async input=>{
+        expect(()=>simRuntime.configureBackend(testExecutionBackend())).toThrow('Finish active tasks');
+        expect(simRuntime.isRunning()).toBe(true);
+        replacementRefused=true;
+        return executeOriginal(input);
+      };
       const completed = await simRuntime.executeTask(task.id);
+      expect(replacementRefused).toBe(true);
       expect(completed.status).toBe("completed");
       expect(completed.completedAt).toBeDefined();
       expect(completed.evidencePack).toBeDefined();
@@ -486,6 +504,17 @@ describe("TaskWorkerRuntime & Server Integration", () => {
       const selectedContext=await runtimeWithMemory.getPlanningContext(task.id);
       expect(selectedContext.content).toContain('Selected release source');
       expect(selectedContext.content).not.toContain('Alpha delivery rule');
+      const firstConflict=await selected.record({namespace:'selected',projectId:'project-alpha',category:'project_constraint',title:'Release spending ceiling',content:'Approved ceiling is USD 1200.',tags:['chat-context']});
+      const secondConflict=await selected.record({namespace:'selected',projectId:'project-alpha',category:'project_constraint',title:'Release spending ceiling',content:'Approved ceiling is USD 1800.',tags:['chat-context']});
+      const conflictContext=await runtimeWithMemory.getPlanningContext(task.id);
+      expect(conflictContext.content).toContain('USD 1200');
+      expect(conflictContext.content).toContain('USD 1800');
+      expect(conflictContext.sources.map(source=>source.memorySource?.recordId)).toEqual(expect.arrayContaining([firstConflict.id,secondConflict.id]));
+      const changingRecord=vi.spyOn(selected,'query')
+        .mockResolvedValueOnce([{record:firstConflict,score:1}])
+        .mockResolvedValueOnce([{record:{...firstConflict,content:'Changed during lookup',version:2},score:1}]);
+      await expect(runtimeWithMemory.getPlanningContext(task.id)).rejects.toThrow('Memory changed or conflicted during planning');
+      changingRecord.mockRestore();
       const stalled=vi.spyOn(selected,'query').mockImplementation(()=>new Promise(()=>{}));
       const cancellation=new AbortController();
       const waiting=runtimeWithMemory.getPlanningContext(task.id,cancellation.signal);
@@ -509,7 +538,8 @@ describe("TaskWorkerRuntime & Server Integration", () => {
   });
 
   it("explicit backend: requireHumanApproval transitions task to waiting_approval", async () => {
-    const simRuntime = new TaskWorkerRuntime(store, testExecutionBackend(), {
+    const originalBackend = testExecutionBackend();
+    const simRuntime = new TaskWorkerRuntime(store, originalBackend, {
       repoRoot: process.cwd(),
       autoStart: false,
     });

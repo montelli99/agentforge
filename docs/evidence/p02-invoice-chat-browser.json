@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "savedLiveModelAnswer": true,
+  "noNewModelRequests": true,
+  "renderedInvoiceNumbers": true,
+  "reloadPreserved": true,
+  "answerSha256": "6f9c8825994f2edb598665e28f97fb79817dd9e7677b2e3c6a6e7116a8e67fd7",
+  "scope": "Render existing live model answer and reload; no new task execution or model generation"
+}

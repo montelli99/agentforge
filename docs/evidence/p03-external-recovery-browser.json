@@ -1,0 +1,13 @@
+{
+  "requirement": "P03 external runtime recovery and no-resend safety",
+  "sourceCommit": "8bac1d6a44d44248bc3c9458ada71d36578436ca",
+  "passed": true,
+  "runReads": 1,
+  "submissions": 2,
+  "modelCalls": 0,
+  "savedResultReadOnly": true,
+  "localCancelPreservesExternalReceipt": true,
+  "uncertainSubmissionBlocksRetry": true,
+  "stopAcknowledgementRecorded": true,
+  "scope": "Synthetic connected-runtime contract; no external credentials or private data used."
+}

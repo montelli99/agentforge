@@ -1,0 +1,61 @@
+{
+  "id": "shipment-coverage",
+  "prompt": "Read input.json at execution time. Write result.json with exactly orders, an array of objects with exactly id, shipped, remaining. For each order, sum units only from shipments whose cancelled flag is false. remaining is max(0, ordered minus shipped). Include orders with no shipments. Sort by id in ascending ASCII order. Do not change input.json.",
+  "input": {
+    "orders": [
+      {
+        "id": "r3",
+        "ordered": 8
+      },
+      {
+        "id": "r1",
+        "ordered": 5
+      },
+      {
+        "id": "r2",
+        "ordered": 2
+      }
+    ],
+    "shipments": [
+      {
+        "order": "r1",
+        "units": 3,
+        "cancelled": false
+      },
+      {
+        "order": "r1",
+        "units": 7,
+        "cancelled": true
+      },
+      {
+        "order": "r2",
+        "units": 4,
+        "cancelled": false
+      },
+      {
+        "order": "r1",
+        "units": 1,
+        "cancelled": false
+      }
+    ]
+  },
+  "expected": {
+    "orders": [
+      {
+        "id": "r1",
+        "shipped": 4,
+        "remaining": 1
+      },
+      {
+        "id": "r2",
+        "shipped": 4,
+        "remaining": 0
+      },
+      {
+        "id": "r3",
+        "shipped": 0,
+        "remaining": 8
+      }
+    ]
+  }
+}

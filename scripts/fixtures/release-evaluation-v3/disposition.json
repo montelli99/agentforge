@@ -1,0 +1,5 @@
+{
+  "version": 3,
+  "liveScoringAllowed": true,
+  "reason": "Frozen shared instructions and limits verified; preserve every attempt including failures."
+}

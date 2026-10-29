@@ -1,0 +1,8 @@
+{
+  "requirement": "P05",
+  "runId": "run_34c6d43e3a704d7eaa34c8990ed7567f",
+  "outcome": "failed",
+  "error": "Hermes request rejected (404); inspect the saved operation before retrying",
+  "submissionCalls": 0,
+  "recordedAt": "2026-10-26T07:13:51.156Z"
+}

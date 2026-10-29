@@ -6,13 +6,13 @@ integrations belong in source, evidence, fixtures or release packages.
 
 | Requirement | Completion evidence | Current gap |
 | --- | --- | --- |
-| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Installed-package browser save/restart/unlock and chat recovery passed; restored-model drafting passed locally; unified first-user task journey still unproven |
+| Guided onboarding through first successful task | Clean-install user journey with secure account setup, model validation and successful task | Installed live invoice journey now passes owner/model setup, reviewed Docker execution, restart and grounded result chat (`evidence/p02-installed-automatic-artifact-grounding.json`); final candidate clean-install acceptance and broader onboarding matrix remain |
 | Supported subscription chat and execution | Official client authentication, bounded workspace access, cancellation and reconnect evidence for each advertised route | Direct ChatGPT chat/tool loop, protected Windows sign-in, renewal, restore and sign-out implemented; live lifecycle acceptance and other-platform storage unproven; Claude/Gemini managed workers incomplete |
-| Real-model full task completion | Model-generated plan, explicit review, isolated execution, independent checks and useful artifact | One live-model synthetic plan completed browser review, real Docker and final approval locally; exact hosted package passed synthetic-provider browser workflows; unified live first-user acceptance remains open |
+| Real-model full task completion | Model-generated plan, explicit review, isolated execution, independent checks and useful artifact | Installed live invoice journey passed with five provider requests and independent output checks (`evidence/p02-installed-automatic-artifact-grounding.json`); this development example does not establish general task competence or final-build acceptance |
 | Extensible memory ecosystem | Provider adapters usable by chat and task execution; guided connection, per-project selection, optional composition, migration/export, provenance, deletion and outage behavior; contract acceptance for each advertised adapter | Shared chat/worker contract, read-only Obsidian and Hindsight Cloud adapters, guided encrypted save/restore/forget and simultaneous per-project selections implemented; Obsidian + Hindsight composition and local JSON/Markdown export implemented; full composition behavior, automatic migration and live provider/browser acceptance remain open; JEv remains a decision router |
 | Recovery and memory reliability | Crash, auth expiry, interrupted tool, conflicting-memory and duplicate-action cases with durable receipts | Browser streaming reload, persisted completion and local recorded-result restore passed; Docker worker-kill duplicate prevention passed; uncertain-effect resolution, auth expiry and broader faults remain open |
-| Measurable differentiation | Frozen held-out workloads, matched model/budget baselines, repeated trials, completion/cost/latency results including failures | Development examples only; no competitive superiority demonstrated |
-| Finished public release and launch | Exact-build CI/package hashes, clean distribution, coherent UI/docs, reproducible demo and accurate marketing claims | 47eb3c9 passed exact-build CI and installed-archive browser acceptance and merged in PR #6; PR #7 adds recovery checks/fix; publication, demo and launch reconciliation remain |
+| Measurable differentiation | Frozen held-out workloads, matched model/budget baselines, repeated trials, completion/cost/latency results including failures | Version 3 retained all 18 attempts: AgentForge 8/9 artifacts and 7/9 full journeys; direct baseline 7/9 artifacts. Three repeated synthetic tasks, unequal actual usage, and a disclosed fixture repair limit interpretation (`evidence/p09-v3-report.json`). No competitive superiority demonstrated |
+| Finished public release and launch | Exact-build CI/package hashes, clean distribution, coherent UI/docs, reproducible demo and accurate marketing claims | GitHub v0.1.2 early-access archive is published from cfd876d with seven passing exact-build CI jobs; later integration work is not in that archive. Stable acceptance, demonstration and launch reconciliation remain; npm publication is deferred |
 
 ## Work order
 
@@ -29,7 +29,151 @@ should block its dependent item. Continue independent work. Do not mark the goal
 complete until every row has direct current evidence. Historical private-cache
 removal remains a separate tracked request until the hosting provider confirms it.
 
+## Acceptance backlog — required work, not disclaimers
+
+Every item below is OPEN until its stated outcome is demonstrated. Codex owns
+implementation, execution, evidence collection and repair. A failed attempt stays
+in the record; fix the cause and repeat that case. Do not close a workflow from a
+component test, remove an advertised requirement to pass, or substitute fixtures
+for required live acceptance. Only owner authentication may require user action.
+
+For each attempt record: requirement ID, UTC time, exact source commit and package
+SHA-256, runtime/provider versions, synthetic input hashes, reproducible command
+or browser steps, expected and actual outcome, artifact/log hashes, request/run
+IDs, usage/cost (unknown when unavailable), and pass/fail with remaining scope.
+Store only sanitized public evidence; never credentials or personal profiles.
+An acceptance entry must identify its evidence file, not merely say tests passed.
+
+- [ ] **P01 Clean-install first task.** Install the candidate archive into a fresh
+  directory and browser profile. Follow guided owner/model setup, ask for a useful
+  artifact, review the actual plan, execute it, independently inspect output and
+  approve completion. Save setup screenshots, task journal and output hashes.
+  Next: extend the existing live approval journey beyond its predefined fixture.
+- [ ] **P02 Real chat execution (live browser task and saved chat presentation proved; unified journey pending).** Use a live model to create a useful artifact
+  from synthetic inputs with no embedded solution. Verify output with a separate
+  evaluator, record the actual commands and all model attempts, and show the
+  result in chat. Evidence: `evidence/p02-useful-invoice-acceptance.json` records a passing real-model invoice task and both rejected attempts. Fresh live planning, browser approval, independent invoice verification, restart and final approval are recorded in `evidence/p02-live-invoice-browser-completion.json`; saved chat rendering has separate evidence. The combined installed live journey is now recorded in `evidence/p02-installed-automatic-artifact-grounding.json`, including verified artifact context before the final answer. Next: carry this acceptance onto the final release candidate; retain broader competence limits. The protocol froze its
+  input and evaluator before execution. Existing fixed-file proof is supporting
+  evidence only and must not be reported as general task competence.
+- [ ] **P03 Recovery matrix.** On that workflow interrupt browser streaming,
+  service, worker, and the connection after a tool effect but before its receipt.
+  Also expire authentication and introduce conflicting memory. Reopen, recover
+  context, reconcile effects, and count executions to prove no duplicates.
+  Save before/after journals and independently counted outputs for every case.
+  A fresh-process built-in-memory recovery followed by a live ChatGPT decision
+  now passes (`evidence/p03-live-recovered-memory-conflict.json`): both conflicting
+  facts and record citations are returned with `needs_clarification`, no selected
+  value, and no unrelated-project fact. This is one structured planning decision,
+  not an executed task or a browser conflict-resolution journey.
+  The subsequent correction cycle also passes
+  (`evidence/p03-live-memory-correction-recovery.json`): a synthetic reviewer
+  archives the superseded fact, a fresh process excludes it, and the live model
+  resolves to the retained fact with its citation. Revision history is preserved
+  and stale overwrite is refused. No model-written correction is authorized by
+  this test; browser editing and task execution remain separate checks.
+  Durable failed-result recovery now passes an actual Docker/worker-termination
+  test (`evidence/p03-failed-docker-crash.json`): the file effect survives, a
+  separate process restores the failed result, no command is replayed, and no
+  completion approval is created. The corrected-plan repair and two store
+  reopens are separately tested (`evidence/p03-durable-failed-result-repair.json`);
+  that latter check uses a synthetic backend, not another Docker execution.
+  This closes recovery of a published failed journal, not interrupted commands
+  without a durable result or the entire uncertain-effect matrix. Hosted CI now
+  includes the credential-free failed-journal crash regression.
+  Observed-failure repair of the real P02 artifact now passes browser approval and Docker execution, preserving the original receipt: `evidence/p03-invoice-browser-repair.json`. Additional evidence: `evidence/p03-invoice-uncertain-effect.json` records refusal to replay after an effect without a receipt; `evidence/p03-timed-session-expiry.json` records real local owner-session expiry and recovered approval. Next: complete provider-token expiry and the remaining effect-reconciliation/conflicting-memory matrix; local session expiry does not prove provider renewal.
+- [ ] **P04 OpenClaw workflow.** Pair a disposable real installation, select a
+  session, review/send one useful task, observe and verify its returned artifact,
+  disconnect/reconnect, and Stop an active run with partial-effect inspection.
+  Save upstream run IDs plus AgentForge receipts and result hashes. Installed live browser delegation, verified invoice, unread-result recovery after gateway restart and active text-only Stop now pass (`evidence/p04-installed-unread-restart.json`). Installed partial-write Stop also passes: one first marker, no delayed second file after 47 seconds (`evidence/p04-installed-partial-write-stop.json`). Next: reconcile this pinned integration evidence with the final release candidate.
+- [ ] **P05 Hermes workflow.** Repeat P04 using the pinned Hermes installation
+  and the registered connector. Include selected API-session continuity and
+  credential-change refusal for existing receipts. Verify successful completion
+  and cancellation, not only failed-run persistence. The live guided browser workflow now connects encrypted credentials, selects the session, reviews the invoice task, independently verifies its artifact, restarts the gateway before first result retrieval, recovers the result and stops a separate active text-only run (`evidence/p08-live-hermes-guided-workflow.json`). The installed archive from 40208f2 also passed (`evidence/p08-installed-hermes-guided-workflow.json`). Installed partial-effect Stop now passes: the initial marker occurs once and the later write is absent (`evidence/p05-installed-partial-effect-stop.json`). The credential-change and session-continuity evidence is reconciled below; next carry the accepted integration onto the final installed candidate. Other Hermes session types require
+  a separate gateway path; do not present API-only discovery as universal pairing.
+  Reconciliation on October 26: `evidence/p05-reconciled-acceptance.json` verifies
+  the existing real server-key rotation, governed receipt refusal, restored exact
+  output and same-session continuation. The two built runtime files match the
+  recorded rotation hashes. These behavioral checks need no unchanged repeat.
+  Remaining P05 work is final-candidate installed-package acceptance; the rotation
+  check exercises runtime functions, not browser interaction during rotation.
+- [ ] **P06 Model connection matrix.** Inventory every advertised API and official
+  subscription route. For EACH record sign-in/configuration, live chat, approved
+  tool execution, expiration, interruption, restore, cancellation and sign-out on
+  each advertised platform. Add missing implementations rather than counting
+  configuration validation as support. Next: complete the ChatGPT live lifecycle,
+  then Claude and Gemini managed execution; retain API/MiMo coverage separately.
+- [ ] **P07 Memory matrix.** For built-in memory, Obsidian, Hindsight and every
+  advertised adapter demonstrate chat and worker retrieval with provenance,
+  project isolation, simultaneous-provider composition, export/import migration,
+  deletion/forget, conflicting updates and outage recovery. Use synthetic vaults
+  and dedicated test accounts. Installed operational + Obsidian conflict-aware recall and accounting are recorded in `evidence/p07-composed-live-recall-accounted.json`. Next: live Hindsight composition, migration and deletion/outage coverage; JEv's router is not proof of a memory adapter.
+- [ ] **P08 Guided browser experience.** Execute clean setup, connection selection,
+  missing/invalid credential, no sessions, interrupted task, recovered memory and
+  verified result flows in the rendered UI. Check keyboard navigation, labels,
+  focus and readable errors. Save screenshots and action/results log. Next:
+  finish the installed guided setup journey and keyboard/error-state matrix. Secure encrypted browser setup now exists; real OpenClaw device pairing is recorded in `evidence/p08-real-openclaw-setup.json` and real Hermes task/recovery in `evidence/p08-live-hermes-guided-workflow.json`.
+- [ ] **P09 Held-out differentiation.** Freeze task set, versions, rubric, budgets
+  and repeat count BEFORE running AgentForge and matched baselines. Preserve every
+  failure/timeout and usage result. Publish reproducible completion, latency and
+  cost results with uncertainty; repair product weaknesses separately from the
+  frozen evaluation. The frozen run is recorded in `evidence/p09-all-attempts.json`, including failures and timeouts. Version 3 is complete in `evidence/p09-v3-report.json`; all attempts, usage and limitations are retained. Next: publish the bounded results coherently and reconcile the other agreed baselines; do not repeat completed trials or replace failures with later repaired runs. Monetary cost remains unknown and development examples cannot establish competitive superiority.
+- [ ] **P10 Exact release and launch.** Once the above accepts the candidate,
+  run hosted matrix plus installed-archive/privacy checks on its exact commit;
+  reconcile package hashes, merge, publish matching GitHub assets, verify clean
+  downloads, hosted demo and documentation, and prepare evidence-backed marketing.
+  Include current-build soak and GitHub cache-removal confirmation. npm stays
+  deferred by user choice. Next: obtain exact integrated-build hosted results;
+  the published early-access archive is not the new candidate.
+
+Execution order: P02 then its P03 faults; P04/P05 successful remote execution and
+P08 guided setup; P06/P07 matrices; P01 full clean-install journey; P09; P10 final
+acceptance. Run independent hosted checks alongside implementation. Update each
+item with an evidence link and next concrete action; never park it merely because
+proof is missing. Previous phase summaries remain historical supporting evidence.
+
 ## October 25 progress
+
+### Live planning and browser execution regression repair
+
+A fresh post-repair MiMo V2.6 Flash request subsequently passed the complete
+browser journey: draft, inspected exact commands, test-authorized browser
+approval, network-disabled Docker execution, verified file, service restart,
+receipt-preserving recovery, final approval and durable completion. One paid
+request reported 751 input and 162 output tokens (913 total); monetary cost was
+not measured. The task used synthetic data and a predefined required check,
+with the real credential mediated by a local proxy. It does not prove arbitrary
+task competence, direct credential setup or external-agent execution.
+Raw synthetic provider response SHA-256:
+`424338dd1350a7300e36a59fd5fb974c7a787c9dcf39993a78c53f3420e9cf24`.
+Reviewed command-array SHA-256:
+`c55a4cba22a5e09e8adb7e3e26037bc25ddb218117a801d50ad7d98061842c9a`.
+
+The live compatible-provider probe exposed valid token totals being rejected
+when `prompt_tokens_details` was null. Optional null breakdowns now preserve
+reported totals without inventing cache counts; malformed breakdowns still fail.
+Fifteen provider/accounting regression tests passed locally.
+
+The next browser probe exposed duplicated rendering code inside the task control
+handler, which referenced an unavailable `root` and prevented Run from reaching
+the server. That duplicate was removed. The browser acceptance now checks the
+Run HTTP response and browser exceptions instead of only waiting for task state.
+The existing hosted package gate also caught this failure on revision 49f224d;
+its six platform unit-test jobs passed, but package acceptance failed.
+
+After repair, both the synthetic provider journey (including null usage details)
+and replay of the inspected live provider response passed browser approval,
+network-disabled Docker execution, artifact verification, service restart,
+recorded-result restoration without command replay, and final approval. The
+recorded-response run made zero paid requests and is not a new live-model run.
+External delegation/recovery browser acceptance also passed. These are disposable
+test tasks, not proof of arbitrary useful tasks or complete external-agent support.
+
+Acceptance script SHA-256:
+`5c10aafbad8b2db3e3c0cbde33729a1772691c4b8455820f8863798b144dd686`.
+Provider implementation SHA-256:
+`ff0009df17b7d5cec142ba8a5179ceb52f43ce55cbfc68535c3137d3fd80daa4`.
+Browser implementation SHA-256:
+`06014e0a99f74b035063677a011fe6d0d2fbf25c266e7e40808531d9f7f2b0c9`.
 
 Markdown exports now include a versioned AgentForge header. Selecting such a
 file through the read-only Obsidian adapter preserves its text, category, tags,
@@ -384,3 +528,891 @@ Claude account-status checking now uses the same immutable host configuration se
 Direct browser regression (authorized automated-test route) now proves strict owner setup, project-mapped memory import, review before write, confirmation and rendered memory with no page errors. Extending it through reload exposed a real UI defect: the collection reset to general while data remained saved. The selected collection is now remembered in browser preferences; the browser regression passes through reload. Run `pnpm build`, set `AGENTFORGE_BROWSER_EXECUTABLE` to an installed Chromium-compatible executable, then `pnpm test:memory:browser`. It uses a fresh browser context and synthetic temporary workspace; it neither accesses a personal browser profile nor calls a model. This closes this memory UI flow only, not complete model setup or first-task acceptance.
 
 Hosted public-package acceptance now installs pinned-tooling Chromium and runs the synthetic memory browser regression before packaging the release. It retains the rendered screenshot as a separate CI artifact. Local browser execution already passed; hosted execution of this new workflow step must still be observed before claiming cross-environment browser acceptance.
+
+P03 invoice worker/store reopen acceptance passed. The reviewed live-model plan
+ran once through TaskWorkerRuntime and produced the independently checked invoice
+report. Reopening WorkspaceStore and recreating the worker preserved the observed
+receipts and artifact. Both explicit reconciliation and a subsequent executeTask
+request restored the saved result without another backend execution (count=1).
+Evidence: evidence/p03-invoice-worker-recovery.json. Reproduce with
+scripts/useful-task-recovery.mjs and the retained reviewed plan/digest. This is
+worker/store reopen evidence, not a process crash or browser proof; those P03
+cases remain open. No new provider request was made for this recovery test.
+
+P03 post-observation process interruption passed: the invoice worker deliberately
+exited without shutdown/finally cleanup after recording its observed result.
+A fresh Node process reopened the workspace, restored the result through
+executeTask, preserved receipt/artifact hashes, and made zero backend execution
+calls. Evidence: evidence/p03-invoice-process-recovery.json. The first recovery
+attempt failed because the test backend omitted getReadiness; that harness method
+was added and the SAME saved task recovered without re-executing the workload.
+This closes the post-observed-receipt process-exit case only. Kill during execution,
+post-effect/pre-receipt uncertainty, browser recovery and other P03 cases remain.
+
+P03 post-effect/pre-result-receipt interruption safety passed. The real Docker
+invoice execution completed, then its host process exited before returning the
+result to TaskWorkerRuntime. A fresh process preserved the started receipt and
+artifact, refused executeTask replay and refused observed-result reconciliation.
+Recovery made zero backend execution calls; independent artifact validation passed.
+Evidence: evidence/p03-invoice-uncertain-effect.json. This closes duplicate-action
+prevention for this interruption point, not user resolution of the uncertain
+outcome. A reviewed reconciliation path for incomplete receipts remains required;
+never infer complete execution from a correct artifact alone.
+
+P02/P03 invoice browser workflow passed through the built AgentForge service:
+guided task creation, recorded live-model plan review, authenticated approval,
+explicit Run, real network-disabled Docker, independent frozen invoice checker,
+service restart, recorded-result restoration with unchanged receipts, final
+approval and durable completed status. This reused the accepted live plan with
+only its required-check label mapped to the UI contract's unit_tests type; command
+text was unchanged. Zero new paid requests. The first browser attempt stopped
+before execution on an obsolete verified.txt assertion; fixing that harness
+assertion to the chosen artifact path produced the passing run. Reproduce using
+AGENTFORGE_BROWSER_INVOICE_PROOF=1 and AGENTFORGE_BROWSER_RECORDED_RESPONSE with
+scripts/approval-browser-acceptance.mjs. This proves the task UI, not conversational
+chat-result rendering or a new live-model first-user journey; those remain open.
+
+Invoice browser proof is now self-contained: set AGENTFORGE_BROWSER_INVOICE_PROOF=1
+and AGENTFORGE_BROWSER_EXECUTABLE, then run pnpm test:approval:browser. The default
+recorded plan comes from the committed P02 evidence, with original reported usage
+and no new paid provider request. The successful browser evidence is saved at
+evidence/p02-p03-invoice-browser.json with source revision and runner hash. Hosted
+CI now includes this case; its next run must pass before claiming hosted acceptance.
+
+Historical eight-hour service soak completed: 97 samples, zero failed probes, elapsed 28,800,350.8709 ms. Tested archive SHA-256 was 059a26c5b318251f545bb5dd16918db839030317d60f4caec8d1bccd3d6eb43f, NOT the current candidate. Full journal: evidence/historical-eight-hour-soak.jsonl (SHA-256 f756603db178002dc9d04ef74dab5a9e64905dc36fa63aa711c79af78fa949c9). P10 current-build soak remains open; do not transfer this result to subsequent code.
+
+P02 live chat output retrieval passed on build 5af4d4b. MiMo v2.6-flash made two
+provider requests, called read_task_artifact, and returned all five invoice groups
+and all three summary counts correctly against the frozen independent oracle.
+The task was not re-executed. Evidence: evidence/p02-live-invoice-chat.json.
+This proves real-model result retrieval through ConversationRuntime and persisted
+chat, not browser rendering of this answer or a fully live first-user journey.
+The 15 focused conversation/output tests and typechecks passed. Hosted run
+40279938374 failed at proof provenance collection in the installed-package test:
+the harness incorrectly queried Git in the consumer directory. Fixed to identify
+the runner checkout separately from the installed package; run 40280825006 tests
+that correction. This is not recorded as a product execution failure or CI pass.
+
+Approval integrity regression found and repaired: adding reviewer provenance to
+an evidence pack left its old hash, so completed output failed intact-evidence
+reading. Approval now checks the original hash before consuming a pending decision
+and seals the updated evidence after recording provenance. Two targeted regressions
+cover valid completion and tampered-evidence refusal without consuming approval.
+Browser invoice approval/restart completed on b4636de, and its saved completed
+output was independently reopened and read with the hardened artifact reader.
+Evidence: evidence/p02-invoice-final-approval-integrity.json. The browser harness
+now checks this boundary on every run. Older affected records are not blindly
+re-sealed; their reconciliation remains open.
+
+Hosted run 40280825006 completed successfully: all seven jobs on exact commit 5af4d4ba7648bceae99ac5cc9e89c225ab4fbe43, including installed-package browser acceptance. Later evidence-integrity changes require their own hosted result.
+
+P02 browser presentation checked: the persisted live MiMo invoice answer renders
+as a five-row table in Messages, and reloading preserves the conversation text.
+Fresh browser profile, copied synthetic workspace, no new model requests or task
+execution. Screenshot visually inspected; result and screenshot are stored at
+evidence/p02-invoice-chat-browser.json and evidence/p02-invoice-chat-browser.png.
+The first harness attempt used the wrong navigation label (Conversations rather
+than Messages) and timed out before inspecting chat; corrected selector passed.
+This closes the saved-answer presentation case, not a single uninterrupted live
+first-user journey. Full local suite at b4636de: 141 files, 828 passed, 2 skipped.
+
+Historical approval recovery is implemented as a narrow store operation used by
+same-conversation artifact reading. It accepts only completed tasks whose approved
+reviewer/source match the saved decision and whose evidence hash validates after
+removing exactly the two historically appended approval fields. It does not repair
+changed outputs, unrelated metadata, mismatched reviewers or unapproved tasks.
+On a copy of the actual older invoice browser state, the original integrity failure
+was confirmed, repair persisted, the reopened output passed its hash check, and
+execution receipts remained byte-identical. No execution or original-record edit.
+Evidence: evidence/p03-historical-approval-recovery.json. Twenty focused tests,
+full typechecks and build passed. This repairs this known record defect only;
+started receipts with an unknown outcome still require separate reconciliation.
+
+P03 interruption work: production Docker launcher now writes operation-bound output
+to a host-only execution-results journal before returning the backend result.
+The journal flushes the file, refuses overwrite, validates request/task/worktree
+identity and a payload hash, bounds record size, and refuses placement inside the
+execution worktree. Seven journal/backend regressions and full typechecks pass.
+This is the durable-result foundation, not completed uncertain-effect recovery:
+reviewed retrieval, surviving-container checks, current artifact validation, and
+reconstruction of pending approval still need integration and crash acceptance.
+Started receipts remain quarantined; no automatic replay or completion added.
+
+P03 durable-result recovery is now connected to the authenticated receipt-review
+route and task review UI. Recovery reads the operation/request-bound host journal,
+refuses surviving containers, compares current Git changes/artifacts/revision with
+the recorded result, rechecks the current task and required checks, and creates a
+pending final human approval. It does not run commands. Even formerly automatic
+contracts retain that review requirement when restoring an observed recovery.
+Real Docker invoice test deliberately exited after backend completion before its
+worker receipt. A fresh process recovered the result with execute replaced by a
+throwing counter: zero executions, independent invoice checker passed, pending
+approval persisted through reopen, and repeated recovery was refused. Evidence:
+evidence/p03-invoice-journal-recovery.json; reproduce with the crash mode of
+useful-task-recovery.mjs then invoice-journal-recovery.mjs. Eighteen focused tests,
+full typechecks and build passed. Browser interaction and negative-path coverage
+for the new reviewed recovery action remain required before release acceptance.
+
+P03 reviewed recovery browser case passed on a new real-Docker invoice crash:
+authenticated owner opened recorded execution, selected Recover durable result,
+and received waiting_approval with one pending decision and zero execution calls.
+Reopen preserved pending approval; no browser errors. Evidence:
+evidence/p03-invoice-browser-recovery.json. Additional probes reject changed
+artifact contents and a simulated surviving container; evidence:
+evidence/p03-recovery-negative-cases.json. Four runtime regressions cover failed
+verification, concurrent task changes, overlapping recovery (one approval only),
+and preserved human review for originally automatic tasks. Full typechecks pass.
+These close the stated recovery cases, not the entire P03 matrix (authentication
+expiry, conflicting memory and broader shutdown combinations remain).
+
+P03 recovery HTTP regression now checks anonymous access, missing permissions,
+stale snapshots and expired sessions are refused before invoking recovery; a valid
+reviewer reaches recovery and errors are sanitized. The self-contained hosted
+runner materializes the committed reviewed invoice plan and synthetic input,
+expects abrupt process exit 74, then opens fresh authenticated browser recovery
+and runs the independent invoice oracle. Local run passed with zero recovery
+executions and zero new paid requests. CI now runs this case on Linux alongside
+existing browser acceptance; hosted result remains pending.
+
+P03 live conflicting-memory recall after store reopen: two equally dated/versioned
+synthetic records disagreed (USD 1200 vs USD 1800). First MiMo response identified
+both and created no task, but overstated search completeness. Strengthened chat
+guidance that bounded retrieval cannot prove absence of other records/revisions.
+Follow-up live response identified both sources, declined to pick a winner, and
+explicitly acknowledged that limitation; no task created. Two provider requests
+per attempt. Both retained: evidence/p03-live-memory-conflict.json and
+ evidence/p03-live-memory-conflict-followup.json. Ten conversation regressions,
+full typechecks and build pass. This proves one live conflicting recall case,
+not all model/provider conflict handling. Hosted run 40282398037 passed all seven
+jobs on 4d7273c; subsequent changes require their own hosted result.
+
+P05 output path implemented from the pinned Hermes image's primary Python source:
+api_server_runs.py _handle_get_run returns owned run status, and completion writes
+its final_response into output. Hermes transport now explicitly retrieves at most
+60 KB of text only for the exact completed saved run. Authenticated task UI offers
+Read external result; server binds the connection/run to the persisted receipt and
+rechecks it after reading. Output is reference data, not local verification, and
+is not automatically persisted as workspace transcript. Thirteen focused tests
+and build passed; HTTP regression additionally checks anonymous denial, caller
+run-ID override ignored, unchanged local task status and no content/credential
+persistence. Full typechecks pass. Real successful Hermes model execution and
+browser acceptance of the output action remain open; fixture tests do not close P05.
+
+### P05 live runtime result — 2026-10-26
+
+The pinned Hermes runtime completed a live MiMo calculation and returned the expected 1250. Evidence: vidence/p05-hermes-live-runtime.json (SHA-256: 4baf42f49b3d7b34640f63ba511ff6418e7382ef6440590cd0a6142fce146d75). The prior authentication failure is retained in the attempt record. This closes the direct live-runtime probe only: the registered AgentForge connector workflow, selected-session continuity, credential-change refusal, reconnect and cancellation remain required. The acceptance runner now rejects non-completion and an incorrect total instead of exiting successfully on a failed run. Hosted CI run 40283094567 passed for 2567554ba7ea136eebe934eba8a97439b685048f; it does not cover these subsequent changes.
+
+### P05 restart failure — 2026-10-26
+
+The real saved Hermes run returned HTTP 404 after restarting its disposable container through the registered AgentForge connector. Evidence: evidence/p05-hermes-connector-reconnect.json. No task submission was made by the reconnect probe. The first diagnostic attempt discarded the response detail; the second preserved the 404. The image creates an anonymous /opt/data volume, so the harness now distinguishes that from prohibited host bind mounts. This failure remains open: investigate upstream run persistence and preserve AgentForge receipts without replaying the task. Runtime logs also show a blocked execute_code attempt during the earlier calculation; the final numeric answer is not proof of successful tool execution.
+
+The transport now bounds response bytes before JSON parsing and refuses partial/interrupted completion output. Thirteen connector tests and the production build passed locally. These changes are not yet exact-package acceptance.
+
+### P05 durable submission correction — 2026-10-26
+
+Pinned upstream api_server_runs.py persists run status only for runs registered with an Idempotency-Key (_set_run_status and submission reserve). The earlier direct probe omitted that key; the production HermesRunTransport already supplies it. Corrected the direct acceptance runner, retained the failed 404 evidence, and ran a new synthetic calculation. It completed with 1250 after five model requests. After stopping and starting its container, the production configured connector read the exact run output, listed its API session, and a fresh connector instance read the same output without any new submission. Evidence: evidence/p05-hermes-idempotent-run.json and evidence/p05-hermes-idempotent-reconnect.json (reconnect SHA-256 f84ca5296d1e67cffe12f95538a7a35ccf38eed218258a8064c3bc34765b6ff9). This resolves the direct probe's restart failure; governed UI approval, cancellation, selected-session continuation, and exact package proof remain open. No successful tool-execution claim is made from arithmetic text.
+
+### P05 governed live continuation — 2026-10-26
+
+Real Hermes and MiMo passed the production control-plane workflow with a synthetic reviewer. AgentForge refused pre-approval dispatch, persisted an accepted run, reopened its workspace, refused duplicate dispatch and a changed connection binding, and observed completed upstream output. The selected API session retained the prior 1250 total and returned 1300 after a request to add 50 without repeating the prior number in the follow-up prompt. The local task stayed paused with no evidence pack. Evidence: evidence/p05-hermes-governed-continuation.json (SHA-256 cbc9f0e56ce5759e2bf87bd8ec3694cbcfc836fde030dc6ec66e2f81d1961819). This is not a browser human-review proof, successful tool-execution proof, or cancellation proof. The live harness permits at most twelve provider requests only when this additional case is explicitly enabled, otherwise six. Source base: 9b4538e; runner additions in this entry's commit. Hosted CI for 9b4538e remained in progress at this check.
+
+
+### P05 live cancellation — 2026-10-26
+
+A real Hermes text-only run was observed active, Stop was acknowledged, and subsequent observation reached cancelled. AgentForge retained paused local status, refused repeated Stop after workspace reopen, and refused completed-output retrieval from the cancelled run. Evidence: evidence/p05-hermes-live-stop.json (SHA-256 56798f9949555afcf22aeec6d4def02bff838271783adbf1bd50d2eccdb5ab2e). The first harness attempt was stopped by stale-store protection before cancellation dispatch; evidence/p05-hermes-stop-harness-failure.json records that failure and its repair. This does not establish cancellation of tool side effects or browser human-review acceptance.
+
+
+### P05 runtime tool record — 2026-10-26
+
+Read-only inspection of the disposable Hermes session database confirms the selected arithmetic run first received a blocked execute_code result, then issued a terminal Python calculation with a matching tool-call ID, output 1250 and exit code 0. Evidence: evidence/p05-hermes-terminal-execution.json (SHA-256 857dd9dc21957aba76f90321ae9ac6393c5606a55d0fbdf9d4da18bfc07ca462). The verifier exports only the selected synthetic command/result and a database hash, excluding credentials, configuration and system prompts. This proves one actual arithmetic tool execution, not the still-required useful artifact workflow or cancellation of tool effects.
+
+
+### P05 useful invoice artifact — 2026-10-26
+
+Hermes generated the invoice report through its real model and tools. The host independently copied the actual file and passed the frozen invoice checker; a separate copy/hash check confirmed unchanged input. Evidence: evidence/p05-hermes-invoice-artifact.json (SHA-256 903c3fdf0cc6ca51e67123854ba500bb8790b2ef3ffca15184fc809e8c4098fb). First failed attempt retained in p05-hermes-invoice-attempt1.json. Corrected paths use the existing permitted /opt/data directory and eight turns, without weakening runtime controls. This direct runtime case does not close the unified browser workflow or tool-effect cancellation.
+
+
+### Hosted archive checkpoint — 2026-10-26
+
+All seven jobs passed for 9b4538e in run 40284746678. Downloaded CI archive hash independently matched 686294ae27e39aa2f3b89238f6aa33d751510173266d09ca307b4979a778c448. Evidence: evidence/hosted-ci-9b4538e.json. Current local public privacy tests passed 27/27 and the archive boundary inspected 464 files without private signatures. Later proof records require the next hosted build; this checkpoint does not close the release backlog.
+
+
+### P03 recovery journal placement — 2026-10-26
+
+Journal placement now validates canonical filesystem paths before execution and on save/read, rejecting directory links into the task workspace. Twelve focused tests and build passed. Real Docker crash output recovered through authenticated Chrome with zero execution during recovery, independent invoice verification, and pending approval retained after reopen. The initial browser launch failed because bundled Chromium was absent; recovery continued against the same saved run using installed Chrome, not by repeating execution. Evidence: evidence/p03-journal-placement-recovery.json.
+
+
+### P07 selected-note lifecycle — 2026-10-26
+
+Actual temporary Markdown files passed selected-file isolation, visible edit with stable record ID/new content hash, missing-file failure, restored content in a separate process, project isolation, and disconnect without deletion. Evidence: evidence/p07-obsidian-lifecycle.json (SHA-256 eafaf0ee1584f93f507183b1b78df48e05a844c6f98e1b0316c41440256e99fa). This is local adapter acceptance, not the Obsidian application UI or live Hindsight/composed-provider acceptance. Those requirements remain open.
+
+
+### P07/P08 browser memory lifecycle — 2026-10-26
+
+Extended the hosted memory browser acceptance to perform visible synthetic model setup, connect a selected local note, save encrypted selection, clear secret fields, disconnect, restore, and forget without modifying the note. Real installed Chrome passed with no page errors. The first attempt correctly refused setup before a chat model existed; the harness now includes that visible prerequisite. Evidence: evidence/p07-memory-connection-browser.json. This is same-process restore and does not establish server-restart or live cloud composition.
+
+
+### P07/P08 memory-first setup fix — 2026-10-26
+
+Removed the unnecessary model-configuration prerequisite for project-scoped memory selection. Shared connection-change exclusion and active-response protection remain. Eleven conversation tests and build passed; real Chrome completed note connect, encrypted save, disconnect, restore and forget before any model was configured, with zero page errors. The browser harness now exercises this simpler sequence directly. Earlier evidence p07-memory-connection-browser.json describes the previous model-first prerequisite; this entry supersedes that setup limitation. Hosted run 40285759568 passed for 7fb2493 before these newer changes.
+
+
+### P07/P08 encrypted selection after server restart — 2026-10-26
+
+Real Chrome acceptance now stops the server, constructs a fresh server from saved workspace/settings, reloads, verifies no active selection, rejects a wrong passphrase, explicitly restores with the correct passphrase, and forgets without modifying the note. Encrypted file excludes plaintext vault path and passphrase. Evidence: evidence/p07-memory-browser-server-restart.json (SHA-256 267d837d92610875cfc796726ebcf494daabd41e3f78cf967164aba9f85d334b). This is server reconstruction in the same Node process, not an OS process-kill claim. The case is part of the hosted and installed-package browser acceptance runner.
+
+
+### P07/P03 process-death restoration — 2026-10-26
+
+A dedicated synthetic owner saved a selected-note connection encrypted. The acceptance forcibly terminated the server child, launched a distinct process from disk, signed in again, observed no active memory source, rejected a wrong passphrase, restored with the correct passphrase, and verified unchanged note content. Evidence: evidence/p07-memory-process-recovery.json (SHA-256 7dbee44cfa9e094b18eaede932f5e0c0929eacfcebd09d0f0a6370a5bfe6e62b). Added to all six hosted OS/Node combinations with retained evidence. The initial harness setup collided with the default owner username before any server launch; corrected to a unique synthetic owner. This authenticated HTTP case complements, but does not replace, browser and remote-provider coverage.
+
+
+### P06 subscription route reconciliation — 2026-10-26
+
+Confirmed current start.ts registers opt-in claude-cli planning with explicit configuration, while Gemini currently has preparation/protocol helpers but no registered planner. Corrected the setup catalog's stale Claude external-client-only label without claiming chat or managed execution. Eight Claude configuration/planner tests passed. Neither official executable was found on this process PATH; this is not evidence that no installation exists elsewhere or that an account is authenticated. Live lifecycle, Gemini integration and managed execution remain required.
+
+
+### P06 Gemini opt-in planner integration — 2026-10-26
+
+Added GeminiCliPlanner and registered AGENTFORGE_PLAN_PROVIDER=gemini-cli with AGENTFORGE_PLAN_GEMINI_CONFIG pointing to an explicit configuration containing bundlePath, homeDirectory and model. Uses the prepared dedicated Google-login profile, no inherited API credentials, fresh working directory, bounded child execution, deny-tool policies, disabled extensions/MCP, strict transcript validation, and existing plan validation. Twenty-five protocol/adapter tests and production build passed. Official reference: https://geminicli.com/docs/reference/policy-engine/ and https://geminicli.com/docs/reference/configuration/. These are requested client controls, not verified isolation. No live account login, policy-enforcement proof, managed command execution or streaming chat is claimed. Authentication-file presence is not treated as successful sign-in proof; the official client consumes its own credential. Live acceptance remains required.
+
+P06 official Gemini 0.65.0 check on Windows: advertised controls passed, but temporary system settings were rejected for ownership. User-scoped authentication mismatch rejection passed with a synthetic profile. Evidence: evidence/p06-gemini-settings-ownership.json. The current planner settings route needs replacement and actual enforcement proof; no live authentication or inference is claimed.
+
+P06 correction: Gemini profile preparation now writes disabled extension/MCP/skill controls into the dedicated user settings, and planning checks them before launch. The adapter no longer supplies an ownership-rejected temporary system settings file. Missing restrictions reject before capability inspection or client launch. Actual user-scope authentication enforcement passed against 0.65.0; full live inference and tool-policy enforcement still require proof.
+
+P06 actual policy-engine proof found and fixed a malformed MCP rule: missing toolName invalidated the policy file and read_file remained allowed. Corrected production policy now denies shell, read, write, web-fetch and synthetic MCP requests in the official 0.65.0 PolicyEngine. Reproducer: scripts/gemini-policy-engine-acceptance.mjs. Evidence: evidence/p06-gemini-policy-engine.json retains failed and passing outcomes. This is engine-level proof, not full CLI/live authentication acceptance.
+
+P06 regression protection: scripts/gemini-pinned-policy-acceptance.mjs fetches official Gemini 0.65.0, verifies its pinned SHA-512 before extraction, and runs the production policy through its actual engine. Fresh-download local Windows execution passed for all five denied tools. Added to all six hosted OS/Node matrix jobs; hosted outcome pending. No account, model request or tool execution is used.
+
+P06 interrupted Gemini accounting: preserve validated usage reported in a bounded child failure while rejecting the interrupted plan and making no automatic retry. Focused cancellation regression passed; typecheck passed. Subscription catalog now accurately describes the opt-in planner and remaining live/full-client acceptance.
+
+Hosted run 40288267608 revealed Gemini planner tests rejected macOS temporary-directory aliases. Profile preparation now returns its physical filesystem path and planner fixtures use physical paths. Redirected profile rejection stays intact. Added a real directory-alias regression covering returned path selection. Hosted rerun required.
+
+P06/P10 installed-package setup: actual npm archive installed into a fresh consumer directory; its CLI created the restricted Gemini profile, returned its physical path, created no credential file, and rejected repeated setup without altering settings. Full package CLI acceptance passed locally. Public package privacy check also passed (470 shipped files); this does not close live account acceptance. MODEL_CONNECTIONS now documents the opt-in Gemini configuration.
+
+Hosted run 40288543433: public installed-archive acceptance plus both Linux and both macOS matrix jobs passed at observation; Windows jobs still active. Downloaded archive COMMIT matched c7ee2318c33bf8b59ea3e658055f7d8fcd93e58b and recorded SHA-256 in evidence/hosted-ci-c7ee231.json. This confirms the macOS path correction on hosted runners, not completion of the full release goal.
+
+P04 live disposable OpenClaw attempt exposed an actual scope mismatch: suppressCommandInterpretation requires operator.admin in upstream 2026.10.7, while the adapter requests read/write. Gateway authenticated but rejected send; zero provider requests. Evidence: evidence/p04-openclaw-live-permission-failure.json. Do not remove command suppression merely to obtain a passing call. Fresh container stopped; no private mounts.
+
+P04 fixed scope mismatch with explicit task-delegation opt-in requesting admin, verifying actual grant before send, and binding receipts to this authority choice. Command suppression remains on. 26 focused tests passed; built adapter completed a real OpenClaw/MiMo synthetic turn, one provider request, correct 1250-cent result and matching run receipt. Evidence: evidence/p04-openclaw-live-response.json. Browser review, useful artifact execution, reconnect and cancellation remain open.
+
+P04 restart proof: disposable OpenClaw gateway stopped and restarted; fresh adapter recovered exactly one assistant reply matching the prior run ID and correct 1250-cent result, with no submission method invoked. agent.wait returned timeout after restart; this is history recovery evidence, not terminal run-state recovery. Evidence: evidence/p04-openclaw-reconnect-history.json. Reproducer: scripts/openclaw-reconnect-acceptance.mjs. Live runner's arithmetic assertion escaping corrected before further runs.
+
+P04 recovery fix: external receipts retain up to 16 status transitions; identical repeated polls do not evict earlier reports. Reopen regression covers timeout, ok, restart, repeated timeout while retaining prior ok and keeping local task paused. Workboard displays previous report separately from latest status. Five external-dispatch tests and typecheck/build passed; rendered UI acceptance remains pending.
+
+P04/P08 real-browser acceptance passed for preserved prior status after reload, stop persistence, no Resume/replay, exact delegation review and stale session rejection using a synthetic runtime (zero model calls). Visual inspection also exposed misleading resume guidance; delegated tasks now instruct inspection and verification without resubmission. Evidence: evidence/p04-external-status-browser.json. Initial stale expected-label failure retained in evidence description; corrected full rerun passed.
+
+P04 useful artifact passed on real OpenClaw 2026.10.7 with MiMo: four provider requests, upstream read/write/exec recorded, actual report copied from the stopped disposable container and accepted by the independent frozen invoice verifier. Input hash unchanged; report hash matches the expected verified artifact. Evidence: evidence/p04-openclaw-invoice-artifact.json. Browser review, active-run Stop and complete end-to-end recovery remain open.
+
+P04 Stop proof: actual OpenClaw run observed active, provider request start independently marked by capped proxy, then exact run Stop acknowledged. Subsequent status error/stopReason rpc, no active run, abortedLastRun true; history contained only the user message. Evidence: evidence/p04-openclaw-live-stop.json retains earlier harness/early-stop outcomes. This is text-only cancellation, not cancellation of remote tool effects or provider charges.
+
+## October 26 repair integration
+
+`evidence/p03-invoice-browser-repair.json` records an actual failed live-model invoice task repaired through authenticated browser review, one new Docker operation, independent artifact verification and final approval. Previous receipts are retained. Stale review, changed commands, unknown effects and wrong workspace cannot authorize repair. `scripts/repair-browser-acceptance.mjs` reproduces the approval/execution behavior with synthetic model output and is included in installed-archive CI; it does not replace live-model acceptance.
+
+Hosted CI passed all jobs for `4ae5135a88b8d29fa3fe60298530ab0983379fdd` (run 40291999674). Later repair commits require their own exact-build results. No P01–P10 row is closed solely by these component results.
+
+P03 provider reconnect correction: explicit HTTP 401/403 refusal remains recorded without fabricated token usage and permits a new explicitly requested draft after reconnect. Transport/timeout uncertainty remains blocked. Controlled local HTTP generate and stream tests passed, alongside accounting/repair regressions (11 tests), typecheck and build. Evidence: evidence/p03-provider-authentication-recovery.json. Live provider credential expiry and full browser reconnect acceptance remain open. Prior hosted build d90774b passed run 40294227751; this new change requires its own CI.
+
+P03 authentication recovery boundary: production worker tests now prove approved execution after explicit refusal, preservation of the rejection record, no repeated execution on reopen, and rejection of unknown/started/malformed audits before backend execution. HTTP receipt review distinguishes authentication refusals from uncertain attempts; UI keeps usage labeled unreported. Nine tests across worker/route suites, typecheck and build passed. Evidence: evidence/p03-auth-recovery-worker-boundary.json. Integrated live credential renewal remains open.
+
+P10 hosted run 40295148327 exposed a stale redaction assertion on all six OS/Node matrix jobs: HTTP 401 now intentionally returns a fixed reconnect message instead of a redacted upstream body. Expanded regression to HTTP 401, 403 and 500, retaining credential non-disclosure assertions for every case and redaction coverage for generic server failures. Adapter/authentication/worker suites: 27 tests passed. Hosted rerun pending; failure remains in the record.
+
+P01/P02 combined synthetic browser journey passed: chat prepare_task -> reviewed boundaries -> model draft -> explicit command approval -> real Docker output -> service restart -> recorded result restore -> final approval. Three provider requests (two chat tool-loop responses and one planning response), all simulated; zero paid requests. Evidence: evidence/p02-combined-chat-task-browser.json. Two harness setup failures retained. This does not close live-model, installed-package or final chat artifact presentation requirements. Full local suite at 15982c8 passed 866 tests, two skipped.
+
+P01/P02 installed chat round trip passed using a freshly installed archive: model tool prepares task, browser boundaries/plan approval, actual Docker execution, restart and final approval, explicit encrypted connection unlock, hash-verified artifact read through chat tool, visible answer and reload without new requests or execution. Five synthetic provider requests. Evidence: evidence/p02-installed-chat-roundtrip.json. Added journey to installed-browser CI. Live model and useful-invoice combined journey still open.
+
+P02 unified LIVE chat invoice round trip passed on the source build: MiMo v2.6 flash prepared the task via chat, generated the inspected plan, real Docker produced independently verified invoice JSON, service restart restored evidence, final approval completed, and a live read_task_artifact call returned the hash-verified report to chat. Reload preserved the answer without more provider requests or effects. Five live requests with reported usage retained. Evidence: evidence/p02-live-chat-invoice-roundtrip.json. P01 exact installed live archive remains open; this is one bounded task, not broad competence or superiority.
+
+P01/P02 exact installed live invoice round trip passed: archive cd3a83cc9e1ec1886d0a904ff1a7835e0d9cd52dc87ebcf5951b947657c49f61 in a fresh consumer installation, live chat task preparation and fresh planning, browser command review, independent invoice verification, restart, final approval, live artifact read and persisted chat result. Six provider requests with usage; no automatic repeat on reload. Installed runtime module hashes match current built modules. Evidence: evidence/p01-installed-live-invoice-roundtrip.json. Remaining scope includes visual setup captures and final-release artifact reconciliation, broader recovery/integration/model/memory matrix and evaluation; the full goal stays open.
+
+P07 actual built-in + Obsidian composition passed through the chat memory tool: both conflicting values retain distinct source identities; other projects and unselected notes stay excluded; reopening the store preserves recall; a missing selected note fails visibly; restoring it returns its new content. Reproducer: scripts/composed-memory-lifecycle-acceptance.mjs, added to hosted OS/Node matrix. Evidence: evidence/p07-composed-local-memory.json. Hindsight live account, combined worker/browser lifecycle and semantic conflict handling remain separate.
+
+P07 worker planning boundary also passed with the actual composed local adapters: both conflicting values and source identities are present; missing selected note rejects planning context; restored content is fresh; explicit disconnect removes it. Evidence: evidence/p07-composed-worker-memory.json. This tests planning context, not live worker command behavior or Hindsight.
+
+P02 acceptance strengthened: final chat now must consume a read_task_artifact tool response tied to the exact task/path and evidence SHA-256, with content bytes hashed independently. A plausible answer alone cannot pass. Synthetic full browser/Docker/restart journey passed the stronger assertion. Evidence: evidence/p02-artifact-tool-result-integrity.json. This newly enforced assertion is not retroactively claimed for older live runs.
+
+P04 real host-to-gateway setup exposed required device pairing, hidden by generic adapter error. Exact pending device approved using pinned OpenClaw CLI on the disposable gateway; host production adapter then authenticated and discovered sessions successfully. No model requests. Stale dynamic-port reconnect failure retained; corrected with fresh port discovery. Evidence: evidence/p04-host-device-pairing.json. Gateway stopped. Next: expose pairing guidance and join this route to live browser delegation.
+
+P04 pairing guidance fixed: NOT_PAIRED is mapped to explicit device-review instructions and the locally generated fingerprint, without reflecting arbitrary upstream text or autoapproving. All 23 handshake tests, typecheck and build passed. Fresh pinned real gateway reproduced the actionable rejection, with zero model calls. Evidence: evidence/p04-pairing-guidance.json. This verifies guidance at the transport boundary; guided browser pairing and full delegation remain open.
+
+P04 reconnect defect fixed: terminal handshake failure previously poisoned subsequent explicit connectWhenReady calls. Failure state now resets only when the failed attempt exits; a new explicit request can authenticate after pairing, without automatic retry or work replay. Thirty gateway tests, typecheck and build passed. Evidence: evidence/p04-explicit-pairing-reconnect.json. Hosted preceding build 0b47874 passed run 40297113702; new fix awaits CI.
+
+P04 real pairing/reconnect lifecycle now passed against pinned OpenClaw 2026.10.7: initial NOT_PAIRED rejection, pending request selected by locally generated device fingerprint, exact request approved via official CLI, same client explicitly reconnects and lists sessions. No model request, task send or authentication bypass. Evidence: evidence/p04-real-pairing-reconnect.json. Disposable gateway stopped after proof. Full browser delegation still required.
+
+P04 live browser invoice delegation passed: paired pinned gateway, exact message reviewed in browser before submission, one accepted external receipt, five live provider requests, independent invoice verifier passed, external response displayed, reload did not resend, local task remained paused rather than claiming verified completion. Evidence: evidence/p04-live-browser-invoice.json. Gateway stopped. Combined gateway restart/Stop lifecycle and usage/cost capture remain open.
+
+P04 live runner now persists a started audit before each provider request and records HTTP status, timestamps and reported input/output tokens after responses. Interrupted/missing accounting stays unknown; cost remains unknown rather than inferred. JSON/SSE parser tests (3) passed and are added to CI. Evidence: evidence/p04-provider-accounting-parser.json. New live capture still needs execution alongside remaining lifecycle case.
+
+### P04 integrated browser lifecycle evidence
+
+`evidence/p04-browser-reconnect-stop.json` records the live invoice, explicit review, independent artifact check, client reconnect without resend, and browser Stop with exact-run activity and eventual RPC termination. The invoice remains unchanged after Stop. Failed harness assumptions are retained in the evidence. Interrupted-request usage and cost remain unknown. Gateway process restart, installed-package repetition and broader partial-effect inspection remain open; P04 is not closed.
+
+### P04 durable result recovery
+
+`evidence/p04-durable-result-restart.json` proves recovery of an explicitly fetched exact-run result after the real gateway process restarts, without replay. The gateway run lookup itself returned timeout after restart. AgentForge now persists requested output with run/request/connection identity and a content hash. Seven focused persistence/API tests pass, including rejection of tampering and another connection. Unread-result recovery and installed-package acceptance remain open.
+
+### P04 unread result recovery
+
+`evidence/p04-unread-result-restart.json` now proves recovery of a previously unread final reply after a real gateway restart through exact-run durable transcript metadata. No resend or extra model request occurs during recovery. Thirty-three focused tests pass, including rejection of ambiguous, active, incomplete and mismatched history. Installed-package repetition and broader partial-effect inspection remain open.
+
+### P04 installed-package acceptance
+
+`evidence/p04-installed-live-restart.json` records the exact archive hash and installed runtime hashes for a passing live browser invoice, real gateway restart, previously unread result recovery and active Stop. Source and package privacy gates passed, scanning 472 shipped files. Broader partial-effect inspection remains open; this does not close the full release checklist.
+
+### P05 live browser invoice
+
+`evidence/p05-live-browser-invoice.json` proves real Hermes API session selection, browser review/send, independently verified invoice output and reload without resend. Prior failures are retained in p05-browser-setup-failure.json and p05-browser-tool-restrictions.json. The reviewed task now explains the allowed write root and disabled unattended tool. Browser Stop, restart and complete request accounting remain open.
+
+### P05 browser Stop and accounting
+
+`evidence/p05-live-browser-stop.json` records reviewed invoice completion followed by browser Stop of a separate active run, confirmed cancelled, with the invoice unchanged. Request-level provider-reported accounting is included; unavailable usage/cost stays unknown. Process restart and broader partial-effect inspection remain open.
+
+### P05 installed restart acceptance
+
+`evidence/p05-installed-browser-restart.json` records a fresh archive installation passing the reviewed invoice, real Hermes process restart before first result read, recovery without extra submissions, and active browser Stop. `p05-live-browser-restart.json` records the source-build case; `p05-restart-budget-failure.json` preserves the earlier budget failure. Broader partial-effect inspection remains open.
+
+## Frozen comparison completed — October 26
+
+All 18 attempts are retained in `evidence/p09-all-attempts.json`. Each arm
+produced six exact passing artifacts out of nine attempts. Full command sequences
+passed once for AgentForge and zero times for direct prompting: eleven correct
+artifacts were accompanied by incorrect model-generated self-checks. Four executed
+policy cases mismatched an underspecified output schema; the last pair expired
+before execution while awaiting review. Neither was replaced.
+
+This compares the plan provider with a direct same-model request through a shared
+isolated executor, not the complete application. Review was performed by Codex,
+not a human; elapsed time includes review scheduling and is not fully monotonic
+across processes. These deviations and the schema ambiguity prevent a strong
+competitive conclusion. P09 remains open. Next: improve general verification
+planning using separate development cases, preserve required checks and approval,
+and evaluate again on a newly frozen unambiguous workload. Do not rescore this
+workload or treat passing artifact output as successful command completion.
+
+Hosted run 40307466748 passed for exact commit
+`f080bbb7f032406e62e08f6f5ab8f0a037eb756a`; evidence is
+`evidence/ci-f080bbb.json`. Later evidence and evaluator changes require their own
+final exact-build checks before release.
+
+### Generated verification repair
+
+The planner now asks for runtime-derived expectations rather than guessed literal
+answers, complete-output checks and read-only verification. Owner-supplied checks
+remain exact and mandatory. Thirteen planner regression tests pass. A separate
+live development net-sales case passed reviewed, isolated execution and a fixed
+independent oracle. Its generated verifier rejected an incorrect total and a
+missing zero-value row without rewriting either corrupted artifact. Evidence:
+`evidence/p09-development-verification.json` (1,013 reported tokens; cost unknown).
+The generated verifier repeats the implementation formula; this is one bounded
+development result, not proof of independent reasoning or broad improvement.
+The frozen comparison was not rerun or rescored.
+
+### Installed live chat-to-task journey — 166785d
+
+Archive SHA-256 `70d03ca5b6d1bb95f350f7928771bd8a474c0f92bf786fda276a623b15710dd4`
+was freshly installed and passed the live invoice browser journey: owner setup,
+guided model save/connect, live chat task preparation, inspected plan approval,
+Docker execution, independent report oracle, service restart, recorded-result
+restore without replay, final approval, verified artifact retrieval into live
+chat, and browser reload without a new request. Five live requests were made.
+Evidence: `evidence/p01-installed-live-chat-task.json`.
+
+P01 remains open for first-user project/worker provisioning and direct provider
+credential setup: those were supplied by the synthetic harness and local proxy.
+This closes the previously separate installed chat-to-task integration proof;
+it does not close every onboarding or recovery case.
+
+### First-user project setup repair
+
+A real-launcher browser probe against the installed archive exposed startup
+navigation being overwritten by the pending initial workspace lookup. Initial
+navigation now applies only if the user has not navigated meanwhile. Conversation
+project/channel selectors also have stable explicit accessible names. The rebuilt
+source launcher passes owner setup, browser project and conversation creation,
+and reload recovery while delaying the initial workspace response by 700 ms.
+Both earlier failed attempts remain recorded in
+`evidence/p01-first-project-launcher.json`. No store objects were precreated and
+no provider credential or paid request was used. Execution stayed off; guided
+worker activation and the combined first-user task remain open. This repair has
+not yet been tested in a newly packed archive.
+
+### Installed onboarding regression gate
+
+The rebuilt archive `2a6936a354e523cc1870ca05240585aec566469bee50a109fa4eabae28e86448`
+from 6dfcd8b passes the real-launcher first-project browser test in a fresh install
+(`evidence/p01-installed-first-project.json`). The installed-archive CI runner now
+includes this test. Hosted run 40310124530 passed all jobs for 166785d
+(`evidence/ci-166785d.json`); this is earlier than the startup-race repair.
+
+Execution activation investigation: the production launcher still requires
+AGENTFORGE_EXECUTION_MODE and an absolute repository setting. The Compute UI only
+reports status. A guided activation implementation must retain the single runtime
+used by chat, its repository/worktree binding, effect-receipt identity, disabled
+automatic dispatch, and owner-reviewed plans. Enabling a backend alone without
+binding these correctly would not satisfy P01. This remains the next implementation
+item; archive onboarding proof does not imply worker activation is finished.
+
+### Execution activation prerequisite: preserve active work
+
+`configureBackend` previously stopped the worker before accepting any replacement,
+including an unavailable backend or a swap during an active task. It now rejects
+changes while task execution or memory setup is active, and rejects an unready
+replacement before stopping or changing the existing worker. Regression coverage
+verifies the original task can finish, the worker stays running on rejection, and
+the current ready backend remains available. All 15 runtime tests and TypeScript
+checking passed. This is a prerequisite for guided activation, not that feature's
+completion; repository binding, persistence and UI activation are still required.
+
+### Saved execution setup and launcher restoration
+
+Compute now offers an owner-only saved choice between planning and reviewed Docker
+execution, with a committed repository folder. Saving is explicit and reports
+restart required; it neither swaps the live worker nor starts a task. The launcher
+restores the selection with effect receipts and automatic dispatch disabled.
+Explicit environment configuration takes precedence and prevents guided changes.
+Invalid saved state leaves execution off and allows the UI to repair it.
+
+Seventeen configuration/runtime tests passed. Real-launcher HTTP acceptance proved
+anonymous rejection, save without activation, restart restoring actual Docker
+compute capability, and zero tasks created (`evidence/p01-execution-setup-restore.json`).
+An initial harness assertion expected bootstrap 200 instead of its actual 201;
+correcting the assertion produced the passing run. No provider requests occurred.
+Browser save, restart, and a reviewed task through this newly configured worker
+still require acceptance. This is not yet full P01 completion.
+
+### Browser execution setup acceptance
+
+The real-launcher browser flow now passes account/project/conversation setup,
+Compute selection, invalid relative-path rejection, valid Docker repository save,
+reload persistence and a direct assertion that active compute remains off and no
+task exists. Evidence: `evidence/p01-browser-execution-setup.json`. A second pass
+verified the improved form layout with clearly separated full-width controls.
+Screenshots were inspected locally, not published because they contain local paths.
+The installed-package gate now runs this browser case too. The setup guide's
+execution status now reads active runtime compute capability rather than assuming
+an environment variable is the only configuration source. Combined restart plus
+reviewed task execution and fresh archive acceptance remain open.
+
+### Saved setup through real execution and final approval
+
+The real launcher now passes saved selection, restart, explicit plan approval,
+network-disabled Docker execution in an isolated worktree, independent file
+inspection, second restart, recorded-result restoration without replay, and final
+approval with unchanged receipts. Evidence:
+`evidence/p01-setup-execute-recover-approve.json`. This uses authenticated HTTP and
+a synthetic reviewed plan, not live-model browser first-use acceptance.
+
+The first extended attempt revealed a shared-reference defect: restoring an
+observed result assigned receipt evidence directly to the task. Final approval
+then inserted reviewer metadata into the immutable receipt evidence. Restoration
+now clones that evidence before assigning it to the mutable task. The passing
+repeat retains exact receipt equality through approval. The failing attempts were
+real test discoveries, not discarded successes; their failure was receipt mutation
+at final approval, not command replay or snapshot corruption. The regression now
+runs in hosted CI's Docker job. No paid requests or private integrations were used.
+
+### Unavailable repository and explicit-off recovery
+
+Extended launcher acceptance found a crash in GET execution setup: success headers
+were written before reading the saved configuration, then a missing repository
+caused a second error header write. The endpoint now validates its response before
+sending headers. Three failed attempts remain documented; connection reuse was
+initially suspected but changing it did not fix the failure. Launcher logs exposed
+ERR_HTTP_HEADERS_SENT as the cause.
+
+The full repeat passes task execution/recovery/final approval, then a missing saved
+repository leaves execution off while the app remains available; an owner repairs
+it to planning-only without losing receipts. An explicit startup off setting also
+overrides a saved Docker selection and refuses guided changes. Evidence:
+`evidence/p01-execution-setup-failure-recovery.json`. No paid requests. Build passed;
+this script is already included in the hosted Docker job.
+
+### Hosted saved-execution acceptance
+
+Hosted run 40312592436 passed all seven jobs for exact commit 5ca4e6a. This includes six OS/Node combinations and public-package, installed-browser, and saved-execution restart/final-approval acceptance. Evidence: evidence/ci-5ca4e6a.json. The later missing-repository repair fix is not covered by this run; it requires the next exact-build run. The full P01-P10 scope remains open.
+
+
+### Subscription client process controls
+
+The shared bounded client launcher now rejects invalid output budgets before spawning a client. Three real-process tests pass on Windows: invalid-budget refusal without launch, excessive-output termination with bounded captured output, and cancellation without retry. The 11 Claude/Gemini planner regressions also pass. These prove local process controls, not authenticated subscription inference or full provider lifecycle acceptance; P06 remains open. Hosted run 40313469011 for 71faec4 was still in progress when this change was recorded.
+
+
+### Browser recovery for unavailable execution repository
+
+The real-launcher browser acceptance now restarts with an unavailable saved repository and repairs it through Compute settings to planning-only. It confirms execution remains disabled. Evidence: evidence/p01-browser-missing-repository-repair.json. A first attempt failed because the test collapsed an already-expanded Connections group; the harness now checks visibility before toggling. This proves the recovery UI with synthetic data, not the remaining unified live-model first-use journey. No paid requests or private integrations were used.
+
+
+### Installed archive browser repair
+
+Exact source 91dd007 was built, packed, installed into a fresh temporary directory, and launched from the installed package. Browser onboarding, saved compute selection, reload, missing-repository restart, and UI repair passed. Evidence: evidence/p01-installed-browser-repository-repair.json includes the archive SHA-256. No paid requests. This does not close the unified live-model execution journey.
+
+
+### Browser-created project and restored execution worker
+
+The clean browser journey now supplies its repository in New project, saves Docker setup, restarts the actual launcher, signs in, and proves the project baseline matches the repository HEAD with execution available and no task started. It then repeats missing-repository recovery. Evidence: evidence/p01-browser-project-worker-setup.json. The first extension checked readiness before asynchronous sign-in completed; the harness now waits for the login gate to close. Live-model drafting and execution still need to be joined into this clean-launcher journey.
+
+
+### Combined launcher model and worker setup
+
+Clean browser setup now saves encrypted model configuration and Docker selection, restarts, signs in, unlocks the model, receives one synthetic streamed chat response, validates project/worker revision agreement, then repairs missing-repository setup. Evidence: evidence/p01-launcher-model-worker-setup.json. The first provider fixture returned JSON to a streaming request and failed; corrected to SSE, the repeat passes. This is synthetic connection wiring, not live-model task execution. Hosted exact 71faec4 passed all seven jobs: evidence/ci-71faec4.json.
+
+
+### Clean launcher setup through reviewed execution
+
+The combined browser journey now creates a task, fills its repository revision, drafts through the restored synthetic model, verifies drafting has no execution effect, explicitly approves and runs the plan in Docker, and observes verified output awaiting final approval. Evidence: evidence/p01-launcher-restored-model-execution.json. The task only runs node --version; this is integration evidence, not a useful invoice artifact or live-model competence proof. Final approval/restart result reconciliation and the useful live task remain to be joined to this journey.
+
+
+### Combined synthetic cycle through recovery and final approval
+
+Clean browser onboarding now continues through restored model drafting, reviewed Docker execution, another actual launcher restart, recorded-result restoration and final approval. Original receipts and the independently inspected single execution marker remain unchanged. Evidence: evidence/p01-launcher-complete-synthetic-cycle.json. Marker-test iterations first omitted the declared output path and then assumed the provisioned file was empty; the worker correctly kept undeclared writes read-only and provisioned a sentinel for declared outputs. The harness now declares the output and counts the execution marker. These were fixture corrections, not changes to execution guards. Live useful-task and exact installed-build repetition remain open.
+
+
+### Live combined-journey attempt retained
+
+The live invoice extension reached planning but MiMo renamed required unit_tests to node_version. Existing exact-check validation rejected the draft; no execution was approved. Evidence: evidence/p01-live-launcher-invalid-plan.json records one request and 3589 tokens. The harness initially reported zero paid requests because counting occurred after execution; counting now occurs before dispatch, with returned usage retained. No success claimed. Review/independent invoice validation remain required on the next valid plan.
+
+
+### Required check templates and second live failure
+
+Planner requests now include requiredCheckEntries in output schema, preserving exact owner names and commands. Thirteen planner tests and build passed. The next live response retained unit_tests but omitted checkName on its work command, correctly rejected by schema validation. Evidence: evidence/p01-live-launcher-missing-command-name.json, one request, 3898 tokens. No execution or success claimed; reliable structured plan generation remains open.
+
+
+### Explicit plan schema
+
+The current model interface supports JSON mode without provider-enforced JSON Schema. The planning request now includes the full command schema and explicitly requires checkName for work as well as verification. Existing strict validation remains unchanged. Thirteen planner tests and build pass; no claim of live reliability yet. The combined browser harness now reports a displayed draft rejection immediately instead of waiting 90 seconds for a success message that cannot arrive.
+
+
+### Live invoice planning in clean launcher journey passes
+
+Exact source 37a5da8 passed browser owner/project/model/worker setup, restart/unlock, live MiMo invoice planning, exact-command inspection by Codex, explicit approval, Docker execution, frozen independent invoice verification, another launcher restart, recorded result restoration and final approval. Invoice bytes and receipts remained unchanged. Evidence: evidence/p01-live-launcher-invoice-cycle.json. One paid planning request used 3717 tokens. The introductory chat reply remained synthetic; this was a source launcher, not an installed archive. Two prior rejected live attempts remain recorded, so this is a bounded passing attempt, not consistent reliability or full P01 completion.
+
+
+### Installed live plan rejected during review
+
+Archive 795f1f72aba8b0268685ac753be6510c5a650be41056c84c1afbf74973b494b3 from 689a36e reached live review. Codex refused a conditional write to inputs/invoices.json outside artifacts/**; no approval was issued. Evidence: evidence/p01-installed-live-plan-rejected.json. The harness remains bounded by its five-minute approval deadline. Planner instructions now apply boundaries to conditional branches and prohibit recreating missing inputs. Thirteen tests pass; the change is not yet live-verified.
+
+
+### Explicit test-review rejection
+
+The live acceptance harness now reads a digest-bound rejected-plan.json and fails promptly with the review reason. Rejection takes precedence over approval; stale or malformed rejection records fail closed. A direct test covers pending, wrong-digest approval, exact approval, rejection precedence and stale rejection. This is test orchestration, not a replacement for product approval controls. The already-rejected old test did not support this channel; its uniquely identified node process tree was stopped without issuing approval.
+
+
+### Installed live invoice cycle passes
+
+Archive eeea45c986dec469f9c47160c64c23ed406364ccaa57bb0948841f72cbcd9d08 from af90640 passed clean browser owner/project/model/worker setup, restart/unlock, live planning, exact-command review, real Docker execution, frozen invoice verification, second restart, receipt restoration and final approval. Invoice bytes and receipts stayed unchanged. Evidence: evidence/p01-installed-live-launcher-invoice-cycle.json. One request, 4280 tokens; introductory chat remained synthetic. Previous installed rejection is retained. Hosted 3a1b72c passed all seven jobs, evidence/ci-3a1b72c.json; it predates these planner changes, so current exact-build CI remains required.
+
+
+### Live introductory chat acceptance added
+
+The combined installed journey can now opt into live chat as well as invoice planning. The introductory prompt requests a bounded acknowledgement without tools; it does not yet create the task from chat. Chat accounting is journaled before dispatch and after response, and missing usage remains unknown. Four accounting/review tests and syntax checks passed. A live attempt using the previously recorded af90640 archive is running; no outcome claimed yet.
+
+
+### Installed live chat and invoice planning
+
+The same af90640 archive passed with actual MiMo chat and actual MiMo invoice planning: encrypted restoration, chat reply, browser task form, exact plan review, real execution, independent invoice verification, restart recovery and final approval. Evidence: evidence/p01-installed-live-chat-and-invoice-cycle.json. Two requests used 5021 total tokens; dollar cost unknown. Chat was a bounded acknowledgement and task creation still used the form. The remaining P01 join is live chat preparing the task itself and reporting the verified result.
+
+
+### Live chat-created installed task passes
+
+The clean installed af90640 journey now uses live prepare_task rather than the task creation form. Owner review supplies boundaries and exact checks; live planning, reviewed Docker execution, frozen invoice verification, actual launcher restart, recorded-result recovery and final approval all passed. Evidence: evidence/p01-installed-live-chat-created-invoice.json. Three requests used 7450 tokens (two chat/tool rounds and planning); cost unknown. Remaining P01 join: verified-artifact retrieval and report back into chat after recovery. Wider matrices remain open.
+
+
+### Helper-file planning mismatch found
+
+The next installed chat-created invoice attempt failed execution: generated artifacts/reconcile.js was within the allowed glob but not a declared new output. The non-deleting worker mounts only existing allowed files and declared output files writable. Evidence: evidence/p01-live-helper-file-failure.json. Planner input now explains this distinction and recommends inline helper code. Strict file protections are unchanged; 13 planner tests pass. Final artifact-to-chat proof remains pending. Hosted 7c8e06f passed all seven jobs (evidence/ci-7c8e06f.json), predating this correction.
+
+
+### Runtime input provenance correction
+Installed 788fa2c planning embedded the fixture rows rather than reading the workspace input. Review rejected execution; evidence: evidence/p01-live-hardcoded-input-rejection.json. Planner instructions now explicitly require reading named workspace inputs at execution time and prohibit substituting copied sample rows. Thirteen planner tests pass; live verification of this correction remains outstanding. All wider acceptance items remain open.
+
+
+### Complete installed live invoice-to-chat journey
+Installed f58bd66 passed live chat task creation, live planning reading the workspace input, reviewed Docker execution, independent invoice verification, actual launcher restart, receipt-preserving final approval, and live verified-artifact retrieval into chat. Reload did not resend; output hash matched the artifact read by the model. Evidence: evidence/p01-installed-full-live-invoice-chat.json. Five provider requests, 11830 reported tokens, dollar cost unknown. This closes the missing join for this synthetic invoice journey; broader task, provider, recovery and release matrices remain open. Exact f58bd66 CI run 40318190402 is pending.
+
+
+### Partial-effect recovery after orphan removal
+Extended the real Docker worker-kill proof with durable journaling configured. Recovery refuses a missing result both while the orphan runs and after its removal; failed recovery preserves the task, replay remains refused, and the effect count stays one. Passed locally; evidence: evidence/p03-missing-result-after-orphan-removal.json. Successful uncertain-effect resolution and browser recovery remain open.
+
+
+### Browser recovery rejects changed artifacts
+Real Docker invoice execution exited after durable output but before receipt completion. Recovery rejected a changed report without mutating task or approvals; restoring original bytes allowed authenticated browser recovery with zero executions, independent invoice verification and pending final approval retained through reload. Evidence: evidence/p03-browser-tamper-and-result-recovery.json. Reuses the recorded model plan; no new paid requests. Remaining fault and authentication cases stay open.
+
+
+### Expired application session recovery
+The browser recovery test now installs a server-created expired synthetic session. Recovery returns 401 without task/approval mutation; owner signs in through the UI and restores the recorded result without execution. Passed; evidence: evidence/p03-expired-session-recovery.json. A harness method-name error was corrected before rerun. External provider token expiry remains separate and open.
+
+
+### Provider streaming reconnect coverage
+Seven authentication-recovery tests pass, including new 401/403 streaming reconnect cases. Each rejected attempt sends exactly one request; explicitly replacing credentials produces only the fresh response with reported usage. This uses a local HTTP provider fixture and does not establish real subscription renewal or browser connection replacement.
+
+
+### Live Hindsight acceptance runner
+Added scripts/hindsight-live-acceptance.mjs. It requires explicit opt-in plus HINDSIGHT_API_KEY and AGENTFORGE_HINDSIGHT_PROOF_BANK / QUERY / EXPECTED. Use a dedicated synthetic bank containing a chat-context-tagged fact. It verifies project isolation before any request, expected recall and read-only methods, and emits counts/status/digest without recalled content or credentials. Syntax passed and opt-in refusal was verified. No Hindsight credential was available in this session; live proof remains pending, not passed. Continue independent work.
+
+
+### Scan actual archive contents
+The privacy gate now compares tar member inventory with the npm packlist, extracts the locally generated archive, checks regular files and scans extracted text including declarations, HTML, CSS, YAML and source maps. Passed for 478 files; SHA-256 77dfd546cf08484b8c1be5ce82580adbc47407aa68a7f19b7f8973f036153e94. This removes the gap between scanning disk sources and hashing a later archive. Signature coverage remains bounded.
+
+
+### Imported memory recall boundaries and hosted checkpoint
+Expanded authenticated import-route acceptance to query the reopened store through the operational memory adapter. Mapped memory retains revision history and remapping provenance, appears in its destination project, and is excluded from old/unrelated projects and other namespaces. Test passed. Exact f58bd66 hosted CI completed successfully in all seven jobs; evidence: evidence/ci-f58bd66.json. Later test/gate changes still require their own hosted run.
+
+
+### Subscription draft command limits
+Removed the subscription-only two-command ceiling: draft schema, validation and Claude/Gemini prompts now share the main planner's maxima (100 commands, 200-character labels, 20000-character commands, one-hour per-command maximum). Timeout remains explicit for CLI drafts. This changes proposals, not client tool permissions or execution approval. Thirty-five adapter/protocol regressions and two bound tests pass. Live subscription lifecycle and managed execution remain open.
+
+
+### Durable memory deletion repair
+Fixed deletion ordering: persist before notification; restore the in-memory record if persistence fails; isolate listener exceptions after commit. Six batch/lifecycle tests pass, including failed-save rollback with no notification and successful deletion surviving reopen despite a failing listener. This covers local store deletion, not cloud-provider deletion.
+
+
+### Durable memory creation and edit repair
+Creation/edit had the same notification-before-persist ordering. The store now owns a cloned input, restores the prior record on failed persistence (or removes a failed new record), and isolates post-commit notification failures. Ten store/provider/import-route tests pass, including failed create/edit with no phantom notifications and saved input ownership. This is local durability evidence; external adapter lifecycle remains open.
+
+
+### Detached memory reads
+Memory list/search results now return deep copies so callers cannot mutate durable store state through a read reference. Forty-six store, memory-adapter and import-route tests pass, including input/output ownership, failed-save rollback, restart and migration isolation. Current runtime build/hosted verification must still include these new store changes.
+
+
+### Runtime verification after memory durability fixes
+Build 9f561e7 passed rendered memory setup/import, encrypted save/disconnect/restore/forget, wrong-password refusal, explicit restore after restart, composed local recall with provenance and outage refusal, and forced-process termination recovery. Evidence: evidence/p07-durable-memory-runtime-regression.json. No live cloud or installed archive claim for this run.
+
+
+### Concurrent memory writes
+Added stale-writer save/delete tests: both refuse a changed disk snapshot, restore the stale session's prior local record, emit no notification, and retain the other session's newer committed value on disk. Ten batch/lifecycle tests pass. Installed memory acceptance for the 9f561e7 runtime is running separately.
+
+
+### Fresh evaluation fixtures prepared
+Added three new v2 fixtures with exact output schemas: stock transfer balances, deadline classification and approved revision selection. Fixture hashes are frozen before model runs; evaluator-only expected answers are not staged. Contract test passes and rejects extra output keys. No model run or score exists yet. Full-product baseline design and equal budgets must be specified before scoring; v1 remains unchanged and its limitations remain recorded.
+
+
+## October 26 integration reconciliation
+
+These results close specific evidence gaps, not the whole numbered requirement.
+
+- P01/P02: `evidence/p01-installed-full-live-invoice-chat.json` records the
+  installed live invoice journey through chat, review, Docker, recovery and
+  artifact-grounded final chat. The older paragraphs saying this combination
+  is wholly unproven are historical. General task reliability remains open.
+- P05: `evidence/p05-hermes-credential-receipt-binding.json` proves local
+  credential-derived binding rejection for saved receipts, without network
+  access or state changes. `evidence/p05-installed-hermes-reconnect-auth.json`
+  proves installed-client reconnect to the actual disposable Hermes server,
+  wrong-key HTTP 401 and unchanged saved output, with zero submissions.
+  Neither proves changing the server's configured credential.
+- P07: `evidence/p07-installed-migration.json` proves fresh-workspace migration
+  from an installed archive, exact multiline titles and content, explicit
+  project mapping, provenance, reopen, selected-note recall and isolation.
+  Later fixes reject cross-collection ID overwrites and detach standalone
+  adapter inputs/results/history. Live Hindsight and full provider migration
+  coverage remain required.
+- P08: `evidence/p08-agent-setup-keyboard.json` covers agent-setup keyboard
+  saving, focus restoration and passphrase recovery. The model connection
+  browser harness now also checks keyboard save/unlock and retained focus.
+  This is not a complete keyboard or accessibility audit.
+- P09: version 2's first live attempt is retained in
+  `evidence/p09-v2-first-live-attempt.json`. Its asymmetric timeout instructions
+  invalidate comparative scoring. Its disposition disables live runs before
+  external work. Shared instructions repair the harness; a new frozen workload
+  is required, not replacement of the failed attempt. No superiority claim.
+- P10: `evidence/ci-e95f1f6.json` and `evidence/ci-bf83413.json` record seven
+  passing hosted jobs for those exact commits. They do not validate subsequent
+  source changes. The public release has not been replaced by these candidates.
+
+Next dependencies remain the full P01–P10 scope above: dedicated-account
+provider lifecycles, missing managed subscription execution, broader recovery,
+completed UI matrix, valid comparative evaluation, exact final CI/archive,
+publication and launch reconciliation. Keep private integrations out of all
+public artifacts. Do not mark an item complete from this reconciliation alone.
+
+### Version 3 live evaluation progress
+Payment-ledger trial 1 direct baseline and trial 2 direct baseline passed exact
+artifact scoring with unchanged inputs. AgentForge trial 1 remains a recorded
+Git line-ending infrastructure failure. After the fixture-byte repair, the
+scheduled AgentForge trial 2 passed the installed live chat-to-task journey,
+reviewed Docker execution, independent scoring, launcher restart, unchanged
+receipts, final approval and artifact-grounded chat surviving reload. Evidence:
+`evidence/p09-v3-payment-ledger-1-direct.json`,
+`evidence/p09-v3-payment-ledger-2-direct.json`, and
+`evidence/p09-v3-payment-ledger-2-agentforge.json`. Four of eighteen scheduled
+attempts are recorded; the harness change is disclosed and no superiority or
+full-release claim follows. Hosted commit a2b1c6d passed all seven jobs in
+`evidence/ci-a2b1c6d.json`; later changes still require hosted verification.
+
+### Version 3 comparison completed, with limitations
+All 18 scheduled attempts are retained in `evidence/p09-v3-report.json`, generated
+by `node scripts/release-evaluation-v3-report.mjs`. The generator checks each
+attempt identity, protocol hash, shared archive hash and reported usage, and
+records SHA-256 for each source evidence file. AgentForge passed 8/9 artifact
+checks and 7/9 full journeys; direct baseline passed 7/9 artifact checks.
+AgentForge used 42 provider requests and 80,335 reported tokens; direct used nine
+requests and 5,376 tokens. Costs are unknown. Provider time, total elapsed time
+and manual review time are separate in the report; total elapsed is not a clean
+speed comparison. Only three synthetic tasks were repeated, and the fixture
+harness changed after the first infrastructure failure. These results establish
+neither general reliability nor competitive superiority.
+
+Repair discovered: shipment trial 3 completed execution and recovery,
+but final chat returned content without invoking the verified artifact reader.
+That failure remains in the evaluation. Explicit recorded-path grounding was repaired separately and has regression, built-live and installed-live evidence in `evidence/p02-live-automatic-artifact-grounding.json` and `evidence/p02-installed-automatic-artifact-grounding.json`. Implicit or ambiguous references are not covered by this automatic selection.
+P01–P10 remain the full release scope; completing this experiment is not release
+acceptance.
+
+### Portable evaluation integrity
+
+`pnpm test:evidence:integrity` validates all 18 original v3 evidence hashes on
+LF and CRLF checkouts. It accepts only line-ending conversion, rejecting content
+or whitespace changes. Original attempt files and report hashes remain intact.
+`evidence/p09-v3-portable-integrity.json` records canonical LF hashes alongside
+the original hashes and encoding. Hosted release checks now run this verifier.
+
+## Current integration reconciliation — October 26
+
+The following closes specific proof gaps, not the full P01–P10 goal:
+
+- P03: browser provider-401 rejection and explicit retry preserve the rejected planning audit (`evidence/p03-provider-rejection-browser.json`). This is a synthetic HTTP rejection, not live subscription renewal. Worker tests preserve distinct conflicting facts with provenance and reject changes to the same record between queries (commit `2e74e32`); semantic resolution still needs the live task matrix.
+- P04: installed pinned OpenClaw invoice, unread-result recovery, reconnect without resend, and active Stop pass (`evidence/p04-installed-unread-restart.json`). The controlled partial-write Stop passes separately (`evidence/p04-installed-partial-write-stop.json`). Carry these onto the final candidate; do not repeat the same development trials without a relevant change.
+- P05: installed Hermes task/session selection, unread-result recovery and partial-effect Stop already have evidence. Real server-key rotation isolates the old run namespace and restoration recovers the old output (`evidence/p05-hermes-server-key-rotation.json`). Remaining: combine credential replacement with the governed browser receipt workflow and final candidate reconciliation.
+- P06: Claude/Gemini buffered chat and draft adapters exist; cancellation at response delivery is now enforced for both chat and planning (`7a59971`). Native managed execution workers and authenticated lifecycle acceptance remain implementation/verification work. An unsigned-in official client is not an accepted connection.
+- P07: built local migration now preserves Windows-edited Markdown (`evidence/p07-windows-markdown-migration.json`); malformed adapter version/update metadata is refused (`de34a1c`). Live Hindsight composition and the complete migration/deletion/outage matrix remain open.
+- P08: installed keyboard and rejected-unlock recovery pass (`evidence/p08-connection-rejected-unlock.json`, `evidence/p10-installed-7dd8c9a.json`). This does not close every provider setup flow.
+- P09: README and token-guide source now state frozen results, higher measured usage, and limitations (`233102c`). Hosted publication and the other agreed baselines remain open; no superiority claim is supported.
+- P10: source `7dd8c9a` passed all seven hosted jobs (`evidence/ci-7dd8c9a.json`). Later memory integration passed 927 local tests, with two live tests skipped (`evidence/p10-memory-integrated-regression.json`). Later commits are not covered by that hosted result. Final exact-build acceptance, release/merge, hosted demonstration, soak and cache-removal confirmation remain open.
+
+Do not summarize the remaining goal as only two missing provider accounts: native worker implementation, broader acceptance, final distribution and launch reconciliation remain required work.
+
+### P09 baseline installation and hosted integration
+
+The official DeepSeek Harness npm package 0.2.1-rc.3 installed with lifecycle
+scripts disabled. Its CLI help exited successfully in a fresh isolated home
+without inherited credential environment variables. Package integrity, lock
+and entry hashes are recorded in `evidence/p09-deepseek-installed-cli.json`.
+This establishes installation only; no comparative task has run. Freeze matched
+inputs, scoring and budgets before using it for performance evidence.
+
+Hosted run 40340652681 passed for exact source
+b92b63219ee4a20ec31fe5c6851b483dae8ddb54, recorded in
+`evidence/ci-b92b632.json`. This is not final release acceptance and does not
+cover later changes.
+
+### DeepSeek published configuration compatibility
+
+`evidence/p09-deepseek-headless-configuration.json` records successful isolated
+headless help and default-configuration inspection for published 0.2.1-rc.3.
+The published headless help does not expose the permission flags shown in the
+inspected source documentation. Use the installed configuration contract,
+not assumed source/package equivalence. Default configuration selects
+workspace-write with ask approval through DSH_PERMISSION_MODE, and includes a
+telemetry exporter. Before model trials, prepare an isolated container with
+explicit telemetry disabled, constrained network through the measured provider
+proxy, and a reviewed configuration overlay. Do not relax host permissions to
+make a benchmark pass. No model task or comparative score is claimed here.
+
+### P09 comparison runtime now executable
+
+The published DeepSeek 0.2.1-rc.3 package is pinned by lockfile and a digest-pinned
+Node container in `scripts/fixtures/deepseek-baseline`. Container startup,
+configuration loading, synthetic streaming, tool dispatch and exact synthetic
+file output are recorded in `evidence/p09-deepseek-container-startup.json`,
+`evidence/p09-deepseek-offline-load.json`, and
+`evidence/p09-deepseek-synthetic-artifact.json`. Native-loader failure evidence
+is retained separately. A small executable native-cache tmpfs is required;
+network remains disabled, the root filesystem is read-only, and no host folders
+or real credentials are mounted. These are infrastructure checks, not scores.
+
+The next P09 work is a measured provider proxy with an externally enforced
+request budget, fresh frozen task/scoring inputs, and matched installed
+AgentForge and DeepSeek attempts. Do not reuse the old scored cases as new
+independent evidence. Repository privacy and existing-build package checks
+passed after adding the harness (`evidence/p09-comparison-public-boundary.json`);
+this does not replace fresh final-build acceptance. P01–P10 remain open as scoped.
+
+### ChatGPT live acceptance update — October 26
+
+Official sign-in and protected saved-session restore now have live evidence.
+A real model-generated synthetic invoice plan executed in network-disabled Docker,
+passed the owner-defined check and independent expected-output comparison, and
+its saved result recovered in a separate process without requesting a new plan.
+Changing the artifact caused recovery to reject it; restoring the original bytes
+restored successful recovery.
+
+Evidence: `evidence/p06-chatgpt-live-inference.json`,
+`evidence/p06-chatgpt-live-invoice-execution.json`, and
+`evidence/p06-chatgpt-invoice-process-recovery.json`.
+This closes these specific backend checks only. Browser account activation,
+full task-runtime acceptance, interrupted-execution recovery, live renewal and
+sign-out still require evidence. Other P01–P10 requirements remain in scope.
+
+### ChatGPT subscription tool loop and renewal — October 26
+
+Live subscription inference completed a two-request tool cycle: exactly one synthetic calculator invocation, followed by the correct final total of 3,000 cents. Explicit official credential renewal and reopening protected storage also passed; automatic expiry timing was not exercised. `evidence/p06-chatgpt-acceptance-index.json` pins the five acceptance records by SHA-256. Credentials, private files and Kevin integrations are excluded.
+
+Hosted run 40358446967 passed all seven jobs for exact source `4ffda5b79244ac5cb45e8e23d07781db2cc9a07a` (`evidence/ci-4ffda5b.json`). Subsequent source changes need their own hosted result. Browser owner setup remains pending; backend acceptance does not substitute for the full browser workflow or remaining P01–P10 work.
+
+### Native client integration and exact CI — October 26
+
+Claude now has an exported `ClaudeNativeClient` governed-worker implementation, with a pinned client version, dedicated profile, explicit subscription authentication check, no API fallback, bounded process execution and broker-only tool configuration. It is not enabled in server startup. Installed official-client tests exercise the advertised tool surface, rejection of an unoffered shell tool, host review before an actual synthetic file write, and duplicate refusal. Evidence: `evidence/p06-claude-native-tool-surface.json`, `evidence/p06-claude-native-negative.json`, and `evidence/p06-claude-native-governed.json`. These use a local synthetic model API, not a live Claude subscription, and do not establish Docker or OS isolation. The full-client test exposed and fixed MCP version negotiation in the real host broker.
+
+P06 remains open for native-client isolation, live authenticated lifecycle and server/UI activation; P07 still requires live Hindsight acceptance. The ChatGPT browser workspace still awaits owner-password setup. Do not collapse these gaps into a passing component result.
+
+All seven hosted jobs passed exact source `962b6c7a3e3540522f052a60fe7f417f8b3cceed` (`evidence/ci-962b6c7.json`). The later Claude changes are not covered by that result. Local `pnpm check` at `8951639` passed 963 tests with two skipped and scanned 504 archive files (`evidence/p10-integrated-8951639.json`). Full P01–P10 acceptance, merge, final archive, hosted demonstration and launch remain required.
+
+### Live ChatGPT governed runtime and disconnected response
+
+`evidence/p06-chatgpt-runtime-disconnect.json` records three live subscription requests through ConversationRuntime and TaskWorkerRuntime. The model inspected the synthetic pre-approved task, executed it in network-disabled Docker, and persisted the completed response, reported usage, observed receipt and independently checked artifact despite a disconnected response subscriber. Reopening the store recovered the response. This is not an OS-process crash or browser account-activation proof, and uses a pre-approved fixed command rather than a freshly generated invoice plan. The reproducible conversation-execution runner now supports an explicit dedicated ChatGPT profile and actor without discovering private profiles.
+
+Local integrated checks passed 168 test files / 964 tests, with two skipped; build and the 506-file public archive scan passed. The runtime acceptance script extension separately passed scripts typechecking. Hosted acceptance is tracked separately by exact commit; P01–P10 remain open.
+
+### Live ChatGPT process-termination recovery
+
+`evidence/p06-chatgpt-runtime-crash.json` records two live ChatGPT requests through the ordinary conversation/worker path, followed by actual termination of the dedicated worker process after durable Docker output but before the observed receipt. A separate process restored verified output to pending final approval, with zero recovery executions, duplicate recovery refused and the saved state reopened. This closes that specific P06 process-boundary proof; it does not establish mid-command partial-effect reconciliation, browser setup or the remaining native-provider lifecycle requirements. Reproducer: `scripts/chatgpt-runtime-crash.ts` and the release runbook.
+
+### Live ChatGPT cancellation and explicit restore
+
+`evidence/p06-chatgpt-live-cancellation.json` closes the live transport-cancellation case: an actual inference reached successful HTTP response headers, was immediately cancelled, rejected without delivering any output/tool actions, and issued no automatic retry. An explicit shutdown, protected-profile restore and second request succeeded. Two inference requests total. This does not claim provider-side billing cancellation, wall-clock expiration, browser Stop, remote revocation or complete P06 acceptance. Reproducer: `scripts/chatgpt-live-cancellation.ts`.
+
+P07 two-hop migration now preserves conflicting facts, original revisions and the nested project-remapping history through a second export/import and fresh process. Conflicting overwrite refuses without mutation; deletion remains absent in another process. Evidence: `evidence/p07-two-hop-memory-migration.json`; reproducible runner remains in the hosted OS/Node matrix. Live Hindsight and broader browser acceptance remain open.
+
+P09 installed DeepSeek now passes the unified process-attempt lifecycle with a synthetic model: reservation, bounded process, independent artifact check, proxy accounting and immutable final outcome. Evidence: `evidence/p09-deepseek-process-lifecycle.json`; reproducer: `node --import tsx scripts/deepseek-process-acceptance.ts ABSOLUTE_NEW_EVIDENCE_FILE`. The pinned local Docker image from the startup evidence must exist. Network is disabled. This is infrastructure acceptance, not a frozen live comparison score; AgentForge-arm integration and matched live trials remain required.
+
+P09 AgentForge also passes the common attempt lifecycle through its real conversation runtime, governed worker and Docker execution, using a scripted model and synthetic pre-approved command. Evidence: `evidence/p09-agentforge-process-lifecycle.json`; reproducer: `node --import tsx scripts/agentforge-process-acceptance.ts ABSOLUTE_NEW_EVIDENCE_FILE`. This verifies arm wiring only. The synthetic DeepSeek and AgentForge checks use different development fixtures and must not be compared as scores. A matched frozen live protocol and live model execution remain required.
+
+### Live stock-allocation development workflow completed
+
+The real MiMo-generated plan in `evidence/p09-agentforge-stock-draft-development.json`
+now has reviewed Docker execution and independent scoring in
+`evidence/p09-agentforge-stock-execution-retry-development.json`, followed by final
+approval and durable reopen in `evidence/p09-agentforge-stock-completion-development.json`.
+Reopening preserved the completed state, original receipt and artifact hash, with
+zero new executions or model requests. The first execution's Windows line-ending
+fixture failure remains recorded in `evidence/p09-agentforge-stock-execution-development.json`;
+the retry used the same reviewed model plan after making fixture bytes stable.
+
+This is a synthetic development workflow, not browser acceptance or a matched
+held-out comparison. P09 remains open; these results do not demonstrate competitive
+superiority. The completion harness was verified at commit d79252c; final release
+candidate packaging and hosted acceptance remain separate requirements.
+
+### Dedicated ChatGPT sign-out acceptance prepared
+
+`scripts/chatgpt-signout-acceptance.ts` now checks actual protected-store removal,
+stale active-provider refusal, fresh setup restore refusal, retained registration
+for later sign-in, and zero post-sign-out network requests. Remote revocation is
+reported separately from local disconnection. It requires an explicit environment
+opt-in and a new evidence destination; no credential values are emitted.
+
+The script typechecks but has not yet been executed. Run it only after the pending
+natural-expiry acceptance, because it deliberately disconnects the dedicated
+acceptance account. This preparation does not close P06 live lifecycle acceptance.
+
+### Product-reference review: personal AI operating system video
+
+The supplied reference video ([I Built My Own AI Personal OS](https://youtu.be/BtJklgHcYPw?si=9FvEFhgkVx-W_ixN)) describes, at approximately 1:06–8:21, isolated workspaces with selective memory sharing, multiple provider subscriptions, named agents and teams, automations, dashboards, voice and mobile channels, and a cloud mode. These are product-direction requirements, not release evidence. AgentForge already has workspace, agent, memory, migration, voice and activity surfaces, but the current release checklist correctly keeps live voice, mobile/cloud operation, broad provider activation and guided setup as separate acceptance items. No private data or Kevin integration is derived from the video.
+
+The first live invoice-adjustments planning attempt is retained in
+`evidence/p09-agentforge-invoice-adjustments-draft-development.json`: the provider
+request completed with reported usage, but the model response failed the execution
+plan schema. The planner now supports an explicit bounded development output budget
+and records sanitized failure reasons; this is a development example and does not
+close P09 or establish competitive superiority.

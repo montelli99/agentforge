@@ -1,0 +1,17 @@
+{
+  "recordedAt": "2026-10-26T14:48:45.042Z",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "network": "none",
+  "hostMounts": [],
+  "realCredentials": false,
+  "syntheticTask": true,
+  "result": {
+    "status": 0,
+    "requests": 1,
+    "stdout": "{\"type\":\"session\",\"sessionId\":\"session-c22c19dc-d05a-47a4-bdb5-f0bd1b30567e\",\"cwd\":\"/tmp\"}\n{\"type\":\"status\",\"phase\":\"turn_start\",\"turn\":1}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":1}\n{\"type\":\"text\",\"text\":\"READY\"}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":1,\"usage\":{\"inputTokens\":0,\"outputTokens\":0,\"totalTokens\":0}}\n{\"type\":\"status\",\"phase\":\"turn_end\",\"turn\":1,\"reason\":{\"kind\":\"completed\"}}\n{\"type\":\"final\",\"text\":\"READY\"}\n",
+    "stderr": ""
+  },
+  "acceptance": false,
+  "syntheticProvider": true,
+  "scope": "Synthetic streaming transport acceptance only; no live-model or artifact benchmark claim"
+}

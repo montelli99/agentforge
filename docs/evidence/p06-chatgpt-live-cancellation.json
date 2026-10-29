@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "model": "gpt-6-luna",
+  "inferenceRequests": 2,
+  "successfulResponseHeadersSeen": true,
+  "cancelledRequestRejected": true,
+  "deliveredChunks": 0,
+  "deliveredToolCalls": 0,
+  "explicitRestoreSucceeded": true,
+  "scope": "Live cancellation after response headers, no delivered model actions, no automatic inference retry; explicit saved-profile restore and a new successful request. Does not prove server-side billing cancellation or wall-clock expiry."
+}

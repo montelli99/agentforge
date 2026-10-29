@@ -1,0 +1,116 @@
+{
+  "protocolCommit": "0aa3afa",
+  "attempts": [
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "passed",
+      "startedAt": "2026-10-26T10:33:09.187Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 555,
+        "totalTokens": 1116
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "afce9d16-0f7e-491b-b851-db4bad6bc96b",
+        "taskId": "inventory-reconciliation-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "cddb4c7931b4f35928b15b47c2c3217a607458b0546c5b638244d08eb56c3e69",
+        "status": "completed",
+        "inputTokens": 561,
+        "outputTokens": 555,
+        "responseDigest": "e210dbd95edd62422877dba1ad0b45dc45b3b8710c33b3a303862cf99a1cbf0b"
+      },
+      "planSha256": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+      "planningElapsedMs": 13666.3505,
+      "review": {
+        "approvedDigest": "4c1c92dc435db761be1d8d0df374c7aceef206971113a903cc2ee20846fe8ac7",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:44.574Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflicts",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 0,
+          "stdout": "OK {\"conflicts\":[\"e4\"],\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7}}\n",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify input.json unmodified",
+          "exitCode": 0,
+          "stdout": "input.json intact\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "8438d8797a4a1b53ad078d9aa72945ece457248161b4e95484d0804d03b20bea"
+      },
+      "executionElapsedMs": 3385.8364,
+      "wallElapsedMs": 98771.8364
+    },
+    {
+      "id": "inventory-reconciliation",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:33:22.940Z",
+      "inputSha256": "abbacab6758d4f694050cfb6116f74cf1a11844cc39bc65db65e6b0a5ecc8354",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 561,
+        "completionTokens": 527,
+        "totalTokens": 1088
+      },
+      "cost": null,
+      "planSha256": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+      "planningElapsedMs": 13604.930699999999,
+      "review": {
+        "approvedDigest": "894efd4d51f75df37e95dc63cd82c6f806f56f0427d7c42b459b481b63d9d865",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:34:48.039Z"
+      },
+      "commands": [
+        {
+          "checkName": "Write result.json with deduplicated adjustments and conflict detection",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "Verify result.json contents",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Mismatch {\"onHandBySku\":{\"A\":9,\"B\":9,\"C\":7},\"conflicts\":[\"e4\"]}\n"
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "error": "Command failed or timed out",
+      "score": {
+        "passed": true,
+        "reason": "match",
+        "outputSha256": "fdc170d16e3d27ce590ef363edc8d2c451f7fb898c555b881397b3991586b721"
+      },
+      "executionElapsedMs": 2040.1000000000001,
+      "wallElapsedMs": 87138.1
+    }
+  ],
+  "interpretation": "Both artifacts match the independent expected output. AgentForge plan commands all succeeded; direct plan had a failing model-authored self-check. This pair does not establish comparative superiority.",
+  "limits": [
+    "One of nine pairs only",
+    "Uses AgentForge draft provider plus common isolated executor, not the full browser/worker lifecycle",
+    "Wall time includes reviewer scheduling; planning and execution durations reported separately"
+  ]
+}

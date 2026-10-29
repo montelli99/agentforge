@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "liveBrowserDelegation": true,
+  "reconnectedWithoutResend": true,
+  "activeRunObservedBeforeStop": true,
+  "browserStopAcknowledged": true,
+  "remoteRunInactiveAfterStop": true,
+  "terminalStopReason": "rpc",
+  "invoiceUnchangedAfterStop": true,
+  "realPairedGateway": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "providerRequests": 5,
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:28:58.198Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12298,
+        "outputTokens": 19
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:29:00.677Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:29:00.901Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 12621,
+        "outputTokens": 370
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:29:05.239Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:29:05.468Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13015,
+        "outputTokens": 39
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:29:08.680Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:29:09.052Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13314,
+        "outputTokens": 168
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:29:14.304Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:29:23.133Z",
+      "status": "started",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "runId": "5f31ab2f-5193-489b-9867-382026d1c1ef",
+  "independentInvoiceCheck": true,
+  "externalResultVisible": true,
+  "reloadDidNotResend": true,
+  "notAutomaticallyCompleted": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "sourceCommit": "a6f70cd580d1444574aab029a3aeb527bfc058cc",
+  "runnerSha256": "74af8450f6254eeced3a5f0a741eba6b14ab547b03930f74e59cfa5ab1e5e27f",
+  "recordedAt": "2026-10-26T09:29:54.016Z",
+  "packageSha256": null,
+  "scope": "Source-build browser workflow, paired real gateway, verified invoice, same-client reconnect without resend and explicit Stop of exact active run. Gateway process restart, installed-package repetition and broader partial-effect inspection remain open.",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "stopObservationSha256": "65861eb885bb8462ef1cbe4410e167d888261111667d3050d8dbd735beb708cc",
+  "terminationAfterAcknowledgmentMs": 145,
+  "attempts": [
+    {
+      "result": {
+        "passed": false,
+        "error": "Stop requires actual active run",
+        "providerRequests": 6,
+        "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+      },
+      "sha256": "d4000e81d3d29be9edf6273616507d506bc4152d651928e1a810e437957ef02f"
+    },
+    {
+      "result": {
+        "passed": false,
+        "error": "Stop requires actual active run",
+        "providerRequests": 5,
+        "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+      },
+      "sha256": "94180be192124c56123d2daf6ea3527c979756ed7ffe3d2a9020533fb5b31f09"
+    },
+    {
+      "result": {
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n\ntrue !== false\n",
+        "providerRequests": 5,
+        "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0"
+      },
+      "sha256": "b5e60d875ef24f38b6cbd4a06cf9aa33f2bf8f9e1c50843593c84e89365d2eef"
+    }
+  ]
+}

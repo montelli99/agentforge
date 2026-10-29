@@ -1,0 +1,19 @@
+{
+  "installedPackage": true,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "passed": true,
+  "missingRepositoryRepairedInBrowser": true,
+  "repairDidNotEnableExecution": true,
+  "savedDockerFromBrowser": true,
+  "invalidRepositoryRejected": true,
+  "pendingSelectionSurvivedReload": true,
+  "noTaskStarted": true,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "sourceCommit": "91dd007b7dff4a58b84c5ca0e6a75ec976190e09",
+  "archiveSha256": "a3675ba5ef65fc6d10756171e7b612f9b21e3380603684457c40a6aabd5f325f"
+}

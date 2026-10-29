@@ -1,0 +1,16 @@
+{
+  "requirement": "P01 and P08 guided first-use browser setup",
+  "sourceCommit": "7a85219a0f37527e7b8f71157a7da1c6fa40610f",
+  "passed": true,
+  "syntheticOnly": true,
+  "paidRequests": 0,
+  "realLauncher": true,
+  "ownerSetup": true,
+  "authBackgroundInert": true,
+  "authFocusVerified": true,
+  "postLoginWorkspaceInteractive": true,
+  "projectAndConversationCreatedInBrowser": true,
+  "recoveredAfterReload": true,
+  "executionEnabled": false,
+  "scope": "Guided setup and first project only; model execution is covered by the live MiMo approval evidence."
+}

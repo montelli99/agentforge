@@ -1,0 +1,8 @@
+{
+  "sourceCommit": "6d643a1e7749193b6e6d0b3902d08867927480ba",
+  "gate": "node scripts/public-archive-privacy-acceptance.mjs",
+  "passed": true,
+  "shippedFiles": 478,
+  "scope": "Current npm dry-run inventory and shipped-text signature scan; not a guarantee that all possible private data is detectable",
+  "recordedAt": "2026-10-26T11:19:59.4079745Z"
+}

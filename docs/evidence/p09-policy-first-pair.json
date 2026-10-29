@@ -1,0 +1,105 @@
+{
+  "protocolCommit": "0aa3afa",
+  "attempts": [
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 1,
+      "arm": "agentforge",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:39:40.409Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 566,
+        "totalTokens": 1233
+      },
+      "cost": null,
+      "planningAudit": {
+        "id": "887be530-20eb-4d0b-8131-492b61472d91",
+        "taskId": "explicit-policy-precedence-1",
+        "model": "mimo-v2.6-flash",
+        "requestDigest": "782fd5628dca2150c5529f3805d57c11b51a9f6ebc4e0c547220e5233ef98821",
+        "status": "completed",
+        "inputTokens": 667,
+        "outputTokens": 566,
+        "responseDigest": "ae69767f6db365e7fd66c1ee108070f3f01dedab9c331cab1113649314d30083"
+      },
+      "planSha256": "32a03203e52baf5616fbb9e85d17e38beb21572b791520ed9f955327b95bb2ba",
+      "planningElapsedMs": 13439.905,
+      "review": {
+        "approvedDigest": "32a03203e52baf5616fbb9e85d17e38beb21572b791520ed9f955327b95bb2ba",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:40:16.472Z"
+      },
+      "commands": [
+        {
+          "checkName": "work",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verify result.json content",
+          "exitCode": 0,
+          "stdout": "OK\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "3936bf92968319faf217032193f483e2503fef6dc4328059fd89a1fcf565e281"
+      },
+      "executionElapsedMs": 2003.384,
+      "wallElapsedMs": 38064.384
+    },
+    {
+      "id": "explicit-policy-precedence",
+      "trial": 1,
+      "arm": "direct",
+      "status": "failed",
+      "startedAt": "2026-10-26T10:39:53.931Z",
+      "inputSha256": "a2368aee44a79e530e1dc1f09c105b6de7aa91a2717526954bce51790b5eb5fa",
+      "requests": 1,
+      "usage": {
+        "promptTokens": 667,
+        "completionTokens": 464,
+        "totalTokens": 1131
+      },
+      "cost": null,
+      "planSha256": "9c5027301239c78b82b3a623b844b9c13a20fcb8ec0f50e6280ac81ba6828841",
+      "planningElapsedMs": 9851.9371,
+      "review": {
+        "approvedDigest": "9c5027301239c78b82b3a623b844b9c13a20fcb8ec0f50e6280ac81ba6828841",
+        "reviewer": "Codex synthetic evaluation reviewer",
+        "at": "2026-10-26T10:40:18.554Z"
+      },
+      "commands": [
+        {
+          "checkName": "work",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "checkName": "verify",
+          "exitCode": 0,
+          "stdout": "result.json verified\n",
+          "stderr": ""
+        }
+      ],
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "score": {
+        "passed": false,
+        "reason": "mismatch",
+        "outputSha256": "2427e2b3e4c5efe77d091e9b84a514800bf31635822d7c5b5f65e2a520671d32"
+      },
+      "executionElapsedMs": 2016.0189999999998,
+      "wallElapsedMs": 26638.019
+    }
+  ],
+  "remainingAttempts": 4,
+  "interpretation": "Both plans execute successfully but fail exact JSON schema scoring. The frozen prompt did not explicitly specify the nesting of conflicts, so these mismatches cannot alone establish incorrect policy reasoning. Retain the original outcomes; do not tune this version."
+}

@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+import { TeamCoordinator } from "./teamCoordinator.js";
+import { WorkspaceStore } from "./core/store/workspaceStore.js";
+
+const agent = (name: string) => ({ name, role: "specialist", description: name, status: "idle" as const, harnessPolicy: { preferredHarnessId: "native", autoResume: false }, modelPolicy: { preferredTier: 1 as const, preferredModel: "test", preferredProvider: "test", allowCloudFallback: false }, decisionPolicy: { useSystem1Router: true }, computePolicy: { environment: "none" as const }, memoryNamespace: `test/${name}`, tools: [], permissions: [], assignedChannelIds: [] });
+
+describe("TeamCoordinator", () => {
+  it("plans a governed lead/specialist run and queues an in-team handoff without executing", async () => {
+    const store = new WorkspaceStore();
+    const lead = store.createAgent(agent("Lead"));
+    const specialist = store.createAgent(agent("Researcher"));
+    const coordinator = new TeamCoordinator(store);
+    const run = coordinator.startRun({ title: "Research", objective: "Prepare a bounded comparison", leadAgentId: lead.id, specialistAgentIds: [specialist.id] });
+    expect(run.status).toBe("planned");
+    expect(store.getTask(run.taskId)?.status).toBe("ready");
+    const handoff = coordinator.queueHandoff(run, lead.id, specialist.id, "Collect the comparison inputs.");
+    expect(coordinator.acceptHandoff(run, handoff.id, specialist.id).status).toBe("accepted");
+    expect(store.getTask(run.taskId)?.status).toBe("ready");
+    expect(store.listMessages(run.channelId)).toHaveLength(3);
+    await expect(coordinator.execute(run, { isRunning: () => false, executeTask: async () => { throw new Error("must not run"); } })).rejects.toThrow(/no governed worker/);
+    expect(run.status).toBe("blocked");
+    const restored = new TeamCoordinator(store).restoreRuns();
+    expect(restored).toHaveLength(1);
+    expect(restored[0]).toMatchObject({ id: run.id, leadAgentId: lead.id, specialistAgentIds: [specialist.id], objective: "Prepare a bounded comparison" });
+  });
+});

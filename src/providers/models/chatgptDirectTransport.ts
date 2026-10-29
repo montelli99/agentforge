@@ -1,3 +1,4 @@
+import {ModelProviderError} from '../../core/providers/model.js';
 import type {AuthorizedResponsesTransport,DirectGrant} from './chatgptDirectModel.js';
 import type {DirectCredentials} from './chatgptDirectOAuth.js';
 
@@ -14,8 +15,8 @@ export class DirectResponsesTransport implements AuthorizedResponsesTransport {
     let response:Response;
     try{response=await this.request(input.url,{method:'POST',headers:{Authorization:'Bearer '+token.accessToken,'Content-Type':'application/json',Accept:'text/event-stream'},body:JSON.stringify(input.body),redirect:'error',signal:input.signal});}
     catch{throw Error('Subscription request failed; no retry was attempted');}
-    if(!response.ok||!response.body||!/^text\/event-stream\b/i.test(response.headers.get('content-type')??'')){
-      await response.body?.cancel().catch(()=>undefined);throw Error('Subscription response rejected; reconnect or inspect account access');
+    if(!response.ok||!response.body||(response.headers.has('content-type')&&!/^text\/event-stream\b/i.test(response.headers.get('content-type')??''))){
+      await response.body?.cancel().catch(()=>undefined);throw new ModelProviderError('Subscription response rejected (HTTP '+response.status+'); no retry or fallback');
     }
     const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let pending='',data:string[]=[],bytes=0;
     try{
@@ -29,6 +30,7 @@ export class DirectResponsesTransport implements AuthorizedResponsesTransport {
           if(line===''){
             if(data.length){const value=data.join('\n');data=[];if(value!=='[DONE]'){let parsed:unknown;try{parsed=JSON.parse(value);}catch{throw Error('Malformed subscription event');}yield parsed;}}
           }else if(line.startsWith('data:'))data.push(line.slice(5).replace(/^ /,''));
+          else if(!line.startsWith(':')&&!/^(event|id|retry):/.test(line))throw Error('Malformed subscription stream framing');
           if(data.reduce((n,s)=>n+s.length,0)>131072)throw Error('Subscription event exceeded size limit');
         }
         if(pending.length>131072)throw Error('Subscription event exceeded size limit');

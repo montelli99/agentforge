@@ -1,0 +1,10 @@
+{
+  "requirement": "P05",
+  "case": "Cancellation harness first attempt",
+  "outcome": "failed before cancellation submission",
+  "cause": "Harness used stale store after reopening and observing through a second instance",
+  "protection": "Workspace snapshot changed since this store loaded",
+  "repair": "Use reopened store for the cancellation task",
+  "runtimeBase": "78a5585",
+  "privateData": "Synthetic only"
+}

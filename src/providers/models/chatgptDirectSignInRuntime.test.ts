@@ -124,7 +124,7 @@ describe('isolated sign-in network boundary', () => {
   });
 
   it('redacts catalog HTTP bodies and bounds catalog JSON', async () => {
-    for (const response of [new Response('private-token-body', { status: 403 }), new Response('not-json'), Response.json({ value: 'x'.repeat(128 * 1024) })]) {
+    for (const response of [new Response('private-token-body', { status: 403 }), new Response('not-json'), Response.json({ value: 'x'.repeat(1024 * 1024) })]) {
       const request = vi.fn<typeof fetch>(async () => response);
       await expect(createIsolatedCatalogTransport(new AbortController().signal, request).list('mock-access-token'))
         .rejects.toThrow('Model catalog request failed');
@@ -162,4 +162,10 @@ describe('isolated sign-in network boundary', () => {
     expect(request).toHaveBeenCalledTimes(1);
     await expect(createIsolatedCatalogTransport(new AbortController().signal,request).list('synthetic-access')).rejects.toThrow(/^Model catalog request failed\.$/);
   });
+});
+
+it('accepts a large bounded account model catalog',async()=>{
+ const catalog={models:[{slug:'synthetic',display_name:'Synthetic',visibility:'list',metadata:'x'.repeat(568400)}]};
+ const transport=createIsolatedCatalogTransport(new AbortController().signal,async()=>Response.json(catalog));
+ expect(await transport.list('synthetic-access')).toEqual(catalog);
 });

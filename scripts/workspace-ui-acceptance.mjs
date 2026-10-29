@@ -49,6 +49,17 @@ try {
   await call('/api/threads/'+thread.id,'PATCH',{archived:false});
   assert.equal((await call('/api/projects/'+project.id,'PATCH',{instructions:'Updated instructions',archived:true})).body.archived,true);
   await call('/api/projects/'+project.id,'PATCH',{archived:false});
+  const lead=(await call('/api/agents','POST',{name:'Team lead',role:'Coordinator',description:'Synthetic acceptance teammate'})).body;
+  const specialist=(await call('/api/agents','POST',{name:'Team specialist',role:'Researcher',description:'Synthetic acceptance teammate'})).body;
+  const team=await call('/api/team-runs','POST',{title:'Team collaboration acceptance',objective:'Coordinate a bounded synthetic comparison',leadAgentId:lead.id,specialistAgentIds:[specialist.id],projectId:project.id});
+  assert.equal(team.status,201);assert.equal(team.body.status,'planned');
+  const queued=await call('/api/team-runs/'+team.body.id+'/handoffs','POST',{fromAgentId:lead.id,toAgentId:specialist.id,instruction:'Collect the bounded comparison inputs.'});
+  assert.equal(queued.status,201);assert.equal(queued.body.status,'queued');
+  const accepted=await call('/api/team-runs/'+team.body.id+'/handoffs/'+queued.body.id+'/accept','POST',{agentId:specialist.id});
+  assert.equal(accepted.status,200);assert.equal(accepted.body.status,'accepted');
+  const execution=await call('/api/team-runs/'+team.body.id+'/execute','POST');
+  assert.equal(execution.status,409);assert.equal(execution.body.executionStarted,false);
+  const restoredRuns=(await call('/api/team-runs')).body;assert.equal(restoredRuns.some(item=>item.id===team.body.id),true);
   const html=await(await fetch(base,{headers:{Connection:'close'}})).text();
   const appSource=fs.readFileSync(path.join(root,'src/server/ui/workspaceApp.ts'),'utf8');
   // Strict mode must offer a usable first-run path without exposing a session in browser storage.

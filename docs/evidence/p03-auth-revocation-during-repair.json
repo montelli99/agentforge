@@ -1,0 +1,23 @@
+{
+  "requirement": "P03/P08",
+  "baseCommit": "33189e6",
+  "proof": {
+    "passed": true,
+    "reviewedNewOperation": true,
+    "originalReceiptPreserved": true,
+    "repairExecutions": 1,
+    "outputUnchanged": true,
+    "syntheticModel": true,
+    "authenticationLossDuringExecution": true,
+    "finalBrowserApproval": true,
+    "durableCompletion": true
+  },
+  "checks": [
+    "Cookie sign-out revokes server-side session",
+    "Old bearer replay unauthenticated",
+    "Signed-out task reads return 401",
+    "Sign-in recovers one ongoing operation with preserved receipts and final approval"
+  ],
+  "scope": "Session revocation during deterministic browser/Docker repair. Not provider credential expiry or timed session expiry.",
+  "runnerSha256": "b8a8f63fd8bdaa5181f3415fd8d9414ac088825709bc90102cb19ffb32df46ff"
+}

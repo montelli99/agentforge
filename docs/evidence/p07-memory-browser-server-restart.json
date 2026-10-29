@@ -1,0 +1,18 @@
+{
+  "requirement": "P07/P08",
+  "baseCommit": "84e29f2",
+  "realBrowser": true,
+  "serverRecreatedFromSavedWorkspace": true,
+  "checks": [
+    "Encrypted selection excludes plaintext path and passphrase",
+    "No active memory selection after server restart",
+    "Wrong passphrase leaves selection disconnected",
+    "Correct passphrase restores through UI",
+    "Forget preserves original note"
+  ],
+  "pageErrors": [],
+  "limitations": [
+    "Same Node process with newly constructed server and reopened store; full process kill is a separate fault case.",
+    "No live cloud provider involved."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "requirement": "P05",
+  "sourceCommit": "33af2e0",
+  "run": {
+    "object": "hermes.run",
+    "run_id": "run_8e0101e2eb5b4fb689d1199979595a50",
+    "status": "completed",
+    "updated_at": 1792998913.9169872,
+    "created_at": 1792998893.8804789,
+    "session_id": "run_8e0101e2eb5b4fb689d1199979595a50",
+    "model": "hermes-agent",
+    "last_event": "run.completed",
+    "output": "1250\n\n1200 - 250 = 950, then 950 + 300 = 1250.",
+    "usage": {
+      "input_tokens": 41664,
+      "output_tokens": 111,
+      "total_tokens": 41775,
+      "cache_read_tokens": 41280,
+      "cache_write_tokens": 0
+    },
+    "runtime": {
+      "provider": "custom",
+      "model": "mimo-v2.6-flash",
+      "route_source": "global"
+    },
+    "completed": true,
+    "partial": false,
+    "interrupted": false
+  },
+  "requestId": "proof-af25b566-a20b-432e-981d-659982a11646",
+  "modelRequests": 5,
+  "modification": "Direct acceptance submission now includes Idempotency-Key, as the production connector already does",
+  "toolExecution": "Not proven by final answer",
+  "packageSha256": null
+}

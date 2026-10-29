@@ -24,10 +24,11 @@ let server=new AgentForgeWebServer(store,0,undefined,undefined,options),browser;
 const local=process.env.AGENTFORGE_BROWSER_LOCAL==='1';const route=local?'local':'compatible';
 const key='synthetic-credential-not-a-real-provider-key';
 const passphrase='Synthetic connection vault password';
-let requests=0;const received=[];
+let requests=0;let rejectPlanning=false;const received=[];
 const provider=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  received.push({url:req.url,authorization:req.headers.authorization,body:JSON.parse(raw)});requests++;
+ if(!JSON.parse(raw).stream&&rejectPlanning){res.writeHead(401,{"Content-Type":"application/json"});res.end(JSON.stringify({error:{message:"synthetic expired credential"}}));return;}
  if(!JSON.parse(raw).stream){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({choices:[{message:{role:'assistant',content:JSON.stringify({commands:plannedCommands})},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));return;}
  res.writeHead(200,{'Content-Type':'text/event-stream'});
  res.write('data: '+JSON.stringify({choices:[{delta:{content:'Synthetic response '},finish_reason:null}]})+'\n\n');
@@ -43,15 +44,20 @@ try{
  await page.locator('input[name=password]').fill('Synthetic owner password');
  await page.getByRole('button',{name:'Secure & continue',exact:true}).click();
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
- if(local)await page.getByRole('button',{name:/Run a local model/}).click();
+ for(const label of [/Use a subscription/,local?/Run a local model/:/Use an API key/]){
+  await page.getByRole('button',{name:label}).focus();await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-pressed')),'true','Selected route retains keyboard focus after redraw');
+ }
+
  await page.getByRole('button',{name:'Continue',exact:true}).click();
- if(!local)await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');
+ if(!local){await page.locator('.sg-body label').filter({hasText:'Provider'}).locator('select').selectOption('compatible');assert.equal(await page.evaluate(()=>document.activeElement?.tagName),'SELECT','Provider selection retains focus');}
  await page.getByLabel('API base URL',{exact:true}).fill('http://127.0.0.1:'+provider.address().port+'/v1');
  await page.getByLabel('Model name',{exact:true}).fill('synthetic-model');
  if(!local)await page.getByLabel('Dedicated API key',{exact:true}).fill(key);
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
- await page.getByRole('button',{name:'Save and connect',exact:true}).click();
+ await page.getByLabel('Private connection-store passphrase',{exact:true}).focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Save and connect');await page.keyboard.press('Enter');
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Save and connect');
  if(!local)assert.equal(await page.getByLabel('Dedicated API key',{exact:true}).inputValue(),'');
  assert.equal(await page.getByLabel('Private connection-store passphrase',{exact:true}).inputValue(),'');
  const vault=fs.readFileSync(path.join(root,'connections.encrypted.json'),'utf8');
@@ -66,9 +72,20 @@ try{
  }
  if(!await page.getByLabel('Models and routing',{exact:true}).isVisible())await page.locator('.nav-group-title').filter({hasText:'Connections'}).click();await page.getByLabel('Models and routing',{exact:true}).click();
   const before=await page.request.get(oldUrl+'/api/chat/status');assert.equal((await before.json()).configured,false);
+ // A rejected unlock must preserve the vault and allow keyboard-only recovery.
+ await page.getByLabel('Private connection-store passphrase',{exact:true}).fill('Synthetic incorrect vault password');
+ await page.getByRole('button',{name:'Unlock saved connections',exact:true}).focus();await page.keyboard.press('Enter');
+ await page.getByText('Connection not changed. Check the profile and unlock passphrase',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Unlock saved connections');
+ assert.equal(await page.getByLabel('Private connection-store passphrase',{exact:true}).inputValue(),'');
+ assert.equal((await (await page.request.get(oldUrl+'/api/chat/status')).json()).configured,false);
+ assert.equal(fs.readFileSync(path.join(root,'connections.encrypted.json'),'utf8'),vault);
+ assert.equal(requests,0);
+ await new Promise(resolve=>setTimeout(resolve,3100)); // Respect the documented unlock retry cooldown.
  await page.getByLabel('Private connection-store passphrase',{exact:true}).fill(passphrase);
- await page.getByRole('button',{name:'Unlock saved connections',exact:true}).click();
+ await page.getByRole('button',{name:'Unlock saved connections',exact:true}).focus();await page.keyboard.press('Enter');
  await page.getByText('Web chat connection configured. No paid request was sent.',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Unlock saved connections');
  const after=await page.request.get(oldUrl+'/api/chat/status');const status=await after.json();assert.equal(status.configured,true);assert.ok(status.models.includes(route+'::synthetic-model'));
  const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage}}));assert.ok(!storage.includes(key)&&!storage.includes(passphrase));
  assert.equal(requests,0);
@@ -93,13 +110,26 @@ try{
  await page.getByRole('button').filter({has:page.getByText('Draft using restored connection',{exact:true})}).click();
  await page.getByRole('button',{name:'Execution plan',exact:true}).click();
  await page.locator('label').filter({hasText:'Planning model (provider usage may be billed)'}).locator('select').selectOption(route+'::synthetic-model');
+ rejectPlanning=true;
+ await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
+ await page.getByText('Draft unavailable:',{exact:false}).waitFor();
+ const rejectedTask=new WorkspaceStore(workspaceFile).getTask(taskId);
+ assert.equal(rejectedTask.executionPlanDraft,undefined);
+ assert.equal(rejectedTask.approvedExecutionPlan,undefined);
+ assert.equal(rejectedTask.executionReceipts?.length||0,0);
+ assert.equal(requests,2);
+ assert.equal(rejectedTask.planningAudits.at(-1).status,'rejected');
+ assert.equal(rejectedTask.planningAudits.at(-1).rejectionStatus,401);
+ rejectPlanning=false;
  await page.getByRole('button',{name:'Draft plan with model',exact:true}).click();
  await page.getByText('Model draft · human approval still required',{exact:true}).waitFor();
  const savedTask=new WorkspaceStore(workspaceFile).getTask(taskId);
  assert.deepEqual(savedTask.executionPlanDraft.commands,plannedCommands);
  assert.equal(savedTask.approvedExecutionPlan,undefined);assert.equal(savedTask.executionReceipts?.length||0,0);
- assert.equal(requests,2);assert.equal(savedTask.planningAudits.at(-1).status,'completed');
- console.log(JSON.stringify({restoredConnectionDraftsPlan:true,draftingDidNotApproveOrExecute:true}));
+ assert.equal(requests,3);assert.equal(savedTask.planningAudits.at(-1).status,'completed');
+ assert.equal(savedTask.planningAudits.length,2);
+ assert.deepEqual(savedTask.planningAudits[0],rejectedTask.planningAudits[0]);
+ console.log(JSON.stringify({restoredConnectionDraftsPlan:true,draftingDidNotApproveOrExecute:true,provider401Refused:true,explicitRetryRecovered:true,rejectedAuditPreserved:true}));
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({passed:true,connectionKind:route,syntheticOnly:true,realBrowser:true,encryptedSave:true,restartLocked:true,explicitUnlockRestoresRoute:true,streamedResponse:true,midStreamReload:true,reloadWithoutReplay:true,liveProviderVerified:false}));
 }finally{await browser?.close();await server.stop();await new Promise(resolve=>provider.close(resolve));}

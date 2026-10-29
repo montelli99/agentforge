@@ -1,0 +1,77 @@
+{
+  "recordedAt": "2026-10-26T14:58:09.741Z",
+  "files": [
+    {
+      "file": "scripts/comparison-proxy.mjs",
+      "sha256": "c3d60f8c6dec3f8de27ce33451a3033220fdb4bfa7e224a9833fe648f82565d3"
+    },
+    {
+      "file": "src/providers/models/mimoModel.ts",
+      "sha256": "3d0a18fc79a5d958208361f57d6607d32e144d7d3601cb4abf7532710ca94a46"
+    }
+  ],
+  "realProvider": false,
+  "scope": "Installed adapter transport integration only; not full application or live task acceptance",
+  "result": {
+    "passed": true,
+    "requests": 2,
+    "settings": [
+      {
+        "model": "mimo-v2.6-flash",
+        "max_tokens": 2000,
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      {
+        "model": "mimo-v2.6-flash",
+        "max_tokens": 2000,
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    ],
+    "audits": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 10,
+          "outputTokens": 5
+        },
+        "cost": null,
+        "httpStatus": 200,
+        "elapsedMs": 1.9239000000000033
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 10,
+          "outputTokens": 5
+        },
+        "cost": null,
+        "httpStatus": 200,
+        "elapsedMs": 0.24309999999999832
+      }
+    ],
+    "generateUsage": {
+      "promptTokens": 10,
+      "completionTokens": 5,
+      "totalTokens": 15
+    },
+    "streamUsage": {
+      "promptTokens": 10,
+      "completionTokens": 5,
+      "totalTokens": 15
+    },
+    "excessRejected": true
+  },
+  "package": {
+    "sourceCommit": "a45a6bf6ae4ce87df8c624eb64e437850b7be1d8",
+    "archiveSha256": "c7ea22c0113b3268576e001b2b24a9feeff528763deb98a9848fe3b29ebf7e13",
+    "freshBuild": true,
+    "freshConsumer": true,
+    "installScripts": false
+  }
+}

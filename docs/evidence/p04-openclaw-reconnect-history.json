@@ -1,0 +1,9 @@
+{
+  "runId": "proof-1793001641005",
+  "observedStatus": "timeout",
+  "matchingReplies": 1,
+  "correctSavedAnswer": true,
+  "restartedContainer": true,
+  "submittedTurns": 0,
+  "scope": "Saved result retrieval after runtime restart; no new model request or replay initiated"
+}

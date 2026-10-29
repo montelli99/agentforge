@@ -1,0 +1,34 @@
+{
+  "recordedAt": "2026-10-26T17:44:06.884Z",
+  "proof": {
+    "installedPackage": false,
+    "syntheticOnly": true,
+    "paidRequests": 0,
+    "passed": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "authBackgroundInert": true,
+    "authFocusVerified": true,
+    "postLoginWorkspaceInteractive": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false
+  },
+  "runnerSha256": "c4492ad175e8be97429601d72282e20162a27e1c42dd8a65ea05e74f72cbb327",
+  "uiSha256": "7306b395c27e1ec82ea60ac225fbd701833c98aab0026d90358abc3f4b1b9cd2",
+  "screenshotSha256": "b847d4cb8096f97c3bbf6e83f8714c9b39eee243510976452c19867c58c24485",
+  "priorAttempts": [
+    {
+      "outcome": "failed",
+      "reason": "Default browser test executable absent; used installed Chrome in a disposable profile."
+    },
+    {
+      "outcome": "failed",
+      "reason": "Test incorrectly expected locator count to exclude inert elements. Replaced with direct inert-ancestor and keyboard-focus checks; browser accessibility-tree exclusion separately verified."
+    }
+  ],
+  "limits": [
+    "Built source, not installed release archive.",
+    "Synthetic account/project/conversation; no model connection or task execution."
+  ]
+}

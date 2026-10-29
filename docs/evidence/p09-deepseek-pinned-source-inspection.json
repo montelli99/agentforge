@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-26T14:37:04.609Z",
+  "repository": "https://github.com/deepseek-ai/deepseek-harness",
+  "revision": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
+  "version": "0.2.1-rc.3",
+  "nodeRequirement": ">=24.9.0",
+  "packageManager": "pnpm@11.28.5",
+  "sourceFiles": [
+    {
+      "file": "package.json",
+      "sha256": "66198aca0bdd771b052545470137723bcf30a53fb92a1da611d9bb2f490952ff"
+    },
+    {
+      "file": "apps/cli/package.json",
+      "sha256": "411d472475c98edbb64b6a1755a8e1fb0f702230e36a771ed8dbaf3b01fc95fa"
+    },
+    {
+      "file": "docs/config-catalog.md",
+      "sha256": "98c413ef81cbb832b6414c896aa510dd18b792affde134ff2f2b66d4f4459706"
+    },
+    {
+      "file": "benchmarks/agent-continuation/README.md",
+      "sha256": "fc209eb9e6a441b5cc1fa8acbf945e5c44b95efa09ebd4a37fcc7cc3a0b55b58"
+    }
+  ],
+  "observations": [
+    "CLI package exposes headless support; configuration catalog contains model endpoint configuration",
+    "Included continuation benchmark uses synthetic model behavior and cannot substitute for matched live-model artifact evaluation"
+  ],
+  "executedThirdPartyCode": false,
+  "benchmarkPerformed": false,
+  "next": "Prepare isolated pinned runtime, then freeze new task inputs/evaluator and equal budgets before live comparison"
+}

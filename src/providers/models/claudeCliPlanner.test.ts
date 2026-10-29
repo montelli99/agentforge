@@ -1,3 +1,4 @@
+import type {StreamChunk} from '../../core/providers/model.js';
 import {beforeEach,expect,it,vi} from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,6 +15,13 @@ const plan=JSON.stringify({commands:[{checkName:'fixture',command:'node --versio
 const events=()=>[{type:'system',subtype:'init',tools:[],mcp_servers:[]},{type:'assistant',message:{content:[{type:'text',text:plan}]}},{type:'result',subtype:'success',is_error:false,result:plan,usage}];
 const result=(items=events())=>({pid:1,code:0,stdout:items.map(x=>JSON.stringify(x)).join('\n'),stderr:''});
 beforeEach(()=>{mocks.auth.mockReset().mockResolvedValue({connectionKind:'subscription'});mocks.run.mockReset().mockResolvedValue(result());});
+it('delivers validated chat tool proposals while keeping official client tools disabled',async()=>{
+ const text=JSON.stringify({content:'',toolCalls:[{name:'inspect_task',arguments:{taskId:'synthetic'}}]});
+ const items=events();items[1].message!.content[0].text=text;items[2].result=text;mocks.run.mockResolvedValue(result(items));
+ const chunks:StreamChunk[]=[];for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages,tools:[{type:'function',function:{name:'inspect_task'}}]}))chunks.push(chunk);
+ expect(chunks).toHaveLength(1);expect(chunks[0].finishReason).toBe('tool_calls');expect(chunks[0].toolCalls?.[0].function.name).toBe('inspect_task');
+ const args=mocks.run.mock.calls[0][1];expect(args[args.indexOf('--tools')+1]).toBe('');expect(mocks.run).toHaveBeenCalledTimes(1);
+});
 it('uses a fresh directory, selected profile and restricted plan-only arguments, then cleans up',async()=>{
  const reply=await new ClaudeCliPlanner(config).generate(request);
  expect(reply.content).toBe(plan);expect(reply.usage?.totalTokens).toBe(14);
@@ -39,4 +47,29 @@ it('rejects unexpected tool activity, preserves known usage and never retries',a
 it('preserves reported usage on bounded child failure without retry',async()=>{
  mocks.run.mockRejectedValue(new BoundedChildFailure('synthetic timeout','timeout',result()));
  await expect(new ClaudeCliPlanner(config).generate(request)).rejects.toMatchObject({usage:{totalTokens:14}});expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});
+it.each(['malformed','unoffered-tool','client-tool-activity'])('emits no chat content on %s failure',async kind=>{
+ const items=events();
+ const text=kind==='malformed'?'not JSON':JSON.stringify({content:'Unverified answer',toolCalls:kind==='unoffered-tool'?[{name:'execute_shell',arguments:{}}]:[]});
+ items[1].message!.content[0].text=text;items[2].result=text;
+ if(kind==='client-tool-activity')items.splice(1,0,{type:'tool_use'} as any);
+ mocks.run.mockResolvedValue(result(items));const chunks:StreamChunk[]=[];
+ const consume=async()=>{for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages}))chunks.push(chunk);};
+ await expect(consume()).rejects.toMatchObject({usage:{totalTokens:14}});
+ expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);
+ expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});
+it('discards completed chat when cancelled before delivery and retains usage',async()=>{
+ const controller=new AbortController(),items=events();const text=JSON.stringify({content:'Completed but cancelled',toolCalls:[]});
+ items[1].message!.content[0].text=text;items[2].result=text;
+ mocks.run.mockImplementation(async()=>{controller.abort();return result(items);});
+ const chunks:StreamChunk[]=[];const consume=async()=>{for await(const chunk of new ClaudeCliPlanner(config).stream({model:config.model,messages:request.messages,signal:controller.signal}))chunks.push(chunk);};
+ await expect(consume()).rejects.toMatchObject({usage:{totalTokens:14},message:expect.stringContaining('cancelled before response delivery')});
+ expect(chunks).toEqual([]);expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
+});
+
+it('discards a completed plan cancelled during client completion while preserving usage',async()=>{
+ const controller=new AbortController();mocks.run.mockImplementation(async()=>{controller.abort();return result();});
+ await expect(new ClaudeCliPlanner(config).generate({...request,signal:controller.signal})).rejects.toMatchObject({usage:{totalTokens:14},message:expect.stringContaining('cancelled before response delivery')});
+ expect(mocks.run).toHaveBeenCalledTimes(1);expect(fs.existsSync(mocks.run.mock.calls[0][2].cwd)).toBe(false);
 });

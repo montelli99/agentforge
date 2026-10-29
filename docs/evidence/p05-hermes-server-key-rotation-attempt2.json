@@ -1,0 +1,8 @@
+{
+  "requirement": "P05",
+  "outcome": "failed",
+  "phase": "server-key-rotation",
+  "error": "Hermes request rejected (404); inspect the saved operation before retrying",
+  "submissionCalls": 0,
+  "recordedAt": "2026-10-26T13:43:34.442Z"
+}

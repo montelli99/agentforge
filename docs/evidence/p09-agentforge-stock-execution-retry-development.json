@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "caseId": "stock-allocation",
+  "reviewedDraftSha256": "95744c29998e4811fbaf051a1ebef3bf8d4aa931ff658bb21fc60d5ac4d8d0f0",
+  "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "newModelRequests": 0,
+  "scoredComparison": false,
+  "scope": "Reviewed live-model draft through ordinary worker and Docker, independently scored development case. Not a frozen matched comparison or browser journey.",
+  "taskStatus": "waiting_approval",
+  "score": {
+    "passed": true
+  },
+  "receiptCount": 1,
+  "checks": [
+    {
+      "checkName": "generate_allocation_result",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "checkName": "verify_result_invariants",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "checkName": "execution_scope",
+      "passed": true,
+      "exitCode": 0
+    }
+  ],
+  "artifactSha256": "b28d361a31c0ba1ea1b885ae253fca5c8d6b12446802575efab845a97cf55f63"
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "status": "frozen-before-model-runs",
+  "scope": "Small synthetic release comparison; not representative of all agent work or an overall superiority claim",
+  "model": "mimo-v2.6-flash",
+  "arms": [
+    "AgentForge reviewed plan and isolated execution",
+    "Direct same-model plan and identical isolated executor"
+  ],
+  "trialsPerTaskPerArm": 3,
+  "totalAttempts": 18,
+  "order": "Alternate arms within each task/trial; task order as listed",
+  "taskOrder": [
+    "inventory-reconciliation",
+    "schedule-overlaps",
+    "explicit-policy-precedence"
+  ],
+  "limits": {
+    "providerRequestsPerAttempt": 4,
+    "outputTokensPerRequest": 1500,
+    "wallClockSecondsPerAttempt": 180,
+    "commandTimeoutSeconds": 10
+  },
+  "fairness": [
+    "Identical task prompt, input bytes, model and generation settings",
+    "Identical execution environment and tool availability",
+    "No expected-output files or evaluator code visible to either model",
+    "Human review only accepts or rejects; no edits or hints",
+    "No replacement of failed or timed-out attempts",
+    "No tuning these cases after seeing outputs; changes require a new version and separate report"
+  ],
+  "scoring": {
+    "pass": "Exact parsed JSON deep equality plus unchanged input hash",
+    "failure": "Mismatch, timeout, invalid output, unsafe plan rejection, provider error or missing artifact",
+    "report": [
+      "Every attempt including failures",
+      "Source commit and archive hash",
+      "Provider/client versions",
+      "Monotonic end-to-end elapsed time",
+      "Reported input/output tokens; unknown values remain unknown",
+      "Cost only when sourced; never assume zero",
+      "Paired outcomes and uncertainty; no claim from an isolated success"
+    ]
+  },
+  "runnerStatus": "Not yet implemented or executed",
+  "fixtureHashes": {
+    "inventory-reconciliation": "49dc012fa9e0c267a67167e73d4328f4c20f3f0727a36fcbf3a8561016c357a8",
+    "schedule-overlaps": "6dd4d7caf23886db285913152888b3321a18f3f4554c3ce126bd10726fc1a0a7",
+    "explicit-policy-precedence": "c416d67542237dc13ab0574a59f4ebcfcd9b64a1dbc064014b7ea003cfa06d04"
+  }
+}

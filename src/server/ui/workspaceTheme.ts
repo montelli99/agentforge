@@ -1506,6 +1506,7 @@ button,.btn{font-family:inherit;transition:background-color .16s,border-color .1
 .studio-hero:after{content:'';position:absolute;z-index:-1;right:-12%;top:-90%;width:58%;height:270%;border:1px solid #c4b5fd24;border-radius:50%;box-shadow:0 0 0 24px #c4b5fd08,0 0 0 48px #7cd4af05;transform:rotate(-18deg);animation:studio-hero-orbit 18s ease-in-out infinite alternate;pointer-events:none}
 @keyframes studio-hero-orbit{to{transform:rotate(18deg) translate3d(-18px,10px,0);opacity:.65}}
 @media(prefers-reduced-motion:reduce){.studio-hero:after{animation:none}}
+.team-runs-panel{display:grid;grid-template-columns:1fr auto;gap:12px;margin:18px 0}.team-runs-panel h2{font-size:18px;margin:4px 0}.team-runs-panel p{font-size:12px;color:var(--text-muted);margin:0}.team-run-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.team-runs-list{grid-column:1/-1;display:grid;gap:8px}.team-run-card{display:grid;gap:4px;padding:13px 15px;border:1px solid var(--border);border-radius:10px;background:var(--bg-elevated)}.team-run-card strong{font-size:13px}.team-run-card span{font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em}.team-run-card p{font-size:11px;color:var(--text-muted);margin:0}
 .project-card-glow{animation:project-card-breathe 12s ease-in-out infinite alternate}
 @keyframes project-card-breathe{to{transform:translate3d(-8px,7px,0) scale(1.06);opacity:.72}}
 @media(prefers-reduced-motion:reduce){.project-card-glow{animation:none}}

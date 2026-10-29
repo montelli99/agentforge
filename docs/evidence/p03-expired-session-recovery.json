@@ -1,0 +1,24 @@
+{
+  "requirementId": "P03",
+  "testSha256": "8407A973A779F9818D4B7918163684A6146F31662DA5EF000853A7808B181B00",
+  "runtimeBuildSource": "f58bd66f949c8ccc0667ac31a180c37fbcfc814b",
+  "limitation": "Application session expiry, not external provider token expiry.",
+  "result": {
+    "passed": true,
+    "syntheticOnly": true,
+    "realBrowser": true,
+    "authenticatedRecovery": true,
+    "expiredSessionRecoveryDenied": true,
+    "reauthenticatedRecovery": true,
+    "tamperedArtifactRecoveryRefused": true,
+    "failedRecoveryPreservedTaskAndApprovals": true,
+    "realDockerResult": true,
+    "independentInvoiceCheck": true,
+    "executionsDuringRecovery": 0,
+    "pendingFinalApproval": true,
+    "reopenedPendingApproval": true,
+    "pageErrors": []
+  },
+  "priorAttempt": "Harness used nonexistent getSession method; corrected to validateSession before successful rerun.",
+  "method": "Replace synthetic browser session with a server-created already-expired session, assert recovery POST 401 and unchanged task/approvals, then sign in through UI and recover."
+}

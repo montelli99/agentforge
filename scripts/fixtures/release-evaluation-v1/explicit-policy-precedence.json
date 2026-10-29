@@ -1,0 +1,61 @@
+{
+  "id": "explicit-policy-precedence",
+  "prompt": "Read input.json. Produce result.json with effectiveLimit and sourceId for each project. Only approved records apply. A record supersedes another only through its explicit supersedes field. If multiple approved unsuperseded records disagree, return null effectiveLimit and list their IDs in conflicts. A newer timestamp alone does not establish precedence. Sort projects and conflicts lexically.",
+  "input": {
+    "records": [
+      {
+        "id": "p1",
+        "project": "alpha",
+        "limit": 3200,
+        "approved": true,
+        "date": "2026-01-01"
+      },
+      {
+        "id": "p2",
+        "project": "alpha",
+        "limit": 2800,
+        "approved": true,
+        "supersedes": "p1",
+        "date": "2026-02-01"
+      },
+      {
+        "id": "p3",
+        "project": "alpha",
+        "limit": 9000,
+        "approved": false,
+        "date": "2026-03-01"
+      },
+      {
+        "id": "q1",
+        "project": "beta",
+        "limit": 600,
+        "approved": true,
+        "date": "2026-01-01"
+      },
+      {
+        "id": "q2",
+        "project": "beta",
+        "limit": 950,
+        "approved": true,
+        "date": "2026-04-01"
+      }
+    ]
+  },
+  "expected": {
+    "projects": {
+      "alpha": {
+        "effectiveLimit": 2800,
+        "sourceId": "p2",
+        "conflicts": []
+      },
+      "beta": {
+        "effectiveLimit": null,
+        "sourceId": null,
+        "conflicts": [
+          "q1",
+          "q2"
+        ]
+      }
+    }
+  }
+}

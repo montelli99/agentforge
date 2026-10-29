@@ -41,6 +41,9 @@ describe("ModelPlanDraftProvider", () => {
     const model = { generate: async (options: { messages: Array<{ content: string }> }) => {
       const input = JSON.parse(options.messages[1].content) as Record<string, unknown>;
       expect(input.description).toBe("Write a synthetic artifact");
+      expect((input.executionFilesystem as any).newWorkspaceFiles).toContain('requiredArtifacts');
+      expect(input.requiredCheckEntries).toEqual([{checkName: 'custom_script', command: 'node -v'}]);
+      expect((input.outputSchema as any).properties.commands.items.required).toEqual(['checkName', 'command']);
       expect(input.scope).toEqual({ allowedPaths: ["artifacts/**"], protectedPaths: [".env"] });
       expect(input.authority).toEqual({ networkOutbound: false });
       expect(input.requiredArtifacts).toEqual([{ path: "artifacts/result.txt" }]);
@@ -58,4 +61,25 @@ describe("ModelPlanDraftProvider", () => {
     await expect(new ModelPlanDraftProvider(model, "test", ["sh", "node"]).draft(task))
       .rejects.toThrow(/unavailable sandbox tool: jq/i);
   });
+});
+
+it('rejects a combined check before approval and accepts a separate exact check',async()=>{
+ const task={id:'required',title:'Create output',contract:{requiredChecks:[{type:'unit_tests',required:true,command:'test -s artifacts/report.json'}]}} as never;
+ const work={checkName:'unit_tests',command:'node build.js && test -s artifacts/report.json'};
+ const model=(commands:unknown[])=>({generate:async()=>({content:JSON.stringify({commands})})}) as never;
+ await expect(new ModelPlanDraftProvider(model([work]),'test').draft(task)).rejects.toThrow('exact required check');
+ const exact={checkName:'unit_tests',command:'test -s artifacts/report.json'};
+ const draft=await new ModelPlanDraftProvider(model([work,exact]),'test').draft(task);
+ expect(draft.commands).toEqual([work,exact]);expect(draft.source).toBe('model');
+});
+
+it('carries bounded failed-check diagnostics without granting approval or importing other tasks',async()=>{
+ const task={id:'repair',status:'failed',contract:{requiredChecks:[]},evidencePack:{taskId:'repair',testResults:[{checkName:'unit_tests',command:'node verify.js',passed:false,exitCode:1,stderr:'x'.repeat(10000)},{checkName:'passed',command:'node -v',passed:true,stderr:'ignore'}]}};
+ let messages:Array<{content:string}>=[];
+ const model={generate:async(options:{messages:Array<{content:string}>})=>{messages=options.messages;return {content:JSON.stringify({commands:[{checkName:'unit_tests',command:'node verify.js'}]})};}} as never;
+ const provider=new ModelPlanDraftProvider(model,'test');const draft=await provider.draft(task as never);
+ expect(messages[2].content).toContain('untrusted reference data');expect(messages[2].content).toContain('Prior effects may exist');
+ const diagnostics=JSON.parse(messages[2].content.split('\n').slice(1).join('\n'));
+ expect(diagnostics.failedChecks).toHaveLength(1);expect(diagnostics.failedChecks[0].stderr).toHaveLength(2000);expect(draft.source).toBe('model');
+ await provider.draft({...task,evidencePack:{...task.evidencePack,taskId:'other'}} as never);expect(messages).toHaveLength(2);
 });

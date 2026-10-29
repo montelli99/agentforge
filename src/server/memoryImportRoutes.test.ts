@@ -1,4 +1,5 @@
 import {expect, it} from 'vitest';
+import {OperationalMemoryProvider} from '../providers/memory/operationalMemory.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -50,5 +51,12 @@ it('reviews without writing, requires authorized exact confirmation, and persist
     expect((await request({...mappedBody,action:'commit',digest:mappedReview.digest,confirm:true,projectMap:{}},writer)).status).toBe(409);
     expect((await request({...mappedBody,action:'commit',digest:mappedReview.digest,confirm:true},writer)).status).toBe(200);
     expect(new WorkspaceStore(file).listOperationalMemories('fixture').find(item=>item.id==='mapped-note')?.projectId).toBe(target.id);
+    const reopened=new WorkspaceStore(file),provider=new OperationalMemoryProvider(reopened);
+    const restored=(await provider.query({namespace:'fixture',projectId:target.id,queryText:'Synthetic'})).find(hit=>hit.record.id==='mapped-note');
+    expect(restored?.record.revisions).toEqual(record.revisions);
+    expect(restored?.record.metadata?.agentforgeProjectRemap).toEqual({from:'old-project',to:target.id,previous:null});
+    expect((await provider.query({namespace:'fixture',projectId:'old-project',queryText:'Synthetic'})).some(hit=>hit.record.id==='mapped-note')).toBe(false);
+    expect((await provider.query({namespace:'fixture',projectId:'unrelated-project',queryText:'Synthetic'})).some(hit=>hit.record.id==='mapped-note')).toBe(false);
+    expect(await provider.query({namespace:'different',projectId:target.id,queryText:'Synthetic'})).toEqual([]);
   } finally {await server.stop();if(path.dirname(directory)!==os.tmpdir()||!path.basename(directory).startsWith('af-memory-route-'))throw Error('Unsafe fixture path');fs.rmSync(directory,{recursive:true,force:true});}
 });

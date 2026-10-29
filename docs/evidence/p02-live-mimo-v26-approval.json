@@ -1,0 +1,39 @@
+{
+  "requirement": "P02 live model approval and execution",
+  "recordedAtUtc": "2026-10-29T16:06:00Z",
+  "sourceCommit": "807870d1920c5dc75171aae9550da947e2630740",
+  "provider": "mimo",
+  "models": ["mimo-v2.6-pro", "mimo-v2.6-flash"],
+  "adapterSmoke": {
+    "mimo-v2.6-pro": {"passed": true, "reportedPromptTokens": 37, "reportedCompletionTokens": 30},
+    "mimo-v2.6-flash": {"passed": true, "reportedPromptTokens": 36, "reportedCompletionTokens": 27}
+  },
+  "browserApprovalExecution": {
+    "passed": true,
+    "model": "mimo-v2.6-pro",
+    "paidModelRequests": 1,
+    "onePlanningProviderRequest": true,
+    "authenticatedApproval": true,
+    "browserCommandReview": true,
+    "realDocker": true,
+    "verifiedArtifact": true,
+    "serviceRestartBeforeReview": true,
+    "recordedResultRestored": true,
+    "receiptsUnchanged": true,
+    "durableCompletion": true,
+    "completedEvidenceReadableAfterReopen": true
+  },
+  "browserChatJourney": {
+    "passed": true,
+    "model": "mimo-v2.6-pro",
+    "totalProviderRequests": 7,
+    "verifiedArtifactReturnedToChat": true,
+    "verifiedArtifactSha256": "008cd021750ace7907b152862d866177e05d8d0f976cfe038cac8e0d8bc146e9",
+    "multiToolLoop": true
+  },
+  "limitations": [
+    "This proves the governed approval/execution path, not general autonomous task competence.",
+    "This is a bounded synthetic task and does not establish general autonomous task competence or competitive superiority."
+  ],
+  "credentialsPersisted": false
+}

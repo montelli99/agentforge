@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "clientVersion": "2.1.310",
+  "requests": 5,
+  "effects": 1,
+  "duplicateRejected": true,
+  "command": "node --import tsx scripts/claude-native-tool-surface.ts <official-executable> --governed",
+  "priorAttempts": [
+    {
+      "passed": false,
+      "reason": "Host rejected alternate MCP version proposal; fixed standard negotiation"
+    },
+    {
+      "passed": false,
+      "reason": "Synthetic streaming tool arguments omitted JSON delta; corrected test server"
+    }
+  ],
+  "scope": "Installed CLI, real host approval and single-effect broker, local synthetic API; no live subscription, Docker or OS isolation proof"
+}

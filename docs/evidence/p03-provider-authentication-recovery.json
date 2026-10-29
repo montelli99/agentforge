@@ -1,0 +1,23 @@
+{
+  "scope": "Controlled local HTTP provider authentication rejection and explicit reconnect recovery; no live account expiry claim",
+  "results": {
+    "focusedTests": 11,
+    "typecheck": "passed",
+    "build": "passed",
+    "automaticRetry": false,
+    "rejectedUsageInvented": false,
+    "unknownOutcomeStillBlocks": true
+  },
+  "files": {
+    "src/core/runtime/planningAuthenticationRecovery.test.ts": "8d7d92e829b1ad074adb09eadedac38a741abd5d8191f5c7b2fdeb230734d43e",
+    "src/core/runtime/executionReceipt.ts": "d9f47e77383746bfb7e117bbd6d0620569039fa4dc8d65246ba5f25de0a238a0",
+    "src/providers/models/openaiModel.ts": "5bfaf369fc140fa423f7ccf809fa75a3ef0dd3a4a57689cf4a1cea9d3efe9bf6",
+    "src/core/runtime/modelPlanDraftProvider.ts": "df2403b84156bc7b638ff45b4c288b43257d972c268051b672dd1bc43f8a1337"
+  },
+  "hostedPriorBuild": {
+    "commit": "d90774b62731dc6dac003eb582b85bebc98cef8c",
+    "run": 40294227751,
+    "conclusion": "success"
+  },
+  "remaining": "New change requires hosted CI and integrated live provider reconnect acceptance."
+}

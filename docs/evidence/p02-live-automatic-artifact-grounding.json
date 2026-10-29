@@ -1,0 +1,94 @@
+{
+  "sourceCommit": "a3033e16ce8b02b0f9cd816fbef22a0f73a0c5d9",
+  "classification": "Separate development acceptance, not a replacement frozen evaluation",
+  "result": {
+    "installedPackage": false,
+    "syntheticOnly": false,
+    "syntheticDataOnly": true,
+    "paidRequests": 4,
+    "passed": true,
+    "chatProvider": "mimo-v2.6-flash",
+    "providerElapsedMs": 67251.6976,
+    "chatUsage": {
+      "usage": {
+        "inputTokens": 1950,
+        "outputTokens": 488
+      },
+      "cost": null
+    },
+    "chatAccounting": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1208,
+          "outputTokens": 47
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 2116,
+          "outputTokens": 191
+        },
+        "httpStatus": 200,
+        "cost": null
+      },
+      {
+        "request": 3,
+        "status": "response",
+        "usage": {
+          "inputTokens": 1950,
+          "outputTokens": 488
+        },
+        "httpStatus": 200,
+        "cost": null
+      }
+    ],
+    "taskPreparedFromLiveChat": true,
+    "modelSavedUnlockedAndUsedAfterRestart": true,
+    "browserProjectMatchesRestoredWorker": true,
+    "enabledAfterRestartWithoutStartingTask": true,
+    "livePlanningModel": "mimo-v2.6-flash",
+    "providerUsage": {
+      "completion_tokens": 1227,
+      "prompt_tokens": 3203,
+      "total_tokens": 4430,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens_details": null
+    },
+    "restoredModelDraftedTaskInBrowser": true,
+    "draftDidNotExecute": true,
+    "reviewWaitMs": 16325.588500000005,
+    "reviewedPlanExecutedInDocker": true,
+    "finalApprovalStillRequired": true,
+    "independentInvoiceCheck": true,
+    "recordedResultRestoredAfterLauncherRestart": true,
+    "finalApprovalCompleted": true,
+    "receiptsUnchangedThroughRecoveryAndApproval": true,
+    "invoiceBytesUnchangedThroughRecovery": true,
+    "verifiedArtifactReadByLiveChat": true,
+    "finalChatSurvivedReloadWithoutResend": true,
+    "verifiedArtifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+    "missingRepositoryRepairedInBrowser": true,
+    "repairDidNotEnableExecution": true,
+    "savedDockerFromBrowser": true,
+    "invalidRepositoryRejected": true,
+    "pendingSelectionSurvivedReload": true,
+    "setupDidNotStartTask": true,
+    "realLauncher": true,
+    "ownerSetup": true,
+    "projectAndConversationCreatedInBrowser": true,
+    "recoveredAfterReload": true,
+    "executionEnabled": false,
+    "totalElapsedMs": 97324.15430000001,
+    "providerRequests": 4,
+    "chatRequests": 3
+  },
+  "limitation": "Built runtime live acceptance; newly packaged archive and hosted verification still required."
+}

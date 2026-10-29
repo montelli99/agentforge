@@ -1,3 +1,5 @@
+import {recoverApprovalEvidence} from '../evidence/recoverApprovalEvidence.js';
+import {sealEvidencePack,verifyEvidencePackIntegrity} from '../evidence/evidencePackIntegrity.js';
 /**
  * Canonical Workspace State Engine & In-Memory / File Store
  * Section 6: Canonical Workspace
@@ -726,6 +728,13 @@ export class WorkspaceStore {
     return updated;
   }
 
+  recoverCompletedApprovalEvidence(taskId:string):Task {
+    const task=this.getTask(taskId);if(!task)throw Error('Task unavailable');
+    const repaired=recoverApprovalEvidence(task,task.evidencePack?.approvalId?this.getApproval(task.evidencePack.approvalId):undefined);
+    if(!repaired)return task;
+    return this.updateTask(taskId,{evidencePack:repaired});
+  }
+
   listTasks(status?: TaskStatus): Task[] {
     const all = Array.from(this.tasks.values());
     return status ? all.filter(t => t.status === status) : all;
@@ -760,6 +769,8 @@ export class WorkspaceStore {
     const appr = this.approvals.get(params.approvalId);
     if (!appr) throw new Error(`Approval ${params.approvalId} not found`);
     if (appr.status !== "pending") throw new Error("Approval has already been resolved");
+    const approvalTask=appr.taskId?this.tasks.get(appr.taskId):undefined;
+    if(params.status==='approved' && approvalTask?.status==='waiting_approval' && approvalTask.evidencePack?.verifiedPassed && approvalTask.evidencePack.approvalId===appr.id && !verifyEvidencePackIntegrity(approvalTask.evidencePack))throw Error('Evidence integrity check failed before approval');
     appr.status = params.status;
     appr.approverUserId = params.approverUserId;
     appr.decisionOrigin = params.decisionOrigin;
@@ -775,6 +786,7 @@ export class WorkspaceStore {
             task.completedAt = new Date().toISOString();
             task.evidencePack.approvedBy = params.approverUserId;
             task.evidencePack.approvalSource = params.decisionOrigin;
+            task.evidencePack = sealEvidencePack(task.evidencePack);
           }
         } else if (params.status === "rejected") {
           task.status = "failed";
@@ -1213,20 +1225,26 @@ export class WorkspaceStore {
 
   // --- Durable operational memory ---
   listOperationalMemories(namespace: string): OperationalMemoryRecord[] {
-    return Array.from(this.operationalMemories.values()).filter(record => record.namespace === namespace);
+    return structuredClone(Array.from(this.operationalMemories.values()).filter(record => record.namespace === namespace));
   }
 
   saveOperationalMemory(record: OperationalMemoryRecord): void {
-    this.operationalMemories.set(record.id, record);
-    this.emit("operational_memory_saved", "memory", {
-      id: record.id,
-      namespace: record.namespace,
-      category: record.category,
-      title: record.title,
-    });
-    this.persistIfConfigured();
+    const owned = structuredClone(record);
+    const previous = this.operationalMemories.get(owned.id);
+    if (previous && previous.namespace !== owned.namespace) throw Error('Memory identity belongs to another collection');
+    this.operationalMemories.set(owned.id, owned);
+    try { this.persistIfConfigured(); }
+    catch (error) {
+      if (previous) this.operationalMemories.set(owned.id, previous);
+      else this.operationalMemories.delete(owned.id);
+      throw error;
+    }
+    for (const listener of this.realtimeListeners) {
+      try { listener({type: 'operational_memory_saved', entity: 'memory', data: {
+        id: owned.id, namespace: owned.namespace, category: owned.category, title: owned.title,
+      }}); } catch { /* The saved memory is already durably committed. */ }
+    }
   }
-
   /** Internal migration primitive. The caller validates the archive and authority.
    * Commit the entire reviewed batch and its audit receipt in one snapshot.
    * IDs are never overwritten, and an identical replay is a no-op.
@@ -1268,8 +1286,12 @@ export class WorkspaceStore {
     const record = this.operationalMemories.get(id);
     if (!record || record.namespace !== namespace) return false;
     this.operationalMemories.delete(id);
-    this.emit("operational_memory_deleted", "memory", { id, namespace });
-    this.persistIfConfigured();
+    try { this.persistIfConfigured(); }
+    catch (error) { this.operationalMemories.set(id, record); throw error; }
+    for (const listener of this.realtimeListeners) {
+      try { listener({type: 'operational_memory_deleted', entity: 'memory', data: {id, namespace}}); }
+      catch { /* Deletion is already durably committed. */ }
+    }
     return true;
   }
 
@@ -1982,3 +2004,5 @@ export function getDefaultWorkspaceFilePath(): string {
 
 // Test and embedded callers get an isolated in-memory store unless they opt into persistence.
 export const globalStore = new WorkspaceStore();
+
+

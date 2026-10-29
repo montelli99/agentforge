@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "scope": "Synthetic installed DeepSeek process integration; no live scoring or benchmark claim",
+  "outcome": {
+    "id": "synthetic-1-deepseek",
+    "task": "synthetic",
+    "arm": "deepseek",
+    "trial": 1,
+    "status": "passed",
+    "recordedAt": "2026-10-26T17:19:43.525Z",
+    "protocolSha256": "889180f070dd9bfa43d5a926e1e546cfee60aa435b1b4f2e3aa3d1526adef51e",
+    "artifactPassed": true,
+    "workflowPassed": true,
+    "elapsedMs": 5625.7871000000005,
+    "requests": 2,
+    "usage": {
+      "inputTokens": 20,
+      "outputTokens": 10
+    },
+    "finishedAt": "2026-10-26T17:19:49.155Z",
+    "reservationSha256": "0091167d5a9f7b4116038fa35a70837850037971300b852b39b7f832d30170c3"
+  },
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "proxySha256": "7468765e0a2967076125e29d2158318e988a79636cfcc054ba22299e9c1a8857",
+  "runnerSha256": "cf92bb70a0e6c9631a5f63fccfc4a358fdc5e096b5a745495441bbdab02d959e",
+  "network": "none",
+  "realProvider": false
+}

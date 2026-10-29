@@ -167,3 +167,9 @@ Licensed under [Apache License 2.0](LICENSE). Third-party dependencies retain th
 
 Run `pnpm release:audit` after building to inspect the public package, privacy gates, and owner-controlled publishing blockers. Publishing remains an explicit owner action.
 See [`docs/RELEASE_STATUS.md`](docs/RELEASE_STATUS.md) for the current evidence-backed release checklist and remaining environment gates.
+
+## Measured evaluation
+
+The frozen version 3 comparison retained all 18 attempts across three synthetic tasks with three repeats. AgentForge produced 8/9 correct artifacts and 7/9 full journeys; the direct-model baseline produced 7/9 correct artifacts. AgentForge used 42 requests and 80,335 reported tokens versus 9 requests and 5,376 tokens. This does **not** establish token savings or competitive superiority. The baseline did not include recovery or artifact-chat requirements; a fixture repair occurred during the run, and costs are unknown. Later fixes do not replace failed attempts.
+
+The full attempt records are maintained in the repository’s release evidence. They are not included in the installable package.

@@ -1,0 +1,63 @@
+{
+  "caseId": "invoice-adjustments",
+  "inputSha256": "9c6fb3c66ab764167c7283238a64c47a3f899c59c9b99c581dd67229fe731bdb",
+  "score": {
+    "passed": true
+  },
+  "recordedAt": "2026-10-26T15:13:45.069Z",
+  "image": "sha256:a7403e5d2bae44c9c18ead5c7c170a329bc5033e47f1dfa152296966f228457f",
+  "proxySha256": "c3d60f8c6dec3f8de27ce33451a3033220fdb4bfa7e224a9833fe648f82565d3",
+  "network": "none",
+  "hostMounts": [],
+  "realProvider": false,
+  "result": {
+    "status": 0,
+    "stdout": "{\"type\":\"session\",\"sessionId\":\"session-6328879b-0d01-414e-92d4-9c9e439b8fa5\",\"cwd\":\"/tmp\"}\n{\"type\":\"status\",\"phase\":\"turn_start\",\"turn\":1}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":1}\n{\"type\":\"tool_call\",\"callId\":\"write-1\",\"tool\":\"write\",\"input\":{\"file_path\":\"/tmp/artifacts/result.json\",\"content\":\"{\\\"invoices\\\":[{\\\"id\\\":\\\"INV-A\\\",\\\"balanceCents\\\":12000},{\\\"id\\\":\\\"INV-B\\\",\\\"balanceCents\\\":-800},{\\\"id\\\":\\\"INV-C\\\",\\\"balanceCents\\\":8000}],\\\"totalBalanceCents\\\":19200}\"}}\n{\"type\":\"tool_result\",\"callId\":\"write-1\",\"status\":\"completed\",\"result\":\"<path>/tmp/artifacts/result.json</path>\\n<type>file</type>\\n<content>\\nCreated file\\n</content>\"}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":1,\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15}}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":2}\n{\"type\":\"text\",\"text\":\"READY\"}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":2,\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15}}\n{\"type\":\"status\",\"phase\":\"turn_end\",\"turn\":1,\"reason\":{\"kind\":\"completed\"}}\n{\"type\":\"final\",\"text\":\"READY\"}\n",
+    "stderr": "",
+    "calls": 2,
+    "settings": [
+      {
+        "model": "mimo-v2.6-flash",
+        "max_tokens": 2000,
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      {
+        "model": "mimo-v2.6-flash",
+        "max_tokens": 2000,
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    ],
+    "excessStatus": 429,
+    "audits": [
+      {
+        "request": 1,
+        "status": "response",
+        "usage": {
+          "inputTokens": 10,
+          "outputTokens": 5
+        },
+        "cost": null,
+        "httpStatus": 200,
+        "elapsedMs": 7.206031000000166
+      },
+      {
+        "request": 2,
+        "status": "response",
+        "usage": {
+          "inputTokens": 10,
+          "outputTokens": 5
+        },
+        "cost": null,
+        "httpStatus": 200,
+        "elapsedMs": 0.796291999999994
+      }
+    ],
+    "input": "{\n  \"invoices\": [\n    {\n      \"id\": \"INV-C\",\n      \"billedCents\": 9250\n    },\n    {\n      \"id\": \"INV-A\",\n      \"billedCents\": 18400\n    },\n    {\n      \"id\": \"INV-B\",\n      \"billedCents\": 7200\n    }\n  ],\n  \"payments\": [\n    {\n      \"invoice\": \"INV-A\",\n      \"amountCents\": 5000,\n      \"status\": \"settled\"\n    },\n    {\n      \"invoice\": \"INV-A\",\n      \"amountCents\": 3000,\n      \"status\": \"pending\"\n    },\n    {\n      \"invoice\": \"INV-B\",\n      \"amountCents\": 8000,\n      \"status\": \"settled\"\n    },\n    {\n      \"invoice\": \"INV-C\",\n      \"amountCents\": 250,\n      \"status\": \"settled\"\n    }\n  ],\n  \"credits\": [\n    {\n      \"invoice\": \"INV-A\",\n      \"amountCents\": 1400,\n      \"status\": \"approved\"\n    },\n    {\n      \"invoice\": \"INV-C\",\n      \"amountCents\": 900,\n      \"status\": \"rejected\"\n    },\n    {\n      \"invoice\": \"INV-C\",\n      \"amountCents\": 1000,\n      \"status\": \"approved\"\n    }\n  ]\n}\n",
+    "artifact": "{\"invoices\":[{\"id\":\"INV-A\",\"balanceCents\":12000},{\"id\":\"INV-B\",\"balanceCents\":-800},{\"id\":\"INV-C\",\"balanceCents\":8000}],\"totalBalanceCents\":19200}"
+  },
+  "scope": "Synthetic integrated provider-budget, accounting and file-tool proof; not a live benchmark"
+}

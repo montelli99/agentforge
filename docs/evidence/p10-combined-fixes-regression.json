@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "50430beb11a523dd590ac2fb9eec785dd383ccf0",
+  "recordedAt": "2026-10-26T12:39:46.4582438Z",
+  "command": "pnpm test",
+  "passedFiles": 153,
+  "passedTests": 894,
+  "skippedTests": 2,
+  "durationSeconds": 76.97,
+  "exitCode": 0,
+  "limitation": "Local regression suite; opt-in provider smoke tests remain skipped, not accepted as live proof"
+}

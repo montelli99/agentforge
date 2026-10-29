@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# A newer revision replaces the older verification request for the same PR.
+# Keep different pull requests and release branches independent.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   public-acceptance:
     name: Public package and isolated execution acceptance
@@ -54,6 +60,24 @@ jobs:
       - name: Verify Docker survivor discovery after worker death
         run: pnpm test:execution:docker-crash
 
+      - name: Verify failed Docker result recovery after worker termination
+        run: |
+          IMAGE_ID=$(docker image inspect node:22-alpine --format '{{.Id}}')
+          node --import tsx scripts/chatgpt-runtime-crash.ts --failed-result "$IMAGE_ID" "${{ runner.temp }}/failed-result-crash.json"
+
+      - name: Retain failed-result recovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-result-crash-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/failed-result-crash.json
+          if-no-files-found: error
+
+      - name: Verify pinned Gemini transport through governed Docker broker
+        run: node scripts/gemini-pinned-policy-acceptance.mjs --native --docker
+
+      - name: Verify saved execution setup through restart and final approval
+        run: node scripts/execution-setup-acceptance.mjs
+
       - name: Prepare isolated browser acceptance
         run: pnpm exec playwright install --with-deps chromium
 
@@ -64,13 +88,24 @@ jobs:
           pnpm test:connections:browser
           AGENTFORGE_BROWSER_LOCAL=1 pnpm test:connections:browser
           pnpm test:approval:browser
+          AGENTFORGE_BROWSER_INVOICE_PROOF=1 pnpm test:approval:browser
+          node scripts/invoice-recovery-ci.mjs
           pnpm test:migration:browser
+          node scripts/external-recovery-browser-acceptance.mjs
+          AGENTFORGE_REPAIR_AUTH_LOSS=1 node scripts/repair-browser-acceptance.mjs
 
       - name: Retain synthetic browser evidence
         uses: actions/upload-artifact@v4
         with:
           name: memory-browser-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/agentforge-memory-browser-*/memory-import.png
+          if-no-files-found: error
+
+      - name: Retain synthetic delegation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: delegation-browser-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/agentforge-external-browser-*/delegation-review.png
           if-no-files-found: error
 
       - name: Package exact verified commit
@@ -131,8 +166,38 @@ jobs:
           TELEGRAM_BOT_TOKEN: ""
           DISCORD_BOT_TOKEN: ""
 
+      - name: Verify Gemini deny policy against pinned official client
+        run: node scripts/gemini-pinned-policy-acceptance.mjs --native
+
       - name: Verify interrupted execution is not replayed
         run: pnpm test:execution:crash
+
+      - name: Verify selected-note memory lifecycle across restart
+        run: node scripts/obsidian-lifecycle-acceptance.mjs "${{ runner.temp }}/obsidian-lifecycle.json"
+      - name: Provider accounting parser
+        run: node --test scripts/reported-provider-usage.test.mjs scripts/atomic-proof-journal.test.mjs scripts/release-evaluation-contract.test.mjs scripts/release-evaluation-v2.test.mjs scripts/release-evaluation-v3.test.mjs scripts/evaluation-journey-case.test.mjs scripts/evaluation-limits.test.mjs scripts/evaluation-scoring-gate.test.mjs scripts/fixture-git-bytes.test.mjs scripts/comparison-proxy.test.mjs scripts/comparison-case.test.mjs scripts/comparison-attempt.test.mjs
+      - name: Comparison process deadline and immutable outcome
+        run: node --import tsx --test scripts/comparison-process.test.ts
+      - name: Composed local memory lifecycle
+        run: |
+          node scripts/composed-memory-lifecycle-acceptance.mjs
+          node scripts/memory-migration-acceptance.mjs
+
+      - name: Verify encrypted memory selection after process termination
+        run: node scripts/memory-process-recovery.mjs "${{ runner.temp }}/memory-process-recovery.json"
+
+      - name: Verify migrated conflicts and durable deletion in fresh processes
+        run: node --import tsx scripts/memory-migration-lifecycle.ts > "${{ runner.temp }}/memory-migration-lifecycle.json"
+
+      - name: Retain selected-note lifecycle evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-lifecycle-${{ matrix.os }}-${{ matrix.node-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/obsidian-lifecycle.json
+            ${{ runner.temp }}/memory-process-recovery.json
+            ${{ runner.temp }}/memory-migration-lifecycle.json
+          if-no-files-found: error
 
       - name: Verify built-launcher persistence across restart
         run: pnpm test:persistence:launcher
@@ -157,3 +222,7 @@ jobs:
             git status
             exit 1
           fi
+
+
+
+

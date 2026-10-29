@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-10-26T15:51:22.1233823Z",
+  "scope": "Pinned Gemini MCP client requests persisted review, host resolves synthetic owner approval, same client executes contracted Docker task",
+  "pendingReviewDenied": true,
+  "approvedExecution": true,
+  "duplicateDenied": true,
+  "artifactAppendCount": 1,
+  "durableResultRecovered": true,
+  "verificationChecksPassed": true,
+  "remainingContainers": 0,
+  "browserReviewTested": false,
+  "modelInferenceTested": false,
+  "policyCases": 15,
+  "scriptSha256": "2429f2469031c4649b2dde0ef6e019c19b0e3d6e01bcb31f017d532ccb11f110"
+}

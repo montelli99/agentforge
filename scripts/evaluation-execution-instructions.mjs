@@ -1,0 +1,2 @@
+// Shared by both arms; task and plan constraints must reach each model equally.
+export const evaluationExecutionInstructions='Execution constraints: use sh or Node.js in an offline Node 22 Alpine container. Read input.json at runtime. Only artifacts/result.json is writable and is provisioned before execution. Do not create helper files. Every plan command must include an integer timeoutMs from 1 through 10000. No network, no deletion, no embedded replacement input. A reviewer accepts or rejects the entire plan without edits.';

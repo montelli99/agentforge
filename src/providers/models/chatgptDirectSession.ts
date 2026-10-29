@@ -10,6 +10,8 @@ export async function renewDirectSession(store:DirectTokenStore,clientId:string,
   verifier:IdentityTokenVerifier|((previous:DirectCredentials,signal:AbortSignal)=>Promise<IdentityTokenVerifier>);
   signal?:AbortSignal;
   now?:()=>number;
+  /** Explicit account renewal; ordinary requests retain expiry-based refresh. */
+  force?:boolean;
 }):Promise<DirectCredentials>{
   const now=options.now??Date.now;
   const signal=AbortSignal.any([AbortSignal.timeout(30000),...(options.signal?[options.signal]:[])]);
@@ -17,7 +19,7 @@ export async function renewDirectSession(store:DirectTokenStore,clientId:string,
     signal.throwIfAborted();
     const current=await record.read();
     if(!current||current.renewalPending||!current.refreshToken||!Number.isFinite(current.expiresAt))throw Error('Subscription sign-in required');
-    if(current.expiresAt>now()+60000)return current;
+    if(!options.force&&current.expiresAt>now()+60000)return current;
     await record.replace({...current,renewalPending:true});
     let abort:()=>void=()=>{};
     try{

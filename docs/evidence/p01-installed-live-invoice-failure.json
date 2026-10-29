@@ -1,0 +1,26 @@
+{
+  "requirement": "P01/P03",
+  "candidateCommit": "4ae5135a88b8d29fa3fe60298530ab0983379fdd",
+  "archiveSha256": "64778dfc9c65f36dbddb53736b92ee90ef605651787f50bf6cbde8d13b26820d",
+  "freshInstall": true,
+  "liveModel": "mimo-v2.6-flash",
+  "passed": false,
+  "taskStatus": "failed",
+  "reason": "Model-generated extra schema self-check expected only two top-level keys. Actual artifact has all four required keys. Runtime correctly rejected completion.",
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "rawResponseSha256": "87bd1421d027a5a6299f143b0ddf6a4a5879eb24bf9ddb66c398e3dc24833d42",
+  "planningAudits": [
+    {
+      "id": "15ab96c7-2605-4591-a156-2cb4e99cd14f",
+      "taskId": "task-31d7663c-dc41-4447-9629-aacd4778eccc",
+      "model": "compatible::synthetic-model",
+      "requestDigest": "774a0122d0a2ad74e0dac2a4edc4acdfd18cdfb5339963b589e8686bb2ffb51b",
+      "status": "completed",
+      "inputTokens": 2709,
+      "outputTokens": 719,
+      "responseDigest": "e6b7de607885c639337d1d2249c6aa753b74814abc7d23de7a12a7b9feebd7e2"
+    }
+  ],
+  "paidRequests": 1,
+  "repair": "Planner now receives bounded failed-check diagnostics for the same failed task. Live repair acceptance remains pending."
+}

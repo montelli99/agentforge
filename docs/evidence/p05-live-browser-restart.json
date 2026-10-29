@@ -1,0 +1,148 @@
+{
+  "passed": true,
+  "gatewayProcessRestart": true,
+  "unreadResultRecovered": true,
+  "browserStop": true,
+  "invoiceUnchangedAfterStop": true,
+  "browserSessionSelection": true,
+  "reviewBeforeSend": true,
+  "submissions": 2,
+  "runId": "run_f633d75c0dfa48e0a4dd70e788671c01",
+  "sessionKey": "run_a5906b571a9146449ca0de8831c8b11d",
+  "independentInvoiceCheck": true,
+  "outputVisible": true,
+  "reloadWithoutResend": true,
+  "notLocallyVerified": true,
+  "limits": [
+    "Broader partial effects and installed-package acceptance remain open."
+  ],
+  "restart": {
+    "beforeStartedAt": "2026-10-26T09:56:31.639103425Z",
+    "afterStartedAt": "2026-10-26T09:57:21.743891116Z",
+    "runId": "run_f633d75c0dfa48e0a4dd70e788671c01",
+    "recoveredBeforeFirstRead": true,
+    "requestsBeforeRestart": 9,
+    "requestsAfterRestart": 9,
+    "submissions": 1
+  },
+  "requestAudits": [
+    {
+      "requestNumber": 1,
+      "startedAt": "2026-10-26T09:56:42.695Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13754,
+        "outputTokens": 70
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:47.393Z"
+    },
+    {
+      "requestNumber": 2,
+      "startedAt": "2026-10-26T09:56:47.533Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 13944,
+        "outputTokens": 33
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:50.631Z"
+    },
+    {
+      "requestNumber": 3,
+      "startedAt": "2026-10-26T09:56:50.906Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14007,
+        "outputTokens": 50
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:55.706Z"
+    },
+    {
+      "requestNumber": 4,
+      "startedAt": "2026-10-26T09:56:55.760Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 279,
+        "outputTokens": 22
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:56:59.468Z"
+    },
+    {
+      "requestNumber": 5,
+      "startedAt": "2026-10-26T09:56:58.470Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14288,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:57:01.118Z"
+    },
+    {
+      "requestNumber": 6,
+      "startedAt": "2026-10-26T09:57:01.186Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 14711,
+        "outputTokens": 454
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:57:09.644Z"
+    },
+    {
+      "requestNumber": 7,
+      "startedAt": "2026-10-26T09:57:09.825Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15234,
+        "outputTokens": 35
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:57:12.838Z"
+    },
+    {
+      "requestNumber": 8,
+      "startedAt": "2026-10-26T09:57:13.080Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15545,
+        "outputTokens": 21
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:57:15.649Z"
+    },
+    {
+      "requestNumber": 9,
+      "startedAt": "2026-10-26T09:57:15.718Z",
+      "status": "response",
+      "usage": {
+        "inputTokens": 15973,
+        "outputTokens": 211
+      },
+      "cost": null,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-26T09:57:20.294Z"
+    },
+    {
+      "requestNumber": 10,
+      "startedAt": "2026-10-26T09:57:30.593Z",
+      "status": "started",
+      "usage": null,
+      "cost": null
+    }
+  ],
+  "artifactSha256": "0a95c0134226e7428ef4ec3fc410bf0a91a75f1fc289ace92bd598da6584f58e",
+  "runnerSha256": "e13bab35a6fbbfd3c0614f011e38473abff0b3a27ed4e48513576a070f865570",
+  "recordedAt": "2026-10-26T09:58:00.260Z"
+}

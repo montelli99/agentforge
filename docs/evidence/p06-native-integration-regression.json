@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-26T15:47:23.8116337Z",
+  "sourceBase": "46aafde45931abd21be5bb21cea1b16cc34eff3e",
+  "scope": "pnpm check on native-broker integration source; concurrent edits limited to pinned-client runner and CI workflow, separately exercised",
+  "testFilesPassed": 164,
+  "testsPassed": 942,
+  "testsSkipped": 2,
+  "fullTypecheck": true,
+  "scriptTypecheck": true,
+  "evaluationEvidenceIntegrity": true,
+  "productIsolation": true,
+  "build": true,
+  "publicPackageSurface": true,
+  "pinnedGeminiFreshArchiveDockerProof": true,
+  "releaseComplete": false
+}

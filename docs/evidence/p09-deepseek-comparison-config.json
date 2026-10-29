@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-10-26T14:44:52.995Z",
+  "packageVersion": "0.2.1-rc.3",
+  "overlaySha256": "02e76550e7933a09f73210977b01b957587ed1c5eb0c1844d2496cb097b5bdc6",
+  "overlay": "- id: session-telemetry-otel\n  disabled: true\n- id: session-title-llm\n  disabled: true\n- id: agent-default-model\n  config:\n    provider: evaluation\n    model: mimo-v2.6-flash\n- id: llm-pi-ai\n  config:\n    providers:\n      evaluation:\n        apiKeyEnv: AF_EVALUATION_PROXY_KEY\n        api: openai-completions\n        baseURL: http://127.0.0.1:19999/v1\n        retryPolicy:\n          mode: normal\n          maxRetries: 0\n        models:\n          - id: mimo-v2.6-flash\n            contextWindow: 65536\n        defaultMaxTokens: 2000\n",
+  "configurationComposed": true,
+  "isolatedHome": true,
+  "inheritedCredentials": false,
+  "providerRequests": 0,
+  "taskSubmitted": false,
+  "limitations": [
+    "Composition check only: provider schema loading and isolated execution are not yet proven.",
+    "Endpoint is a deliberately inactive placeholder, not a live provider."
+  ]
+}

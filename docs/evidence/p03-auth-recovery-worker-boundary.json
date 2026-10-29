@@ -1,0 +1,22 @@
+{
+  "scope": "Synthetic worker and authenticated HTTP boundary; not live provider/browser acceptance",
+  "tests": {
+    "files": 2,
+    "passed": 9
+  },
+  "typecheck": "passed",
+  "build": "passed",
+  "assertions": [
+    "401/403 recorded refusal permits approved execution once",
+    "reopened observed operation is not executed twice",
+    "unknown, started and malformed refusal block before backend execution",
+    "HTTP review separates refusal count from uncertain attempts",
+    "review text retains unreported usage"
+  ],
+  "sha256": {
+    "src/core/runtime/executionRepair.test.ts": "3c5ce3987dd13967eae7c09d0525412290f1a60989e33a84833146c6768a4b6e",
+    "src/server/executionSurvivorRoutes.test.ts": "511233d54c790798f28225c2bd375fc8577a29f2fc9b95ca11d86a490bbc8931",
+    "src/server/webServer.ts": "b1620a4ecbfb69df272cf089eb452872f04748e2bd1cb202783c18040e810f66",
+    "src/server/ui/workboardClient.ts": "5594a0b343d904433a10f39d786d46090d06fbd9d0b278a7a71d8cbe9e64e100"
+  }
+}

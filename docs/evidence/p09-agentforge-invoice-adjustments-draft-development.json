@@ -1,0 +1,21 @@
+{
+  "passed": false,
+  "caseId": "invoice-adjustments",
+  "model": "mimo-v2.6-flash",
+  "scoredComparison": false,
+  "inputSha256": "9c6fb3c66ab764167c7283238a64c47a3f899c59c9b99c581dd67229fe731bdb",
+  "audits": [
+    {
+      "id": "79242019-9c77-418e-ba89-d18b5cb5b82f",
+      "taskId": "AF-007DCACC",
+      "model": "mimo-v2.6-flash",
+      "requestDigest": "5d0ed8143cae48b688f2afaaa9532bc55e1fffeacbd1fb2359ee21616a56bf73",
+      "status": "completed",
+      "inputTokens": 821,
+      "outputTokens": 1000,
+      "responseDigest": "67b957f6335f7a70ac2390c333961108446be026d26ea36439f6f6b36c56e07c"
+    }
+  ],
+  "scope": "Live draft for a shared development case; no approval, execution, artifact score or competitive result.",
+  "status": "planning-failed"
+}

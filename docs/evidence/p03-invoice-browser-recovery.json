@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "realBrowser": true,
+  "authenticatedRecovery": true,
+  "realDockerResult": true,
+  "independentInvoiceCheck": true,
+  "executionsDuringRecovery": 0,
+  "pendingFinalApproval": true,
+  "reopenedPendingApproval": true,
+  "pageErrors": []
+}

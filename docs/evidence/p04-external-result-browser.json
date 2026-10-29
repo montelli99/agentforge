@@ -1,0 +1,18 @@
+{
+  "requirement": "P04/P08",
+  "baseCommit": "bd581dfdc578350084fd1633b5d61dae080788f7",
+  "passed": true,
+  "syntheticRuntime": true,
+  "liveModel": false,
+  "browser": "Installed Chrome, isolated test profile",
+  "checks": [
+    "Saved exact-run response displays in a bounded scrollable plain-text panel",
+    "Script-shaped result content is not executed",
+    "Reading output causes zero submissions and leaves task paused",
+    "Status history, Stop recovery, session selection race and explicit delegation review still pass"
+  ],
+  "screenshotSha256": "d180cbbfc78612b702e3f6f5ba3819c35c924032aff69cf219b798fd9a33d3a6",
+  "testSha256": "f8ea3a0ee7870200423dd878539057d40bae73057d2f301690f560bdca7d7004",
+  "scope": "Browser integration with synthetic connection; actual OpenClaw adapter proof is recorded separately. Not a complete live governed workflow.",
+  "initialAttempt": "Default Playwright executable absent; used installed Chrome with fresh isolated profile."
+}

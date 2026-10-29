@@ -1,0 +1,13 @@
+{
+  "passed": false,
+  "stage": "browser-approved invoice",
+  "container": "af-hermes-live-61af42de",
+  "observedFailures": [
+    "write_file targeted scratch outside allowed /opt/data",
+    "execute_code refused on unattended API session",
+    "8-turn budget exhausted"
+  ],
+  "fix": "Explain actual allowed write root and terminal Node execution in reviewed prompt; preserve all guards",
+  "usage": null,
+  "cost": null
+}

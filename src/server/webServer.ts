@@ -1,3 +1,8 @@
+import {readExecutionSetup,saveExecutionSetup} from './executionSetup.js';
+import {AgentConnectionSetup} from './agentConnectionSetup.js';
+import {configureHermesRunConnection} from '../providers/channels/hermesRunConnection.js';
+import {OpenClawGatewayTransport} from '../providers/channels/openClawGatewayTransport.js';
+import {planningAuditUnresolved} from '../core/runtime/executionReceipt.js';
 import { ConnectionSetup } from './connectionSetup.js';
 import {reviewMemoryImport, MemoryImportValidationError} from './memoryImport.js';
 import { ChatGPTSetup } from './chatgptSetup.js';
@@ -75,6 +80,7 @@ import { CapabilitySetupExecutor } from "../capabilitySetupExecutor.js";
 import { ChannelConnectionRegistry } from "../channelConnectionRegistry.js";
 import { ChannelRuntimeRegistry } from "../channelRuntimeRegistry.js";
 import { AgentForgeController } from "../controller/agentController.js";
+import { TeamCoordinator, type TeamRun } from "../teamCoordinator.js";
 import { PUBLIC_SYSTEM_MANIFEST } from "../publicSystemManifest.js";
 import { JevUltrafastBrowserPolicy, type BrowserAction, type BrowserObservation } from "../providers/browser/jevUltrafastBrowser.js";
 import { BrowserSessionRegistry } from "../providers/browser/browserSessionRegistry.js";
@@ -82,6 +88,7 @@ import { WorkflowEngine } from "../workflowEngine.js";
 import { buildReleaseReadiness } from "../releaseReadiness.js";
 import { ProcessAgentBridge } from "../processAgentBridge.js";
 import { NativeAgentForgeGateway } from "../nativeGateway.js";
+import { readExternalTurnOutput, observeExternalTurn, prepareExternalTurnApproval, dispatchExternalTurn, stopExternalTurn } from '../core/runtime/externalTurnDispatch.js';
 import { ModelPlanDraftProvider } from "../core/runtime/modelPlanDraftProvider.js";
 import { inspectSlackSocketModeConfig } from "../providers/channels/slackSocketModeConfig.js";
 import { mergePlanningContextPackets } from "./planningContext.js";
@@ -381,6 +388,8 @@ export class AgentForgeWebServer {
   readonly nativeGateway: NativeAgentForgeGateway;
   readonly browserSessions = new BrowserSessionRegistry();
   readonly controller: AgentForgeController;
+  readonly teamCoordinator: TeamCoordinator;
+  private readonly teamRuns = new Map<string, TeamRun>();
   readonly workflowEngine: WorkflowEngine;
   readonly processAgentBridge = new ProcessAgentBridge();
   readonly localSandbox = new LocalSandboxComputeProvider();
@@ -393,12 +402,25 @@ export class AgentForgeWebServer {
   /** Optional deployment credential; it is never returned by any status route. */
   private readonly apiToken = process.env.AGENTFORGE_API_TOKEN?.trim() || undefined;
   private readonly settingsFilePath: string;
+  private readonly executionSetupFilePath: string;
   private readonly connectionSetup: ConnectionSetup;
+  private readonly agentSetup: AgentConnectionSetup;
+  private agentSetupBusy=false;
+  private readonly managedAgentConnections=new Map<string,{id:string;stop:()=>void}>();
   private readonly chatgptSetup: ChatGPTSetup;
   private claudeStatusCheck?: {controller: AbortController; result: ReturnType<typeof inspectClaudeCliAuthentication>};
   private readonly claudeAccountConfiguration?: Readonly<{executablePath: string; configurationDirectory: string}>;
+  private readonly geminiClientBundle?: string;
   private geminiClientCheck?: {controller: AbortController; result: ReturnType<typeof inspectGeminiCliCapabilities>};
   private stopping = false;
+  private readonly externalRunConnections = new Map<string, {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}>();
+
+  /** Only trusted startup configuration can register a runtime; HTTP callers cannot supply URLs. */
+  registerExternalRunConnection(connection: {id: string; displayName?: string; isConnected?(): boolean; listSessions?(limit:number,offset:number):Promise<{sessions:Array<{key:string;name:string}>;nextOffset?:number}>; inspectRun(runId: string): Promise<{runId: string; status: string}>; readRunOutput?(runId:string,sessionKey?:string):Promise<{runId:string;content:string}>; submitSessionTurn?(sessionKey: string, message: string, requestId: string): Promise<{runId:string}>; requestRunStop?(sessionKey:string,runId:string):Promise<{acknowledged:boolean}>}): void {
+    if (!connection.id.trim() || this.externalRunConnections.has(connection.id)) throw Error('External connection ID must be unique and nonempty');
+    if (connection.displayName !== undefined && (!connection.displayName.trim() || connection.displayName.length > 100 || /[\u0000-\u001f\u007f]/.test(connection.displayName))) throw Error('Invalid external connection display name');
+    this.externalRunConnections.set(connection.id, {...connection});
+  }
 
   // SSE event ID sequencing and ring-buffer for reconnect replay (Section 13)
   private sseEventCounter = 0;
@@ -414,15 +436,18 @@ export class AgentForgeWebServer {
     private readonly port = 3460,
     completionEngine = new CompletionEngine(),
     taskWorkerRuntime?: TaskWorkerRuntime,
-    options: { settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
+    options: { geminiClientBundle?: string; executionSetupFilePath?: string; settingsFilePath?: string; conversation?: ConversationConfiguration; planDraftProvider?: ModelPlanDraftProvider; claudeAccountConfiguration?: {executablePath: string; configurationDirectory: string}; indexedMemory?: IndexedMemoryRuntime; memoryConnections?: MemoryConnectionDefinition[] } = {},
   ) {
     this.settingsFilePath = options.settingsFilePath || defaultSettingsFilePath();
+    this.executionSetupFilePath=options.executionSetupFilePath||pathModule.join(pathModule.dirname(this.settingsFilePath),"execution-setup.json");
     this.memoryConnections = new MemoryConnectionRegistry(options.memoryConnections);
     this.connectionSetup = new ConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'connections.encrypted.json'));
+    this.agentSetup=new AgentConnectionSetup(pathModule.join(pathModule.dirname(this.settingsFilePath),'agent-connections.encrypted.json'));
     this.chatgptSetup = new ChatGPTSetup(pathModule.join(pathModule.dirname(this.settingsFilePath), 'subscription-accounts'));
     this.planDraftProvider = options.planDraftProvider;
     this.claudeAccountConfiguration = options.claudeAccountConfiguration ? Object.freeze({...options.claudeAccountConfiguration}) : undefined;
     this.indexedMemory = options.indexedMemory;
+    this.geminiClientBundle = options.geminiClientBundle;
     this.completionEngine = completionEngine;
     this.workflowEngine = new WorkflowEngine(undefined, completionEngine);
     this.operationalMemory = new OperationalMemoryProvider(this.store);
@@ -437,6 +462,8 @@ export class AgentForgeWebServer {
     this.correctionRegistry = new CorrectionRegistry(this.store);
     this.callLifecycleManager = new CallLifecycleManager(this.store);
     this.controller = new AgentForgeController(undefined, this.operationalMemory);
+    this.teamCoordinator = new TeamCoordinator(this.store);
+    for (const run of this.teamCoordinator.restoreRuns()) this.teamRuns.set(run.id, run);
     const telegramChatModel = options.conversation
       ? selectTelegramChatModel(options.conversation.provider, options.conversation.models,
         process.env.AGENTFORGE_TELEGRAM_CHAT_MODEL?.trim())
@@ -488,7 +515,7 @@ export class AgentForgeWebServer {
     const discord = inspectDiscordBotConfig();
     const slack = inspectSlackSocketModeConfig();
     const modelConfigured = this.conversations.status().configured;
-    const executionMode = process.env.AGENTFORGE_EXECUTION_MODE?.trim() || "off";
+    const executionMode = this.taskWorkerRuntime.getExecutionReadiness().capabilities.isolatedCompute ? "approved-docker" : "off";
     const channelStates = new Map(this.nativeGateway.snapshot().channels.map(channel => [channel.provider, channel.state]));
     const capabilities = [
       { id: "model", label: "Model planning", configured: modelConfigured, state: modelConfigured ? "configured" : "needs_configuration", detail: modelConfigured ? "A private model route is configured for this runtime." : "No model route is configured. The guide can still prepare a workspace and reviewable plan." },
@@ -1160,10 +1187,9 @@ export class AgentForgeWebServer {
 
     if (req.method === "POST" && path === "/api/auth/logout") {
       const authHeader = req.headers.authorization;
-      if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.slice(7).trim();
-        this.store.revokeSession(token);
-      }
+      const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim() : sessionTokenFromCookie(req.headers.cookie);
+      if (token) this.store.revokeSession(token);
       this.clearSessionCookie(res);
       if (caller.user) {
         this.store.recordAudit({
@@ -1448,7 +1474,7 @@ export class AgentForgeWebServer {
     const mutatesControlPlane = !["GET", "HEAD", "OPTIONS"].includes(req.method || "GET");
     // These routes have their own capability-specific denial below. Preserve
     // that narrower error and audit record instead of intercepting it here.
-    const hasRouteSpecificWriteGate = /^\/api\/(settings|browser|workflows|projects|agents|tasks|approvals|memory|packages|audit)(?:\/|$)/.test(path);
+    const hasRouteSpecificWriteGate = path === '/api/runtime-sessions' || /^\/api\/(settings|browser|workflows|projects|agents|tasks|approvals|memory|packages|audit)(?:\/|$)/.test(path);
     if (mutatesControlPlane && caller.role === "viewer" && !hasRouteSpecificWriteGate) {
       this.store.recordAudit({
         origin: "web", actorId: caller.user?.id || "anonymous", actorType: "user", action: "rbac_denied",
@@ -1456,6 +1482,88 @@ export class AgentForgeWebServer {
       });
       res.writeHead(403);
       res.end(JSON.stringify({ error: "A write-capable role is required for this action.", role: caller.role }));
+      return;
+    }
+
+    if (path === '/api/runtime-sessions') {
+      res.setHeader('Cache-Control','no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401);res.end();return; }
+      if (!hasPermission(caller.permissions,'tasks:read') || !hasPermission(caller.permissions,'tasks:execute')) {res.writeHead(403);res.end();return;}
+      if (req.method !== 'POST') {res.writeHead(405);res.end();return;}
+      const body=await this.readBody(req);
+      const offset=body.offset ?? 0;
+      if (typeof body.connectionId!=='string'||typeof offset!=='number'||!Number.isSafeInteger(offset)||offset<0) {res.writeHead(400);res.end();return;}
+      const connection=this.externalRunConnections.get(body.connectionId);
+      if (!connection?.listSessions) {res.writeHead(409);res.end(JSON.stringify({error:'Session discovery is unavailable for this connection.'}));return;}
+      try {
+        const page=await connection.listSessions(25,offset);
+        res.writeHead(200);res.end(JSON.stringify({connectionId:connection.id,...page}));
+      } catch {res.writeHead(409);res.end(JSON.stringify({error:'Could not read sessions. Check the selected agent connection. No work was sent.'}));}
+      return;
+    }
+
+    if(path==='/api/execution-setup'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}
+      if(caller.role!=='owner'||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end();return;}
+      try{
+        if(req.method==='GET'){const status={saved:readExecutionSetup(this.executionSetupFilePath),environmentOverride:process.env.AGENTFORGE_EXECUTION_MODE!==undefined,activeReadiness:this.taskWorkerRuntime.getExecutionReadiness()};res.writeHead(200);res.end(JSON.stringify(status));return;}
+        if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+        if(process.env.AGENTFORGE_EXECUTION_MODE!==undefined)throw Error('Execution is controlled by startup settings. Remove that override before using guided setup.');
+        const body=await this.readBody(req);
+        if(this.taskWorkerRuntime.getActiveTaskIds().length)throw Error('Finish active tasks before changing execution setup');
+        const saved=saveExecutionSetup(this.executionSetupFilePath,body);
+        res.writeHead(200);res.end(JSON.stringify({saved,restartRequired:true,activated:false}));
+      }catch(error){res.writeHead(409);res.end(JSON.stringify({error:error instanceof Error?error.message:'Execution setup failed'}));}
+      return;
+    }
+    if(path==='/api/agent-connections'){
+      res.setHeader('Cache-Control','no-store');
+      if(!caller.isAuthenticated){res.writeHead(401);res.end();return;}
+      if(!['owner','admin'].includes(caller.role)||!hasPermission(caller.permissions,'settings:write')){res.writeHead(403);res.end();return;}
+      if(req.method==='GET'){res.writeHead(200);res.end(JSON.stringify({saved:await this.agentSetup.exists(),active:[...this.managedAgentConnections.keys()]}));return;}
+      if(req.method!=='POST'){res.writeHead(405);res.end();return;}
+      if(this.agentSetupBusy){res.writeHead(409);res.end(JSON.stringify({error:'Another agent setup operation is running.'}));return;}
+      this.agentSetupBusy=true;
+      try{
+        const body=await this.readBody(req);
+        if(body.action==='disconnect'){
+          if(body.provider!=='openclaw'&&body.provider!=='hermes')throw Error('provider');
+          const current=this.managedAgentConnections.get(body.provider);if(current){current.stop();this.externalRunConnections.delete(current.id);this.managedAgentConnections.delete(body.provider);}
+          res.writeHead(200);res.end(JSON.stringify({disconnected:true,remoteWorkStopped:false}));return;
+        }
+        if(typeof body.passphrase!=='string'||body.passphrase.length<16||body.passphrase.length>1024)throw Error('passphrase');
+        if(body.action==='save'){await this.agentSetup.save(body.profile as any,body.passphrase);res.writeHead(200);res.end(JSON.stringify({saved:true,activationRequired:true,activeConnectionUnchanged:true}));return;}
+        if(body.action==='forget'){
+          if(body.provider!=='openclaw'&&body.provider!=='hermes')throw Error('provider');
+          await this.agentSetup.forget(body.provider,body.passphrase);const current=this.managedAgentConnections.get(body.provider);if(current){current.stop();this.externalRunConnections.delete(current.id);this.managedAgentConnections.delete(body.provider);}
+          res.writeHead(200);res.end(JSON.stringify({forgotten:true,remoteWorkStopped:false}));return;
+        }
+        if(body.action!=='connect'||(body.provider!=='openclaw'&&body.provider!=='hermes'))throw Error('action');
+        const profile=(await this.agentSetup.restore(body.passphrase)).find(p=>p.provider===body.provider);if(!profile)throw Error('missing');
+        let connection;let stop=()=>{};
+        if(profile.provider==='hermes'){
+          connection=configureHermesRunConnection({AGENTFORGE_HERMES_URL:profile.url,AGENTFORGE_HERMES_API_KEY:profile.token})!;
+          await connection.listSessions(1,0);
+        }else{
+          const client=new OpenClawGatewayTransport({url:profile.url,token:profile.token,identityPath:pathModule.join(pathModule.dirname(this.settingsFilePath),'guided-openclaw-identity.json'),enableTaskDelegation:true});
+          try{await client.connectWhenReady(15000);}catch(error){client.stop();if(error instanceof Error&&error.message.includes('device pairing required')){res.writeHead(409);res.end(JSON.stringify({error:'OpenClaw requires device approval. Match device fingerprint '+client.getDeviceFingerprint()+' in OpenClaw, approve that device, then select Connect again.',pairingRequired:true}));return;}throw error;}
+          stop=()=>client.stop();connection={id:client.getConnectionId(),displayName:'OpenClaw (experimental)',isConnected:()=>client.isConnected(),listSessions:(limit:number,offset:number)=>client.listSessions(limit,offset),inspectRun:(id:string)=>client.inspectRun(id),readRunOutput:(id:string,sessionKey?:string)=>client.readRunOutput(id,sessionKey),submitSessionTurn:(sessionKey:string,message:string,requestId:string)=>client.submitSessionTurn(sessionKey,message,requestId),requestRunStop:(sessionKey:string,id:string)=>client.requestRunStop(sessionKey,id)};
+        }
+        if(this.stopping){stop();throw Error("Server is stopping");}
+        const old=this.managedAgentConnections.get(profile.provider);if(old){old.stop();this.externalRunConnections.delete(old.id);}
+        this.registerExternalRunConnection(connection);this.managedAgentConnections.set(profile.provider,{id:connection.id,stop});res.writeHead(200);res.end(JSON.stringify({connected:true,provider:profile.provider,id:connection.id,workSubmitted:false}));
+      }catch{res.writeHead(400);res.end(JSON.stringify({error:'Agent setup could not be completed. Check the endpoint, credential, unlock passphrase and running agent. No task was sent.'}));}
+      finally{this.agentSetupBusy=false;}return;
+    }
+
+    if (path === '/api/runtime-connections') {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+      if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+      if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+      res.writeHead(200);
+      res.end(JSON.stringify({connections: [...this.externalRunConnections.values()].map(connection=>({id:connection.id,displayName:connection.displayName ?? connection.id,canSubmit:typeof connection.submitSessionTurn==='function',readiness: (()=>{try{return connection.isConnected ? (connection.isConnected() === true ? 'authenticated' : 'disconnected') : 'not_checked';}catch{return 'unavailable';}})()}))}));
       return;
     }
 
@@ -2781,6 +2889,89 @@ export class AgentForgeWebServer {
       return;
     }
 
+    if (req.method === "GET" && path === "/api/team-runs") {
+      res.writeHead(200);
+      res.end(JSON.stringify(Array.from(this.teamRuns.values()).map(run => ({ ...run, handoffs: run.handoffs.map(handoff => ({ ...handoff })) }))));
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/team-runs") {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.title, 180) || !isBoundedString(body.objective, 8000)
+        || !isBoundedString(body.leadAgentId, 120) || !Array.isArray(body.specialistAgentIds)
+        || body.specialistAgentIds.length < 1 || body.specialistAgentIds.length > 32
+        || body.specialistAgentIds.some((id: unknown) => !isBoundedString(id, 120))) {
+        res.writeHead(400); res.end(JSON.stringify({ error: "A lead, at least one specialist, and bounded team objective are required." })); return;
+      }
+      try {
+        const run = this.teamCoordinator.startRun({ title: body.title, objective: body.objective, leadAgentId: body.leadAgentId, specialistAgentIds: body.specialistAgentIds, ...(typeof body.projectId === "string" ? { projectId: body.projectId } : {}) });
+        this.teamRuns.set(run.id, run);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_run_planned", targetType: "task", targetId: run.taskId, details: { runId: run.id, leadAgentId: run.leadAgentId, specialistAgentIds: run.specialistAgentIds, executionStarted: false } });
+        res.writeHead(201); res.end(JSON.stringify(run));
+      } catch (error) {
+        res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Team run could not be planned." }));
+      }
+      return;
+    }
+
+    const teamExecuteMatch = path.match(/^\/api\/team-runs\/([^/]+)\/execute$/);
+    if (req.method === "POST" && teamExecuteMatch) {
+      if (!hasPermission(caller.permissions, "tasks:execute") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:execute" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamExecuteMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      try {
+        const task = await this.teamCoordinator.execute(run, this.taskWorkerRuntime);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_run_execution_handoff", targetType: "task", targetId: run.taskId, details: { runId: run.id, executionStarted: true, governedWorker: true } });
+        res.writeHead(200); res.end(JSON.stringify({ run, task }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Team execution was not started.";
+        res.writeHead(message.includes("unavailable") || message.includes("requires") ? 409 : 422);
+        res.end(JSON.stringify({ error: message, run, executionStarted: false }));
+      }
+      return;
+    }
+
+    const teamHandoffMatch = path.match(/^\/api\/team-runs\/([^/]+)\/handoffs$/);
+    if (req.method === "POST" && teamHandoffMatch) {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamHandoffMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.fromAgentId, 120) || !isBoundedString(body.toAgentId, 120) || !isBoundedString(body.instruction, 8000)) {
+        res.writeHead(400); res.end(JSON.stringify({ error: "Handoff sender, recipient, and bounded instruction are required." })); return;
+      }
+      try {
+        const handoff = this.teamCoordinator.queueHandoff(run, body.fromAgentId, body.toAgentId, body.instruction);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_handoff_queued", targetType: "task", targetId: run.taskId, details: { runId: run.id, handoffId: handoff.id, fromAgentId: handoff.fromAgentId, toAgentId: handoff.toAgentId, executionStarted: false } });
+        res.writeHead(201); res.end(JSON.stringify(handoff));
+      } catch (error) { res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Handoff could not be queued." })); }
+      return;
+    }
+
+    const teamAcceptMatch = path.match(/^\/api\/team-runs\/([^/]+)\/handoffs\/([^/]+)\/accept$/);
+    if (req.method === "POST" && teamAcceptMatch) {
+      if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
+        res.writeHead(403); res.end(JSON.stringify({ error: "RBAC permission denied", required: "tasks:create" })); return;
+      }
+      const run = this.teamRuns.get(decodeURIComponent(teamAcceptMatch[1]));
+      if (!run) { res.writeHead(404); res.end(JSON.stringify({ error: "Team run was not found." })); return; }
+      const body = await this.readBody(req);
+      if (!isBoundedString(body.agentId, 120)) { res.writeHead(400); res.end(JSON.stringify({ error: "Accepting agent is required." })); return; }
+      try {
+        const handoff = this.teamCoordinator.acceptHandoff(run, decodeURIComponent(teamAcceptMatch[2]), body.agentId);
+        this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "anonymous", actorType: caller.isAuthenticated ? "user" : "system", action: "team_handoff_accepted", targetType: "task", targetId: run.taskId, details: { runId: run.id, handoffId: handoff.id, agentId: handoff.toAgentId, executionStarted: false } });
+        res.writeHead(200); res.end(JSON.stringify(handoff));
+      } catch (error) { res.writeHead(400); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "Handoff could not be accepted." })); }
+      return;
+    }
+
     if (req.method === "POST" && path === "/api/tasks") {
       if (!hasPermission(caller.permissions, "tasks:create") && !hasPermission(caller.permissions, "tasks:*")) {
         this.store.recordAudit({
@@ -2986,7 +3177,7 @@ export class AgentForgeWebServer {
           return {projectId:selection.projectId,memoryNamespace:selection.namespace.trim(),memoryProvider};
         }));
         res.writeHead(200);res.end(JSON.stringify({status:this.conversations.status(),persistence:body.remember===true||body.action==='restore'?'encrypted-explicit-restore':'session-only'}));
-      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Connect a model first, finish active work, and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
+      }catch(error){res.writeHead(400);res.end(JSON.stringify({error:error instanceof MemoryConnectionUnavailable?new MemoryConnectionUnavailable().message:'Memory connection unchanged. Finish active work and check your selection and unlock passphrase. Obsidian needs regular Markdown files under 64 KB without linked paths. Hindsight needs an accessible Cloud bank and API key. Additional providers require the host’s registered setup fields.'}));}
       return;
     }
 
@@ -3077,7 +3268,7 @@ export class AgentForgeWebServer {
       if (!caller.isAuthenticated) { res.writeHead(401); res.end(JSON.stringify({error:'Sign in to AgentForge to inspect client setup.'})); return; }
       if (!['owner','admin'].includes(caller.role) || !hasPermission(caller.permissions,'settings:write')) { res.writeHead(403); res.end(); return; }
       if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
-      const bundle = process.env.AGENTFORGE_GEMINI_BUNDLE;
+      const bundle = this.geminiClientBundle ?? process.env.AGENTFORGE_GEMINI_BUNDLE;
       if (!bundle) { res.writeHead(200); res.end(JSON.stringify({configured:false,inferencePerformed:false})); return; }
       if (this.geminiClientCheck) { res.writeHead(409); res.end(JSON.stringify({error:'A Gemini client check is already running.'})); return; }
       const controller = new AbortController();
@@ -3085,7 +3276,7 @@ export class AgentForgeWebServer {
       this.geminiClientCheck = check;
       const disconnect = () => { if (!res.writableEnded) controller.abort(); };
       res.once('close', disconnect);
-      try { const result = await check.result; res.writeHead(200); res.end(JSON.stringify({configured:true,...result})); }
+      try { const result = await check.result; const chat=this.conversations.status(); const chatConfigured=chat.configured&&chat.providerId==='gemini-subscription-cli'; res.writeHead(200); res.end(JSON.stringify({configured:true,...result,chatConfigured,chatModels:chatConfigured?chat.models:[]})); }
       catch { res.writeHead(400); res.end(JSON.stringify({error:'Gemini client inspection failed. Check the host-selected official client installation.'})); }
       finally { res.removeListener('close', disconnect); if (this.geminiClientCheck === check) this.geminiClientCheck = undefined; }
       return;
@@ -3108,7 +3299,9 @@ export class AgentForgeWebServer {
       res.once('close', disconnect);
       try {
         const result = await check.result;
-        res.writeHead(200); res.end(JSON.stringify({configured:true,...result}));
+        const chat = this.conversations.status();
+        const chatConfigured = chat.configured && chat.providerId === 'claude-subscription-cli';
+        res.writeHead(200); res.end(JSON.stringify({configured:true,...result,chatConfigured,chatModels:chatConfigured?chat.models:[]}));
       } catch { res.writeHead(400); res.end(JSON.stringify({error:'The official Claude client could not verify account status. Check the host configuration and official client sign-in.'})); }
       finally {
         res.removeListener('close', disconnect);
@@ -3996,6 +4189,65 @@ export class AgentForgeWebServer {
         return;
       }
 
+      if (action === 'external-review' || action === 'external-submit') {
+        res.setHeader('Cache-Control', 'no-store');
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+        const body = await this.readBody(req);
+        if (typeof body.connectionId !== 'string' || typeof body.sessionKey !== 'string' || typeof body.message !== 'string') {
+          res.writeHead(400); res.end(JSON.stringify({error:'Select a runtime and session and provide the exact message to delegate.'})); return;
+        }
+        if (!this.externalRunConnections.has(body.connectionId)) {
+          res.writeHead(409); res.end(JSON.stringify({error:'The selected external runtime is not configured.'})); return;
+        }
+        try {
+          if (action === 'external-submit') {
+            const connection = this.externalRunConnections.get(body.connectionId)!;
+            if (typeof body.approvalId !== 'string' || !connection.submitSessionTurn) throw Error('Submission unavailable');
+            if (connection.isConnected) {
+              let connected = false;
+              try { connected = connection.isConnected() === true; } catch { /* No remote effect attempted. */ }
+              if (!connected) {
+                res.writeHead(409); res.end(JSON.stringify({submitted:false,error:'The external agent is not authenticated. Restore its connection before sending; no submission was attempted.'})); return;
+              }
+            }
+            const receipt = await dispatchExternalTurn(this.store, task.id, body.approvalId, {connectionId:body.connectionId,sessionKey:body.sessionKey,message:body.message}, {id:connection.id,submitSessionTurn:(sessionKey,message,requestId)=>connection.submitSessionTurn!(sessionKey,message,requestId)});
+            res.writeHead(200); res.end(JSON.stringify({receipt,submitted:true,verified:false})); return;
+          }
+          const approval = prepareExternalTurnApproval(this.store, task.id, caller.user?.id || 'authenticated-requester', {connectionId:body.connectionId,sessionKey:body.sessionKey,message:body.message});
+          res.writeHead(200); res.end(JSON.stringify({approval,submitted:false}));
+        } catch {
+          res.writeHead(409); res.end(JSON.stringify({error:'External review or submission could not finish. Inspect the saved receipt before trying again; no automatic retry was performed.'}));
+        }
+        return;
+      }
+      if (action === 'external-observation' || action === 'external-stop' || action === 'external-output') {
+        res.setHeader('Cache-Control', 'no-store');
+        if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+        if (!hasPermission(caller.permissions, 'tasks:read') || !hasPermission(caller.permissions, 'tasks:execute')) { res.writeHead(403); res.end(); return; }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+        const receipt = task.externalTurnReceipts?.[0];
+        const connection = receipt ? this.externalRunConnections.get(receipt.connectionId) : undefined;
+        if (!connection) { res.writeHead(409); res.end(JSON.stringify({error:'The saved external runtime is not connected.'})); return; }
+        try {
+          if(action==='external-output'){
+            if(!connection.readRunOutput||receipt?.status!=='accepted'||!receipt.runId)throw Error('Saved output unavailable');
+            const result=await readExternalTurnOutput(this.store,task.id,{id:connection.id,readRunOutput:(id,sessionKey)=>connection.readRunOutput!(id,sessionKey)});
+            res.writeHead(200);res.end(JSON.stringify({runId:result.runId,content:result.content,source:result.source,referenceDataOnly:true,verified:false}));return;
+          }
+          if(action==='external-stop'){
+            if(!connection.requestRunStop||!caller.user?.id)throw Error('Stop unavailable');
+            const stopped=await stopExternalTurn(this.store,task.id,caller.user.id,{id:connection.id,requestRunStop:(sessionKey,runId)=>connection.requestRunStop!(sessionKey,runId)});
+            res.writeHead(200);res.end(JSON.stringify({stop:stopped.stop,verified:false}));return;
+          }
+          const observed = await observeExternalTurn(this.store, task.id, connection);
+          res.writeHead(200); res.end(JSON.stringify({requestId:observed.requestId, runId:observed.runId, observation:observed.observation, replayed:false, verified:false}));
+        } catch {
+          res.writeHead(409); res.end(JSON.stringify({error:'External action could not be confirmed. Inspect the saved receipt; no automatic retry or completion claim was made.'}));
+        }
+        return;
+      }
       if (action === 'survivors') {
         if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
         if (!hasPermission(caller.permissions, 'tasks:read')) { res.writeHead(403); res.end(); return; }
@@ -4017,7 +4269,8 @@ export class AgentForgeWebServer {
           res.writeHead(200, { "Cache-Control": "no-store" });
           res.end(JSON.stringify({ expectedUpdatedAt: task.updatedAt, status: task.status,
             receipt: receipt ? { operationId: receipt.operationId, receiptDigest: receipt.receiptDigest, status: receipt.status, startedAt: receipt.startedAt, verifiedPassed: receipt.evidence?.verifiedPassed === true } : null,
-            unknownPlanningCount: task.planningAudits?.filter(item => item.status !== "completed").length ?? 0,
+            unknownPlanningCount: task.planningAudits?.filter(planningAuditUnresolved).length ?? 0,
+            rejectedPlanningCount: task.planningAudits?.filter(audit => audit.status === "rejected" && !planningAuditUnresolved(audit)).length ?? 0,
             message: "Recorded results may be restored after validation. Unknown effects or usage remain quarantined; commands are never replayed by review." })); return;
         }
         if (req.method !== "POST" || action !== "resolve-receipt") { res.writeHead(405); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
@@ -4030,16 +4283,16 @@ export class AgentForgeWebServer {
           || body.operationId !== (receipt?.operationId ?? null) || body.receiptDigest !== (receipt?.receiptDigest ?? null)) {
           res.writeHead(409); res.end(JSON.stringify({ error: "Task or receipt changed. Refresh and review again." })); return;
         }
-        if (body.decision !== "restore-observed" && body.decision !== "keep-quarantined") { res.writeHead(400); res.end(JSON.stringify({ error: "Choose restore-observed or keep-quarantined." })); return; }
+        if (body.decision !== "restore-observed" && body.decision !== "recover-journal" && body.decision !== "keep-quarantined") { res.writeHead(400); res.end(JSON.stringify({ error: "Choose restore-observed, recover-journal or keep-quarantined." })); return; }
         try {
           if (this.taskWorkerRuntime.isTaskExecuting(task.id)) throw new Error("Pause active execution before reviewing its receipt.");
           if (["completed", "cancelled"].includes(current.status)) throw new Error("Finished tasks cannot be resolved again.");
-          if (body.decision === "restore-observed" && current.planningAudits?.some(item => item.status !== "completed")) throw new Error("Planning usage is unknown. Keep this task quarantined.");
-          const updated = body.decision === "restore-observed"
+          if (body.decision === "restore-observed" && current.planningAudits?.some(planningAuditUnresolved)) throw new Error("Planning usage is unknown. Keep this task quarantined.");
+          const updated = body.decision === "recover-journal" ? await this.taskWorkerRuntime.recoverJournaledExecution(task.id) : body.decision === "restore-observed"
             ? this.taskWorkerRuntime.reconcileObservedExecution(task.id)
             : this.store.updateTask(task.id, { status: "paused" });
           this.store.recordAudit({ origin: "web", actorId: caller.user?.id || "authenticated-reviewer", actorType: "user", action: "TASK_RECEIPT_REVIEWED", targetType: "task", targetId: task.id, details: { decision: body.decision, operationId: receipt?.operationId ?? null, receiptDigest: receipt?.receiptDigest ?? null, previousStatus: current.status, replayed: false } });
-          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
+          res.writeHead(200); res.end(JSON.stringify({ task: updated, replayed: false, message: body.decision === "recover-journal" ? (updated.status === "failed" ? "Durable failed result restored. Review its effects and approve a corrected repair plan. No command replayed." : "Durable result restored for final approval. No command replayed.") : body.decision === "restore-observed" ? "Validated recorded result restored. No command replayed." : "Task kept quarantined. Evidence and accounting retained; other tasks may continue." }));
         } catch (error) { res.writeHead(409, { "Cache-Control": "no-store" }); res.end(JSON.stringify({ error: redactRuntimeError(error, "Receipt review failed") })); }
         return;
       }
@@ -4156,7 +4409,7 @@ export class AgentForgeWebServer {
               persist: async audit => {
                 const current = this.store.getTask(audit.taskId);
                 if (!current) throw Error('Planning task unavailable.');
-                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && item.status !== 'completed')) throw Error('Unresolved planning usage: inspect the audit before retrying.');
+                if (audit.status === 'started' && (current.planningAudits ?? []).some(item => item.id !== audit.id && planningAuditUnresolved(item))) throw Error('Unresolved planning usage: inspect the audit before retrying.');
                 this.store.updateTask(current.id, { planningAudits: [...(current.planningAudits ?? []).filter(item => item.id !== audit.id), audit] });
               },
             }, directSubscription ? 'chatgpt-direct' : 'default');
@@ -4230,7 +4483,10 @@ export class AgentForgeWebServer {
         if (!current || current.updatedAt !== body.expectedUpdatedAt) {
           res.writeHead(409); res.end(JSON.stringify({ error: "Task changed while the plan was being approved." })); return;
         }
-        this.store.updateTask(task.id, { approvedExecutionPlan: record });
+        if(current.executionReceipts?.length){
+          try{if(typeof body.reviewedReceiptDigest!=='string')throw Error('Review the previous effects before approving a repair');this.taskWorkerRuntime.approveRepairPlan(task.id,record,body.reviewedReceiptDigest);}
+          catch(error){res.writeHead(409);res.end(JSON.stringify({error:redactRuntimeError(error,'Repair review required.')}));return;}
+        }else this.store.updateTask(task.id, { approvedExecutionPlan: record });
         this.store.recordAudit({ origin: "web", actorId: record.approvedBy, actorType: "user", action: "EXECUTION_PLAN_APPROVED", targetType: "task", targetId: task.id, details: { contractDigest: record.contractDigest, commandCount: record.plan.commands.length, expiresAt: record.expiresAt } });
         res.writeHead(200); res.end(JSON.stringify({ plan: record, message: "Plan approved for one hour. No execution was started." })); return;
       }
@@ -4319,6 +4575,13 @@ export class AgentForgeWebServer {
         if (!hasPermission(caller.permissions, "tasks:execute")) {
           res.writeHead(403);
           res.end(JSON.stringify({ error: "Permission denied", required: "tasks:execute" }));
+          return;
+        }
+        if (task.externalTurnReceipts?.length) {
+          if (!caller.isAuthenticated) { res.writeHead(401); res.end(); return; }
+          const cancelledTask = this.store.updateTask(task.id, {status:'cancelled'});
+          res.writeHead(200);
+          res.end(JSON.stringify({message:'Task cancelled locally. The external run has not been stopped and may still be running; use its runtime to stop it.',task:cancelledTask,remoteStopped:false}));
           return;
         }
         if (this.taskWorkerRuntime) {
@@ -4948,6 +5211,8 @@ export class AgentForgeWebServer {
 
   async stop(): Promise<void> {
     this.stopping = true;
+    for(const connection of this.managedAgentConnections.values()){connection.stop();this.externalRunConnections.delete(connection.id);}
+    this.managedAgentConnections.clear();
     this.conversations.shutdown();
     const geminiCheck = this.geminiClientCheck;
     if (geminiCheck) { geminiCheck.controller.abort(); await geminiCheck.result.catch(() => undefined); }
@@ -4974,4 +5239,6 @@ export class AgentForgeWebServer {
     return renderWorkspaceApp();
   }
 }
+
+
 

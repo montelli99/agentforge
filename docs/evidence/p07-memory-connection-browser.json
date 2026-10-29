@@ -1,0 +1,20 @@
+{
+  "requirement": "P07/P08",
+  "realBrowser": true,
+  "syntheticOnly": true,
+  "checks": [
+    "Visible model setup with no model request",
+    "Selected local note connected",
+    "Encrypted selection saved",
+    "Secret input cleared",
+    "Disconnect kept note intact",
+    "Saved selection restored",
+    "Forget disconnected and kept note intact"
+  ],
+  "firstAttempt": "Memory setup refused before model configured; added visible prerequisite",
+  "pageErrors": [],
+  "limits": [
+    "Same-process disconnect/restore; server restart acceptance separate",
+    "No live Hindsight or combined-provider request"
+  ]
+}

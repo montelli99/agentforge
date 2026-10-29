@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "recordedAt": "2026-10-26T09:45:31.174Z",
+  "scope": "Real browser with synthetic external adapter; local cancellation after acknowledged Stop retains receipt and fetched output, makes no extra remote Stop or submission, and saved output is labeled as previously captured and unverified.",
+  "modelCalls": 0,
+  "taskStatus": "cancelled",
+  "stopRequests": 1,
+  "outputReads": 1,
+  "runnerSha256": "42c31f04e110f833c66924497e2b0ec3f7fbd9df85fefa8b26fa45a7d0a554a5",
+  "uiSourceSha256": "d8d0e21af6a3bf2db2f21ea51c39557f29c5182790831a62188c355d4efffc78"
+}

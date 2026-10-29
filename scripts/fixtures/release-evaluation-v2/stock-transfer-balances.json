@@ -1,0 +1,75 @@
+{
+  "id": "stock-transfer-balances",
+  "prompt": "Read input.json at execution time. Write result.json as an object with exactly one key rows, an array of objects with exactly sku, warehouse, quantity. Begin with opening balances. Apply each transfer once, subtracting quantity from from and adding it to to for that sku. Input transfer IDs are unique. Include every sku/warehouse pair appearing in opening balances or transfers, including zero balances. Sort rows by sku then warehouse using ascending ASCII string order. Quantities are integers. Do not change input.json.",
+  "input": {
+    "opening": [
+      {
+        "sku": "A",
+        "warehouse": "east",
+        "quantity": 12
+      },
+      {
+        "sku": "A",
+        "warehouse": "west",
+        "quantity": 3
+      },
+      {
+        "sku": "B",
+        "warehouse": "east",
+        "quantity": 5
+      }
+    ],
+    "transfers": [
+      {
+        "id": "t1",
+        "sku": "A",
+        "from": "east",
+        "to": "west",
+        "quantity": 4
+      },
+      {
+        "id": "t2",
+        "sku": "A",
+        "from": "west",
+        "to": "north",
+        "quantity": 7
+      },
+      {
+        "id": "t3",
+        "sku": "B",
+        "from": "east",
+        "to": "west",
+        "quantity": 5
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      {
+        "sku": "A",
+        "warehouse": "east",
+        "quantity": 8
+      },
+      {
+        "sku": "A",
+        "warehouse": "north",
+        "quantity": 7
+      },
+      {
+        "sku": "A",
+        "warehouse": "west",
+        "quantity": 0
+      },
+      {
+        "sku": "B",
+        "warehouse": "east",
+        "quantity": 0
+      },
+      {
+        "sku": "B",
+        "warehouse": "west",
+        "quantity": 5
+      }
+    ]
+  }
+}
