@@ -751,14 +751,14 @@ pages.models = () => `
       <div class="provider-models">
         <div class="model-row">
           <div>
-            <div class="model-name">mimo-v2.5-pro</div>
+            <div class="model-name">mimo-v2.6-pro</div>
             <div class="model-caps"><span class="cap-tag">coding</span><span class="cap-tag">reasoning</span><span class="cap-tag">tools</span></div>
           </div>
           <span class="badge badge-accent">Default</span>
         </div>
         <div class="model-row">
           <div>
-            <div class="model-name">mimo-v2.5</div>
+            <div class="model-name">mimo-v2.6-flash</div>
             <div class="model-caps"><span class="cap-tag">text</span><span class="cap-tag">vision</span><span class="cap-tag">tools</span></div>
           </div>
         </div>
@@ -1088,7 +1088,7 @@ function initGraphCanvas() {
     { id: 'core', label: 'AgentForge Core', type: 'core', color: '#8b5cf6', radius: 24, x: width / 2, y: height / 2, vx: 0, vy: 0, details: { role: 'Platform Kernel', status: 'ONLINE', authority: 'ROOT' } },
     { id: 'ollama', label: 'Ollama (Local)', type: 'model', color: '#00e5ff', radius: 18, x: width / 2 - 160, y: height / 2 - 120, vx: 0, vy: 0, details: { provider: 'Ollama', models: 'DeepSeek-R1-14B, Llama3.1:8B', latency: '12ms' } },
     { id: 'openai', label: 'OpenAI Gateway', type: 'model', color: '#10b981', radius: 16, x: width / 2 - 200, y: height / 2 + 100, vx: 0, vy: 0, details: { provider: 'OpenAI', tier: 'Tier 4', model: 'gpt-4o' } },
-    { id: 'mimo', label: 'MiMo Token Plan', type: 'model', color: '#f59e0b', radius: 16, x: width / 2 - 240, y: height / 2 - 20, vx: 0, vy: 0, details: { provider: 'MiMo', models: 'mimo-v2.5', status: 'CONFIGURED' } },
+    { id: 'mimo', label: 'MiMo Token Plan', type: 'model', color: '#f59e0b', radius: 16, x: width / 2 - 240, y: height / 2 - 20, vx: 0, vy: 0, details: { provider: 'MiMo', models: 'mimo-v2.6-flash', status: 'CONFIGURED' } },
     { id: 'worktree', label: 'Worktree Sandbox', type: 'harness', color: '#ec4899', radius: 18, x: width / 2 + 180, y: height / 2 - 130, vx: 0, vy: 0, details: { isolation: 'Git Worktree', permissions: 'Strict Sandboxed', deleteFiles: 'FALSE' } },
     { id: 'memory', label: 'Operational Memory', type: 'memory', color: '#a855f7', radius: 17, x: width / 2 - 60, y: height / 2 + 160, vx: 0, vy: 0, details: { persistence: 'SQLite WAL', capacity: '32GB Pool', mode: 'Semantic + Hash' } },
     { id: 'contract', label: 'Execution Contract', type: 'contract', color: '#38bdf8', radius: 17, x: width / 2 + 140, y: height / 2 + 150, vx: 0, vy: 0, details: { id: 'contract-vnext-strict', protectedPaths: ['.env', 'src/core/*'], maxFiles: 10 } },

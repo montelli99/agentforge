@@ -93,7 +93,7 @@ export const PROVIDER_READINESS_REGISTRY: ProviderReadinessInfo[] = [
     name: "Xiaomi MiMo Model Provider",
     category: "generative_model",
     readiness: "PARTIAL_INTEGRATION",
-    summary: "OpenAI-compatible adapter for Xiaomi MiMo Token Plan (mimo-v2.5, mimo-v2.5-pro).",
+    summary: "OpenAI-compatible adapter for Xiaomi MiMo Token Plan (mimo-v2.6-flash, mimo-v2.6-pro).",
     productionReady: false,
     notes: "OpenAI-compatible adapter code exists. This registry does not contain a repeatable, current live-acceptance record; credentials and service behavior must be verified in the deployment environment.",
     capabilities: [

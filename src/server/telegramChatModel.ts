@@ -10,6 +10,6 @@ export function selectTelegramChatModel(
     if (!allowedModels.includes(explicitModel)) throw new Error("Telegram chat model must be in AGENTFORGE_CHAT_MODELS.");
     return explicitModel;
   }
-  if (provider.id === "mimo" && allowedModels.includes("mimo-v2.5")) return "mimo-v2.5";
+  if (provider.id === "mimo" && allowedModels.includes("mimo-v2.6-flash")) return "mimo-v2.6-flash";
   return allowedModels[0];
 }

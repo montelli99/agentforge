@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 const path = resolve("research/results/mimo-adapter-smoke-matrix.json");
 const artifact = JSON.parse(await readFile(path, "utf8"));
-const expected = new Set(["mimo-v2.5", "mimo-v2.5-pro"]);
+const expected = new Set(["mimo-v2.6-flash", "mimo-v2.6-pro"]);
 const records = Array.isArray(artifact.records) ? artifact.records : [];
 const models = new Set(records.map((record) => record.model));
 const failures = [];

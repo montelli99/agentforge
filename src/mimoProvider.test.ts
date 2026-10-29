@@ -26,7 +26,7 @@ it("MiMo generation honors the caller's cancellation signal", async () => {
   try {
     const controller = new AbortController();
     const pending = new MiMoModelProvider("test-key", "https://example.com/v1").generate({
-      model: "mimo-v2.5", messages: [{ role: "user", content: "Hello" }], signal: controller.signal,
+      model: "mimo-v2.6-flash", messages: [{ role: "user", content: "Hello" }], signal: controller.signal,
     });
     controller.abort();
     await expect(pending).rejects.toThrow("cancelled");
@@ -115,7 +115,7 @@ describe("AgentForge MiMo Provider — Architecture & Credential Safety", () => 
     delete process.env.MIMO_API_KEY;
     const provider = new MiMoModelProvider("", "https://example.com/v1");
     await expect(
-      provider.generate({ model: "mimo-v2.5-pro", messages: [{ role: "user", content: "hi" }] })
+      provider.generate({ model: "mimo-v2.6-pro", messages: [{ role: "user", content: "hi" }] })
     ).rejects.toThrow("MiMo API key not configured");
     restoreEnv("MIMO_API_KEY", original);
   });
@@ -141,8 +141,8 @@ describe("AgentForge MiMo Provider — Architecture & Credential Safety", () => 
 // Section 3: Capability Declarations
 // ---------------------------------------------------------------------------
 describe("AgentForge MiMo Capabilities — Declarative Model Registry", () => {
-  it("Section 3a: mimo-v2.5 has text, vision, tool_calling, structured_output, reasoning", () => {
-    const desc = MIMO_MODEL_REGISTRY["mimo-v2.5"];
+  it("Section 3a: mimo-v2.6-flash has text, vision, tool_calling, structured_output, reasoning", () => {
+    const desc = MIMO_MODEL_REGISTRY["mimo-v2.6-flash"];
     expect(desc).toBeDefined();
     expect(desc.capabilities).toContain("text");
     expect(desc.capabilities).toContain("vision");
@@ -153,8 +153,8 @@ describe("AgentForge MiMo Capabilities — Declarative Model Registry", () => {
     expect(desc.maxOutput).toBe(131_072);
   });
 
-  it("Section 3b: mimo-v2.5-pro has text, coding, tool_calling, structured_output, reasoning but NOT vision", () => {
-    const desc = MIMO_MODEL_REGISTRY["mimo-v2.5-pro"];
+  it("Section 3b: mimo-v2.6-pro has text, coding, tool_calling, structured_output, reasoning but NOT vision", () => {
+    const desc = MIMO_MODEL_REGISTRY["mimo-v2.6-pro"];
     expect(desc).toBeDefined();
     expect(desc.capabilities).toContain("text");
     expect(desc.capabilities).toContain("coding");
@@ -167,10 +167,10 @@ describe("AgentForge MiMo Capabilities — Declarative Model Registry", () => {
 
   it("Section 3c: hasCapability helper works correctly", () => {
     const provider = new MiMoModelProvider("test-key");
-    expect(provider.hasCapability("mimo-v2.5", "vision")).toBe(true);
-    expect(provider.hasCapability("mimo-v2.5-pro", "vision")).toBe(false);
-    expect(provider.hasCapability("mimo-v2.5-pro", "coding")).toBe(true);
-    expect(provider.hasCapability("mimo-v2.5", "coding")).toBe(false);
+    expect(provider.hasCapability("mimo-v2.6-flash", "vision")).toBe(true);
+    expect(provider.hasCapability("mimo-v2.6-pro", "vision")).toBe(false);
+    expect(provider.hasCapability("mimo-v2.6-pro", "coding")).toBe(true);
+    expect(provider.hasCapability("mimo-v2.6-flash", "coding")).toBe(false);
     expect(provider.hasCapability("nonexistent", "text")).toBe(false);
   });
 
@@ -237,7 +237,7 @@ describe("AgentForge Provider-Neutrality — Same Task Through Different Provide
     });
 
     expect(target.providerId).toBe("mimo");
-    expect(target.model).toBe("mimo-v2.5-pro"); // No vision needed -> Pro
+      expect(target.model).toBe("mimo-v2.6-pro"); // No vision needed -> Pro
     expect(target.tier).toBe(4);
   });
 
@@ -255,7 +255,7 @@ describe("AgentForge Provider-Neutrality — Same Task Through Different Provide
 // Section 7: Vision Routing
 // ---------------------------------------------------------------------------
 describe("AgentForge MiMo Vision Routing — Pro Must NOT Get Vision Tasks", () => {
-  it("Section 7a: vision task selects mimo-v2.5 (not Pro)", async () => {
+  it("Section 7a: vision task selects mimo-v2.6-flash (not Pro)", async () => {
     const router = new ModelRouter();
     const mimo = new MiMoModelProvider("tp-test-key", "https://example.com/v1");
     router.registerProvider(mimo);
@@ -268,10 +268,10 @@ describe("AgentForge MiMo Vision Routing — Pro Must NOT Get Vision Tasks", () 
     });
 
     expect(target.providerId).toBe("mimo");
-    expect(target.model).toBe("mimo-v2.5"); // V2.5 has vision, Pro does NOT
+    expect(target.model).toBe("mimo-v2.6-flash"); // Flash has vision, Pro does NOT
   });
 
-  it("Section 7b: non-vision task selects mimo-v2.5-pro", async () => {
+  it("Section 7b: non-vision task selects mimo-v2.6-pro", async () => {
     const router = new ModelRouter();
     const mimo = new MiMoModelProvider("tp-test-key", "https://example.com/v1");
     router.registerProvider(mimo);
@@ -284,16 +284,16 @@ describe("AgentForge MiMo Vision Routing — Pro Must NOT Get Vision Tasks", () 
     });
 
     expect(target.providerId).toBe("mimo");
-    expect(target.model).toBe("mimo-v2.5-pro");
+    expect(target.model).toBe("mimo-v2.6-pro");
   });
 
-  it("Section 7c: MiMo V2.5 descriptor has vision capability", () => {
-    const desc = MIMO_MODEL_REGISTRY["mimo-v2.5"];
+  it("Section 7c: MiMo V2.6 Flash descriptor has vision capability", () => {
+    const desc = MIMO_MODEL_REGISTRY["mimo-v2.6-flash"];
     expect(desc.capabilities).toContain("vision");
   });
 
-  it("Section 7d: MiMo V2.5 Pro descriptor does NOT have vision capability", () => {
-    const desc = MIMO_MODEL_REGISTRY["mimo-v2.5-pro"];
+  it("Section 7d: MiMo V2.6 Pro descriptor does NOT have vision capability", () => {
+    const desc = MIMO_MODEL_REGISTRY["mimo-v2.6-pro"];
     expect(desc.capabilities).not.toContain("vision");
   });
 });
@@ -323,11 +323,11 @@ describe("AgentForge MiMo Text Smoke — Live or NOT_CONFIGURED", () => {
   // Credentials alone never trigger paid calls during the ordinary test suite.
   const maybeDescribe = hasLiveCredential && liveTestsExplicitlyEnabled ? describe : describe.skip;
   maybeDescribe("Section 6b: LIVE MiMo Pro text smoke", () => {
-    it("mimo-v2.5-pro responds to simple prompt", async () => {
+    it("mimo-v2.6-pro responds to simple prompt", async () => {
       const provider = new MiMoModelProvider();
       const start = Date.now();
       const result = await provider.generate({
-        model: "mimo-v2.5-pro",
+        model: "mimo-v2.6-pro",
         messages: [
           { role: "system", content: "You are a test harness. Reply ONLY with the exact text requested." },
           { role: "user", content: "Reply exactly: AGENTFORGE MIMO PRO WORKS" },
@@ -343,12 +343,12 @@ describe("AgentForge MiMo Text Smoke — Live or NOT_CONFIGURED", () => {
     });
   });
 
-  maybeDescribe("Section 6c: LIVE MiMo V2.5 text smoke", () => {
-    it("mimo-v2.5 responds to simple prompt", async () => {
+  maybeDescribe("Section 6c: LIVE MiMo V2.6 Flash text smoke", () => {
+    it("mimo-v2.6-flash responds to simple prompt", async () => {
       const provider = new MiMoModelProvider();
       const start = Date.now();
       const result = await provider.generate({
-        model: "mimo-v2.5",
+        model: "mimo-v2.6-flash",
         messages: [
           { role: "system", content: "You are a test harness. Reply ONLY with the exact text requested." },
           { role: "user", content: "Reply exactly: AGENTFORGE MIMO WORKS" },

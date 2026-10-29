@@ -3,8 +3,8 @@
  * Token Plan / Pay-as-you-go via OpenAI-compatible protocol.
  *
  * Capabilities declared per model:
- *   mimo-v2.5:     text, vision/image, tool calling, structured output, reasoning
- *   mimo-v2.5-pro: text, coding/reasoning, tool calling, structured output (NO vision)
+ *   mimo-v2.6-flash: text, vision/image, tool calling, structured output, reasoning
+ *   mimo-v2.6-pro:   text, coding/reasoning, tool calling, structured output (NO vision)
  */
 
 import type {
@@ -37,18 +37,18 @@ export interface MiMoModelDescriptor {
 }
 
 export const MIMO_MODEL_REGISTRY: Record<string, MiMoModelDescriptor> = {
-  "mimo-v2.5": {
-    id: "mimo-v2.5",
-    displayName: "MiMo V2.5",
+  "mimo-v2.6-flash": {
+    id: "mimo-v2.6-flash",
+    displayName: "MiMo V2.6 Flash",
     capabilities: ["text", "vision", "tool_calling", "structured_output", "reasoning"],
     contextWindow: 1_048_576,
     maxOutput: 131_072,
     costPerMillionPrompt: 0,
     costPerMillionCompletion: 0,
   },
-  "mimo-v2.5-pro": {
-    id: "mimo-v2.5-pro",
-    displayName: "MiMo V2.5 Pro",
+  "mimo-v2.6-pro": {
+    id: "mimo-v2.6-pro",
+    displayName: "MiMo V2.6 Pro",
     capabilities: ["text", "coding", "tool_calling", "structured_output", "reasoning"],
     contextWindow: 1_048_576,
     maxOutput: 131_072,

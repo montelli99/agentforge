@@ -12,16 +12,16 @@ describe("MiMoModelProvider thinking control", () => {
         { role: "assistant", content: "", tool_calls: [{ id: "call-1", type: "function", function: { name: "inspect_task", arguments: "{}" } }] },
         { role: "tool", content: "{}", tool_call_id: "call-1" },
       ]);
-      return new Response(JSON.stringify({ id: "response-1", model:"mimo-v2.5-pro-20260930", choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }), { status: 200 });
+      return new Response(JSON.stringify({ id: "response-1", model:"mimo-v2.6-pro", choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }), { status: 200 });
     });
     vi.stubGlobal("fetch", fetchMock);
     const response = await new MiMoModelProvider("test-key", "https://example.invalid/v1")
-      .generate({ model: "mimo-v2.5-pro", messages: [
+      .generate({ model: "mimo-v2.6-pro", messages: [
         { role: "assistant", content: "", toolCalls: [{ id: "call-1", type: "function", function: { name: "inspect_task", arguments: "{}" } }] },
         { role: "tool", content: "{}", toolCallId: "call-1" },
       ], thinking: "disabled" });
     expect(response.content).toBe("{}");
-    expect(response.reportedModel).toBe("mimo-v2.5-pro-20260930");
+    expect(response.reportedModel).toBe("mimo-v2.6-pro");
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
@@ -32,6 +32,6 @@ describe("MiMoModelProvider thinking control", () => {
       return new Response(JSON.stringify({ id: "response-2", choices: [{ message: { content: "ok" } }] }), { status: 200 });
     }));
     await new MiMoModelProvider("test-key", "https://example.invalid/v1")
-      .generate({ model: "mimo-v2.5-pro", messages: [] });
+      .generate({ model: "mimo-v2.6-pro", messages: [] });
   });
 });

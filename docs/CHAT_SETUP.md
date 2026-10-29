@@ -25,14 +25,14 @@ Supply these environment variables to the AgentForge server process through your
 Both a dedicated credential and model list are required. AgentForge never adopts `OPENAI_API_KEY` or another application's stored credentials for this chat route. Restart the server after configuration. Select a model in the conversation composer before sending; “Save locally” does not request a response.
 
 For an explicitly selected MiMo route, set `AGENTFORGE_CHAT_PROVIDER=mimo`,
-`AGENTFORGE_CHAT_MODELS=mimo-v2.5-pro` (or another supported MiMo model), and
+`AGENTFORGE_CHAT_MODELS=mimo-v2.6-pro` (or another supported MiMo model), and
 provide `MIMO_API_KEY` privately to the AgentForge process. This option uses
 AgentForge's native MiMo adapter and does not require a second chat key. Leave
 `AGENTFORGE_CHAT_PROVIDER` unset for the OpenAI-compatible route above.
 
-For private Telegram chat, allow both `mimo-v2.5,mimo-v2.5-pro` to make the
+For private Telegram chat, allow both `mimo-v2.6-flash,mimo-v2.6-pro` to make the
 regular model the default conversational route. Set
-`AGENTFORGE_TELEGRAM_CHAT_MODEL=mimo-v2.5-pro` only if that model is in the
+`AGENTFORGE_TELEGRAM_CHAT_MODEL=mimo-v2.6-pro` only if that model is in the
 allowed list and you deliberately want it for private chat. This default is
 based on a small latency diagnostic, not a measured quality comparison.
 
