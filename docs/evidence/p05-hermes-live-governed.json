@@ -1,0 +1,24 @@
+{
+  "requirement": "P05 Hermes workflow",
+  "sourceCommit": "573bca4b6ff0a266526b8fba95903475406208ce",
+  "passed": true,
+  "pinnedImage": "nousresearch/hermes-agent@sha256:648e4daf033bf2de209435fd9dd61ee3e11103c1f7e1ab469bffbfb99acc263f",
+  "basicRun": {
+    "runId": "run_9547164a35674e2987a4692035fd4f9c",
+    "status": "completed",
+    "outputVerified": "1250",
+    "providerRequests": 2
+  },
+  "governedRun": {
+    "runId": "run_771697d9bfe1441a885882b221723cb0",
+    "status": "completed",
+    "sessionContinuation": true,
+    "approvalRequired": true,
+    "duplicateDispatchRefused": true,
+    "changedBindingRefused": true,
+    "cancellationAcknowledged": true,
+    "repeatedStopAfterReopenRefused": true
+  },
+  "credentialBoundary": "MiMo credential stayed in the host proxy; the Hermes container received only a disposable proxy token.",
+  "scope": "Synthetic arithmetic workload; no private data or production account."
+}

@@ -1,0 +1,13 @@
+{
+  "requirement": "P04 OpenClaw workflow connection safety",
+  "sourceCommit": "573bca4b6ff0a266526b8fba95903475406208ce",
+  "passed": true,
+  "unpairedRejectionObserved": true,
+  "exactLocalDeviceApproved": true,
+  "sameClientExplicitReconnect": true,
+  "hostLoopbackConnection": true,
+  "pinnedImage": "sha256:cd39617de1e1675bfe786ea54d5ec375b38101b9493c98f2c99f93a6054944f0",
+  "sessionCount": 0,
+  "noModelCalls": true,
+  "scope": "Pinned disposable OpenClaw gateway; connection and pairing proof only, no private credentials or seller data."
+}
