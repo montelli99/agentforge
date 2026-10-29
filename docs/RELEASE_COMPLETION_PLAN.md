@@ -1429,3 +1429,15 @@ request completed with reported usage, but the model response failed the executi
 plan schema. The planner now supports an explicit bounded development output budget
 and records sanitized failure reasons; this is a development example and does not
 close P09 or establish competitive superiority.
+
+### Current merged MiMo evidence reconciliation — October 29
+
+The current public `vnext` head is merge commit `0a1532e4d0aa97d7d641190cf609720fa9c83771`,
+which merged PR #17 after hosted AgentForge CI run 534 passed all seven jobs. The
+exact source commit for the change was `de1e739aa67b18366d1546b362b04f4f58cedd27`.
+The live MiMo Pro and MiMo Flash smoke run at that source is retained in
+`evidence/p02-live-mimo-v26-current.json`: 29/29 tests passed, with live responses
+from both registered models. This entry is bounded to authenticated MiMo smoke
+execution and does not claim subscription entitlement, quota, external spend,
+general task competence, or competitive superiority. The merged evidence does not
+close the remaining P01–P10 acceptance rows or the final release/launch audit.
