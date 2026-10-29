@@ -113,7 +113,7 @@ future managed service.
 
 For the verified GitHub archive and startup command, follow the
 [release installation steps](QUICKSTART.md#install-the-github-release-without-building).
-No npm account is required. Version 0.1.2 is an early-access GitHub release;
+No npm account is required. Version 0.1.3 is the current GitHub release candidate;
 do not assume it is published to the npm registry.
 
 From an AgentForge source checkout:
