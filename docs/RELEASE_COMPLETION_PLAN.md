@@ -127,13 +127,13 @@ An acceptance entry must identify its evidence file, not merely say tests passed
 
 ### Exact merged-build CI reconciliation — October 29
 
-The merged `vnext` commit `5567566877c4858df39dbac68d19a51014139a3a` now has a
-completed hosted AgentForge CI run (`40926196850`) with all seven jobs passing,
+The merged `vnext` commit `14f4845b9ae6062b1fe72985c352b82f2c3de9cc` now has a
+completed hosted AgentForge CI run (`40928534477`) with all seven jobs passing,
 including the public package/isolated-execution acceptance job and both macOS
-Node 22/24 jobs. The sanitized job-level record is
-`evidence/p10-exact-vnext-ci-acceptance.json`. This closes the exact hosted-CI
-proof for the current merged build, but P10 remains open for the remaining
-launch reconciliation, clean public asset verification and marketing evidence.
+Node 22/24 jobs. The final sanitized record is
+`evidence/p10-exact-vnext-ci-final.json`. This closes exact hosted-CI proof for
+the current merged build, but P10 remains open for remaining launch
+reconciliation, clean public asset verification and marketing evidence.
 
 Execution order: P02 then its P03 faults; P04/P05 successful remote execution and
 P08 guided setup; P06/P07 matrices; P01 full clean-install journey; P09; P10 final
