@@ -1,0 +1,25 @@
+{
+  "requirement": "P06",
+  "recordedAt": "2026-10-29T17:16:30Z",
+  "result": {
+    "passed": true,
+    "testFiles": 5,
+    "tests": 17,
+    "cases": [
+      "explicit model routing without billing fallback",
+      "local endpoint isolation",
+      "embedded-secret and unsafe-endpoint rejection",
+      "distinct API presets",
+      "subscription-token refusal",
+      "explicit Claude and Gemini route selection",
+      "bounded subscription CLI completion and finite plan limits"
+    ]
+  },
+  "commands": [
+    "pnpm exec vitest run src/providers/models/modelConnections.test.ts src/providers/models/subscriptionCliCompletion.test.ts src/providers/models/subscriptionPlanBounds.test.ts src/providers/models/claudeChatConfiguration.test.ts src/providers/models/geminiChatConfiguration.test.ts --maxWorkers=1"
+  ],
+  "limits": [
+    "Credential-free contract tests only; no subscription account was authenticated.",
+    "This does not claim live Claude or Gemini subscription execution, quota, or entitlement."
+  ]
+}
