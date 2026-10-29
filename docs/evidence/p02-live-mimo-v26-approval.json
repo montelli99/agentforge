@@ -1,0 +1,31 @@
+{
+  "requirement": "P02 live model approval and execution",
+  "recordedAtUtc": "2026-10-29T16:06:00Z",
+  "sourceCommit": "807870d1920c5dc75171aae9550da947e2630740",
+  "provider": "mimo",
+  "models": ["mimo-v2.6-pro", "mimo-v2.6-flash"],
+  "adapterSmoke": {
+    "mimo-v2.6-pro": {"passed": true, "reportedPromptTokens": 37, "reportedCompletionTokens": 30},
+    "mimo-v2.6-flash": {"passed": true, "reportedPromptTokens": 36, "reportedCompletionTokens": 27}
+  },
+  "browserApprovalExecution": {
+    "passed": true,
+    "model": "mimo-v2.6-pro",
+    "paidModelRequests": 1,
+    "onePlanningProviderRequest": true,
+    "authenticatedApproval": true,
+    "browserCommandReview": true,
+    "realDocker": true,
+    "verifiedArtifact": true,
+    "serviceRestartBeforeReview": true,
+    "recordedResultRestored": true,
+    "receiptsUnchanged": true,
+    "durableCompletion": true,
+    "completedEvidenceReadableAfterReopen": true
+  },
+  "limitations": [
+    "This proves the governed approval/execution path, not general autonomous task competence.",
+    "The optional live chat-journey harness still needs a provider-tool-loop fixture; the core execution proof passed."
+  ],
+  "credentialsPersisted": false
+}
