@@ -133,6 +133,19 @@ proof is missing. Previous phase summaries remain historical supporting evidence
 
 ## October 25 progress
 
+### Final 0.1.3 installed-archive reconciliation
+
+The exact hosted-CI archive for the public `v0.1.3` release was installed into
+a fresh consumer directory and passed the complete installed browser acceptance
+runner using the local Chrome executable. Setup, reload recovery, memory
+migration, reviewed Docker execution, durable result restoration, verified
+artifact return to chat, connection recovery, authentication-loss repair and
+timed-session-expiry repair all passed with zero paid requests. The sanitized
+record is `evidence/p10-installed-0.1.3-browser-acceptance.json`; its archive
+SHA-256 is `f498fefbfa56010778a989df73576f6c34fdf47e5f7c4e189dedfd37dc2301f5`.
+This closes exact-candidate installed-package reconciliation for P10 while
+preserving the remaining scope limits below.
+
 ### Live planning and browser execution regression repair
 
 A fresh post-repair MiMo V2.6 Flash request subsequently passed the complete

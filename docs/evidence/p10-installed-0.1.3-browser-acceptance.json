@@ -1,0 +1,36 @@
+{
+  "requirement": "P10",
+  "recordedAt": "2026-10-29T16:49:00Z",
+  "sourceCommit": "7ee9f51593361e6f96cddda3251169e790de502d",
+  "integratedCommit": "d1b133dae19b456072ffbeee08668e2b09e7448a",
+  "release": "v0.1.3",
+  "archive": {
+    "name": "agentforge-0.1.3.tgz",
+    "sha256": "f498fefbfa56010778a989df73576f6c34fdf47e5f7c4e189dedfd37dc2301f5",
+    "hostedCiRun": 40913199820,
+    "hostedArtifactId": 12915625786
+  },
+  "runner": {
+    "name": "installed-browser-acceptance.mjs",
+    "sha256": "5a0a17d6b7f23d84a35f1c1ae9d45926aed561da41c03635f9e5dd70751b072f"
+  },
+  "result": {
+    "passed": true,
+    "installedArchive": true,
+    "syntheticOnly": true,
+    "paidRequests": 0,
+    "setupAndReload": true,
+    "memoryMigration": true,
+    "reviewedDockerExecution": true,
+    "durableResultRecovery": true,
+    "chatReturnedVerifiedArtifact": true,
+    "connectionRecovery": true,
+    "authenticationLossRepair": true,
+    "timedSessionExpiryRepair": true,
+    "finalApproval": true
+  },
+  "limits": [
+    "This is installed-package acceptance with synthetic data; it is not a claim of arbitrary task competence.",
+    "External provider lifecycle and public registry publication remain separately scoped."
+  ]
+}
