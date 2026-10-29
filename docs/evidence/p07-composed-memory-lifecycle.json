@@ -1,0 +1,18 @@
+{
+  "requirement": "P07 extensible memory lifecycle",
+  "sourceCommit": "9ed48c1dab303063f494b2a92e1725cf6e9e3a3b",
+  "passed": true,
+  "syntheticOnly": true,
+  "actualLocalAdapters": true,
+  "workerPlanningContext": true,
+  "workerSourceProvenance": true,
+  "workerOutageFailsClosed": true,
+  "workerRestoredContentFresh": true,
+  "workerDisconnectStopsRecall": true,
+  "conflictingValuesPreserved": true,
+  "projectIsolation": true,
+  "unselectedFileExcluded": true,
+  "storeReopenPreserved": true,
+  "missingSourceFailsClosed": true,
+  "scope": "Operational and Obsidian adapters only; live Hindsight account and LLM conflict resolution remain separate acceptance cases."
+}
